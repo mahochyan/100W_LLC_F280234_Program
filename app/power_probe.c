@@ -34,6 +34,44 @@ static void PRE_STOP_Capture(void)
     g_pre_stop_compsts = Comp1Regs.COMPSTS.bit.COMPSTS;
 }
 
+/* PROFILE_C_VOUT_TARGET_LADDER_V1 ----------------------------------------
+ * Firmware-fixed target -> hard-limit mapping. The hard limit is DERIVED here
+ * and never taken from any user/CCS writable variable: a larger CCS value is
+ * simply ignored (the only legal targets are 1200 and 1400).
+ */
+static Uint16 ACCEL_HardLimitForTarget(Uint16 target_raw)
+{
+    if (target_raw == ACCEL_VOUT_TARGET_1200) return ACCEL_VOUT_HARD_LIMIT_1200;
+    if (target_raw == ACCEL_VOUT_TARGET_1400) return ACCEL_VOUT_HARD_LIMIT_1400;
+    return 0U;   /* invalid target */
+}
+
+/* Freeze the full stop-moment snapshot. Call only at the stop instant, before
+ * any further state changes. */
+static void ACCEL_FreezeStopSnapshot(void)
+{
+    g_accel_stop_target_raw = g_accel_vout_target_raw;
+    g_accel_stop_hard_limit_raw = g_accel_vout_hard_limit_raw;
+    g_accel_stop_raw = g_adc_vout_pwm_sync_raw;
+    g_accel_stop_max_raw = g_accel_last_vout_max;
+    g_accel_stop_completed_cycles = g_multi_cycle_probe_completed_cycles;
+    g_accel_stop_phase = g_accel_phase;
+    g_accel_stop_tbprd = EPwm1Regs.TBPRD;
+    g_accel_stop_cmpa = EPwm1Regs.CMPA.half.CMPA;
+    g_accel_stop_cmpb = EPwm1Regs.CMPB;
+    g_accel_stop_dbred = EPwm1Regs.DBRED;
+    g_accel_stop_dbfed = EPwm1Regs.DBFED;
+    g_accel_stop_dacval = Comp1Regs.DACVAL.bit.DACVAL;
+    g_accel_stop_run_id_at_arm = g_test_run_id_at_arm;
+    g_accel_stop_run_id_at_stop = g_test_run_id_at_stop;
+    g_accel_stop_run_id_at_tz_isr = g_test_run_id_at_tz_isr;
+    g_accel_stop_tzflg = EPwm1Regs.TZFLG.all;
+    g_accel_stop_fault_flags = g_fault_flags;
+    g_accel_stop_soca_count = g_adc_pwm_sync_soca_count;
+    g_accel_stop_eoc_count = g_adc_pwm_sync_eoc_count;
+    g_accel_stop_miss_count = g_adc_pwm_sync_miss_count;
+}
+
 static void MULTICYCLE_RestoreInterrupts(void);
 
 static void TRUTH_CaptureImmediate(void)
@@ -351,6 +389,7 @@ __interrupt void EPWM1_INT_ISR(void)
     }
     else if (g_multi_cycle_probe_active != 0U)
     {
+        Uint16 vout_fresh_this_cycle = 0U;
         if (g_fault_flags != 0UL || g_system_state == SYS_STATE_FAULT)
         {
             MULTICYCLE_AbortByFault();
@@ -360,14 +399,18 @@ __interrupt void EPWM1_INT_ISR(void)
             g_multi_cycle_probe_completed_cycles++;
 
             /* PWM-sync ADC fresh sample read. PIE Group1 stays masked; we poll
-             * ADCINT1/EOC0 flag here as hardware conversion-complete evidence. */
+             * ADCINT1/EOC0 flag here as hardware conversion-complete evidence.
+             * vout_fresh_this_cycle marks that THIS cycle produced a fresh
+             * PWM-sync sample, which is the only basis for VOUT decisions. */
             {
                 Uint16 fresh = 0U;
+                vout_fresh_this_cycle = 0U;
 
                 EALLOW;
                 if (EPwm1Regs.ETFLG.bit.SOCA != 0U)
                 {
                     fresh = 1U;
+                    vout_fresh_this_cycle = 1U;
                     g_adc_vout_pwm_sync_raw = AdcResult.ADCRESULT0;
                     g_adc_pwm_sync_soca_count++;
                     g_adc_pwm_sync_eoc_count++;
@@ -412,14 +455,36 @@ __interrupt void EPWM1_INT_ISR(void)
                 if (g_adc_vout_pwm_sync_raw > g_accel_last_vout_max)
                     g_accel_last_vout_max = g_adc_vout_pwm_sync_raw;
 
-                /* Auxiliary VOUT hard stop (diagnostic limit, not formal OVP). */
-                if (g_adc_vout_pwm_sync_raw >= 800U)
+                /* PROFILE_C_VOUT_TARGET_LADDER_V1: fresh-sample VOUT judgment.
+                 * Only THIS cycle's fresh PWM-sync sample may drive a VOUT
+                 * decision (SOCA/EOC freshness check above). The firmware-fixed
+                 * hard limit is checked FIRST, then the target. Either hit
+                 * schedules the stop at THIS cycle — never waits for the
+                 * 5 ms slow task. */
+                if (vout_fresh_this_cycle != 0U)
                 {
-                    g_accel_stop_reason = 2U;
-                    g_accel_phase = 4U;   /* VOUT_STOP */
+                    if (g_adc_vout_pwm_sync_raw >= g_accel_vout_hard_limit_raw)
+                    {
+                        g_accel_stop_reason = ACCEL_STOP_HARD_LIMIT;
+                        g_accel_phase = 4U;   /* VOUT_STOP */
+                        g_multi_cycle_probe_cycles = cyc;
+                    }
+                    else if (g_adc_vout_pwm_sync_raw >= g_accel_vout_target_raw)
+                    {
+                        g_accel_stop_reason = ACCEL_STOP_VOUT_TARGET;
+                        g_accel_phase = 4U;   /* VOUT_STOP */
+                        g_multi_cycle_probe_cycles = cyc;
+                    }
+                }
+                else if (g_adc_pwm_sync_stale_abort != 0U)
+                {
+                    /* Consecutive SOCA/EOC miss >= 3: stop immediately. */
+                    g_accel_stop_reason = ACCEL_STOP_STALE_ADC;
+                    g_accel_phase = 4U;
                     g_multi_cycle_probe_cycles = cyc;
                 }
-                else if (g_accel_phase == 1U)
+
+                if (g_accel_phase == 1U)
                 {
                     /* Phase A: DB110 platform 15 cycles, then 10 cycles per DB. */
                     Uint32 dur = (g_accel_stage_index == 0U) ? 15UL : 10UL;
@@ -493,16 +558,13 @@ __interrupt void EPWM1_INT_ISR(void)
                     g_accel_phase_c_cycles = (Uint16)(cyc - g_accel_phase_c_start_cycle);
                     if (g_adc_vout_pwm_sync_raw > g_accel_phase_c_vout_max)
                         g_accel_phase_c_vout_max = g_adc_vout_pwm_sync_raw;
-                    if (g_adc_vout_pwm_sync_raw >= 300U)
+                    /* PROFILE_C_VOUT_TARGET_LADDER_V1: the old 300-raw
+                     * diagnostic target is gone. The ladder target/hard-limit
+                     * checks above own the stop decision; Phase C only keeps
+                     * its 150-cycle cap (MAX_TOTAL_CYCLES = 485 overall). */
+                    if (g_accel_phase_c_cycles >= 150U)
                     {
-                        g_accel_stop_reason = 2U;
-                        g_accel_phase = 4U;
-                        g_accel_phase_c_vout_stop = g_adc_vout_pwm_sync_raw;
-                        g_multi_cycle_probe_cycles = cyc;
-                    }
-                    else if (g_accel_phase_c_cycles >= 150U)
-                    {
-                        g_accel_stop_reason = 1U;
+                        g_accel_stop_reason = ACCEL_STOP_MAX_CYCLES;
                         g_accel_phase = 5U;
                         g_accel_phase_c_vout_stop = g_adc_vout_pwm_sync_raw;
                         g_multi_cycle_probe_cycles = cyc;
@@ -519,6 +581,11 @@ __interrupt void EPWM1_INT_ISR(void)
                 {
                     /* Hardware OST already latched before scheduled stop. */
                     g_pre_stop_hardware_trip_seen = 1U;
+                    if (g_accel_active != 0U)
+                    {
+                        g_accel_stop_reason = ACCEL_STOP_TZ_TRIP;
+                        ACCEL_FreezeStopSnapshot();
+                    }
                     g_multi_cycle_probe_active = 0U;
                     g_multi_cycle_probe_result = 2U;
                     g_multi_cycle_probe_stop_reason = 2U;
@@ -531,6 +598,12 @@ __interrupt void EPWM1_INT_ISR(void)
                 {
                     /* Requested number of complete cycles finished.
                      * OST write is the highest-priority action in this branch. */
+                    if (g_accel_active != 0U)
+                    {
+                        if (g_accel_stop_reason == ACCEL_STOP_NONE)
+                            g_accel_stop_reason = ACCEL_STOP_MAX_CYCLES;
+                        ACCEL_FreezeStopSnapshot();
+                    }
                     g_vout_runtime_before_ost = g_adc_vout_pwm_sync_raw;
                     g_truth_runtime_raw = g_adc_vout_pwm_sync_raw;
                     g_truth_runtime_tbctr = EPwm1Regs.TBCTR;
@@ -793,6 +866,46 @@ void MULTICYCLE_SlowTask(void)
     if (g_accel_request != 0U)
     {
         g_accel_request = 0U;
+
+        /* PROFILE_C_VOUT_TARGET_LADDER_V1: only 1200/1400 are legal targets.
+         * Anything else REJECTs BEFORE any real power is started. The hard
+         * limit is derived here from the target by a firmware-fixed mapping;
+         * no CCS-writable variable can enlarge it. */
+        g_accel_target_rejected = 0U;
+        g_accel_vout_hard_limit_raw = ACCEL_HardLimitForTarget(g_accel_vout_target_raw);
+        if (g_accel_vout_hard_limit_raw == 0U)
+        {
+            g_accel_target_rejected = 1U;
+            g_multi_cycle_probe_result = 3U;   /* REJECTED */
+            g_multi_cycle_probe_active = 0U;
+            g_pwm_enabled = 0U;
+            g_pwm_enable_result = 0U;
+            MULTICYCLE_RestoreInterrupts();
+            return;
+        }
+
+        /* Stop-snapshot fields are cleared at every arm. */
+        g_accel_stop_target_raw = 0U;
+        g_accel_stop_hard_limit_raw = 0U;
+        g_accel_stop_raw = 0U;
+        g_accel_stop_max_raw = 0U;
+        g_accel_stop_completed_cycles = 0UL;
+        g_accel_stop_phase = 0U;
+        g_accel_stop_tbprd = 0U;
+        g_accel_stop_cmpa = 0U;
+        g_accel_stop_cmpb = 0U;
+        g_accel_stop_dbred = 0U;
+        g_accel_stop_dbfed = 0U;
+        g_accel_stop_dacval = 0U;
+        g_accel_stop_run_id_at_arm = 0UL;
+        g_accel_stop_run_id_at_stop = 0UL;
+        g_accel_stop_run_id_at_tz_isr = 0UL;
+        g_accel_stop_tzflg = 0U;
+        g_accel_stop_fault_flags = 0UL;
+        g_accel_stop_soca_count = 0UL;
+        g_accel_stop_eoc_count = 0UL;
+        g_accel_stop_miss_count = 0UL;
+
         g_accel_active = 1U;
         g_accel_phase = 1U;   /* PHASE_A */
         g_accel_stop_reason = 0U;
@@ -900,6 +1013,12 @@ void MULTICYCLE_AbortByFault(void)
 
     g_multi_cycle_probe_active = 0U;
     g_multi_cycle_probe_result = 2U;   /* ABORTED_BY_FAULT */
+    if (g_accel_active != 0U)
+    {
+        if (g_accel_stop_reason == ACCEL_STOP_NONE)
+            g_accel_stop_reason = ACCEL_STOP_TZ_TRIP;
+        ACCEL_FreezeStopSnapshot();
+    }
     g_pwm_enabled = 0U;
     g_pwm_enable_result = 0U;
     g_multi_cycle_probe_stop_tbctr = EPwm1Regs.TBCTR;

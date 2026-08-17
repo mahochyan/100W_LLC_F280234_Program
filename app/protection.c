@@ -123,7 +123,7 @@ __interrupt void EPWM1_TZINT_ISR(void)
     g_accel_trip_cmpa = g_accel_current_cmpa;
     g_accel_trip_db = g_accel_current_db;
     g_accel_trip_completed_cycles = g_multi_cycle_probe_completed_cycles;
-    g_accel_stop_reason = 3U;
+    g_accel_stop_reason = ACCEL_STOP_TZ_TRIP;
 
     g_comp_trip_dac_code = Comp1Regs.DACVAL.bit.DACVAL;
     g_comp_trip_tbctr = EPwm1Regs.TBCTR;

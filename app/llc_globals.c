@@ -256,6 +256,29 @@ volatile Uint16 g_accel_phase_c_cycles;
 volatile Uint16 g_accel_phase_c_vout_start;
 volatile Uint16 g_accel_phase_c_vout_max;
 volatile Uint16 g_accel_phase_c_vout_stop;
+volatile Uint16 g_accel_vout_target_raw = ACCEL_VOUT_TARGET_1200;   /* first shot: 1200 */
+volatile Uint16 g_accel_vout_hard_limit_raw = 0U;                   /* derived at arm */
+volatile Uint16 g_accel_target_rejected = 0U;
+volatile Uint16 g_accel_stop_target_raw = 0U;
+volatile Uint16 g_accel_stop_hard_limit_raw = 0U;
+volatile Uint16 g_accel_stop_raw = 0U;
+volatile Uint16 g_accel_stop_max_raw = 0U;
+volatile Uint32 g_accel_stop_completed_cycles = 0UL;
+volatile Uint16 g_accel_stop_phase = 0U;
+volatile Uint16 g_accel_stop_tbprd = 0U;
+volatile Uint16 g_accel_stop_cmpa = 0U;
+volatile Uint16 g_accel_stop_cmpb = 0U;
+volatile Uint16 g_accel_stop_dbred = 0U;
+volatile Uint16 g_accel_stop_dbfed = 0U;
+volatile Uint16 g_accel_stop_dacval = 0U;
+volatile Uint32 g_accel_stop_run_id_at_arm = 0UL;
+volatile Uint32 g_accel_stop_run_id_at_stop = 0UL;
+volatile Uint32 g_accel_stop_run_id_at_tz_isr = 0UL;
+volatile Uint16 g_accel_stop_tzflg = 0U;
+volatile Uint32 g_accel_stop_fault_flags = 0UL;
+volatile Uint32 g_accel_stop_soca_count = 0UL;
+volatile Uint32 g_accel_stop_eoc_count = 0UL;
+volatile Uint32 g_accel_stop_miss_count = 0UL;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;

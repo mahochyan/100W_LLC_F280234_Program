@@ -259,6 +259,49 @@ extern volatile Uint16 g_accel_phase_c_vout_start;
 extern volatile Uint16 g_accel_phase_c_vout_max;
 extern volatile Uint16 g_accel_phase_c_vout_stop;
 
+/* PROFILE_C_VOUT_TARGET_LADDER_V1 (2026-08-17)
+ * VOUT target ladder: g_accel_vout_target_raw is restricted to 1200 or 1400;
+ * the hard limit is DERIVED inside the firmware (1200->1300, 1400->1450) and
+ * cannot be enlarged from CCS. Snapshot fields are frozen at the stop moment. */
+#define ACCEL_VOUT_TARGET_1200       1200U
+#define ACCEL_VOUT_TARGET_1400       1400U
+#define ACCEL_VOUT_HARD_LIMIT_1200   1300U
+#define ACCEL_VOUT_HARD_LIMIT_1400   1450U
+
+/* g_accel_stop_reason values */
+#define ACCEL_STOP_NONE              0U   /* no stop reason set yet */
+#define ACCEL_STOP_MAX_CYCLES        1U   /* MAX_CYCLES_REACHED (485 or Phase C 150) */
+#define ACCEL_STOP_VOUT_TARGET       2U   /* VOUT_TARGET_REACHED */
+#define ACCEL_STOP_HARD_LIMIT        3U   /* HARD_VOUT_LIMIT */
+#define ACCEL_STOP_TZ_TRIP           4U   /* ACTIVE TZ trip */
+#define ACCEL_STOP_STALE_ADC         5U   /* consecutive SOCA/EOC miss >= 3 */
+
+extern volatile Uint16 g_accel_vout_target_raw;
+extern volatile Uint16 g_accel_vout_hard_limit_raw;
+extern volatile Uint16 g_accel_target_rejected;
+
+/* Frozen at the stop instant (scheduled OST / abort) */
+extern volatile Uint16 g_accel_stop_target_raw;
+extern volatile Uint16 g_accel_stop_hard_limit_raw;
+extern volatile Uint16 g_accel_stop_raw;
+extern volatile Uint16 g_accel_stop_max_raw;
+extern volatile Uint32 g_accel_stop_completed_cycles;
+extern volatile Uint16 g_accel_stop_phase;
+extern volatile Uint16 g_accel_stop_tbprd;
+extern volatile Uint16 g_accel_stop_cmpa;
+extern volatile Uint16 g_accel_stop_cmpb;
+extern volatile Uint16 g_accel_stop_dbred;
+extern volatile Uint16 g_accel_stop_dbfed;
+extern volatile Uint16 g_accel_stop_dacval;
+extern volatile Uint32 g_accel_stop_run_id_at_arm;
+extern volatile Uint32 g_accel_stop_run_id_at_stop;
+extern volatile Uint32 g_accel_stop_run_id_at_tz_isr;
+extern volatile Uint16 g_accel_stop_tzflg;
+extern volatile Uint32 g_accel_stop_fault_flags;
+extern volatile Uint32 g_accel_stop_soca_count;
+extern volatile Uint32 g_accel_stop_eoc_count;
+extern volatile Uint32 g_accel_stop_miss_count;
+
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 extern volatile Uint16 g_adc_pwm_sync_cmpb;
 extern volatile Uint16 g_adc_pwm_sync_cmpa;

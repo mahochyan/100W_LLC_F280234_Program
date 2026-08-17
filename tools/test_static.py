@@ -243,6 +243,52 @@ check("g_enable_rising_count++" in state_machine_src,
       "Enable rising count increments once per edge")
 
 # ----------------------------------------------------------------------
+# PROFILE_C_VOUT_TARGET_LADDER_V1 (2026-08-17)
+# ----------------------------------------------------------------------
+probe_src = read_text(ROOT / "app" / "power_probe.c")
+prot_src = read_text(ROOT / "app" / "protection.c")
+
+check("ACCEL_VOUT_TARGET_1200" in globals_h and "ACCEL_VOUT_TARGET_1400" in globals_h,
+      "V1 target ladder constants present")
+check("ACCEL_STOP_HARD_LIMIT" in globals_h and "ACCEL_STOP_VOUT_TARGET" in globals_h
+      and "ACCEL_STOP_MAX_CYCLES" in globals_h and "ACCEL_STOP_TZ_TRIP" in globals_h
+      and "ACCEL_STOP_STALE_ADC" in globals_h,
+      "V1 stop-reason constants present")
+check("g_accel_vout_target_raw" in globals_h and "g_accel_vout_hard_limit_raw" in globals_h
+      and "g_accel_target_rejected" in globals_h,
+      "V1 target/hard-limit globals declared")
+check("g_accel_stop_target_raw" in globals_h and "g_accel_stop_raw" in globals_h
+      and "g_accel_stop_max_raw" in globals_h and "g_accel_stop_completed_cycles" in globals_h
+      and "g_accel_stop_phase" in globals_h and "g_accel_stop_dacval" in globals_h
+      and "g_accel_stop_soca_count" in globals_h,
+      "V1 stop-snapshot globals declared")
+check("= ACCEL_VOUT_TARGET_1200" in globals_c,
+      "firmware default target is 1200 (first shot)")
+check("ACCEL_HardLimitForTarget" in probe_src,
+      "firmware-fixed target->hard-limit mapping present")
+check("if (target_raw == ACCEL_VOUT_TARGET_1200) return ACCEL_VOUT_HARD_LIMIT_1200" in probe_src
+      and "if (target_raw == ACCEL_VOUT_TARGET_1400) return ACCEL_VOUT_HARD_LIMIT_1400" in probe_src,
+      "hard limits fixed: 1200->1300, 1400->1450")
+check("g_accel_vout_hard_limit_raw == 0U" in probe_src,
+      "illegal target rejects before real power (REJECT path)")
+check("ACCEL_STOP_HARD_LIMIT" in probe_src and "g_adc_vout_pwm_sync_raw >= g_accel_vout_hard_limit_raw" in probe_src,
+      "hard-limit check on fresh PWM-sync sample")
+check("ACCEL_STOP_VOUT_TARGET" in probe_src and "g_adc_vout_pwm_sync_raw >= g_accel_vout_target_raw" in probe_src,
+      "target check on fresh PWM-sync sample")
+check("ACCEL_STOP_STALE_ADC" in probe_src and "g_adc_pwm_sync_stale_abort" in probe_src,
+      "miss>=3 immediate stop path present")
+check("vout_fresh_this_cycle" in probe_src,
+      "VOUT judgment gated on this-cycle fresh sample")
+check("ACCEL_FreezeStopSnapshot" in probe_src,
+      "stop-moment snapshot freeze present")
+check("ACCEL_STOP_TZ_TRIP" in prot_src,
+      "TZ ISR uses ACTIVE_TRIP stop reason")
+check(">= 800U" not in probe_src and ">= 300U" not in probe_src,
+      "old 800/300 diagnostic thresholds removed")
+
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 print()
 if failures:
     print(f"{len(failures)} check(s) FAILED")

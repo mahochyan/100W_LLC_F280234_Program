@@ -106,3 +106,28 @@ All variables are non-static `volatile` and can be added to CCS Expressions.
 - `g_force_trip_request`: write 1; firmware clears after tripping.
 - `g_fault_reset_request`: write 1 after PWM off and source removed; firmware clears after reset.
 - `g_pwm_enable_request`: keep at 1 to run; write 0 to inhibit. Only rising edge starts.
+
+
+## PROFILE_C_VOUT_TARGET_LADDER_V1
+
+| Variable | Type | R/W | Meaning |
+|---|---|---|---|
+| `g_accel_vout_target_raw` | Uint16 | W | Ladder target: **1200** (default, first shot) or 1400 only |
+| `g_accel_vout_hard_limit_raw` | Uint16 | R | Derived at arm: 1200→1300, 1400→1450 (not writable) |
+| `g_accel_target_rejected` | Uint16 | R | 1 = target rejected (not 1200/1400), no power started |
+| `g_accel_stop_reason` | Uint16 | R | 0 none / 1 MAX_CYCLES / 2 VOUT_TARGET / 3 HARD_LIMIT / 4 TZ_TRIP / 5 STALE_ADC |
+| `g_accel_stop_target_raw` | Uint16 | R | Frozen target at stop |
+| `g_accel_stop_hard_limit_raw` | Uint16 | R | Frozen hard limit at stop |
+| `g_accel_stop_raw` | Uint16 | R | Frozen VOUT raw at stop |
+| `g_accel_stop_max_raw` | Uint16 | R | Frozen max VOUT raw seen |
+| `g_accel_stop_completed_cycles` | Uint32 | R | Frozen completed cycles |
+| `g_accel_stop_phase` | Uint16 | R | Frozen phase (1 A / 2 B / 3 C / 4 VOUT_STOP / 5 MAX) |
+| `g_accel_stop_tbprd/cmpa/cmpb/dbred/dbfed` | Uint16 | R | Frozen PWM/dead-band state |
+| `g_accel_stop_dacval` | Uint16 | R | Frozen COMP DACVAL |
+| `g_accel_stop_run_id_at_arm/stop/tz_isr` | Uint32 | R | Frozen run-id chain |
+| `g_accel_stop_tzflg` | Uint16 | R | Frozen TZFLG (ACTIVE trip evidence) |
+| `g_accel_stop_fault_flags` | Uint32 | R | Frozen fault flags |
+| `g_accel_stop_soca_count/eoc_count/miss_count` | Uint32 | R | Frozen ADC freshness counters |
+
+First shot setup: `g_test_run_id = 0x250C1200`, `g_accel_vout_target_raw = 1200`,
+`g_accel_request = 1`. Vin 24.0 V, bench limit 0.20 A, CNT3/CNT4 connected.
