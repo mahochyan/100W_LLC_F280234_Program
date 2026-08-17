@@ -259,6 +259,9 @@ volatile Uint16 g_accel_phase_c_vout_stop;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;
+volatile Uint16 g_adc_pwm_sync_cmpa;
+volatile Uint16 g_adc_pwm_sync_edge_distance;
+volatile Uint16 g_vout_runtime_before_ost;
 volatile Uint32 g_adc_pwm_sync_soca_count;
 volatile Uint32 g_adc_pwm_sync_eoc_count;
 volatile Uint32 g_adc_pwm_sync_miss_count;

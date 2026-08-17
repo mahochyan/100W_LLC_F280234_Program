@@ -209,7 +209,7 @@ static void MULTICYCLE_ConfigureAdcCapture(void)
     AdcRegs.ADCSOC0CTL.bit.ACQPS = 7U;
     AdcRegs.ADCSOC0CTL.bit.TRIGSEL = 5U;
     AdcRegs.INTSEL1N2.bit.INT1SEL = 0U;   /* ADCINT1 from EOC0 */
-    AdcRegs.INTSEL1N2.bit.INT1E = 1U;     /* flag set; PIEIER1=0 keeps CPU masked */
+    AdcRegs.INTSEL1N2.bit.INT1E = 0U;     /* keep PIE Group1 fully masked */
     AdcRegs.ADCINTFLGCLR.all = 0xFFFFU;
     AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
     EDIS;
@@ -367,17 +367,18 @@ __interrupt void EPWM1_INT_ISR(void)
                 Uint16 fresh = 0U;
 
                 EALLOW;
-                if (AdcRegs.ADCINTFLG.bit.ADCINT1 != 0U)
+                if (EPwm1Regs.ETFLG.bit.SOCA != 0U)
                 {
                     fresh = 1U;
                     g_adc_vout_pwm_sync_raw = AdcResult.ADCRESULT0;
                     g_adc_pwm_sync_soca_count++;
+                    g_adc_pwm_sync_eoc_count++;
                     g_adc_vout_raw = g_adc_vout_pwm_sync_raw;
                     g_adc_vout_filter_acc = g_adc_vout_filter_acc -
                         (g_adc_vout_filter_acc >> 4) + g_adc_vout_pwm_sync_raw;
                     g_adc_vout_filtered_raw = (Uint16)(g_adc_vout_filter_acc >> 4);
                     g_adc_sample_counter++;
-                    g_adc_pwm_sync_eoc_count++;
+                    EPwm1Regs.ETCLR.bit.SOCA = 1U;
                     AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
                     AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
                     g_adc_pwm_sync_valid = 1U;
@@ -532,6 +533,7 @@ __interrupt void EPWM1_INT_ISR(void)
                 {
                     /* Requested number of complete cycles finished.
                      * OST write is the highest-priority action in this branch. */
+                    g_vout_runtime_before_ost = g_adc_vout_pwm_sync_raw;
                     g_probe_ost_command_tbctr = EPwm1Regs.TBCTR;
                     g_probe_ost_command_timer2 = CpuTimer2Regs.TIM.all;
                     /* EALLOW is required for TZ register writes. Disable TZ interrupt
@@ -898,6 +900,7 @@ void MULTICYCLE_SlowTask(void)
     g_adc_pwm_sync_valid = 0U;
     g_adc_pwm_sync_consecutive_miss = 0U;
     g_adc_pwm_sync_stale_abort = 0U;
+    g_vout_runtime_before_ost = 0U;
 
     /* PROFILE_C ACCELERATED BOUNDED SOFTSTART: if requested, force 485-cycle
      * hard window and start from the verified 250kHz/DB110 platform. */
@@ -929,6 +932,21 @@ void MULTICYCLE_SlowTask(void)
         g_single_cycle_probe_deadtime = 110U;
         g_multi_cycle_probe_cycles = 485UL;
         g_multi_cycle_probe_completed_cycles = 0UL;
+    }
+
+    /* Edge-avoidance guard: reject Profile C if CMPB is too close to CMPA. */
+    if (g_accel_active != 0U)
+    {
+        if (g_adc_pwm_sync_cmpb == g_adc_pwm_sync_cmpa ||
+            g_adc_pwm_sync_edge_distance < 40U)
+        {
+            g_multi_cycle_probe_result = 3U;   /* REJECTED */
+            g_multi_cycle_probe_active = 0U;
+            g_pwm_enabled = 0U;
+            g_pwm_enable_result = 0U;
+            MULTICYCLE_RestoreInterrupts();
+            return;
+        }
     }
 
     /* Temporary diagnostic comparator threshold ~0.97 V (DAC=300). */
