@@ -1,0 +1,372 @@
+/*
+ * llc_globals.h
+ *
+ * All non-static volatile debug/control variables for CCS Expressions.
+ */
+#ifndef APP_LLC_GLOBALS_H
+#define APP_LLC_GLOBALS_H
+
+#include "DSP2803x_Device.h"
+
+/* Stage / PWM */
+extern volatile Uint16 g_bringup_stage;
+extern volatile Uint16 g_active_bringup_stage;
+extern volatile Uint16 g_stage_confirm_request;
+extern volatile Uint16 g_stage_confirmed_mask;
+extern volatile Uint32 g_switching_frequency_hz;
+extern volatile Uint32 g_actual_switching_frequency_hz;
+extern volatile Uint16 g_pwm_period;
+extern volatile Uint16 g_pwm_enabled;
+extern volatile Uint16 g_pwm_enable_request;
+extern volatile Uint16 g_pwm_enable_result;
+extern volatile Uint16 g_diag_frequency_override;   /* 1 = allow up to LLC_DIAG_MAX_HZ */
+
+/* ADC */
+extern volatile Uint16 g_adc_vout_raw;
+extern volatile Uint16 g_adc_iout_raw;
+extern volatile Uint16 g_adc_ipri_raw;
+extern volatile Uint16 g_adc_vout_filtered_raw;
+extern volatile Uint16 g_adc_iout_filtered_raw;
+extern volatile Uint16 g_adc_ipri_filtered_raw;
+extern volatile Uint32 g_adc_vout_filter_acc;
+extern volatile Uint32 g_adc_iout_filter_acc;
+extern volatile Uint32 g_adc_ipri_filter_acc;
+extern volatile float   g_vout_volts;
+extern volatile float   g_iout_amps;
+extern volatile float   g_ipri_amps;
+extern volatile Uint32  g_adc_sample_counter;
+extern volatile Uint32  g_adc_sample_sequence;
+extern volatile Uint16  g_adc_trigger_mode;
+
+/* State / protection */
+extern volatile Uint16 g_system_state;
+extern volatile Uint32 g_fault_flags;
+extern volatile Uint32 g_fault_history;
+extern volatile Uint16 g_trip_count;
+extern volatile Uint16 g_fast_fault_count;
+extern volatile Uint16 g_fault_reset_request;
+extern volatile Uint16 g_force_trip_request;
+
+/* Control */
+extern volatile Uint32 g_softstart_frequency_hz;
+extern volatile Uint32 g_control_frequency_hz;
+extern volatile float   g_voltage_reference;
+extern volatile Uint32 g_open_loop_target_frequency_hz;
+extern volatile Uint32 g_open_loop_min_frequency_hz;
+extern volatile Uint32 g_power_run_min_frequency_hz;
+extern volatile Uint16 g_softstart_autoramp_allowed;
+extern volatile float   g_pi_integral;
+extern volatile float   g_pi_bias_frequency_hz;
+extern volatile Uint16 g_control_running;
+
+/* Tutorial SoftStart Engine */
+extern volatile Uint16 g_softstart_state;
+extern volatile Uint32 g_softstart_period_limit;
+extern volatile Uint16 g_softstart_deadtime;
+extern volatile Uint32 g_softstart_step_count;
+extern volatile Uint32 g_softstart_elapsed_ms;
+extern volatile Uint32 g_softstart_period_limit_start;
+extern volatile Uint32 g_softstart_period_limit_final;
+extern volatile Uint32 g_softstart_period_step;
+extern volatile Uint16 g_softstart_deadtime_start;
+extern volatile Uint16 g_softstart_deadtime_final;
+extern volatile Uint16 g_softstart_deadtime_step;
+extern volatile Uint16 g_softstart_wait_5ms_ticks;
+extern volatile Uint16 g_softstart_profile;
+extern volatile Uint32 g_period_request;
+extern volatile Uint32 g_period_limit;
+extern volatile Uint32 g_period_applied;
+extern volatile Uint16 g_burst_enabled;
+extern volatile Uint16 g_burst_active;
+extern volatile Uint32 g_burst_enter_count;
+extern volatile Uint32 g_burst_exit_count;
+extern volatile Uint16 g_ocp_recovery_mode;
+extern volatile Uint16 g_softstart_abort_reason;
+extern volatile Uint16 g_softstart_ocp_dac_code;
+extern volatile Uint16 g_pwm_start_prepared;
+extern volatile Uint32 g_enable_rising_count;
+extern volatile Uint32 g_softstart_final_apply_count;
+extern volatile Uint16 g_softstart_final_applied;
+extern volatile Uint16 g_softstart_final_apply_pending;
+extern volatile Uint16 g_no_energy_test_mode;
+extern volatile Uint16 g_first_start_seen;
+extern volatile Uint16 g_first_start_tbprd;
+extern volatile Uint16 g_first_start_cmpa;
+extern volatile Uint16 g_first_start_dbred;
+extern volatile Uint16 g_first_start_dbfed;
+extern volatile Uint16 g_first_start_dacval;
+extern volatile Uint16 g_first_start_ost;
+extern volatile Uint16 g_first_start_pwm;
+extern volatile Uint16 g_pre_stop_tzflg;
+extern volatile Uint16 g_pre_stop_ost;
+extern volatile Uint16 g_pre_stop_gpio15;
+extern volatile Uint16 g_pre_stop_compsts;
+extern volatile Uint16 g_pre_stop_tbctr;
+extern volatile Uint32 g_pre_stop_timer2;
+extern volatile Uint16 g_pre_stop_hardware_trip_seen;
+
+/* Comparator / TZ debug */
+extern volatile Uint16 g_comp_dac_value;
+extern volatile Uint16 g_comp_polarity;
+extern volatile Uint16 g_comp_arm;
+extern volatile Uint16 g_loopback_diag_request;
+extern volatile Uint16 g_comp_tz_loopback_verified;
+extern volatile Uint16 g_loopback_diag_result;
+extern volatile Uint16 g_loopback_read0;
+extern volatile Uint16 g_loopback_read1;
+extern volatile Uint16 g_loopback_read2;
+extern volatile Uint16 g_comp_inject_test_request;
+extern volatile Uint16 g_comp_inject_test_armed;
+extern volatile Uint16 g_comp_inject_test_disarm_request;
+extern volatile Uint16 g_comp1_status;
+extern volatile Uint16 g_comp1_dac_code;
+extern volatile Uint16 g_comp_prestart_status;
+extern volatile Uint16 g_comp_prestart_gpio15;
+extern volatile Uint16 g_comp_prestart_tzflg;
+extern volatile Uint16 g_comp_prestart_reject;
+extern volatile Uint16 g_static_cal_request;
+extern volatile Uint16 g_static_cal_dac;
+extern volatile Uint16 g_static_cal_armed;
+extern volatile Uint16 g_static_cal_initial_compsts;
+extern volatile Uint16 g_static_cal_initial_gpio15;
+extern volatile Uint16 g_static_cal_transition_detected;
+extern volatile Uint16 g_static_cal_compsts_before;
+extern volatile Uint16 g_static_cal_compsts_after;
+extern volatile Uint16 g_static_cal_gpio15_before;
+extern volatile Uint16 g_static_cal_gpio15_after;
+extern volatile Uint16 g_static_cal_tzflg_after;
+extern volatile Uint16 g_static_cal_disarm_request;
+extern volatile Uint16 g_tz_ost_flag;
+extern volatile Uint16 g_tz_int_flag;
+extern volatile Uint16 g_software_ost_in_progress;
+extern volatile Uint16 g_tz_isr_tbctr;
+extern volatile Uint32 g_tz_isr_timer2;
+extern volatile Uint16 g_tz_isr_software_ost_flag;
+extern volatile Uint16 g_tz_isr_after_scheduled_ost;
+extern volatile Uint16 g_tz_isr_gpio15;
+extern volatile Uint16 g_tz_isr_compsts;
+extern volatile Uint16 g_tz_isr_tzflg;
+extern volatile Uint16 g_tz_event_phase;
+extern volatile Uint32 g_tz_software_ost_count;
+extern volatile Uint32 g_tz_hardware_trip_count;
+extern volatile Uint32 g_tz_active_window_trip_count;
+extern volatile Uint32 g_tz_post_ost_trip_count;
+extern volatile Uint32 g_post_ost_trip_delay_ticks;
+extern volatile Uint16 g_power_window_state;
+extern volatile Uint16 g_probe_scheduled_ost_occurred;
+
+/* Test-run-ID evidence chain */
+extern volatile Uint32 g_test_run_id;
+extern volatile Uint32 g_test_run_id_at_arm;
+extern volatile Uint32 g_test_run_id_at_tz_isr;
+extern volatile Uint32 g_test_run_id_at_stop;
+extern volatile Uint16 g_test_dac_snapshot;
+extern volatile Uint16 g_test_tbprd_snapshot;
+extern volatile Uint16 g_test_cmpa_snapshot;
+
+
+/* Stage 4D one-shot power probe */
+extern volatile Uint16 g_power_probe_request;
+extern volatile Uint16 g_power_probe_result;
+extern volatile Uint16 g_power_probe_active;
+extern volatile Uint32 g_power_probe_duration_us;
+extern volatile Uint32 g_power_probe_count;
+extern volatile Uint16 g_power_probe_adc_vout_before;
+extern volatile Uint16 g_power_probe_adc_vout_after;
+extern volatile Uint16 g_power_probe_adc_ipri_before;
+extern volatile Uint16 g_power_probe_adc_ipri_peak;
+extern volatile Uint16 g_power_probe_adc_iout_before;
+extern volatile Uint16 g_power_probe_adc_iout_after;
+
+
+/* Stage 4D single-cycle diagnostic power probe */
+extern volatile Uint16 g_single_cycle_probe_request;
+extern volatile Uint16 g_single_cycle_probe_result;
+extern volatile Uint16 g_single_cycle_probe_active;
+extern volatile Uint32 g_single_cycle_probe_frequency_hz;   /* diagnostic frequency for next shot */
+extern volatile Uint32 g_single_cycle_probe_count;
+extern volatile Uint16 g_single_cycle_probe_adc_ipri_before;
+extern volatile Uint16 g_single_cycle_probe_adc_ipri_peak;
+extern volatile Uint16 g_single_cycle_probe_adc_vout_before;
+extern volatile Uint16 g_single_cycle_probe_adc_vout_after;
+extern volatile Uint16 g_single_cycle_probe_stop_tbctr;
+extern volatile Uint16 g_single_cycle_probe_deadtime;
+
+/* Cold-start single-cycle initial-condition capture */
+extern volatile Uint16 g_coldshot_vout_raw_before;
+extern volatile Uint16 g_coldshot_ipri_raw_before;
+extern volatile Uint16 g_coldshot_compsts_before;
+extern volatile Uint16 g_coldshot_gpio15_before;
+extern volatile Uint16 g_coldshot_tzflg_before;
+extern volatile Uint32 g_coldshot_timer2_start;
+extern volatile Uint16 g_coldshot_vout_baseline_avg;
+extern volatile Uint16 g_coldshot_vout_baseline_samples;
+extern volatile Uint16 g_coldshot_vin_actual_x10;   /* e.g. 240 = 24.0 V */
+
+
+/* TZ1 input qualification diagnostic */
+extern volatile Uint16 g_tz1_qualification_mode;
+extern volatile Uint16 g_tz1_qualification_period;
+extern volatile Uint32 g_single_cycle_probe_tick_count;
+extern volatile Uint32 g_single_cycle_probe_safety_count;
+extern volatile Uint32 g_single_cycle_probe_start_fast_tick;
+
+/* Comparator trip entry diagnostics */
+extern volatile Uint16 g_comp_trip_dac_code;
+extern volatile Uint16 g_comp_trip_tbctr;
+extern volatile Uint16 g_comp_trip_vout_raw;
+extern volatile Uint16 g_single_cycle_completed;
+extern volatile Uint16 g_single_cycle_result;
+
+
+/* Stage 4E multi-cycle power probe */
+extern volatile Uint16 g_multi_cycle_probe_request;
+extern volatile Uint16 g_multi_cycle_probe_result;
+extern volatile Uint16 g_multi_cycle_probe_active;
+extern volatile Uint32 g_multi_cycle_probe_cycles;
+extern volatile Uint32 g_multi_cycle_probe_completed_cycles;
+extern volatile Uint16 g_multi_cycle_probe_adc_vout_before;
+extern volatile Uint16 g_multi_cycle_probe_adc_vout_after;
+extern volatile Uint16 g_multi_cycle_probe_adc_ipri_before;
+extern volatile Uint16 g_multi_cycle_probe_adc_ipri_peak;
+extern volatile Uint16 g_multi_cycle_probe_stop_tbctr;
+extern volatile Uint16 g_multi_cycle_probe_stop_reason;
+extern volatile Uint32 g_completed_cycles_at_trip;
+
+
+/* PROFILE_C DB micro-ramp diagnostic (200 kHz / DB140 -> DB130 -> DB120) */
+extern volatile Uint16 g_micro_ramp_request;
+extern volatile Uint16 g_micro_ramp_active;
+extern volatile Uint16 g_micro_ramp_stage;
+extern volatile Uint16 g_micro_ramp_db_at_trip;
+extern volatile Uint32 g_micro_ramp_completed_cycles_at_trip;
+extern volatile Uint32 g_micro_ramp_db_change1_cycle;
+extern volatile Uint32 g_micro_ramp_db_change2_cycle;
+extern volatile Uint16 g_micro_ramp_actual_dbred;
+extern volatile Uint16 g_micro_ramp_actual_dbfed;
+extern volatile Uint16 g_micro_ramp_db_update_pending;
+extern volatile Uint16 g_micro_ramp_pending_db;
+
+/* PWM register-write audit counters */
+extern volatile Uint32 g_pwm_runtime_write_count;
+extern volatile Uint32 g_pwm_apply_count;
+extern volatile Uint32 g_pwm_apply_cycle_last;
+extern volatile Uint16 g_tbprd_write_count;
+extern volatile Uint16 g_cmpa_write_count;
+extern volatile Uint16 g_dbred_write_count;
+extern volatile Uint16 g_dbfed_write_count;
+extern volatile Uint16 g_tbctr_write_count;
+
+/* MULTICYCLE first-3-cycle trace snapshots (index 0..2 = cycles 1..3) */
+extern volatile Uint16 g_mc_trace_cycle[3];
+extern volatile Uint16 g_mc_trace_tbctr_at_isr[3];
+extern volatile Uint16 g_mc_trace_tbprd[3];
+extern volatile Uint16 g_mc_trace_cmpa[3];
+extern volatile Uint16 g_mc_trace_dbred[3];
+extern volatile Uint16 g_mc_trace_dbfed[3];
+extern volatile Uint16 g_mc_trace_pwm_apply_count[3];
+extern volatile Uint16 g_mc_trace_tbprd_writes[3];
+extern volatile Uint16 g_mc_trace_cmpa_writes[3];
+extern volatile Uint16 g_mc_trace_dbred_writes[3];
+extern volatile Uint16 g_mc_trace_dbfed_writes[3];
+extern volatile Uint16 g_mc_trace_etflg[3];
+extern volatile Uint16 g_mc_trace_tzflg[3];
+extern volatile Uint16 g_mc_trace_micro_stage[3];
+extern volatile Uint16 g_mc_trace_update_pending[3];
+
+
+/* Multi-cycle ISR latency diagnostic */
+extern volatile Uint16 g_probe_isr_entry_tbctr;
+extern volatile Uint16 g_probe_ost_command_tbctr;
+extern volatile Uint16 g_probe_ost_after_tbctr;
+extern volatile Uint32 g_probe_isr_entry_timer2;
+extern volatile Uint32 g_probe_ost_command_timer2;
+extern volatile Uint32 g_probe_ost_after_timer2;
+extern volatile Uint16 g_probe_irq_latency_ticks;
+extern volatile Uint16 g_probe_irq_to_ost_ticks;
+
+
+/* OST lock diagnostic */
+extern volatile Uint16 g_probe_tzflg_immediate;
+extern volatile Uint16 g_probe_tzflg_read2;
+extern volatile Uint16 g_probe_tzflg_read3;
+extern volatile Uint16 g_probe_tzflg_after_state_update;
+extern volatile Uint32 g_probe_tzclr_write_count;
+
+
+/* Probe interrupt isolation */
+extern volatile Uint16 g_probe_saved_ier;
+extern volatile Uint16 g_probe_saved_pieier1;
+extern volatile Uint16 g_probe_saved_pieier3;
+extern volatile Uint16 g_probe_interrupt_isolation_active;
+
+
+/* Stage4 Probe ADC capture */
+#define LLC_PROBE_VOUT_SAMPLE_MAX 1U    /* legacy diagnostic capture buffer (memory-limited) */
+extern volatile Uint16 g_probe_vout_samples[LLC_PROBE_VOUT_SAMPLE_MAX];
+extern volatile Uint16 g_probe_vout_min;
+extern volatile Uint16 g_probe_vout_max;
+extern volatile Uint16 g_probe_vout_first;
+extern volatile Uint16 g_probe_vout_last;
+extern volatile Uint16 g_probe_adc_sample_count;
+
+
+/* VOUT limited power probe */
+extern volatile Uint16 g_vout_probe_request;
+extern volatile Uint16 g_vout_probe_active;
+extern volatile Uint16 g_vout_probe_target_raw;
+extern volatile Uint16 g_vout_probe_stop_raw;
+extern volatile Uint16 g_vout_probe_max_raw;
+extern volatile Uint32 g_vout_probe_completed_cycles;
+extern volatile Uint16 g_vout_probe_stop_reason;
+extern volatile Uint16 g_vout_probe_dac_code;
+extern volatile Uint32 g_vout_probe_max_cycles;
+extern volatile Uint16 g_vout_probe_hard_limit_raw;
+
+
+/* VOUT probe post-OST capture */
+extern volatile Uint16 g_vout_probe_pre_stop_max_raw;
+extern volatile Uint16 g_vout_probe_post_first_raw;
+extern volatile Uint16 g_vout_probe_post_max_raw;
+extern volatile Uint16 g_vout_probe_post_last_raw;
+extern volatile Uint16 g_vout_probe_post_capture_active;
+extern volatile Uint16 g_vout_probe_post_capture_count;
+extern volatile Uint32 g_vout_probe_post_tick_count;
+extern volatile Uint32 g_vout_probe_post_trigger_count;
+extern volatile Uint32 g_vout_probe_post_start_count;
+extern volatile Uint16 g_vout_probe_post_seen_active;
+
+
+/* Calibration Hold Probe */
+extern volatile Uint16 g_cal_hold_request;
+extern volatile Uint16 g_cal_hold_active;
+extern volatile Uint16 g_cal_hold_charge_done;
+extern volatile Uint16 g_cal_hold_packet_active;
+extern volatile Uint32 g_cal_hold_packet_count;
+extern volatile Uint32 g_cal_hold_total_on_cycles;
+extern volatile Uint16 g_cal_hold_raw_min;
+extern volatile Uint16 g_cal_hold_raw_max;
+extern volatile Uint16 g_cal_hold_raw_average;
+extern volatile Uint32 g_cal_hold_raw_sum;
+extern volatile Uint32 g_cal_hold_raw_samples;
+extern volatile Uint16 g_cal_hold_fault;
+extern volatile Uint16 g_cal_hold_stop_reason;
+extern volatile Uint32 g_cal_hold_start_fast_tick;
+extern volatile Uint32 g_cal_hold_duration_ms;
+extern volatile Uint32 g_cal_hold_slow_count;
+extern volatile Uint16 g_cal_hold_charge_seen;
+extern volatile Uint16 g_cal_hold_last_vout_stop_reason;
+extern volatile Uint16 g_cal_hold_last_vout_active;
+extern volatile Uint16 g_cal_hold_initial_stop_raw;
+extern volatile Uint16 g_cal_hold_packet_start_raw;
+extern volatile Uint16 g_cal_hold_packet_stop_raw;
+extern volatile Uint16 g_cal_hold_packet_post_max_raw;
+extern volatile Uint16 g_cal_hold_packet_post_last_raw;
+extern volatile Uint32 g_cal_hold_packet_actual_cycles;
+extern volatile Uint32 g_cal_hold_max_total_extra_cycles;
+
+/* Timing */
+extern volatile Uint32 g_fast_tick;
+extern volatile Uint16 g_5ms_flag;
+
+#endif /* APP_LLC_GLOBALS_H */

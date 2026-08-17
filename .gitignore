@@ -1,0 +1,17 @@
+# Build artifacts
+Debug/
+*.obj
+*.out
+*.map
+*.xml
+
+# CCS/IDE local settings
+.settings/
+.launches/
+
+# Logs and temporary files
+logs/
+*.log
+.ti_appdata/
+__pycache__/
+*.pyc
