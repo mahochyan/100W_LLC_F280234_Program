@@ -36,6 +36,57 @@ static void PRE_STOP_Capture(void)
 
 static void MULTICYCLE_RestoreInterrupts(void);
 
+static void TRUTH_CaptureImmediate(void)
+{
+    Uint16 i;
+    Uint16 delay_us[5] = {5U, 4U, 9U, 29U, 49U};
+    Uint16 *raw_store[5] = {
+        &g_truth_post_5us,
+        &g_truth_post_10us,
+        &g_truth_post_20us,
+        &g_truth_post_50us,
+        &g_truth_post_100us
+    };
+    volatile Uint32 *timer_store[5] = {
+        &g_truth_post_timer2_5us,
+        &g_truth_post_timer2_10us,
+        &g_truth_post_timer2_20us,
+        &g_truth_post_timer2_50us,
+        &g_truth_post_timer2_100us
+    };
+
+    g_truth_ost_timer2 = CpuTimer2Regs.TIM.all;
+
+    EALLOW;
+    EPwm1Regs.ETSEL.bit.SOCAEN = 0U;
+    AdcRegs.ADCSOC0CTL.bit.TRIGSEL = 0U;
+    AdcRegs.ADCSOC0CTL.bit.CHSEL = 1U;
+    AdcRegs.ADCSOC0CTL.bit.ACQPS = 7U;
+    AdcRegs.INTSEL1N2.bit.INT1E = 1U;
+    AdcRegs.ADCINTFLGCLR.all = 0xFFFFU;
+    AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
+    EDIS;
+
+    for (i = 0U; i < 5U; i++)
+    {
+        DELAY_US((long)delay_us[i]);
+        EALLOW;
+        AdcRegs.ADCSOCFRC1.all = 1U;
+        EDIS;
+        DELAY_US(1L);
+        *raw_store[i] = AdcResult.ADCRESULT0;
+        *timer_store[i] = CpuTimer2Regs.TIM.all;
+        EALLOW;
+        AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+        AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
+        EDIS;
+    }
+
+    EALLOW;
+    AdcRegs.INTSEL1N2.bit.INT1E = 0U;
+    EDIS;
+}
+
 /* ------------------------------------------------------------------ */
 /* SINGLE_CYCLE_POWER_PROBE                                           */
 /* ------------------------------------------------------------------ */
@@ -241,59 +292,6 @@ static void MULTICYCLE_CaptureSample(void)
         if (v > g_probe_vout_max) g_probe_vout_max = v;
         g_probe_adc_sample_count++;
     }
-}
-
-
-static void VOUTPROBE_StartPostCapture(void)
-{
-    g_vout_probe_post_start_count++;
-
-    EALLOW;
-    /* Reconfigure VOUT SOC to software trigger for post-OST capture. */
-    AdcRegs.ADCSOC0CTL.bit.CHSEL = 1U;
-    AdcRegs.ADCSOC0CTL.bit.ACQPS = 7U;
-    AdcRegs.ADCSOC0CTL.bit.TRIGSEL = 0U;
-    AdcRegs.INTSEL1N2.bit.INT1E = 0U;
-    EDIS;
-
-    /* Non-blocking: only mark that post-OST capture is pending.  The actual
-     * sampling is done later in VOUTPROBE_PostCaptureTask() from the 5 ms
-     * slow task, never inside the ePWM ISR. */
-    g_vout_probe_post_capture_active = 1U;
-    g_vout_probe_post_capture_count = 0U;
-    g_vout_probe_post_first_raw = 0U;
-    g_vout_probe_post_max_raw = 0U;
-    g_vout_probe_post_last_raw = 0U;
-}
-
-#define VOUTPROBE_POST_CAPTURE_SAMPLES 50U
-
-void VOUTPROBE_PostCaptureTask(void)
-{
-    Uint16 i;
-    Uint16 v;
-
-    if (g_vout_probe_post_capture_active == 0U) return;
-
-    /* Non-ISR post-OST capture: ~50 software-triggered samples. */
-    for (i = 0U; i < VOUTPROBE_POST_CAPTURE_SAMPLES; i++)
-    {
-        ADC_SoftwareTrigger();
-        DELAY_US(20L);
-        v = AdcResult.ADCRESULT0;
-        if (i == 0U)
-        {
-            g_vout_probe_post_first_raw = v;
-            g_vout_probe_post_max_raw = v;
-        }
-        else if (v > g_vout_probe_post_max_raw)
-        {
-            g_vout_probe_post_max_raw = v;
-        }
-        g_vout_probe_post_last_raw = v;
-        g_vout_probe_post_capture_count = (Uint16)(i + 1U);
-    }
-    g_vout_probe_post_capture_active = 0U;
 }
 
 
@@ -534,6 +532,10 @@ __interrupt void EPWM1_INT_ISR(void)
                     /* Requested number of complete cycles finished.
                      * OST write is the highest-priority action in this branch. */
                     g_vout_runtime_before_ost = g_adc_vout_pwm_sync_raw;
+                    g_truth_runtime_raw = g_adc_vout_pwm_sync_raw;
+                    g_truth_runtime_tbctr = EPwm1Regs.TBCTR;
+                    g_truth_runtime_cmpb = EPwm1Regs.CMPB;
+                    g_truth_runtime_eoc_count = g_adc_pwm_sync_eoc_count;
                     g_probe_ost_command_tbctr = EPwm1Regs.TBCTR;
                     g_probe_ost_command_timer2 = CpuTimer2Regs.TIM.all;
                     /* EALLOW is required for TZ register writes. Disable TZ interrupt
@@ -544,6 +546,10 @@ __interrupt void EPWM1_INT_ISR(void)
                     EPwm1Regs.TZEINT.bit.OST = 0U;
                     EPwm1Regs.TZFRC.bit.OST = 1U;
                     EDIS;
+
+                    /* Immediate post-OST truth ADC capture (PWM already off). */
+                    TRUTH_CaptureImmediate();
+
                     g_probe_scheduled_ost_occurred = 1U;
                     g_test_run_id_at_stop = g_test_run_id;
                     g_power_window_state = POWER_WINDOW_POST_OST;
@@ -584,142 +590,6 @@ __interrupt void EPWM1_INT_ISR(void)
             }
         }
     }
-    else if (g_vout_probe_active != 0U)
-    {
-        if (g_fault_flags != 0UL || g_system_state == SYS_STATE_FAULT)
-        {
-            VOUTPROBE_AbortByFault();
-        }
-        else
-        {
-            Uint16 vout = AdcResult.ADCRESULT0;
-            g_vout_probe_completed_cycles++;
-            if (vout > g_vout_probe_max_raw) g_vout_probe_max_raw = vout;
-
-            if (vout >= g_vout_probe_hard_limit_raw)
-            {
-                /* Bring-up hard VOUT limit: OST first. */
-                g_vout_probe_pre_stop_max_raw = g_vout_probe_max_raw;
-                g_probe_ost_command_tbctr = EPwm1Regs.TBCTR;
-                g_probe_ost_command_timer2 = CpuTimer2Regs.TIM.all;
-                g_software_ost_in_progress = 1U;
-                EALLOW;
-                EPwm1Regs.TZEINT.bit.OST = 0U;
-                EPwm1Regs.TZFRC.bit.OST = 1U;
-                EDIS;
-                g_probe_scheduled_ost_occurred = 1U;
-                g_test_run_id_at_stop = g_test_run_id;
-                g_power_window_state = POWER_WINDOW_POST_OST;
-                g_probe_tzflg_immediate = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_tzflg_read2 = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_tzflg_read3 = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_ost_after_tbctr = EPwm1Regs.TBCTR;
-                g_probe_ost_after_timer2 = CpuTimer2Regs.TIM.all;
-                g_probe_irq_latency_ticks = g_probe_isr_entry_tbctr;
-                g_probe_irq_to_ost_ticks =
-                    (Uint16)(g_probe_ost_command_tbctr - g_probe_isr_entry_tbctr);
-
-                g_vout_probe_stop_raw = vout;
-                g_vout_probe_stop_reason = 4U;   /* HARD_VOUT_LIMIT */
-                MULTICYCLE_CaptureSample();
-
-                EALLOW;
-                EPwm1Regs.ETSEL.bit.INTEN = 0U;
-                EPwm1Regs.TZEINT.bit.OST = 0U;
-                EDIS;
-                g_vout_probe_active = 0U;
-                g_pwm_enabled = 0U;
-                g_pwm_enable_result = 0U;
-                g_probe_tzflg_after_state_update = EPwm1Regs.TZFLG.bit.OST;
-                MULTICYCLE_RestoreInterrupts();
-                VOUTPROBE_StartPostCapture();
-                g_software_ost_in_progress = 0U;
-            }
-            else if (vout >= g_vout_probe_target_raw)
-            {
-                /* VOUT target reached: OST is the first safety action. */
-                g_vout_probe_pre_stop_max_raw = g_vout_probe_max_raw;
-                g_probe_ost_command_tbctr = EPwm1Regs.TBCTR;
-                g_probe_ost_command_timer2 = CpuTimer2Regs.TIM.all;
-                g_software_ost_in_progress = 1U;
-                EALLOW;
-                EPwm1Regs.TZEINT.bit.OST = 0U;
-                EPwm1Regs.TZFRC.bit.OST = 1U;
-                EDIS;
-                g_probe_scheduled_ost_occurred = 1U;
-                g_test_run_id_at_stop = g_test_run_id;
-                g_power_window_state = POWER_WINDOW_POST_OST;
-                g_probe_tzflg_immediate = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_tzflg_read2 = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_tzflg_read3 = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_ost_after_tbctr = EPwm1Regs.TBCTR;
-                g_probe_ost_after_timer2 = CpuTimer2Regs.TIM.all;
-                g_probe_irq_latency_ticks = g_probe_isr_entry_tbctr;
-                g_probe_irq_to_ost_ticks =
-                    (Uint16)(g_probe_ost_command_tbctr - g_probe_isr_entry_tbctr);
-
-                g_vout_probe_stop_raw = vout;
-                g_vout_probe_stop_reason = 1U;   /* VOUT_TARGET_REACHED */
-                MULTICYCLE_CaptureSample();
-
-                EALLOW;
-                EPwm1Regs.ETSEL.bit.INTEN = 0U;
-                EPwm1Regs.TZEINT.bit.OST = 0U;
-                EDIS;
-                g_vout_probe_active = 0U;
-                g_pwm_enabled = 0U;
-                g_pwm_enable_result = 0U;
-                g_probe_tzflg_after_state_update = EPwm1Regs.TZFLG.bit.OST;
-                MULTICYCLE_RestoreInterrupts();
-                VOUTPROBE_StartPostCapture();
-                g_software_ost_in_progress = 0U;
-            }
-            else if (g_vout_probe_completed_cycles >= g_vout_probe_max_cycles)
-            {
-                /* Max cycle limit reached: OST first. */
-                g_vout_probe_pre_stop_max_raw = g_vout_probe_max_raw;
-                g_probe_ost_command_tbctr = EPwm1Regs.TBCTR;
-                g_probe_ost_command_timer2 = CpuTimer2Regs.TIM.all;
-                g_software_ost_in_progress = 1U;
-                EALLOW;
-                EPwm1Regs.TZEINT.bit.OST = 0U;
-                EPwm1Regs.TZFRC.bit.OST = 1U;
-                EDIS;
-                g_probe_scheduled_ost_occurred = 1U;
-                g_test_run_id_at_stop = g_test_run_id;
-                g_power_window_state = POWER_WINDOW_POST_OST;
-                g_probe_tzflg_immediate = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_tzflg_read2 = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_tzflg_read3 = EPwm1Regs.TZFLG.bit.OST;
-                g_probe_ost_after_tbctr = EPwm1Regs.TBCTR;
-                g_probe_ost_after_timer2 = CpuTimer2Regs.TIM.all;
-                g_probe_irq_latency_ticks = g_probe_isr_entry_tbctr;
-                g_probe_irq_to_ost_ticks =
-                    (Uint16)(g_probe_ost_command_tbctr - g_probe_isr_entry_tbctr);
-
-                g_vout_probe_stop_raw = vout;
-                g_vout_probe_stop_reason = 2U;   /* MAX_CYCLES_REACHED */
-                MULTICYCLE_CaptureSample();
-
-                EALLOW;
-                EPwm1Regs.ETSEL.bit.INTEN = 0U;
-                EPwm1Regs.TZEINT.bit.OST = 0U;
-                EDIS;
-                g_vout_probe_active = 0U;
-                g_pwm_enabled = 0U;
-                g_pwm_enable_result = 0U;
-                g_probe_tzflg_after_state_update = EPwm1Regs.TZFLG.bit.OST;
-                MULTICYCLE_RestoreInterrupts();
-                VOUTPROBE_StartPostCapture();
-                g_software_ost_in_progress = 0U;
-            }
-            else
-            {
-                MULTICYCLE_CaptureSample();
-            }
-        }
-    }
-
     EPwm1Regs.ETCLR.bit.INT = 1U;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;
 }
@@ -901,6 +771,22 @@ void MULTICYCLE_SlowTask(void)
     g_adc_pwm_sync_consecutive_miss = 0U;
     g_adc_pwm_sync_stale_abort = 0U;
     g_vout_runtime_before_ost = 0U;
+    g_truth_runtime_raw = 0U;
+    g_truth_runtime_tbctr = 0U;
+    g_truth_runtime_cmpb = 0U;
+    g_truth_runtime_eoc_count = 0UL;
+    g_truth_post_5us = 0U;
+    g_truth_post_10us = 0U;
+    g_truth_post_20us = 0U;
+    g_truth_post_50us = 0U;
+    g_truth_post_100us = 0U;
+    g_truth_ost_timer2 = 0UL;
+    g_truth_post_timer2_5us = 0UL;
+    g_truth_post_timer2_10us = 0UL;
+    g_truth_post_timer2_20us = 0UL;
+    g_truth_post_timer2_50us = 0UL;
+    g_truth_post_timer2_100us = 0UL;
+    g_truth_ost_to_slow_timer2 = 0UL;
 
     /* PROFILE_C ACCELERATED BOUNDED SOFTSTART: if requested, force 485-cycle
      * hard window and start from the verified 250kHz/DB110 platform. */
@@ -1028,289 +914,6 @@ void MULTICYCLE_AbortByFault(void)
 /* VOUT_LIMITED_POWER_PROBE                                           */
 /* ------------------------------------------------------------------ */
 
-void VOUTPROBE_SlowTask(void)
-{
-    if (g_vout_probe_request == 0U) return;
-    g_vout_probe_request = 0U;
-
-    if (MULTICYCLE_CheckEntry() == 0U)
-    {
-        g_vout_probe_stop_reason = 0U;
-        g_vout_probe_active = 0U;
-        return;
-    }
-
-    /* Fixed 150 kHz. */
-    if (LLC_SetFrequencyHz(LLC_DEFAULT_FREQUENCY_HZ) == 0U)
-    {
-        g_vout_probe_stop_reason = 0U;
-        return;
-    }
-
-    /* Clamp target to 12-bit ADC range. */
-    if (g_vout_probe_target_raw > 0x0FFFU)
-    {
-        g_vout_probe_target_raw = 0x0FFFU;
-    }
-    if (g_vout_probe_hard_limit_raw == 0U)
-    {
-        g_vout_probe_hard_limit_raw = LLC_VOUT_PROBE_HARD_LIMIT_RAW;
-    }
-    if (g_vout_probe_hard_limit_raw > 0x0FFFU)
-    {
-        g_vout_probe_hard_limit_raw = 0x0FFFU;
-    }
-    if (g_vout_probe_max_cycles == 0UL)
-    {
-        g_vout_probe_max_cycles = LLC_VOUT_PROBE_MAX_CYCLES;
-    }
-
-    /* Isolate probe interrupts and configure ePWM1 SOCA VOUT capture. */
-    MULTICYCLE_IsolateInterrupts();
-    MULTICYCLE_ConfigureAdcCapture();
-
-    g_vout_probe_active = 1U;
-    g_vout_probe_completed_cycles = 0UL;
-    g_vout_probe_stop_raw = 0U;
-    g_vout_probe_max_raw = 0U;
-    g_vout_probe_stop_reason = 0U;
-    g_probe_scheduled_ost_occurred = 0U;
-    g_power_window_state = POWER_WINDOW_IDLE;
-
-    /* Comparator/TZ remains armed.  Call before g_pwm_enabled is set so
-     * COMP_ArmInjectionTest() actually arms instead of bailing out.
-     * The threshold is a diagnostic variable (g_vout_probe_dac_code), not
-     * a final OCP value. */
-    g_comp1_dac_code = g_vout_probe_dac_code & 0x03FFU;
-    g_comp_polarity = 1U;
-    COMP_ArmInjectionTest();
-
-    /* If comparator/TZ did not arm cleanly, abort and restore probe isolation. */
-    if (g_comp_prestart_reject != 0U || g_comp_inject_test_armed == 0U)
-    {
-        g_vout_probe_active = 0U;
-        g_vout_probe_stop_reason = 0U;   /* no shot started */
-        g_pwm_enabled = 0U;
-        g_pwm_enable_result = 0U;
-        MULTICYCLE_RestoreInterrupts();
-        return;
-    }
-    g_pwm_enabled = 1U;
-
-    /* Apply TZ1 input qualification diagnostic. */
-    EALLOW;
-    GpioCtrlRegs.GPAQSEL1.bit.GPIO15 = (g_tz1_qualification_mode & 0x3U);
-    GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = (g_tz1_qualification_period & 0xFFU);
-
-    /* Arm ePWM1 interrupt to count cycles and check VOUT target. */
-    EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
-    EPwm1Regs.ETSEL.bit.INTEN  = 1U;
-    EPwm1Regs.ETPS.bit.INTPRD  = ET_1ST;
-    EPwm1Regs.ETCLR.bit.INT    = 1U;
-    g_power_window_state = POWER_WINDOW_ACTIVE;
-    EPwm1Regs.AQCSFRC.all = 0U;
-    EPwm1Regs.TZCLR.all = 0xFFFFU;
-    g_probe_tzclr_write_count++;
-    EPwm1Regs.TZEINT.bit.OST = 1U;
-    EDIS;
-}
-
-void VOUTPROBE_AbortByFault(void)
-{
-    if (g_vout_probe_active == 0U) return;
-
-    /* Always hardware-clamp immediately, even if no TZ latch exists yet. */
-    EALLOW;
-    EPwm1Regs.TZEINT.bit.OST = 0U;
-    EPwm1Regs.TZFRC.bit.OST = 1U;
-    EPwm1Regs.TZCLR.bit.INT = 1U;
-    EDIS;
-
-    g_vout_probe_active = 0U;
-    g_vout_probe_stop_reason = 3U;   /* FAULT */
-    g_pwm_enabled = 0U;
-    g_pwm_enable_result = 0U;
-
-    EPwm1Regs.ETSEL.bit.INTEN = 0U;
-    MULTICYCLE_RestoreInterrupts();
-}
-
-/* ------------------------------------------------------------------ */
-/* CALIBRATION_HOLD_PROBE                                             */
-/* ------------------------------------------------------------------ */
-
-void CALHOLD_SlowTask(void)
-{
-    Uint16 v;
-
-    g_cal_hold_slow_count++;
-
-    if (g_cal_hold_request != 0U)
-    {
-        g_cal_hold_request = 0U;
-        g_cal_hold_active = 1U;
-        g_cal_hold_charge_done = 0U;
-        g_cal_hold_packet_active = 0U;
-        g_cal_hold_packet_count = 0UL;
-        g_cal_hold_total_on_cycles = 0UL;
-        g_cal_hold_raw_min = 0xFFFFU;
-        g_cal_hold_raw_max = 0U;
-        g_cal_hold_raw_sum = 0UL;
-        g_cal_hold_raw_samples = 0UL;
-        g_cal_hold_raw_average = 0U;
-        g_cal_hold_fault = 0U;
-        g_cal_hold_stop_reason = 0U;
-        g_cal_hold_start_fast_tick = g_fast_tick;
-        if (g_cal_hold_duration_ms == 0UL)
-        {
-            g_cal_hold_duration_ms = LLC_CAL_HOLD_DEFAULT_DURATION_MS;
-        }
-
-        /* Initial charge to 1400 raw using the verified VOUT probe.
-         * Use the CAL_HOLD hard limit (1450) and the normal 300-cycle cap. */
-        g_vout_probe_target_raw = LLC_CAL_HOLD_CHARGE_TARGET_RAW;
-        g_vout_probe_hard_limit_raw = LLC_CAL_HOLD_HARD_LIMIT_RAW;
-        g_vout_probe_max_cycles = LLC_VOUT_PROBE_MAX_CYCLES;
-        g_cal_hold_initial_stop_raw = 0U;
-        g_cal_hold_packet_start_raw = 0U;
-        g_cal_hold_packet_stop_raw = 0U;
-        g_cal_hold_packet_post_max_raw = 0U;
-        g_cal_hold_packet_post_last_raw = 0U;
-        g_cal_hold_packet_actual_cycles = 0UL;
-        if (g_cal_hold_max_total_extra_cycles == 0UL)
-        {
-            g_cal_hold_max_total_extra_cycles = LLC_CAL_HOLD_MAX_TOTAL_EXTRA_CYCLES;
-        }
-        g_vout_probe_request = 1U;
-        return;
-    }
-
-    if (g_cal_hold_active == 0U) return;
-
-    /* Wait for initial charge to finish. */
-    if (g_cal_hold_charge_done == 0U)
-    {
-        g_cal_hold_last_vout_active = g_vout_probe_active;
-        g_cal_hold_last_vout_stop_reason = g_vout_probe_stop_reason;
-        if (g_vout_probe_active == 0U && g_vout_probe_stop_reason == 1U)
-        {
-            g_cal_hold_charge_seen = 1U;
-            g_cal_hold_charge_done = 1U;
-            g_cal_hold_total_on_cycles = 0UL;
-            g_cal_hold_initial_stop_raw = g_vout_probe_stop_raw;
-        }
-        else if (g_vout_probe_active == 0U &&
-                 (g_vout_probe_stop_reason == 4U || g_vout_probe_stop_reason == 3U ||
-                  g_fault_flags != 0UL))
-        {
-            g_cal_hold_fault = 1U;
-            g_cal_hold_stop_reason = 3U;
-            g_cal_hold_active = 0U;
-            return;
-        }
-        else if (g_vout_probe_active == 0U && g_vout_probe_stop_reason == 0U &&
-                 g_vout_probe_request == 0U)
-        {
-            /* Initial charge may have been rejected before loopback was ready;
-             * retry until it is accepted. */
-            g_vout_probe_target_raw = LLC_CAL_HOLD_CHARGE_TARGET_RAW;
-            g_vout_probe_hard_limit_raw = LLC_CAL_HOLD_HARD_LIMIT_RAW;
-            g_vout_probe_max_cycles = LLC_VOUT_PROBE_MAX_CYCLES;
-            g_vout_probe_request = 1U;
-            return;
-        }
-        else
-        {
-            return;
-        }
-    }
-
-    /* Time limit */
-    if ((g_fast_tick - g_cal_hold_start_fast_tick) >= (g_cal_hold_duration_ms * 50UL))
-    {
-        g_cal_hold_stop_reason = 1U;
-        g_cal_hold_active = 0U;
-        if (g_cal_hold_raw_samples != 0UL)
-        {
-            g_cal_hold_raw_average = (Uint16)(g_cal_hold_raw_sum / g_cal_hold_raw_samples);
-        }
-        return;
-    }
-
-    /* Total energy limit (runtime-overridable for single-packet diagnostic) */
-    if (g_cal_hold_total_on_cycles >= g_cal_hold_max_total_extra_cycles)
-    {
-        g_cal_hold_stop_reason = 2U;
-        g_cal_hold_active = 0U;
-        if (g_cal_hold_raw_samples != 0UL)
-        {
-            g_cal_hold_raw_average = (Uint16)(g_cal_hold_raw_sum / g_cal_hold_raw_samples);
-        }
-        return;
-    }
-
-    /* If a VOUT probe (charge or packet) is running, wait. */
-    if (g_vout_probe_active != 0U)
-    {
-        if (g_vout_probe_stop_reason == 4U || g_vout_probe_stop_reason == 3U ||
-            g_fault_flags != 0UL)
-        {
-            g_cal_hold_fault = 1U;
-            g_cal_hold_stop_reason = 3U;
-            g_cal_hold_active = 0U;
-        }
-        return;
-    }
-
-    /* A packet just finished: accumulate energy and record 1-cycle evidence. */
-    if (g_cal_hold_packet_active != 0U)
-    {
-        g_cal_hold_total_on_cycles += g_vout_probe_completed_cycles;
-        g_cal_hold_packet_count++;
-        g_cal_hold_packet_actual_cycles = g_vout_probe_completed_cycles;
-        g_cal_hold_packet_stop_raw = g_vout_probe_stop_raw;
-        g_cal_hold_packet_post_max_raw = g_vout_probe_post_max_raw;
-        g_cal_hold_packet_post_last_raw = g_vout_probe_post_last_raw;
-        g_cal_hold_packet_active = 0U;
-    }
-
-    /* Sample current VOUT with software trigger. */
-    ADC_SoftwareTrigger();
-    DELAY_US(20L);
-    v = AdcResult.ADCRESULT0;
-
-    if (v < g_cal_hold_raw_min) g_cal_hold_raw_min = v;
-    if (v > g_cal_hold_raw_max) g_cal_hold_raw_max = v;
-    g_cal_hold_raw_sum += v;
-    g_cal_hold_raw_samples++;
-
-    if (v >= LLC_CAL_HOLD_HARD_LIMIT_RAW)
-    {
-        g_cal_hold_fault = 1U;
-        g_cal_hold_stop_reason = 3U;
-        g_cal_hold_active = 0U;
-        return;
-    }
-
-    /* Low-energy 1-cycle packet when output droops below low threshold.
-     * This is the true packet implementation: VOUTPROBE is limited to
-     * LLC_CAL_HOLD_MAX_PACKET_CYCLES (currently 1) and to the CAL_HOLD
-     * hard limit (1450), not the generic 300-cycle / 1470 limit. */
-    if (v <= LLC_CAL_HOLD_LOW_RAW)
-    {
-        g_vout_probe_target_raw = LLC_CAL_HOLD_HIGH_RAW;
-        g_vout_probe_hard_limit_raw = LLC_CAL_HOLD_HARD_LIMIT_RAW;
-        g_vout_probe_max_cycles = LLC_CAL_HOLD_MAX_PACKET_CYCLES;
-        g_cal_hold_packet_start_raw = v;
-        g_cal_hold_packet_stop_raw = 0U;
-        g_cal_hold_packet_post_max_raw = 0U;
-        g_cal_hold_packet_actual_cycles = 0UL;
-        g_vout_probe_request = 1U;
-        g_cal_hold_packet_active = 1U;
-    }
-}
-
-/* ------------------------------------------------------------------ */
 /* POST-STOP VOUT TRUTH CHECK                                         */
 /* ------------------------------------------------------------------ */
 
@@ -1321,6 +924,8 @@ void POSTSTOP_SlowTask(void)
     if (g_poststop_vout_request == 0U) return;
     if (g_pwm_enabled != 0U) return;
     if (EPwm1Regs.TZFLG.bit.OST == 0U) return;
+
+    g_truth_ost_to_slow_timer2 = g_truth_ost_timer2 - CpuTimer2Regs.TIM.all;
 
     /* First 32 software-triggered samples immediately after stop.
      * min/max/avg are computed by the host from g_poststop_vout_samples[]. */

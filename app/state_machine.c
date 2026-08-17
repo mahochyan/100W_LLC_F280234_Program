@@ -309,9 +309,6 @@ void SM_Run(void)
     /* Stage 4D one-shot power probe (only in Stage 4, IDLE, PWM OFF). */
     SINGLECYCLE_SlowTask();
     MULTICYCLE_SlowTask();
-    VOUTPROBE_PostCaptureTask();
-    CALHOLD_SlowTask();
-    VOUTPROBE_SlowTask();
     POSTSTOP_SlowTask();
 
     /* Tutorial SoftStart Engine ramp (exactly one step per 5 ms). */

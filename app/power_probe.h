@@ -20,10 +20,6 @@ void SINGLECYCLE_SlowTask(void);
 void SINGLECYCLE_AbortByFault(void);
 void MULTICYCLE_SlowTask(void);
 void MULTICYCLE_AbortByFault(void);
-void VOUTPROBE_SlowTask(void);
-void VOUTPROBE_AbortByFault(void);
-void VOUTPROBE_PostCaptureTask(void);
-void CALHOLD_SlowTask(void);
 void POSTSTOP_SlowTask(void);
 __interrupt void EPWM1_INT_ISR(void);
 

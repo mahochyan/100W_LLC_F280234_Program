@@ -176,7 +176,6 @@ __interrupt void EPWM1_TZINT_ISR(void)
     /* Single/multi-cycle probe abort hooks */
     SINGLECYCLE_AbortByFault();
     MULTICYCLE_AbortByFault();
-    VOUTPROBE_AbortByFault();
 
     EPwm1Regs.TZCLR.bit.INT = 1U;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP2;
