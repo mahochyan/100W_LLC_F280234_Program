@@ -36,6 +36,7 @@
 #define CAL_HOLD_CAL_SETTLING_MS        200U   /* calibration window starts here */
 #define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS 6000UL
 #define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S    40000UL
+#define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_MEASURE 120000UL  /* 30s interactive hold, ~70k expected */
 #define CAL_HOLD_ZERO_SAMPLES           64U    /* post-test zero/offset capture */
 
 /* CALIBRATION_MEASURE_HOLD: interactive DMM hold (task

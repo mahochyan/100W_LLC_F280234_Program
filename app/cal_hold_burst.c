@@ -270,12 +270,15 @@ void CALHOLD_FastTask(void)
                 if (g_cal_hold_off_ticks >= CAL_HOLD_OFF_MIN_TICKS &&
                     raw <= CAL_HOLD_RECHARGE_LOW_RAW)
                 {
-                    /* Duration-fixed energy cap (not CCS-writable):
+                    /* Energy cap (compile-time, not CCS-writable):
+                     * measure hold -> 120000 (30s window), else duration map:
                      * 100ms -> 6000, 1000ms -> 40000. */
                     if (g_cal_hold_total_packet_cycles >=
-                        ((g_cal_hold_duration_ms == 1000U)
-                             ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S
-                             : CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS))
+                        ((g_cal_measure_active != 0U)
+                            ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_MEASURE
+                            : ((g_cal_hold_duration_ms == 1000U)
+                                 ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S
+                                 : CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS)))
                     {
                         CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_MAX_TOTAL_CYCLES);
                         return;
@@ -324,7 +327,7 @@ void CALHOLD_FastTask(void)
                  * completion flag or the 30s wall-clock timeout. */
                 if (g_cal_measure_done != 0U ||
                     g_cal_hold_elapsed_ticks >=
-                        (Uint32)(CAL_HOLD_MAX_DMM_HOLD_SECONDS * 50UL))
+                        (Uint32)(CAL_HOLD_MAX_DMM_HOLD_SECONDS * 1000UL * 50UL))
                 {
                     CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
                 }
@@ -344,7 +347,7 @@ void CALHOLD_FastTask(void)
             {
                 if (g_cal_measure_done != 0U ||
                     g_cal_hold_elapsed_ticks >=
-                        (Uint32)(CAL_HOLD_MAX_DMM_HOLD_SECONDS * 50UL))
+                        (Uint32)(CAL_HOLD_MAX_DMM_HOLD_SECONDS * 1000UL * 50UL))
                 {
                     CALHOLD_StopPacket(0U);
                     CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
