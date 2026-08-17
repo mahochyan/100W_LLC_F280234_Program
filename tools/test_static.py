@@ -216,8 +216,14 @@ check("PWM_PrepareStart(SS_START_PERIOD, SS_START_DB, 1U)" in soft_start_src,
       "formal start uses PWM_PrepareStart with verified 250k/DB110")
 check("PWM_StartDeterministic();" in soft_start_src,
       "SoftStart deterministic start uses PWM_StartDeterministic")
-check("COMP_ArmForPowerStart(g_softstart_ocp_dac_code);" in soft_start_src,
-      "SoftStart arms comparator before PWM release")
+# FORMAL_SOFTSTART_STAGE5_ACCEPTANCE_V1: the formal start arms the comparator
+# via direct COMP/DAC register writes (same verified configuration as the
+# CAL_HOLD recharge packets) because COMP_ArmForPowerStart is gated on the
+# enable-request state machine. The arm must precede PWM_PrepareStart.
+arm_i = soft_start_src.find("Comp1Regs.COMPCTL.bit.COMPDACEN = 1U;")
+prep_i = soft_start_src.find("PWM_PrepareStart(SS_START_PERIOD")
+check(arm_i >= 0 and prep_i >= 0 and arm_i < prep_i,
+      "SoftStart arms comparator (COMPDACEN direct write) before PWM release")
 check("void COMP_ArmForPowerStart(Uint16 requested_dac)" in comparator_src,
       "COMP_ArmForPowerStart implemented")
 check("Uint16 PWM_ConfigTopologyValid(void)" in pwm_src2,

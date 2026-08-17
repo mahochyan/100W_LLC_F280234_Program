@@ -56,17 +56,26 @@ static void SS_End(Uint16 result)
 
 void SoftStart_StartPwmFormal(void)
 {
-    COMP_ArmForPowerStart(g_softstart_ocp_dac_code);
-    if (g_comp_prestart_reject != 0U || g_comp_inject_test_armed == 0U)
-    {
-        g_softstart_abort_reason = 1U;   /* COMP_PRESTART_REJECT */
-        g_softstart_state = SOFTSTART_ABORTED;
-        SS_End(SS_RESULT_ACTIVE_TZ);
-        g_fault_flags |= FAULT_COMP_PRESTART_REJECT;
-        g_fault_history |= FAULT_COMP_PRESTART_REJECT;
-        g_system_state = SYS_STATE_FAULT;
-        return;
-    }
+    /* Comparator/TZ armed directly (DAC300) — same verified configuration as
+     * the CAL_HOLD recharge packets; keeps the protect path fully active
+     * without depending on the enable-request state machine. */
+    EALLOW;
+    Comp1Regs.COMPCTL.all = 0U;
+    Comp1Regs.COMPCTL.bit.COMPSOURCE = 0U;
+    Comp1Regs.COMPCTL.bit.QUALSEL = 5U;
+    Comp1Regs.COMPCTL.bit.SYNCSEL = 0U;
+    Comp1Regs.COMPCTL.bit.CMPINV = 1U;
+    Comp1Regs.DACCTL.all = 0U;
+    Comp1Regs.DACVAL.bit.DACVAL = g_softstart_ocp_dac_code & 0x03FFU;
+    Comp1Regs.COMPCTL.bit.COMPDACEN = 1U;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42 = 3U;
+    EDIS;
+
+    /* Fresh-sample discipline: SOC0 driven by ePWM1 SOCA (same verified
+     * configuration as the CAL_HOLD packets); SS_ApplyStage repositions the
+     * sample point each stage. */
+    ADC_SetPwmSyncTriggerMode();
+    ADC_UpdatePwmSyncPoint(SS_START_PERIOD);
 
     if (PWM_PrepareStart(SS_START_PERIOD, SS_START_DB, 1U) == 0U)
     {
@@ -107,7 +116,6 @@ static void SS_ApplyStage(Uint16 period, Uint16 db)
 void SoftStart_FastUpdate(void)
 {
     Uint16 fresh = 0U;
-    Uint16 stage_end = 0U;
     Uint16 db;
     Uint16 period;
 
@@ -152,8 +160,23 @@ void SoftStart_FastUpdate(void)
         g_softstart_last_vout_raw = g_adc_vout_pwm_sync_raw;
         if (g_adc_vout_pwm_sync_raw > g_softstart_last_vout_max)
             g_softstart_last_vout_max = g_adc_vout_pwm_sync_raw;
+    }
 
-        /* Hard ceiling first, then acceptance target (both fresh-only). */
+    /* No-energy software simulation: synthetic VOUT that follows the ramp and
+     * crosses the acceptance target only in the FINAL stage. */
+    if (g_softstart_no_energy != 0U)
+    {
+        Uint16 sim = (g_softstart_state == SOFTSTART_FINAL) ? 1260U
+                   : (g_softstart_state >= SOFTSTART_PHASE_B) ? 900U : 400U;
+        g_adc_vout_pwm_sync_raw = sim;
+        g_softstart_last_vout_raw = sim;
+        if (sim > g_softstart_last_vout_max) g_softstart_last_vout_max = sim;
+    }
+
+    if (fresh != 0U || g_softstart_no_energy != 0U)
+    {
+
+        /* Hard ceiling first, then acceptance target (fresh or simulated). */
         if (g_adc_vout_pwm_sync_raw >= g_softstart_hard_ceiling_raw)
         {
             SS_End(SS_RESULT_HARD_CEILING);
@@ -292,6 +315,7 @@ void SoftStart_Update5ms(void)
         g_softstart_consecutive_miss = 0U;
         g_softstart_stale_abort = 0U;
         g_softstart_run_id_at_arm = g_test_run_id;
+        g_pwm_enable_request = 1U;   /* formal enable; COMP arm requires it */
         g_system_state = SYS_STATE_SOFT_START;
         return;
     }

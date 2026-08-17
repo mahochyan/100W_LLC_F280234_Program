@@ -345,6 +345,7 @@ volatile Uint32 g_softstart_eoc_count = 0UL;
 volatile Uint32 g_softstart_miss_count = 0UL;
 volatile Uint16 g_softstart_consecutive_miss = 0U;
 volatile Uint16 g_softstart_stale_abort = 0U;
+volatile Uint16 g_softstart_no_energy = 0U;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;

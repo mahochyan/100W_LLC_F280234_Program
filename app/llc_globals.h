@@ -402,6 +402,7 @@ extern volatile Uint32 g_softstart_eoc_count;
 extern volatile Uint32 g_softstart_miss_count;
 extern volatile Uint16 g_softstart_consecutive_miss;
 extern volatile Uint16 g_softstart_stale_abort;
+extern volatile Uint16 g_softstart_no_energy;   /* 1 = software VOUT simulation */
 
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
