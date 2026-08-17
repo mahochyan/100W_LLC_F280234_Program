@@ -337,8 +337,11 @@ void PROT_SlowTask(void)
         ADC_CheckOverflow();
     }
 
-    /* Stage-dependent frequency legality (only while PWM is expected to run) */
-    if (g_pwm_enabled != 0U)
+    /* Stage-dependent frequency legality (only while PWM is expected to run).
+     * CAL_HOLD recharge packets intentionally run the diagnostic 250 kHz /
+     * DB110 platform (task-fixed), so they are exempt from the Stage-4
+     * 150 kHz requirement. */
+    if (g_pwm_enabled != 0U && g_cal_hold_state != CAL_HOLD_PACKET)
     {
     if (g_bringup_stage == BRINGUP_STAGE_1_PWM_FIXED ||
         g_bringup_stage == BRINGUP_STAGE_4_PROTECTION_TEST)

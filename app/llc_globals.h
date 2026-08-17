@@ -362,6 +362,10 @@ extern volatile Uint32 g_cal_hold_run_id_at_stop;
 extern volatile Uint32 g_cal_hold_run_id_at_tz_isr;
 extern volatile Uint16 g_cal_hold_final_pwm;
 extern volatile Uint16 g_cal_hold_final_ost;
+extern volatile Uint32 g_cal_hold_dbg_force;
+extern volatile Uint32 g_cal_hold_dbg_eoc;
+extern volatile Uint16 g_cal_hold_dbg_result;
+extern volatile Uint16 g_cal_hold_dbg_flag;
 
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */

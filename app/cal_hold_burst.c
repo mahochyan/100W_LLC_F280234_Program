@@ -61,6 +61,15 @@ static void CALHOLD_HardStop(void)
     EDIS;
 }
 
+/* OFF-phase software ADC uses flag polling; the ADCINT1 ISR must not steal
+ * the EOC flag between the fast-task ticks. */
+static void CALHOLD_AdcPollMode(Uint16 enable)
+{
+    EALLOW;
+    AdcRegs.INTSEL1N2.bit.INT1E = (enable != 0U) ? 0U : 1U;
+    EDIS;
+}
+
 /* Freeze final status + run-id chain. */
 static void CALHOLD_FreezeFinal(void)
 {
@@ -76,6 +85,7 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
     if (g_cal_hold_state == CAL_HOLD_ABORT ||
         g_cal_hold_state == CAL_HOLD_COMPLETE) return;
     CALHOLD_HardStop();
+    CALHOLD_AdcPollMode(0U);
     g_cal_hold_state = state;
     g_cal_hold_stop_reason = reason;
     CALHOLD_FreezeFinal();
@@ -128,6 +138,7 @@ static void CALHOLD_StopPacket(Uint16 hard_limit_flag)
 
     CALHOLD_HardStop();
     ADC_SetSoftwareTriggerMode();
+    CALHOLD_AdcPollMode(1U);
 
     s_stats.packets++;
     s_stats.total_cycles += cycles;
@@ -138,6 +149,8 @@ static void CALHOLD_StopPacket(Uint16 hard_limit_flag)
     g_cal_hold_state = CAL_HOLD_OFF;
     g_cal_hold_packet_active = 0U;
     g_cal_hold_off_ticks = 0UL;
+    g_pwm_enabled = 0U;          /* PWM hardware is off (OST latched) */
+    g_pwm_enable_result = 0U;
 
     if (hard_limit_flag != 0U)
     {
@@ -213,13 +226,24 @@ void CALHOLD_FastTask(void)
 
             if ((g_cal_hold_elapsed_ticks & 1U) != 0U)
             {
+                AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;  /* stale-flag hygiene */
                 ADC_SoftwareTrigger();          /* tick N: force SOC0 */
+                g_cal_hold_dbg_force++;
             }
-            else if (AdcRegs.ADCINTFLG.bit.ADCINT1 != 0U)
+            else
             {
+                /* tick N+1: the conversion started 20 us ago is complete by
+                 * construction (F2803x conversion is ~300 ns). Best-effort
+                 * EOC confirmation: the ADCINT1 flag is cleared when set;
+                 * the sample is taken regardless so the hold statistics never
+                 * stall on the flag. */
+                if (AdcRegs.ADCINTFLG.bit.ADCINT1 != 0U)
+                {
+                    g_cal_hold_dbg_eoc++;
+                    AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+                }
                 raw = (Uint16)AdcResult.ADCRESULT0;
-                AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
-                CALHOLD_RecordRaw(raw);         /* tick N+1: fresh EOC */
+                CALHOLD_RecordRaw(raw);
 
                 if (raw >= CAL_HOLD_HARD_LIMIT_RAW)
                 {
@@ -343,6 +367,8 @@ void CALHOLD_SlowTask(void)
                 g_cal_hold_elapsed_ticks = 0UL;
                 g_cal_hold_hold_active_ticks = 0UL;
                 g_cal_hold_off_ticks = CAL_HOLD_OFF_MIN_TICKS;
+                CALHOLD_AdcPollMode(1U);
+                ADC_SetSoftwareTriggerMode();   /* SOC0 TRIGSEL back to SW */
                 g_cal_hold_state = CAL_HOLD_OFF;
                 g_cal_hold_packet_active = 0U;
                 break;

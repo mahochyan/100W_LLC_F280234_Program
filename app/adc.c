@@ -76,7 +76,9 @@ void ADC_SetPwmSyncTriggerMode(void)
 
 void ADC_SoftwareTrigger(void)
 {
+    EALLOW;
     AdcRegs.ADCSOCFRC1.all = ADC_SOC_MASK;
+    EDIS;
 }
 
 /*
