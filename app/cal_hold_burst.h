@@ -33,7 +33,10 @@
 #define CAL_HOLD_OFF_MIN_TICKS          2U        /* >= 40 us @ 20 us tick */
 #define CAL_HOLD_UNDERSUPPLY_DELAY_TICKS 100U     /* 2 ms @ 20 us tick */
 #define CAL_HOLD_SETTLING_MS            5U
+#define CAL_HOLD_CAL_SETTLING_MS        200U   /* calibration window starts here */
 #define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS 6000UL
+#define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S    40000UL
+#define CAL_HOLD_ZERO_SAMPLES           64U    /* post-test zero/offset capture */
 
 void CALHOLD_Init(void);
 void CALHOLD_SlowTask(void);       /* request detect, CHARGE supervision, end/abort bookkeeping */

@@ -364,6 +364,16 @@ extern volatile Uint16 g_cal_hold_final_pwm;
 extern volatile Uint16 g_cal_hold_final_ost;
 extern volatile Uint32 g_cal_hold_dbg_force;
 extern volatile Uint32 g_cal_hold_dbg_eoc;
+/* PROFILE_C_CAL_HOLD_1S_DMM_V1 calibration-window and zero-capture fields */
+extern volatile Uint16 g_cal_hold_cal_raw_min;
+extern volatile Uint16 g_cal_hold_cal_raw_max;
+extern volatile Uint32 g_cal_hold_cal_raw_sum;
+extern volatile Uint32 g_cal_hold_cal_raw_samples;
+extern volatile Uint16 g_cal_hold_cal_raw_avg;
+extern volatile Uint16 g_cal_hold_zero_request;
+extern volatile Uint16 g_cal_hold_zero_raw_min;
+extern volatile Uint16 g_cal_hold_zero_raw_max;
+extern volatile Uint16 g_cal_hold_zero_raw_avg;
 extern volatile Uint16 g_cal_hold_dbg_result;
 extern volatile Uint16 g_cal_hold_dbg_flag;
 

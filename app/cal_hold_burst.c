@@ -110,6 +110,15 @@ static void CALHOLD_RecordRaw(Uint16 raw)
         s_stats.steady_samples++;
     }
 
+    /* Calibration window: 200ms..duration — the true ADC_HOLD_RAW source. */
+    if (elapsed_ms >= CAL_HOLD_CAL_SETTLING_MS)
+    {
+        if (raw < g_cal_hold_cal_raw_min) g_cal_hold_cal_raw_min = raw;
+        if (raw > g_cal_hold_cal_raw_max) g_cal_hold_cal_raw_max = raw;
+        g_cal_hold_cal_raw_sum += raw;
+        g_cal_hold_cal_raw_samples++;
+    }
+
     g_cal_hold_raw = raw;
 }
 
@@ -262,8 +271,12 @@ void CALHOLD_FastTask(void)
                 if (g_cal_hold_off_ticks >= CAL_HOLD_OFF_MIN_TICKS &&
                     raw <= CAL_HOLD_RECHARGE_LOW_RAW)
                 {
+                    /* Duration-fixed energy cap (not CCS-writable):
+                     * 100ms -> 6000, 1000ms -> 40000. */
                     if (g_cal_hold_total_packet_cycles >=
-                        CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS)
+                        ((g_cal_hold_duration_ms == 1000U)
+                             ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S
+                             : CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS))
                     {
                         CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_MAX_TOTAL_CYCLES);
                         return;
@@ -398,7 +411,35 @@ void CALHOLD_SlowTask(void)
         else
         {
             CALHOLD_StatsPublish();
+            if (g_cal_hold_cal_raw_samples > 0UL)
+                g_cal_hold_cal_raw_avg =
+                    (Uint16)(g_cal_hold_cal_raw_sum / g_cal_hold_cal_raw_samples);
         }
+    }
+
+    /* Post-test zero/offset capture: PWM off, OST latched, VOUT discharged.
+     * 64 software-triggered samples in the 5ms task (DELAY_US is allowed here;
+     * the fast task never waits). */
+    if (g_cal_hold_zero_request != 0U)
+    {
+        Uint16 zi;
+        Uint32 zsum = 0UL;
+
+        g_cal_hold_zero_request = 0U;
+        g_cal_hold_zero_raw_min = 0xFFFFU;
+        g_cal_hold_zero_raw_max = 0U;
+        for (zi = 0U; zi < CAL_HOLD_ZERO_SAMPLES; zi++)
+        {
+            ADC_SoftwareTrigger();
+            DELAY_US(20L);
+            {
+                Uint16 zr = (Uint16)AdcResult.ADCRESULT0;
+                if (zr < g_cal_hold_zero_raw_min) g_cal_hold_zero_raw_min = zr;
+                if (zr > g_cal_hold_zero_raw_max) g_cal_hold_zero_raw_max = zr;
+                zsum += zr;
+            }
+        }
+        g_cal_hold_zero_raw_avg = (Uint16)(zsum / CAL_HOLD_ZERO_SAMPLES);
     }
 }
 

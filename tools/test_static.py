@@ -352,6 +352,26 @@ check("CALHOLD_Init();" in read_text(ROOT / "app" / "app.c"),
       "CALHOLD_Init hooked")
 
 # ----------------------------------------------------------------------
+# PROFILE_C_CAL_HOLD_1S_DMM_V1 (2026-08-17)
+# ----------------------------------------------------------------------
+calh_src2 = read_text(ROOT / "app" / "cal_hold_burst.c")
+check("#define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S    40000UL" in calh_h,
+      "1s energy cap 40000 (compile-time, not CCS-writable)")
+check("(g_cal_hold_duration_ms == 1000U)" in calh_src2
+      and "CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S" in calh_src2,
+      "duration->energy-cap fixed mapping (100ms:6000 / 1000ms:40000)")
+check("#define CAL_HOLD_CAL_SETTLING_MS        200U" in calh_h,
+      "calibration window starts at 200ms")
+check("g_cal_hold_cal_raw_min" in calh_src2 and "g_cal_hold_cal_raw_sum" in calh_src2
+      and "g_cal_hold_cal_raw_samples" in calh_src2 and "g_cal_hold_cal_raw_avg" in calh_src2,
+      "cal-window stats (min/max/sum/samples/avg)")
+check("CAL_HOLD_ZERO_SAMPLES" in calh_src2 and "g_cal_hold_zero_raw_avg" in calh_src2,
+      "zero-capture 64 samples + min/max/avg")
+check("g_cal_hold_zero_request" in calh_src2,
+      "zero capture request-driven")
+
+
+# ----------------------------------------------------------------------
 print()
 if failures:
     print(f"{len(failures)} check(s) FAILED")
