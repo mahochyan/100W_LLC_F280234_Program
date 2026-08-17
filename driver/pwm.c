@@ -140,10 +140,13 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
 #if LLC_DIAG_ALLOW_200K_DB140 || LLC_DIAG_ALLOW_250K_DB110
     if (g_diag_frequency_override != 0U &&
         ((period == 299UL && deadtime >= 120U && deadtime <= 140U) ||
-         (period == 239UL && deadtime == 110U)))
+         (period >= 239UL && period <= 399UL &&
+          deadtime >= 36U && deadtime <= 110U)))
     {
         /* BRINGUP_DIAGNOSTIC: explicit diagnostic profiles only.
-         * 200 kHz / DB140..DB120 and 250 kHz / DB110.
+         * 200 kHz / DB140..DB120,
+         * 250 kHz accelerated bounded softstart DB110..DB36,
+         * and Phase B period 239..399 at DB36.
          * Production SoftStart Profile is unchanged. */
     }
     else
@@ -217,9 +220,6 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
 
     EPwm1Regs.TBPRD = (Uint16)period;
     EPwm1Regs.CMPA.half.CMPA = (Uint16)cmp;
-    g_tbprd_write_count++;
-    g_cmpa_write_count++;
-    g_pwm_runtime_write_count += 2U;
 
     EINT;
 
@@ -305,13 +305,6 @@ Uint16 PWM_ApplyPeriodDeadtime(Uint32 period, Uint16 deadtime)
     EPwm1Regs.DBFED = deadtime;
     EDIS;
 
-    g_tbprd_write_count++;
-    g_cmpa_write_count++;
-    g_dbred_write_count++;
-    g_dbfed_write_count++;
-    g_pwm_runtime_write_count += 4U;
-    g_pwm_apply_count++;
-    g_pwm_apply_cycle_last = g_multi_cycle_probe_completed_cycles;
 
     g_pwm_period = (Uint16)period;
     g_switching_frequency_hz = LLC_TBCLK_HZ / (period + 1UL);
@@ -340,12 +333,8 @@ Uint16 PWM_PrepareStart(Uint32 period, Uint16 deadtime, Uint16 start_phase)
     EPwm1Regs.AQCSFRC.bit.CSFA = AQ_CLEAR;
     EPwm1Regs.AQCSFRC.bit.CSFB = AQ_CLEAR;
     EPwm1Regs.TBCTR = ph;
-    g_tbctr_write_count++;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.TZCLR.bit.INT = 1U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.TZEINT.bit.OST = 0U;
-    g_pwm_runtime_write_count++;
     EDIS;
 
     g_power_window_state = POWER_WINDOW_IDLE;
@@ -369,9 +358,6 @@ Uint16 PWM_SetDeadbandOnly(Uint16 deadtime)
     EPwm1Regs.DBFED = deadtime;
     EDIS;
 
-    g_dbred_write_count++;
-    g_dbfed_write_count++;
-    g_pwm_runtime_write_count += 2U;
     return 1U;
 }
 
@@ -387,14 +373,10 @@ void PWM_StartDeterministic(void)
 
     EALLOW;
     EPwm1Regs.AQCSFRC.all = 0U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.TZCLR.bit.OST = 1U;
-    g_pwm_runtime_write_count++;
     g_probe_tzclr_write_count++;
     EPwm1Regs.TZCLR.bit.INT = 1U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.TZEINT.bit.OST = 1U;
-    g_pwm_runtime_write_count++;
     EDIS;
 
     g_power_window_state = POWER_WINDOW_ACTIVE;

@@ -81,8 +81,11 @@ void PROT_Init(void)
     g_loopback_diag_request = 0U;
     g_comp_inject_test_request = 0U;
     g_comp_inject_test_disarm_request = 0U;
-    g_micro_ramp_request = 0U;
-    g_micro_ramp_active = 0U;
+    g_accel_request = 0U;
+    g_accel_active = 0U;
+    g_poststop_vout_request = 0U;
+    g_poststop_vout_done = 0U;
+    g_poststop_vout_phase = 0U;
     g_first_start_seen = 0U;
     g_first_start_tbprd = 0U;
     g_first_start_cmpa = 0U;
@@ -114,11 +117,13 @@ __interrupt void EPWM1_TZINT_ISR(void)
      * This records how far a multi-cycle probe got before a real trip. */
     g_completed_cycles_at_trip = g_multi_cycle_probe_completed_cycles;
 
-    /* PROFILE_C DB micro-ramp: freeze current stage/DB/completed-cycle evidence. */
-    g_micro_ramp_db_at_trip = EPwm1Regs.DBRED;
-    g_micro_ramp_actual_dbred = EPwm1Regs.DBRED;
-    g_micro_ramp_actual_dbfed = EPwm1Regs.DBFED;
-    g_micro_ramp_completed_cycles_at_trip = g_multi_cycle_probe_completed_cycles;
+    /* PROFILE_C ACCELERATED bounded softstart: freeze trip evidence. */
+    g_accel_trip_phase = g_accel_phase;
+    g_accel_trip_period = g_accel_current_period;
+    g_accel_trip_cmpa = g_accel_current_cmpa;
+    g_accel_trip_db = g_accel_current_db;
+    g_accel_trip_completed_cycles = g_multi_cycle_probe_completed_cycles;
+    g_accel_stop_reason = 3U;
 
     g_comp_trip_dac_code = Comp1Regs.DACVAL.bit.DACVAL;
     g_comp_trip_tbctr = EPwm1Regs.TBCTR;

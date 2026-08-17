@@ -232,46 +232,41 @@ volatile Uint16 g_multi_cycle_probe_stop_reason ;
 volatile Uint32 g_completed_cycles_at_trip ;
 
 
-/* PROFILE_C DB micro-ramp diagnostic (200 kHz / DB140 -> DB130 -> DB120) */
-volatile Uint16 g_micro_ramp_request;
-volatile Uint16 g_micro_ramp_active;
-volatile Uint16 g_micro_ramp_stage;
-volatile Uint16 g_micro_ramp_db_at_trip;
-volatile Uint32 g_micro_ramp_completed_cycles_at_trip;
-volatile Uint32 g_micro_ramp_db_change1_cycle;
-volatile Uint32 g_micro_ramp_db_change2_cycle;
-volatile Uint16 g_micro_ramp_actual_dbred;
-volatile Uint16 g_micro_ramp_actual_dbfed;
-volatile Uint16 g_micro_ramp_db_update_pending;
-volatile Uint16 g_micro_ramp_pending_db;
+/* PROFILE_C ACCELERATED BOUNDED SOFTSTART (diagnostic) */
+#define ACCEL_LOG_MAX 33
+volatile Uint16 g_accel_request;
+volatile Uint16 g_accel_active;
+volatile Uint16 g_accel_phase;
+volatile Uint16 g_accel_stop_reason;
+volatile Uint16 g_accel_trip_phase;
+volatile Uint16 g_accel_trip_period;
+volatile Uint16 g_accel_trip_cmpa;
+volatile Uint16 g_accel_trip_db;
+volatile Uint32 g_accel_trip_completed_cycles;
+volatile Uint16 g_accel_current_db;
+volatile Uint16 g_accel_current_period;
+volatile Uint16 g_accel_current_cmpa;
+volatile Uint16 g_accel_stage_index;
+volatile Uint32 g_accel_stage_start_cycle;
+volatile Uint16 g_accel_last_tzflg;
+volatile Uint16 g_accel_last_vout_raw;
+volatile Uint16 g_accel_last_vout_max;
+volatile Uint32 g_accel_phase_c_start_cycle;
+volatile Uint16 g_accel_phase_c_cycles;
+volatile Uint16 g_accel_phase_c_vout_start;
+volatile Uint16 g_accel_phase_c_vout_max;
+volatile Uint16 g_accel_phase_c_vout_stop;
 
-/* PWM register-write audit counters */
-volatile Uint32 g_pwm_runtime_write_count;
-volatile Uint32 g_pwm_apply_count;
-volatile Uint32 g_pwm_apply_cycle_last;
-volatile Uint16 g_tbprd_write_count;
-volatile Uint16 g_cmpa_write_count;
-volatile Uint16 g_dbred_write_count;
-volatile Uint16 g_dbfed_write_count;
-volatile Uint16 g_tbctr_write_count;
-
-/* MULTICYCLE first-3-cycle trace snapshots (index 0..2 = cycles 1..3) */
-volatile Uint16 g_mc_trace_cycle[3];
-volatile Uint16 g_mc_trace_tbctr_at_isr[3];
-volatile Uint16 g_mc_trace_tbprd[3];
-volatile Uint16 g_mc_trace_cmpa[3];
-volatile Uint16 g_mc_trace_dbred[3];
-volatile Uint16 g_mc_trace_dbfed[3];
-volatile Uint16 g_mc_trace_pwm_apply_count[3];
-volatile Uint16 g_mc_trace_tbprd_writes[3];
-volatile Uint16 g_mc_trace_cmpa_writes[3];
-volatile Uint16 g_mc_trace_dbred_writes[3];
-volatile Uint16 g_mc_trace_dbfed_writes[3];
-volatile Uint16 g_mc_trace_etflg[3];
-volatile Uint16 g_mc_trace_tzflg[3];
-volatile Uint16 g_mc_trace_micro_stage[3];
-volatile Uint16 g_mc_trace_update_pending[3];
-
+/* POST-STOP VOUT truth check (software-trigger ADC, PWM off) */
+volatile Uint16 g_poststop_vout_request;
+volatile Uint16 g_poststop_vout_done;
+volatile Uint16 g_poststop_vout_phase;
+volatile Uint16 g_poststop_vout_samples[32];
+volatile Uint16 g_poststop_vout_min;
+volatile Uint16 g_poststop_vout_max;
+volatile Uint16 g_poststop_vout_avg;
+volatile Uint16 g_poststop5ms_vout_avg;
+volatile Uint16 g_poststop5ms_vout_samples[32];
 
 /* Multi-cycle ISR latency diagnostic */
 volatile Uint16 g_probe_isr_entry_tbctr ;

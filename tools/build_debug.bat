@@ -40,7 +40,7 @@ if errorlevel 1 exit /b 1
 
 echo === link ===
 "%CGT%\bin\cl2000.exe" -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number ^
-  -z -m"%BUILD%\LLC_100W_F28034_BRINGUP_DSH.map" --stack_size=0x100 --warn_sections ^
+  -z -m"%BUILD%\LLC_100W_F28034_BRINGUP_DSH.map" --stack_size=0xBF --warn_sections ^
   -i"%CGT%\lib" -i"%CGT%\include" --reread_libs --diag_wrap=off --display_error_number ^
   --xml_link_info="%BUILD%\LLC_100W_F28034_BRINGUP_DSH_linkInfo.xml" --rom_model ^
   -o"%BUILD%\LLC_100W_F28034_BRINGUP_DSH.out" ^

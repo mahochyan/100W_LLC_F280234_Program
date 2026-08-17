@@ -234,46 +234,41 @@ extern volatile Uint16 g_multi_cycle_probe_stop_reason;
 extern volatile Uint32 g_completed_cycles_at_trip;
 
 
-/* PROFILE_C DB micro-ramp diagnostic (200 kHz / DB140 -> DB130 -> DB120) */
-extern volatile Uint16 g_micro_ramp_request;
-extern volatile Uint16 g_micro_ramp_active;
-extern volatile Uint16 g_micro_ramp_stage;
-extern volatile Uint16 g_micro_ramp_db_at_trip;
-extern volatile Uint32 g_micro_ramp_completed_cycles_at_trip;
-extern volatile Uint32 g_micro_ramp_db_change1_cycle;
-extern volatile Uint32 g_micro_ramp_db_change2_cycle;
-extern volatile Uint16 g_micro_ramp_actual_dbred;
-extern volatile Uint16 g_micro_ramp_actual_dbfed;
-extern volatile Uint16 g_micro_ramp_db_update_pending;
-extern volatile Uint16 g_micro_ramp_pending_db;
+/* PROFILE_C ACCELERATED BOUNDED SOFTSTART (diagnostic) */
+#define ACCEL_LOG_MAX 33
+extern volatile Uint16 g_accel_request;
+extern volatile Uint16 g_accel_active;
+extern volatile Uint16 g_accel_phase;
+extern volatile Uint16 g_accel_stop_reason;
+extern volatile Uint16 g_accel_trip_phase;
+extern volatile Uint16 g_accel_trip_period;
+extern volatile Uint16 g_accel_trip_cmpa;
+extern volatile Uint16 g_accel_trip_db;
+extern volatile Uint32 g_accel_trip_completed_cycles;
+extern volatile Uint16 g_accel_current_db;
+extern volatile Uint16 g_accel_current_period;
+extern volatile Uint16 g_accel_current_cmpa;
+extern volatile Uint16 g_accel_stage_index;
+extern volatile Uint32 g_accel_stage_start_cycle;
+extern volatile Uint16 g_accel_last_tzflg;
+extern volatile Uint16 g_accel_last_vout_raw;
+extern volatile Uint16 g_accel_last_vout_max;
+extern volatile Uint32 g_accel_phase_c_start_cycle;
+extern volatile Uint16 g_accel_phase_c_cycles;
+extern volatile Uint16 g_accel_phase_c_vout_start;
+extern volatile Uint16 g_accel_phase_c_vout_max;
+extern volatile Uint16 g_accel_phase_c_vout_stop;
 
-/* PWM register-write audit counters */
-extern volatile Uint32 g_pwm_runtime_write_count;
-extern volatile Uint32 g_pwm_apply_count;
-extern volatile Uint32 g_pwm_apply_cycle_last;
-extern volatile Uint16 g_tbprd_write_count;
-extern volatile Uint16 g_cmpa_write_count;
-extern volatile Uint16 g_dbred_write_count;
-extern volatile Uint16 g_dbfed_write_count;
-extern volatile Uint16 g_tbctr_write_count;
-
-/* MULTICYCLE first-3-cycle trace snapshots (index 0..2 = cycles 1..3) */
-extern volatile Uint16 g_mc_trace_cycle[3];
-extern volatile Uint16 g_mc_trace_tbctr_at_isr[3];
-extern volatile Uint16 g_mc_trace_tbprd[3];
-extern volatile Uint16 g_mc_trace_cmpa[3];
-extern volatile Uint16 g_mc_trace_dbred[3];
-extern volatile Uint16 g_mc_trace_dbfed[3];
-extern volatile Uint16 g_mc_trace_pwm_apply_count[3];
-extern volatile Uint16 g_mc_trace_tbprd_writes[3];
-extern volatile Uint16 g_mc_trace_cmpa_writes[3];
-extern volatile Uint16 g_mc_trace_dbred_writes[3];
-extern volatile Uint16 g_mc_trace_dbfed_writes[3];
-extern volatile Uint16 g_mc_trace_etflg[3];
-extern volatile Uint16 g_mc_trace_tzflg[3];
-extern volatile Uint16 g_mc_trace_micro_stage[3];
-extern volatile Uint16 g_mc_trace_update_pending[3];
-
+/* POST-STOP VOUT truth check (software-trigger ADC, PWM off) */
+extern volatile Uint16 g_poststop_vout_request;
+extern volatile Uint16 g_poststop_vout_done;
+extern volatile Uint16 g_poststop_vout_phase;
+extern volatile Uint16 g_poststop_vout_samples[32];
+extern volatile Uint16 g_poststop_vout_min;
+extern volatile Uint16 g_poststop_vout_max;
+extern volatile Uint16 g_poststop_vout_avg;
+extern volatile Uint16 g_poststop5ms_vout_avg;
+extern volatile Uint16 g_poststop5ms_vout_samples[32];
 
 /* Multi-cycle ISR latency diagnostic */
 extern volatile Uint16 g_probe_isr_entry_tbctr;

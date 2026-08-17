@@ -26,6 +26,7 @@ void VOUTPROBE_SlowTask(void);
 void VOUTPROBE_AbortByFault(void);
 void VOUTPROBE_PostCaptureTask(void);
 void CALHOLD_SlowTask(void);
+void POSTSTOP_SlowTask(void);
 __interrupt void EPWM1_INT_ISR(void);
 
 #endif /* APP_POWER_PROBE_H */

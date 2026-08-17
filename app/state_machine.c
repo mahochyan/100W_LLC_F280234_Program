@@ -313,6 +313,7 @@ void SM_Run(void)
     VOUTPROBE_PostCaptureTask();
     CALHOLD_SlowTask();
     VOUTPROBE_SlowTask();
+    POSTSTOP_SlowTask();
 
     /* Tutorial SoftStart Engine ramp (exactly one step per 5 ms). */
     SoftStart_Update5ms();

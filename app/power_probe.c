@@ -266,14 +266,6 @@ void SINGLECYCLE_SlowTask(void)
     g_pre_stop_compsts = 0U;
     g_pre_stop_tbctr = 0U;
     g_pre_stop_timer2 = 0UL;
-    g_pwm_runtime_write_count = 0UL;
-    g_pwm_apply_count = 0UL;
-    g_pwm_apply_cycle_last = 0UL;
-    g_tbprd_write_count = 0U;
-    g_cmpa_write_count = 0U;
-    g_dbred_write_count = 0U;
-    g_dbfed_write_count = 0U;
-    g_tbctr_write_count = 0U;
 
     /* Diagnostic comparator threshold from g_vout_probe_dac_code. */
     g_comp1_dac_code = g_vout_probe_dac_code & 0x03FFU;
@@ -334,13 +326,9 @@ void SINGLECYCLE_SlowTask(void)
      * immediate false ZERO interrupt before the first real cycle. */
     EALLOW;
     EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETPS.bit.INTPRD  = ET_1ST;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETCLR.bit.INT    = 1U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETSEL.bit.INTEN  = 1U;
-    g_pwm_runtime_write_count++;
     EDIS;
 
     s_single_cycle_safety_ticks = 0UL;
@@ -358,13 +346,9 @@ static void MULTICYCLE_ConfigureAdcCapture(void)
 
     /* Sample near the middle of the period via CMPB. */
     EPwm1Regs.CMPB = LLC_BASELINE_PERIOD_150K / 2U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTRU_CMPB;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETSEL.bit.SOCAEN = 1U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
-    g_pwm_runtime_write_count++;
     EDIS;
 
     g_adc_trigger_mode = 1U;   /* ePWM1 SOCA capture active */
@@ -511,63 +495,113 @@ __interrupt void EPWM1_INT_ISR(void)
         {
             g_multi_cycle_probe_completed_cycles++;
 
-            /* Capture first-3-cycle trace for fixed-vs-micro A/B comparison.
-             * This runs for every MULTICYCLE probe and does not change PWM/TZ. */
-            if (g_multi_cycle_probe_completed_cycles <= 3UL)
+            /* PROFILE_C ACCELERATED BOUNDED SOFTSTART */
+            if (g_accel_active != 0U)
             {
-                Uint16 idx = (Uint16)(g_multi_cycle_probe_completed_cycles - 1UL);
-                g_mc_trace_cycle[idx] = (Uint16)g_multi_cycle_probe_completed_cycles;
-                g_mc_trace_tbctr_at_isr[idx] = EPwm1Regs.TBCTR;
-                g_mc_trace_tbprd[idx] = EPwm1Regs.TBPRD;
-                g_mc_trace_cmpa[idx] = EPwm1Regs.CMPA.half.CMPA;
-                g_mc_trace_dbred[idx] = EPwm1Regs.DBRED;
-                g_mc_trace_dbfed[idx] = EPwm1Regs.DBFED;
-                g_mc_trace_pwm_apply_count[idx] = (Uint16)g_pwm_apply_count;
-                g_mc_trace_tbprd_writes[idx] = g_tbprd_write_count;
-                g_mc_trace_cmpa_writes[idx] = g_cmpa_write_count;
-                g_mc_trace_dbred_writes[idx] = g_dbred_write_count;
-                g_mc_trace_dbfed_writes[idx] = g_dbfed_write_count;
-                g_mc_trace_etflg[idx] = EPwm1Regs.ETFLG.all;
-                g_mc_trace_tzflg[idx] = EPwm1Regs.TZFLG.all;
-                g_mc_trace_micro_stage[idx] = g_micro_ramp_stage;
-                g_mc_trace_update_pending[idx] = g_micro_ramp_db_update_pending;
-            }
+                Uint32 cyc = g_multi_cycle_probe_completed_cycles;
+                Uint16 db;
+                Uint16 period;
+                Uint16 cmp;
 
-            /* PROFILE_C DB micro-ramp: only set pending DB values at the exact
-             * PWM period boundaries. For cycles 1..14 there is no DB rewrite. */
-            if (g_micro_ramp_active != 0U)
-            {
-                if (g_multi_cycle_probe_completed_cycles == 15UL)
-                {
-                    g_micro_ramp_pending_db = 130U;
-                    g_micro_ramp_db_update_pending = 1U;
-                    g_micro_ramp_stage = 2U;
-                    g_micro_ramp_db_change1_cycle = g_multi_cycle_probe_completed_cycles;
-                }
-                else if (g_multi_cycle_probe_completed_cycles == 30UL)
-                {
-                    g_micro_ramp_pending_db = 120U;
-                    g_micro_ramp_db_update_pending = 1U;
-                    g_micro_ramp_stage = 3U;
-                    g_micro_ramp_db_change2_cycle = g_multi_cycle_probe_completed_cycles;
-                }
-                else if (g_multi_cycle_probe_completed_cycles == 45UL)
-                {
-                    g_micro_ramp_actual_dbred = EPwm1Regs.DBRED;
-                    g_micro_ramp_actual_dbfed = EPwm1Regs.DBFED;
-                }
+                g_accel_last_tzflg = EPwm1Regs.TZFLG.all;
+                g_accel_last_vout_raw = g_adc_vout_raw;
+                if (g_adc_vout_raw > g_accel_last_vout_max)
+                    g_accel_last_vout_max = g_adc_vout_raw;
 
-                if (g_micro_ramp_db_update_pending != 0U)
+                /* Auxiliary VOUT hard stop (diagnostic limit, not formal OVP). */
+                if (g_adc_vout_raw >= 800U)
                 {
-                    /* Apply only DBRED/DBFED, never TBPRD/CMPA. */
-                    if (PWM_SetDeadbandOnly(g_micro_ramp_pending_db) == 0U)
+                    g_accel_stop_reason = 2U;
+                    g_accel_phase = 4U;   /* VOUT_STOP */
+                    g_multi_cycle_probe_cycles = cyc;
+                }
+                else if (g_accel_phase == 1U)
+                {
+                    /* Phase A: DB110 platform 15 cycles, then 10 cycles per DB. */
+                    Uint32 dur = (g_accel_stage_index == 0U) ? 15UL : 10UL;
+                    if ((cyc - g_accel_stage_start_cycle) >= dur)
                     {
-                        MULTICYCLE_AbortByFault();
-                        return;
+                        Uint16 old_db = g_accel_current_db;
+                        if (g_accel_stage_index < 15U)
+                        {
+                            g_accel_stage_index++;
+                            db = (g_accel_stage_index < 15U) ?
+                                 (Uint16)(110U - 5U * g_accel_stage_index) : 36U;
+                            if (PWM_SetDeadbandOnly(db) == 0U)
+                            {
+                                MULTICYCLE_AbortByFault();
+                                return;
+                            }
+                            g_accel_current_db = db;
+                            g_accel_stage_start_cycle = cyc;
+                        }
+                        else
+                        {
+                            /* DB36 stage completed -> Phase A complete. */
+                            g_accel_phase = 2U;
+                            g_accel_stage_index = 0U;
+                            g_accel_stage_start_cycle = cyc;
+                            g_accel_current_period = 239U;
+                            g_accel_current_cmpa = 120U;
+                        }
                     }
-                    g_micro_ramp_db_update_pending = 0U;
-                    g_micro_ramp_actual_dbred = EPwm1Regs.DBRED;
-                    g_micro_ramp_actual_dbfed = EPwm1Regs.DBFED;
+                }
+                else if (g_accel_phase == 2U)
+                {
+                    /* Phase B: DB36 fixed, TBPRD increases by 10 every 10 cycles. */
+                    Uint32 dur = 10UL;
+                    if ((cyc - g_accel_stage_start_cycle) >= dur)
+                    {
+                        Uint16 old_period = g_accel_current_period;
+                        if (g_accel_stage_index < 16U)
+                        {
+                            g_accel_stage_index++;
+                            period = (Uint16)(239U + 10U * g_accel_stage_index);
+                            cmp = (Uint16)((period + 1U) / 2U);
+                            if (PWM_ApplyPeriodDeadtime(period, 36U) == 0U)
+                            {
+                                MULTICYCLE_AbortByFault();
+                                return;
+                            }
+                            g_accel_current_period = period;
+                            g_accel_current_cmpa = cmp;
+                            g_accel_current_db = 36U;
+                            g_accel_stage_start_cycle = cyc;
+                        }
+                        else
+                        {
+                            /* TBPRD399 stage completed -> enter Phase C. */
+                            g_accel_phase = 3U;
+                            g_accel_stage_index = 0U;
+                            g_accel_stage_start_cycle = cyc;
+                            g_accel_phase_c_start_cycle = cyc;
+                            g_accel_phase_c_cycles = 0U;
+                            g_accel_phase_c_vout_start = g_adc_vout_raw;
+                            g_accel_phase_c_vout_max = g_adc_vout_raw;
+                            g_accel_phase_c_vout_stop = 0U;
+                            g_multi_cycle_probe_cycles = 485UL;
+                        }
+                    }
+                }
+                else if (g_accel_phase == 3U)
+                {
+                    g_accel_phase_c_cycles = (Uint16)(cyc - g_accel_phase_c_start_cycle);
+                    if (g_adc_vout_raw > g_accel_phase_c_vout_max)
+                        g_accel_phase_c_vout_max = g_adc_vout_raw;
+                    if (g_adc_vout_raw >= 300U)
+                    {
+                        g_accel_stop_reason = 2U;
+                        g_accel_phase = 4U;
+                        g_accel_phase_c_vout_stop = g_adc_vout_raw;
+                        g_multi_cycle_probe_cycles = cyc;
+                    }
+                    else if (g_accel_phase_c_cycles >= 150U)
+                    {
+                        g_accel_stop_reason = 1U;
+                        g_accel_phase = 5U;
+                        g_accel_phase_c_vout_stop = g_adc_vout_raw;
+                        g_multi_cycle_probe_cycles = cyc;
+                    }
                 }
             }
 
@@ -929,42 +963,57 @@ void MULTICYCLE_SlowTask(void)
     g_pre_stop_compsts = 0U;
     g_pre_stop_tbctr = 0U;
     g_pre_stop_timer2 = 0UL;
-    g_micro_ramp_active = 0U;
-    g_micro_ramp_stage = 0U;
-    g_micro_ramp_db_at_trip = 0U;
-    g_micro_ramp_completed_cycles_at_trip = 0UL;
-    g_micro_ramp_actual_dbred = 0U;
-    g_micro_ramp_actual_dbfed = 0U;
-    g_micro_ramp_db_update_pending = 0U;
-    g_micro_ramp_pending_db = 0U;
+    g_accel_active = 0U;
+    g_accel_phase = 0U;
+    g_accel_stop_reason = 0U;
+    g_accel_trip_phase = 0U;
+    g_accel_trip_period = 0U;
+    g_accel_trip_cmpa = 0U;
+    g_accel_trip_db = 0U;
+    g_accel_trip_completed_cycles = 0UL;
+    g_accel_current_db = 0U;
+    g_accel_current_period = 0U;
+    g_accel_current_cmpa = 0U;
+    g_accel_stage_index = 0U;
+    g_accel_stage_start_cycle = 0UL;
+    g_accel_last_tzflg = 0U;
+    g_accel_last_vout_raw = 0U;
+    g_accel_last_vout_max = 0U;
+    g_accel_phase_c_start_cycle = 0UL;
+    g_accel_phase_c_cycles = 0U;
+    g_accel_phase_c_vout_start = 0U;
+    g_accel_phase_c_vout_max = 0U;
+    g_accel_phase_c_vout_stop = 0U;
 
-    /* Reset PWM register-write audit counters at each MULTICYCLE begin.
-     * Counters will then include the initial PrepareStart/Start writes so a
-     * micro-ramp extra write before cycle15 can be detected by subtraction. */
-    g_pwm_runtime_write_count = 0UL;
-    g_pwm_apply_count = 0UL;
-    g_pwm_apply_cycle_last = 0UL;
-    g_tbprd_write_count = 0U;
-    g_cmpa_write_count = 0U;
-    g_dbred_write_count = 0U;
-    g_dbfed_write_count = 0U;
-    g_tbctr_write_count = 0U;
-
-    /* PROFILE_C DB micro-ramp: if requested, force the full 45-cycle window and
-     * schedule DB switches at the PWM period boundaries after cycles 15 and 30. */
-    if (g_micro_ramp_request != 0U)
+    /* PROFILE_C ACCELERATED BOUNDED SOFTSTART: if requested, force 485-cycle
+     * hard window and start from the verified 250kHz/DB110 platform. */
+    if (g_accel_request != 0U)
     {
-        g_micro_ramp_request = 0U;
-        g_micro_ramp_active = 1U;
-        g_micro_ramp_stage = 1U;
-        g_micro_ramp_db_at_trip = 0U;
-        g_micro_ramp_completed_cycles_at_trip = 0UL;
-        g_micro_ramp_db_change1_cycle = 15UL;
-        g_micro_ramp_db_change2_cycle = 30UL;
-        g_micro_ramp_actual_dbred = 140U;
-        g_micro_ramp_actual_dbfed = 140U;
-        /* Keep the DSS-requested cycle count. The full PROFILE_C test uses
-         * 45; the no-energy A/B audit uses 3 and stops before any DB change. */
+        g_accel_request = 0U;
+        g_accel_active = 1U;
+        g_accel_phase = 1U;   /* PHASE_A */
+        g_accel_stop_reason = 0U;
+        g_accel_trip_phase = 0U;
+        g_accel_trip_period = 0U;
+        g_accel_trip_cmpa = 0U;
+        g_accel_trip_db = 0U;
+        g_accel_trip_completed_cycles = 0UL;
+        g_accel_current_db = 110U;
+        g_accel_current_period = 239U;
+        g_accel_current_cmpa = 120U;
+        g_accel_stage_index = 0U;
+        g_accel_stage_start_cycle = 0UL;
+        g_accel_last_tzflg = 0U;
+        g_accel_last_vout_raw = 0U;
+        g_accel_last_vout_max = 0U;
+        g_accel_phase_c_start_cycle = 0UL;
+        g_accel_phase_c_cycles = 0U;
+        g_accel_phase_c_vout_start = 0U;
+        g_accel_phase_c_vout_max = 0U;
+        g_accel_phase_c_vout_stop = 0U;
+        g_single_cycle_probe_frequency_hz = 250000UL;
+        g_single_cycle_probe_deadtime = 110U;
+        g_multi_cycle_probe_cycles = 485UL;
         g_multi_cycle_probe_completed_cycles = 0UL;
     }
 
@@ -1014,13 +1063,9 @@ void MULTICYCLE_SlowTask(void)
     /* Arm ePWM1 interrupt after deterministic start (avoid TBCTR=0 false hit). */
     EALLOW;
     EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETPS.bit.INTPRD  = ET_1ST;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETCLR.bit.INT    = 1U;
-    g_pwm_runtime_write_count++;
     EPwm1Regs.ETSEL.bit.INTEN  = 1U;
-    g_pwm_runtime_write_count++;
     EDIS;
 }
 
@@ -1331,4 +1376,38 @@ void CALHOLD_SlowTask(void)
         g_vout_probe_request = 1U;
         g_cal_hold_packet_active = 1U;
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* POST-STOP VOUT TRUTH CHECK                                         */
+/* ------------------------------------------------------------------ */
+
+void POSTSTOP_SlowTask(void)
+{
+    Uint16 i;
+
+    if (g_poststop_vout_request == 0U) return;
+    if (g_pwm_enabled != 0U) return;
+    if (EPwm1Regs.TZFLG.bit.OST == 0U) return;
+
+    /* First 32 software-triggered samples immediately after stop.
+     * min/max/avg are computed by the host from g_poststop_vout_samples[]. */
+    for (i = 0U; i < 32U; i++)
+    {
+        ADC_SoftwareTrigger();
+        DELAY_US(20L);
+        g_poststop_vout_samples[i] = AdcResult.ADCRESULT0;
+    }
+
+    /* Wait ~5 ms with PWM still off, then sample another 32.
+     * avg is computed by the host from g_poststop5ms_vout_samples[]. */
+    DELAY_US(5000L);
+    for (i = 0U; i < 32U; i++)
+    {
+        ADC_SoftwareTrigger();
+        DELAY_US(20L);
+        g_poststop5ms_vout_samples[i] = AdcResult.ADCRESULT0;
+    }
+
+    g_poststop_vout_request = 0U;
 }
