@@ -16,8 +16,6 @@
 
 #include "DSP2803x_Device.h"
 
-void POWERPROBE_SlowTask(void);
-void POWERPROBE_Tick(void);
 void SINGLECYCLE_SlowTask(void);
 void SINGLECYCLE_AbortByFault(void);
 void MULTICYCLE_SlowTask(void);

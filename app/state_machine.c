@@ -307,7 +307,6 @@ void SM_Run(void)
     SM_HandleManualFrequency();
 
     /* Stage 4D one-shot power probe (only in Stage 4, IDLE, PWM OFF). */
-    POWERPROBE_SlowTask();
     SINGLECYCLE_SlowTask();
     MULTICYCLE_SlowTask();
     VOUTPROBE_PostCaptureTask();

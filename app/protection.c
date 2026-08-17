@@ -194,7 +194,6 @@ __interrupt void TINT0_ISR(void)
     }
 
     /* Stage 4D one-shot power probe hardware-timer tick. */
-    POWERPROBE_Tick();
 
     /* 20 us fast control: new ADC sample -> PI/PFM -> PWM update -> fast protection */
     PROT_FastTask();

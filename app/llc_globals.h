@@ -259,6 +259,16 @@ extern volatile Uint16 g_accel_phase_c_vout_start;
 extern volatile Uint16 g_accel_phase_c_vout_max;
 extern volatile Uint16 g_accel_phase_c_vout_stop;
 
+/* PWM-sync ADC runtime freshness (Profile C diagnostic) */
+extern volatile Uint16 g_adc_pwm_sync_cmpb;
+extern volatile Uint32 g_adc_pwm_sync_soca_count;
+extern volatile Uint32 g_adc_pwm_sync_eoc_count;
+extern volatile Uint32 g_adc_pwm_sync_miss_count;
+extern volatile Uint16 g_adc_vout_pwm_sync_raw;
+extern volatile Uint16 g_adc_pwm_sync_valid;
+extern volatile Uint16 g_adc_pwm_sync_consecutive_miss;
+extern volatile Uint16 g_adc_pwm_sync_stale_abort;
+
 /* POST-STOP VOUT truth check (software-trigger ADC, PWM off) */
 extern volatile Uint16 g_poststop_vout_request;
 extern volatile Uint16 g_poststop_vout_done;

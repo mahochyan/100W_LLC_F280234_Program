@@ -36,140 +36,6 @@ static void PRE_STOP_Capture(void)
 
 static void MULTICYCLE_RestoreInterrupts(void);
 
-static Uint16 POWERPROBE_CheckEntry(void)
-{
-    if (g_bringup_stage != BRINGUP_STAGE_4_PROTECTION_TEST) return 0U;
-    if (g_system_state != SYS_STATE_IDLE) return 0U;
-    if (g_pwm_enable_request != 0U) return 0U;
-    if (g_pwm_enabled != 0U) return 0U;
-    if (EPwm1Regs.TZFLG.bit.OST == 0U) return 0U;   /* must be hardware-latched safe */
-    if (g_fault_flags != 0UL) return 0U;
-    if (PWM_ConfigMatchesFrozenBaseline() == 0U) return 0U;
-    if (GpioCtrlRegs.GPBMUX1.bit.GPIO42 != 3U) return 0U;
-    if (GpioCtrlRegs.GPAMUX1.bit.GPIO15 != 1U) return 0U;
-    if (g_comp_tz_loopback_verified == 0U) return 0U;
-    return 1U;
-}
-
-void POWERPROBE_SlowTask(void)
-{
-    Uint32 duration;
-    Uint16 ok;
-
-    if (g_power_probe_request == 0U) return;
-    g_power_probe_request = 0U;
-
-    if (POWERPROBE_CheckEntry() == 0U)
-    {
-        g_power_probe_result = 3U;   /* REJECTED */
-        return;
-    }
-
-    /* Hard limit duration. */
-    duration = g_power_probe_duration_us;
-    if (duration == 0UL) duration = LLC_POWER_PROBE_MAX_US;
-    if (duration > LLC_POWER_PROBE_MAX_US) duration = LLC_POWER_PROBE_MAX_US;
-    g_power_probe_duration_us = duration;
-
-    /* Force fixed 150 kHz. */
-    ok = LLC_SetFrequencyHz(LLC_DEFAULT_FREQUENCY_HZ);
-    if (ok == 0U)
-    {
-        g_power_probe_result = 3U;
-        return;
-    }
-
-    /* Mark probe active before arming comparator so an early TZ trip can
-     * abort cleanly instead of leaving a stale active state.  Keep
-     * g_pwm_enabled == 0 while COMP_ArmInjectionTest() is called: that
-     * function refuses to arm if PWM is already marked enabled. */
-    s_probe_ticks = 0UL;
-    g_power_probe_active = 1U;
-    g_power_window_state = POWER_WINDOW_IDLE;
-
-    /* Arm comparator with a safe no-false-trip threshold (~355 mV). */
-    g_comp1_dac_code = 110U;
-    g_comp_polarity = 1U;
-    COMP_ArmInjectionTest();
-
-    /* If comparator/TZ did not arm cleanly (pre-start trip or entry reject),
-     * abort and do NOT release the PWM. OST remains latched by COMP. */
-    if (g_comp_prestart_reject != 0U || g_comp_inject_test_armed == 0U)
-    {
-        g_power_probe_active = 0U;
-        g_power_probe_result = 3U;   /* REJECTED */
-        g_pwm_enabled = 0U;
-        g_pwm_enable_result = 0U;
-        return;
-    }
-
-    /* Record pre-probe ADC. */
-    g_power_probe_adc_vout_before = g_adc_vout_raw;
-    g_power_probe_adc_ipri_before = g_adc_ipri_raw;
-    g_power_probe_adc_iout_before = g_adc_iout_raw;
-    g_power_probe_adc_ipri_peak = g_adc_ipri_raw;
-
-    /* Clear the normal-inhibit OST latch and enable real TZ/comparator trip. */
-    g_power_window_state = POWER_WINDOW_ACTIVE;
-    EALLOW;
-    EPwm1Regs.AQCSFRC.all = 0U;
-    EPwm1Regs.TZCLR.all = 0xFFFFU;
-    g_probe_tzclr_write_count++;
-    EPwm1Regs.TZEINT.bit.OST = 1U;
-    EDIS;
-
-    s_probe_ticks = 0UL;
-    g_power_probe_active = 1U;
-    g_pwm_enabled = 1U;
-}
-
-void POWERPROBE_Tick(void)
-{
-    g_single_cycle_probe_tick_count++;
-
-    if (g_power_probe_active == 0U && g_single_cycle_probe_active == 0U) return;
-
-    /* Safety backup for single-cycle probe: if Timer1 did not stop it within
-     * ~40 us, force abort to avoid continuous power. */
-    if (g_single_cycle_probe_active != 0U)
-    {
-        g_single_cycle_probe_safety_count++;
-        s_single_cycle_safety_ticks++;
-        if (s_single_cycle_safety_ticks >= 2U)
-        {
-            SINGLECYCLE_AbortByFault();
-            return;
-        }
-    }
-
-    if (g_power_probe_active == 0U) return;
-
-    /* Any fault/abort stops immediately without waiting for the 2 ms budget. */
-    if (g_fault_flags != 0UL || g_system_state == SYS_STATE_FAULT)
-    {
-        g_power_probe_active = 0U;
-        g_power_probe_result = 2U;       /* ABORTED_BY_FAULT */
-        g_pwm_enabled = 0U;
-        g_pwm_enable_result = 0U;
-        g_power_probe_adc_vout_after = g_adc_vout_raw;
-        g_power_probe_adc_iout_after = g_adc_iout_raw;
-        return;
-    }
-
-    s_probe_ticks++;
-    if (s_probe_ticks >= POWER_PROBE_TICKS_MAX)
-    {
-        /* Normal completion: unconditional hardware OST stop. */
-        LLC_PWM_DisableSafe();
-        g_power_probe_adc_vout_after = g_adc_vout_raw;
-        g_power_probe_adc_iout_after = g_adc_iout_raw;
-        g_power_probe_active = 0U;
-        g_power_probe_result = 1U;   /* PASS_COMPLETED */
-        g_power_probe_count++;
-    }
-}
-
-
 /* ------------------------------------------------------------------ */
 /* SINGLE_CYCLE_POWER_PROBE                                           */
 /* ------------------------------------------------------------------ */
@@ -342,14 +208,14 @@ static void MULTICYCLE_ConfigureAdcCapture(void)
     AdcRegs.ADCSOC0CTL.bit.CHSEL = 1U;
     AdcRegs.ADCSOC0CTL.bit.ACQPS = 7U;
     AdcRegs.ADCSOC0CTL.bit.TRIGSEL = 5U;
-    AdcRegs.INTSEL1N2.bit.INT1E = 0U;
-
-    /* Sample near the middle of the period via CMPB. */
-    EPwm1Regs.CMPB = LLC_BASELINE_PERIOD_150K / 2U;
-    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTRU_CMPB;
-    EPwm1Regs.ETSEL.bit.SOCAEN = 1U;
-    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+    AdcRegs.INTSEL1N2.bit.INT1SEL = 0U;   /* ADCINT1 from EOC0 */
+    AdcRegs.INTSEL1N2.bit.INT1E = 1U;     /* flag set; PIEIER1=0 keeps CPU masked */
+    AdcRegs.ADCINTFLGCLR.all = 0xFFFFU;
+    AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
     EDIS;
+
+    /* Move SOCA sample point to the current period midpoint. */
+    ADC_UpdatePwmSyncPoint(g_pwm_period);
 
     g_adc_trigger_mode = 1U;   /* ePWM1 SOCA capture active */
 
@@ -495,6 +361,45 @@ __interrupt void EPWM1_INT_ISR(void)
         {
             g_multi_cycle_probe_completed_cycles++;
 
+            /* PWM-sync ADC fresh sample read. PIE Group1 stays masked; we poll
+             * ADCINT1/EOC0 flag here as hardware conversion-complete evidence. */
+            {
+                Uint16 fresh = 0U;
+
+                EALLOW;
+                if (AdcRegs.ADCINTFLG.bit.ADCINT1 != 0U)
+                {
+                    fresh = 1U;
+                    g_adc_vout_pwm_sync_raw = AdcResult.ADCRESULT0;
+                    g_adc_pwm_sync_soca_count++;
+                    g_adc_vout_raw = g_adc_vout_pwm_sync_raw;
+                    g_adc_vout_filter_acc = g_adc_vout_filter_acc -
+                        (g_adc_vout_filter_acc >> 4) + g_adc_vout_pwm_sync_raw;
+                    g_adc_vout_filtered_raw = (Uint16)(g_adc_vout_filter_acc >> 4);
+                    g_adc_sample_counter++;
+                    g_adc_pwm_sync_eoc_count++;
+                    AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+                    AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
+                    g_adc_pwm_sync_valid = 1U;
+                    g_adc_pwm_sync_consecutive_miss = 0U;
+                }
+                EDIS;
+
+                if (fresh == 0U)
+                {
+                    if (g_adc_pwm_sync_valid != 0U)
+                    {
+                        g_adc_pwm_sync_consecutive_miss++;
+                        g_adc_pwm_sync_miss_count++;
+                        if (g_adc_pwm_sync_consecutive_miss >= 3U)
+                        {
+                            g_adc_pwm_sync_stale_abort = 1U;
+                            g_multi_cycle_probe_cycles = g_multi_cycle_probe_completed_cycles;
+                        }
+                    }
+                }
+            }
+
             /* PROFILE_C ACCELERATED BOUNDED SOFTSTART */
             if (g_accel_active != 0U)
             {
@@ -504,12 +409,12 @@ __interrupt void EPWM1_INT_ISR(void)
                 Uint16 cmp;
 
                 g_accel_last_tzflg = EPwm1Regs.TZFLG.all;
-                g_accel_last_vout_raw = g_adc_vout_raw;
-                if (g_adc_vout_raw > g_accel_last_vout_max)
-                    g_accel_last_vout_max = g_adc_vout_raw;
+                g_accel_last_vout_raw = g_adc_vout_pwm_sync_raw;
+                if (g_adc_vout_pwm_sync_raw > g_accel_last_vout_max)
+                    g_accel_last_vout_max = g_adc_vout_pwm_sync_raw;
 
                 /* Auxiliary VOUT hard stop (diagnostic limit, not formal OVP). */
-                if (g_adc_vout_raw >= 800U)
+                if (g_adc_vout_pwm_sync_raw >= 800U)
                 {
                     g_accel_stop_reason = 2U;
                     g_accel_phase = 4U;   /* VOUT_STOP */
@@ -563,6 +468,7 @@ __interrupt void EPWM1_INT_ISR(void)
                                 MULTICYCLE_AbortByFault();
                                 return;
                             }
+                            ADC_UpdatePwmSyncPoint(period);
                             g_accel_current_period = period;
                             g_accel_current_cmpa = cmp;
                             g_accel_current_db = 36U;
@@ -576,8 +482,8 @@ __interrupt void EPWM1_INT_ISR(void)
                             g_accel_stage_start_cycle = cyc;
                             g_accel_phase_c_start_cycle = cyc;
                             g_accel_phase_c_cycles = 0U;
-                            g_accel_phase_c_vout_start = g_adc_vout_raw;
-                            g_accel_phase_c_vout_max = g_adc_vout_raw;
+                            g_accel_phase_c_vout_start = g_adc_vout_pwm_sync_raw;
+                            g_accel_phase_c_vout_max = g_adc_vout_pwm_sync_raw;
                             g_accel_phase_c_vout_stop = 0U;
                             g_multi_cycle_probe_cycles = 485UL;
                         }
@@ -586,20 +492,20 @@ __interrupt void EPWM1_INT_ISR(void)
                 else if (g_accel_phase == 3U)
                 {
                     g_accel_phase_c_cycles = (Uint16)(cyc - g_accel_phase_c_start_cycle);
-                    if (g_adc_vout_raw > g_accel_phase_c_vout_max)
-                        g_accel_phase_c_vout_max = g_adc_vout_raw;
-                    if (g_adc_vout_raw >= 300U)
+                    if (g_adc_vout_pwm_sync_raw > g_accel_phase_c_vout_max)
+                        g_accel_phase_c_vout_max = g_adc_vout_pwm_sync_raw;
+                    if (g_adc_vout_pwm_sync_raw >= 300U)
                     {
                         g_accel_stop_reason = 2U;
                         g_accel_phase = 4U;
-                        g_accel_phase_c_vout_stop = g_adc_vout_raw;
+                        g_accel_phase_c_vout_stop = g_adc_vout_pwm_sync_raw;
                         g_multi_cycle_probe_cycles = cyc;
                     }
                     else if (g_accel_phase_c_cycles >= 150U)
                     {
                         g_accel_stop_reason = 1U;
                         g_accel_phase = 5U;
-                        g_accel_phase_c_vout_stop = g_adc_vout_raw;
+                        g_accel_phase_c_vout_stop = g_adc_vout_pwm_sync_raw;
                         g_multi_cycle_probe_cycles = cyc;
                     }
                 }
@@ -984,6 +890,14 @@ void MULTICYCLE_SlowTask(void)
     g_accel_phase_c_vout_start = 0U;
     g_accel_phase_c_vout_max = 0U;
     g_accel_phase_c_vout_stop = 0U;
+    g_adc_pwm_sync_cmpb = 0U;
+    g_adc_pwm_sync_soca_count = 0UL;
+    g_adc_pwm_sync_eoc_count = 0UL;
+    g_adc_pwm_sync_miss_count = 0UL;
+    g_adc_vout_pwm_sync_raw = 0U;
+    g_adc_pwm_sync_valid = 0U;
+    g_adc_pwm_sync_consecutive_miss = 0U;
+    g_adc_pwm_sync_stale_abort = 0U;
 
     /* PROFILE_C ACCELERATED BOUNDED SOFTSTART: if requested, force 485-cycle
      * hard window and start from the verified 250kHz/DB110 platform. */

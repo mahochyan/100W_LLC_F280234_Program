@@ -79,6 +79,29 @@ void ADC_SoftwareTrigger(void)
     AdcRegs.ADCSOCFRC1.all = ADC_SOC_MASK;
 }
 
+/*
+ * ADC_UpdatePwmSyncPoint
+ *
+ * Moves the ePWM1 SOCA VOUT sampling point to the midpoint of the current
+ * switching period. Call whenever TBPRD changes during a diagnostic run.
+ * Does not enable ADC CPU interrupt; ADCINT1 flag is used as a hardware
+ * conversion-complete evidence while PIE Group1 remains masked.
+ */
+void ADC_UpdatePwmSyncPoint(Uint16 period)
+{
+    Uint16 cmp = (Uint16)((period + 1U) / 2U);
+
+    EALLOW;
+    EPwm1Regs.CMPB = cmp;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTRU_CMPB;
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+    EPwm1Regs.ETCLR.bit.SOCA = 1U;
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1U;
+    EDIS;
+
+    g_adc_pwm_sync_cmpb = cmp;
+}
+
 void ADC_CheckOverflow(void)
 {
     if (AdcRegs.ADCINTOVF.all != 0U)
