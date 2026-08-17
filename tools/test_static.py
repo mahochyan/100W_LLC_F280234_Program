@@ -440,6 +440,42 @@ check("g_softstart_acceptance_mode" in ss_src and "g_softstart_result" in ss_src
 check("SS_FINAL_MAX_CYCLES    300U" in ss_h,
       "finite cycle window (300) after ramp")
 
+# ----------------------------------------------------------------------
+# STAGE5A_OPEN_LOOP_PFM_DIRECTION_V1 (2026-08-17)
+# ----------------------------------------------------------------------
+check("PFM_DIRECTION_MODE_TEST_150K" in ss_h and "PFM_DIRECTION_MODE_TEST_170K" in ss_h,
+      "PFM direction modes 1/2 defined")
+check("PFM_DIRECTION_WINDOW_CYCLES_150K 45U" in ss_h
+      and "PFM_DIRECTION_WINDOW_CYCLES_170K 51U" in ss_h,
+      "150k=45cyc / 170k=51cyc (~300us windows)")
+check("(LLC_TBCLK_HZ + (PFM_DIRECTION_FREQ_170K_HZ / 2UL))" in ss_src
+      and "PFM_DIRECTION_TBPRD_170K" in ss_src,
+      "170k TBPRD computed as round(60e6/170e3)-1 (352, compile-time)")
+check("g_pfm_direction_test_mode > PFM_DIRECTION_MODE_TEST_170K" in ss_src
+      and "SS_RESULT_REJECTED" in ss_src,
+      "PFM mode >2 rejects real-power start")
+check("SS_EnterPfmWindow();" in ss_src,
+      "acceptance hit enters PFM window instead of immediate OST")
+check("g_pfm_start_raw = g_adc_vout_pwm_sync_raw" in ss_src
+      and "g_pfm_start_timer2 = CpuTimer2Regs.TIM.all" in ss_src,
+      "window start raw + timer2 frozen")
+check("SS_ApplyStage(period, SS_FINAL_DB);" in ss_src,
+      "window applies fixed period + DB36")
+check("g_pfm_hard_vout_abort = 1U" in ss_src and "SS_RESULT_PFM_HARD_ABORT" in ss_src,
+      "window ceiling hit -> immediate OST + HARD_VOUT_ABORT")
+check("g_pfm_window_cycles >= g_pfm_window_total" in ss_src
+      and "SS_RESULT_PFM_WINDOW_DONE" in ss_src,
+      "window completion -> scheduled OST")
+check("g_pfm_end_raw" in ss_src and "g_pfm_end_timer2" in ss_src
+      and "g_pfm_max_raw" in ss_src,
+      "end_raw / max_raw / elapsed recorded")
+check("SOFTSTART_PFM_WINDOW" in probe_src,
+      "EPWM1 ISR routes PFM window to FastUpdate")
+check("g_pfm_direction_test_mode" in globals_h and "g_pfm_direction_test_mode" in globals_c,
+      "PFM test mode global declared/defined")
+check("g_softstart_acceptance_mode == 0U" in ss_src and "SYS_STATE_RUN" in ss_src,
+      "production RUN path exists but is separated from acceptance/PFM mode")
+
 
 # ----------------------------------------------------------------------
 print()

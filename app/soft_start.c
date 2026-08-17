@@ -24,6 +24,16 @@
 #include "soft_start.h"
 #include "board_calibration.h"
 
+/* STAGE5A PFM direction: 170 kHz window configuration, computed at compile
+ * time from the 60 MHz TBCLK so no runtime division is needed:
+ *   TBPRD = round(60000000 / 170000) - 1 = 353 - 1 = 352
+ *   f_act = 60000000 / (352 + 1)       = 169971 Hz
+ * 150 kHz uses the verified SS_FINAL_PERIOD (399, f = 150000 Hz). */
+#define PFM_DIRECTION_TBPRD_170K \
+    (((LLC_TBCLK_HZ + (PFM_DIRECTION_FREQ_170K_HZ / 2UL)) / PFM_DIRECTION_FREQ_170K_HZ) - 1UL)
+#define PFM_DIRECTION_FREQ_170K_ACTUAL \
+    (LLC_TBCLK_HZ / (PFM_DIRECTION_TBPRD_170K + 1UL))
+
 /* ------------------------------------------------------------------ */
 /* Terminal helpers                                                   */
 /* ------------------------------------------------------------------ */
@@ -125,6 +135,49 @@ static void SS_ApplyStage(Uint16 period, Uint16 db)
 }
 
 /* ------------------------------------------------------------------ */
+/* STAGE5A PFM direction window                                        */
+/* ------------------------------------------------------------------ */
+
+static void SS_EnterPfmWindow(void)
+{
+    Uint16 period;
+    Uint16 cmpa;
+
+    /* Freeze the window start (raw + free-running Timer2 @60MHz). */
+    g_pfm_start_raw = g_adc_vout_pwm_sync_raw;
+    g_pfm_start_timer2 = CpuTimer2Regs.TIM.all;
+    g_pfm_window_cycles = 0U;
+    g_pfm_hard_vout_abort = 0U;
+    g_pfm_end_raw = 0U;
+    g_pfm_max_raw = g_adc_vout_pwm_sync_raw;
+
+    if (g_pfm_direction_test_mode == PFM_DIRECTION_MODE_TEST_150K)
+    {
+        period = SS_FINAL_PERIOD;              /* 399 -> 150 kHz */
+        g_pfm_window_total = PFM_DIRECTION_WINDOW_CYCLES_150K;
+        g_pfm_frequency_hz = 150000UL;
+    }
+    else /* TEST_170K */
+    {
+        period = (Uint16)PFM_DIRECTION_TBPRD_170K;   /* 352 -> 169971 Hz */
+        g_pfm_window_total = PFM_DIRECTION_WINDOW_CYCLES_170K;
+        g_pfm_frequency_hz = (Uint32)PFM_DIRECTION_FREQ_170K_ACTUAL;
+    }
+
+    cmpa = (Uint16)((period + 1U) / 2U);       /* CMPA = (TBPRD+1)/2 */
+
+    g_pfm_tbprd = period;
+    g_pfm_cmpa = cmpa;
+    g_pfm_cmpb = (Uint16)(cmpa / 2U);          /* CMPB = CMPA/2 (ADC sync point) */
+
+    /* Fixed-frequency window config: period + deadtime + PWM-sync ADC. */
+    SS_ApplyStage(period, SS_FINAL_DB);
+
+    g_softstart_stage = 4U;                    /* PFM window */
+    g_softstart_state = SOFTSTART_PFM_WINDOW;
+}
+
+/* ------------------------------------------------------------------ */
 /* ePWM-cycle driven update (EPWM1_INT_ISR)                           */
 /* ------------------------------------------------------------------ */
 
@@ -181,7 +234,9 @@ void SoftStart_FastUpdate(void)
      * crosses the acceptance target only in the FINAL stage. */
     if (g_softstart_no_energy != 0U)
     {
-        Uint16 sim = (g_softstart_state == SOFTSTART_FINAL) ? 1260U
+        /* PFM window keeps the FINAL-stage simulated VOUT (no real energy). */
+        Uint16 sim = (g_softstart_state == SOFTSTART_FINAL ||
+                      g_softstart_state == SOFTSTART_PFM_WINDOW) ? 1260U
                    : (g_softstart_state >= SOFTSTART_PHASE_B) ? 900U : 400U;
         g_adc_vout_pwm_sync_raw = sim;
         g_softstart_last_vout_raw = sim;
@@ -191,17 +246,33 @@ void SoftStart_FastUpdate(void)
     if (fresh != 0U || g_softstart_no_energy != 0U)
     {
 
-        /* Hard ceiling first, then acceptance target (fresh or simulated). */
-        if (g_adc_vout_pwm_sync_raw >= g_softstart_hard_ceiling_raw)
+        /* In the PFM window the window case owns the ceiling check and the
+         * completion stop; the generic checks below would otherwise re-enter
+         * the window every cycle (raw >= target again) and reset its counter. */
+        if (g_softstart_state != SOFTSTART_PFM_WINDOW)
         {
-            SS_End(SS_RESULT_HARD_CEILING);
-            return;
-        }
-        if (g_softstart_acceptance_mode != 0U &&
-            g_adc_vout_pwm_sync_raw >= g_softstart_accept_target_raw)
-        {
-            SS_End(SS_RESULT_ACCEPT_TARGET);
-            return;
+
+            /* Hard ceiling first, then acceptance target (fresh or simulated). */
+            if (g_adc_vout_pwm_sync_raw >= g_softstart_hard_ceiling_raw)
+            {
+                SS_End(SS_RESULT_HARD_CEILING);
+                return;
+            }
+            if (g_softstart_acceptance_mode != 0U &&
+                g_adc_vout_pwm_sync_raw >= g_softstart_accept_target_raw)
+            {
+                if (g_pfm_direction_test_mode == PFM_DIRECTION_MODE_TEST_150K ||
+                    g_pfm_direction_test_mode == PFM_DIRECTION_MODE_TEST_170K)
+                {
+                    /* STAGE5A PFM direction: instead of the Stage-5 immediate
+                     * scheduled OST, enter a fixed-frequency window and record
+                     * the VOUT change over ~300us, then OST. Never enters RUN. */
+                    SS_EnterPfmWindow();
+                    return;
+                }
+                SS_End(SS_RESULT_ACCEPT_TARGET);
+                return;
+            }
         }
     }
 
@@ -282,6 +353,29 @@ void SoftStart_FastUpdate(void)
             }
             break;
 
+        case SOFTSTART_PFM_WINDOW:
+            /* STAGE5A direction window: count complete cycles, abort on the
+             * hard ceiling, otherwise scheduled OST when the window is done. */
+            g_pfm_window_cycles++;
+            if (g_adc_vout_pwm_sync_raw >= g_softstart_hard_ceiling_raw)
+            {
+                g_pfm_hard_vout_abort = 1U;
+                SS_End(SS_RESULT_PFM_HARD_ABORT);
+                return;
+            }
+            if (g_adc_vout_pwm_sync_raw > g_pfm_max_raw)
+            {
+                g_pfm_max_raw = g_adc_vout_pwm_sync_raw;
+            }
+            if (g_pfm_window_cycles >= g_pfm_window_total)
+            {
+                g_pfm_end_raw = g_adc_vout_pwm_sync_raw;
+                g_pfm_end_timer2 = CpuTimer2Regs.TIM.all;
+                SS_End(SS_RESULT_PFM_WINDOW_DONE);
+                return;
+            }
+            break;
+
         default:
             break;
     }
@@ -311,6 +405,14 @@ void SoftStart_Update5ms(void)
         /* Calibration gate: real-power start requires valid board calibration. */
         if (BOARD_VOUT_CAL_VALID != 1 ||
             g_softstart_hard_ceiling_raw == 0U)
+        {
+            g_softstart_ramp_active = 0U;
+            g_softstart_result = SS_RESULT_REJECTED;
+            return;
+        }
+
+        /* STAGE5A gate: PFM direction mode only accepts 0 (OFF), 1, 2. */
+        if (g_pfm_direction_test_mode > PFM_DIRECTION_MODE_TEST_170K)
         {
             g_softstart_ramp_active = 0U;
             g_softstart_result = SS_RESULT_REJECTED;
@@ -349,6 +451,19 @@ void SoftStart_Update5ms(void)
         g_cal_hold_state = CAL_HOLD_IDLE;
         g_cal_hold_packet_active = 0U;
         g_softstart_run_id_at_arm = g_test_run_id;
+        /* STAGE5A PFM window reinit (residue-proof). */
+        g_pfm_start_raw = 0U;
+        g_pfm_end_raw = 0U;
+        g_pfm_max_raw = 0U;
+        g_pfm_start_timer2 = 0UL;
+        g_pfm_end_timer2 = 0UL;
+        g_pfm_window_cycles = 0U;
+        g_pfm_window_total = 0U;
+        g_pfm_hard_vout_abort = 0U;
+        g_pfm_frequency_hz = 0UL;
+        g_pfm_tbprd = 0U;
+        g_pfm_cmpa = 0U;
+        g_pfm_cmpb = 0U;
         g_pwm_enable_request = 1U;   /* formal enable; COMP arm requires it */
         g_system_state = SYS_STATE_SOFT_START;
         return;

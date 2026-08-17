@@ -686,9 +686,10 @@ __interrupt void EPWM1_INT_ISR(void)
         CALHOLD_PacketIsr();
     }
     else if (g_softstart_state >= SOFTSTART_START_HOLD &&
-             g_softstart_state <= SOFTSTART_FINAL)
+             g_softstart_state <= SOFTSTART_PFM_WINDOW)
     {
-        /* FORMAL SoftStart: ePWM-cycle driven trajectory (see soft_start.c). */
+        /* FORMAL SoftStart: ePWM-cycle driven trajectory + PFM direction
+         * window (see soft_start.c). */
         SoftStart_FastUpdate();
     }
     EPwm1Regs.ETCLR.bit.INT = 1U;

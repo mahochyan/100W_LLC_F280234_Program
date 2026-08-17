@@ -20,6 +20,7 @@
 #define SOFTSTART_PHASE_A    7U  /* DB110->36, 10 cycles/step */
 #define SOFTSTART_PHASE_B    8U  /* period 239->399, 10 cycles/step */
 #define SOFTSTART_FINAL      9U  /* 150kHz/DB36, acceptance window */
+#define SOFTSTART_PFM_WINDOW 10U /* STAGE5A: fixed-frequency direction window */
 
 /* Verified Profile C trajectory constants (board-PASSed) */
 #define SS_START_PERIOD        239U
@@ -40,6 +41,15 @@
 #define SS_FINAL_MAX_CYCLES    300U  /* acceptance wait window after ramp */
 #define SS_STALE_MISS_LIMIT    3U
 
+/* STAGE5A PFM direction test (g_pfm_direction_test_mode) */
+#define PFM_DIRECTION_MODE_OFF       0U
+#define PFM_DIRECTION_MODE_TEST_150K 1U
+#define PFM_DIRECTION_MODE_TEST_170K 2U
+/* Same ~300us real-time windows: 150k = 45 cycles, 170k = 51 cycles. */
+#define PFM_DIRECTION_WINDOW_CYCLES_150K 45U
+#define PFM_DIRECTION_WINDOW_CYCLES_170K 51U
+#define PFM_DIRECTION_FREQ_170K_HZ       170000UL
+
 /* g_softstart_result values */
 #define SS_RESULT_NONE          0U
 #define SS_RESULT_COMPLETE      1U
@@ -49,6 +59,8 @@
 #define SS_RESULT_STALE_ADC     5U
 #define SS_RESULT_NOT_REACHED   6U
 #define SS_RESULT_REJECTED      7U
+#define SS_RESULT_PFM_WINDOW_DONE 8U   /* STAGE5A window completed -> scheduled OST */
+#define SS_RESULT_PFM_HARD_ABORT  9U   /* STAGE5A window hit ceiling -> immediate OST */
 
 /* Profiles */
 #define SOFTSTART_PROFILE_TUTORIAL_REFERENCE  0U

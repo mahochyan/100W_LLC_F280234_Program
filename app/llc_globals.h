@@ -405,6 +405,21 @@ extern volatile Uint16 g_softstart_stale_abort;
 extern volatile Uint16 g_softstart_no_energy;   /* 1 = software VOUT simulation */
 extern volatile Uint16 g_softstart_ramp_active; /* 1 = formal ramp window (ISR OVF guard) */
 
+/* STAGE5A PFM direction test window (see soft_start.h) */
+extern volatile Uint16 g_pfm_direction_test_mode;  /* 0=OFF 1=150K 2=170K; >2 rejects start */
+extern volatile Uint16 g_pfm_start_raw;
+extern volatile Uint16 g_pfm_end_raw;
+extern volatile Uint16 g_pfm_max_raw;
+extern volatile Uint32 g_pfm_start_timer2;         /* CpuTimer2 free-run ticks @60MHz */
+extern volatile Uint32 g_pfm_end_timer2;
+extern volatile Uint16 g_pfm_window_cycles;        /* actual completed window cycles */
+extern volatile Uint16 g_pfm_window_total;         /* 45 (150k) / 51 (170k) */
+extern volatile Uint16 g_pfm_hard_vout_abort;      /* 1 = ceiling hit inside window */
+extern volatile Uint32 g_pfm_frequency_hz;         /* actual window frequency */
+extern volatile Uint16 g_pfm_tbprd;                /* window PWM configuration */
+extern volatile Uint16 g_pfm_cmpa;
+extern volatile Uint16 g_pfm_cmpb;
+
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 extern volatile Uint16 g_adc_pwm_sync_cmpb;
