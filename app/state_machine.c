@@ -307,9 +307,9 @@ void SM_Run(void)
     SM_HandleManualFrequency();
 
     /* Stage 4D one-shot power probe (only in Stage 4, IDLE, PWM OFF). */
-    SINGLECYCLE_SlowTask();
+    /* Bring-up probes are historical tools; the formal path does not call
+     * them. MULTICYCLE stays wired for CAL_HOLD's PASSed Profile C charge. */
     MULTICYCLE_SlowTask();
-    POSTSTOP_SlowTask();
     CALHOLD_SlowTask();
 
     /* Tutorial SoftStart Engine ramp (exactly one step per 5 ms). */

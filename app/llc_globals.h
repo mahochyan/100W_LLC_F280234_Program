@@ -378,6 +378,31 @@ extern volatile Uint16 g_cal_measure_done;    /* operator: measurement complete 
 extern volatile Uint16 g_cal_measure_ready;   /* stable -> DMM_MEASUREMENT_READY */
 extern volatile Uint16 g_cal_measure_active;
 
+/* FORMAL SoftStart (Stage5 acceptance) fields */
+extern volatile Uint16 g_softstart_request;
+extern volatile Uint16 g_softstart_acceptance_mode;   /* 0=production, 1=acceptance */
+extern volatile Uint16 g_softstart_accept_target_raw;
+extern volatile Uint16 g_softstart_hard_ceiling_raw;
+extern volatile Uint16 g_softstart_result;
+extern volatile Uint16 g_softstart_stage;
+extern volatile Uint16 g_softstart_stage_index;
+extern volatile Uint32 g_softstart_cycle_count;
+extern volatile Uint32 g_softstart_stage_cycles;
+extern volatile Uint16 g_softstart_final_cycles;
+extern volatile Uint16 g_softstart_last_vout_raw;
+extern volatile Uint16 g_softstart_last_vout_max;
+extern volatile Uint16 g_softstart_stop_raw;
+extern volatile Uint32 g_softstart_run_id_at_arm;
+extern volatile Uint32 g_softstart_run_id_at_stop;
+extern volatile Uint32 g_softstart_run_id_at_tz_isr;
+extern volatile Uint16 g_softstart_final_pwm;
+extern volatile Uint16 g_softstart_final_ost;
+extern volatile Uint32 g_softstart_soca_count;
+extern volatile Uint32 g_softstart_eoc_count;
+extern volatile Uint32 g_softstart_miss_count;
+extern volatile Uint16 g_softstart_consecutive_miss;
+extern volatile Uint16 g_softstart_stale_abort;
+
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 extern volatile Uint16 g_adc_pwm_sync_cmpb;

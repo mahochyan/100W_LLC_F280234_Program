@@ -322,6 +322,29 @@ volatile Uint16 g_cal_measure_request = 0U;
 volatile Uint16 g_cal_measure_done = 0U;
 volatile Uint16 g_cal_measure_ready = 0U;
 volatile Uint16 g_cal_measure_active = 0U;
+volatile Uint16 g_softstart_request = 0U;
+volatile Uint16 g_softstart_acceptance_mode = 0U;
+volatile Uint16 g_softstart_accept_target_raw = 0U;
+volatile Uint16 g_softstart_hard_ceiling_raw = 0U;
+volatile Uint16 g_softstart_result = 0U;   /* SS_RESULT_NONE */
+volatile Uint16 g_softstart_stage = 0U;
+volatile Uint16 g_softstart_stage_index = 0U;
+volatile Uint32 g_softstart_cycle_count = 0UL;
+volatile Uint32 g_softstart_stage_cycles = 0UL;
+volatile Uint16 g_softstart_final_cycles = 0U;
+volatile Uint16 g_softstart_last_vout_raw = 0U;
+volatile Uint16 g_softstart_last_vout_max = 0U;
+volatile Uint16 g_softstart_stop_raw = 0U;
+volatile Uint32 g_softstart_run_id_at_arm = 0UL;
+volatile Uint32 g_softstart_run_id_at_stop = 0UL;
+volatile Uint32 g_softstart_run_id_at_tz_isr = 0UL;
+volatile Uint16 g_softstart_final_pwm = 0U;
+volatile Uint16 g_softstart_final_ost = 0U;
+volatile Uint32 g_softstart_soca_count = 0UL;
+volatile Uint32 g_softstart_eoc_count = 0UL;
+volatile Uint32 g_softstart_miss_count = 0UL;
+volatile Uint16 g_softstart_consecutive_miss = 0U;
+volatile Uint16 g_softstart_stale_abort = 0U;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;

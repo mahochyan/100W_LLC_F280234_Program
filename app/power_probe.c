@@ -16,6 +16,7 @@
 #include "comparator.h"
 #include "power_probe.h"
 #include "cal_hold_burst.h"
+#include "soft_start.h"
 
 #define POWER_PROBE_TICK_US   20UL
 #define POWER_PROBE_TICKS_MAX (LLC_POWER_PROBE_MAX_US / POWER_PROBE_TICK_US)
@@ -683,6 +684,12 @@ __interrupt void EPWM1_INT_ISR(void)
         /* PROFILE_C_CAL_HOLD_BURST_V1 recharge packet: per-cycle PWM-sync
          * VOUT judgment and <=15-cycle cap (see cal_hold_burst.c). */
         CALHOLD_PacketIsr();
+    }
+    else if (g_softstart_state >= SOFTSTART_START_HOLD &&
+             g_softstart_state <= SOFTSTART_FINAL)
+    {
+        /* FORMAL SoftStart: ePWM-cycle driven trajectory (see soft_start.c). */
+        SoftStart_FastUpdate();
     }
     EPwm1Regs.ETCLR.bit.INT = 1U;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;

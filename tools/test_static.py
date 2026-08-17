@@ -210,10 +210,10 @@ check("if (g_system_state != SYS_STATE_SOFT_START) return;" in soft_start_src,
       "SoftStart_Update5ms only advances in SYS_STATE_SOFT_START")
 check("void SoftStart_Begin(void)" in soft_start_src,
       "SoftStart_Begin exists")
-check("g_period_request         = g_softstart_period_limit_final;" in soft_start_src,
-      "SoftStart_Begin sets period_request to final limit")
-check("PWM_PrepareStart(g_period_applied, g_softstart_deadtime, 0U);" in soft_start_src,
-      "SoftStart deterministic start uses PWM_PrepareStart")
+check("g_softstart_request = 1U;" in soft_start_src,
+      "SoftStart_Begin arms the formal request path")
+check("PWM_PrepareStart(SS_START_PERIOD, SS_START_DB, 1U)" in soft_start_src,
+      "formal start uses PWM_PrepareStart with verified 250k/DB110")
 check("PWM_StartDeterministic();" in soft_start_src,
       "SoftStart deterministic start uses PWM_StartDeterministic")
 check("COMP_ArmForPowerStart(g_softstart_ocp_dac_code);" in soft_start_src,
@@ -379,13 +379,60 @@ check("#define CAL_HOLD_MAX_DMM_HOLD_SECONDS   30U" in calh_h,
 check("g_cal_measure_request" in calh_src2 and "g_cal_measure_done" in calh_src2
       and "g_cal_measure_ready" in calh_src2,
       "measure request/done/ready handshake fields")
-check("CAL_HOLD_MAX_DMM_HOLD_SECONDS * 50UL" in calh_src2,
+check("CAL_HOLD_MAX_DMM_HOLD_SECONDS * 1000UL * 50UL" in calh_src2,
       "30s timeout enforced in fast task")
 check("g_cal_measure_done != 0U" in calh_src2,
       "operator completion stops the hold")
 check("CAL_HOLD_MEASURE_SETTLING_MS * 50UL" in calh_src2
       and "CAL_HOLD_MEASURE_STABLE_MS / 5U" in calh_src2,
       "500ms settling + 200ms stable window for DMM_MEASUREMENT_READY")
+
+
+# ----------------------------------------------------------------------
+# FORMAL_SOFTSTART_STAGE5_ACCEPTANCE_V1 (2026-08-17)
+# ----------------------------------------------------------------------
+ss_src = read_text(ROOT / "app" / "soft_start.c")
+ss_h = read_text(ROOT / "app" / "soft_start.h")
+cal_h = read_text(ROOT / "app" / "board_calibration.h")
+
+check("SOFTSTART_PROFILE_DEFAULT" in ss_h and "SOFTSTART_PROFILE_CURRENT_BOARD_VERIFIED" in ss_h,
+      "default verified SoftStart profile exists")
+check("SS_START_PERIOD        239U" in ss_h and "SS_START_DB            110U" in ss_h,
+      "verified start = 250kHz / DB110")
+check("SS_FINAL_PERIOD        399U" in ss_h and "SS_FINAL_DB            36U" in ss_h,
+      "final = 150kHz / DB36")
+check("SS_START_CMPB          60U" in ss_h and "SS_FINAL_CMPB          100U" in ss_h,
+      "CMPB = CMPA/2 start/final")
+check("SS_START_HOLD_CYCLES   15U" in ss_h,
+      "15-cycle initial hold")
+check("SS_PHASE_A_CYCLES      10U" in ss_h and "SS_PHASE_A_STAGES      15U" in ss_h,
+      "Phase A 15 stages x 10 cycles")
+check("SS_PHASE_B_CYCLES      10U" in ss_h and "SS_PHASE_B_STAGES      16U" in ss_h,
+      "Phase B 16 stages x 10 cycles")
+check("SoftStart_FastUpdate" in ss_src and "SoftStart_FastUpdate();" in probe_src,
+      "formal trajectory driven by ePWM cycle events")
+check("g_accel_request" not in ss_src and "g_multi_cycle_probe_request" not in ss_src
+      and "g_cal_hold_request" not in ss_src,
+      "formal path does not depend on probes")
+check("BOARD_VOUT_CAL_VALID != 1" in ss_src,
+      "calibration gate before real-power start")
+check("g_softstart_accept_target_raw" in ss_src and "BOARD_VOUT_RAW_10V" in ss_src,
+      "10V acceptance raw from board_calibration.h")
+check("g_softstart_hard_ceiling_raw" in ss_src and "BOARD_VOUT_RAW_12V" in ss_src,
+      "12V hard ceiling from board_calibration.h")
+check("SS_RESULT_ACTIVE_TZ" in ss_src and "SYS_STATE_FAULT" in ss_src,
+      "ACTIVE TZ latches fault (no auto restart)")
+check("SS_STALE_MISS_LIMIT" in ss_src and "g_softstart_stale_abort" in ss_src,
+      "ADC consecutive miss>=3 abort")
+check("g_pwm_start_prepared = 0U" in ss_src,
+      "PWM default OFF")
+check("SOFTSTART_PROFILE_LEGACY_REFERENCE" in ss_h
+      and "SOFTSTART_PROFILE_DEFAULT" in ss_h,
+      "legacy 150k/DB190 is reference only, not default")
+check("g_softstart_acceptance_mode" in ss_src and "g_softstart_result" in ss_src,
+      "acceptance mode separated from production mode")
+check("SS_FINAL_MAX_CYCLES    300U" in ss_h,
+      "finite cycle window (300) after ramp")
 
 
 # ----------------------------------------------------------------------
