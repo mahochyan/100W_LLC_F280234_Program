@@ -80,11 +80,11 @@
 MEMORY
 {
 PAGE 0 :
-   /* BEGIN is used for the "boot to SARAM" bootloader modeÖ÷Òª¸ø£º
-³ÌÐò´úÂë   */
+   /* BEGIN is used for the "boot to SARAM" bootloader modeï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½
+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   */
 
    BEGIN      : origin = 0x000000, length = 0x000002
-   RAMM0      : origin = 0x000050, length = 0x0003B0    //Æô¶¯´úÂë¡¢Ð¡º¯Êý¡£
+   RAMM0      : origin = 0x000050, length = 0x0003B0    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë¡¢Ð¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
    /* L0/L1/L2/L3 are contiguous on F28034 and are combined here to avoid
       linker fragmentation at block boundaries. */
    RAMLALL    : origin = 0x008000, length = 0x002000
@@ -96,14 +96,14 @@ PAGE 0 :
    BOOTROM    : origin = 0x3FF27C, length = 0x000D44
 
 
-PAGE 1 : //Ö÷Òª¸ø£ºÊý¾Ý
+PAGE 1 : //ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
    BOOT_RSVD   : origin = 0x000002, length = 0x00004E     /* Part of M0, BOOT rom will use this for stack */
    RAMM1       : origin = 0x000480, length = 0x000380     /* on-chip RAM block M1 */
 }
 
 
-SECTIONS   //¡°³ÌÐò²»Í¬²¿·Ö·ÅÄÄÀï¡±¡£
+SECTIONS   //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¡±ï¿½ï¿½
 {
    /* Setup for "boot to SARAM" mode:
       The codestart section (found in DSP28_CodeStartBranch.asm)
@@ -119,7 +119,7 @@ SECTIONS   //¡°³ÌÐò²»Í¬²¿·Ö·ÅÄÄÀï¡±¡£
 #endif   
 
    .text            : >> RAMLALL | RAMM0, PAGE = 0
-   .cinit           : > RAMM1,     PAGE = 1
+   .cinit           : > RAMLALL,   PAGE = 0
    .pinit           : > RAMM0,     PAGE = 0
    .switch          : > RAMM0,     PAGE = 0
    .reset           : > RESET,     PAGE = 0, TYPE = DSECT /* not used, */
