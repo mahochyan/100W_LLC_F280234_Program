@@ -309,10 +309,6 @@ volatile Uint32 g_cal_hold_run_id_at_stop = 0UL;
 volatile Uint32 g_cal_hold_run_id_at_tz_isr = 0UL;
 volatile Uint16 g_cal_hold_final_pwm = 0U;
 volatile Uint16 g_cal_hold_final_ost = 0U;
-volatile Uint32 g_cal_hold_dbg_force = 0UL;
-volatile Uint32 g_cal_hold_dbg_eoc = 0UL;
-volatile Uint16 g_cal_hold_dbg_result = 0U;
-volatile Uint16 g_cal_hold_dbg_flag = 0U;
 volatile Uint16 g_cal_hold_cal_raw_min = 0xFFFFU;
 volatile Uint16 g_cal_hold_cal_raw_max = 0U;
 volatile Uint32 g_cal_hold_cal_raw_sum = 0UL;
@@ -322,6 +318,10 @@ volatile Uint16 g_cal_hold_zero_request = 0U;
 volatile Uint16 g_cal_hold_zero_raw_min = 0xFFFFU;
 volatile Uint16 g_cal_hold_zero_raw_max = 0U;
 volatile Uint16 g_cal_hold_zero_raw_avg = 0U;
+volatile Uint16 g_cal_measure_request = 0U;
+volatile Uint16 g_cal_measure_done = 0U;
+volatile Uint16 g_cal_measure_ready = 0U;
+volatile Uint16 g_cal_measure_active = 0U;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;

@@ -86,6 +86,7 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
         g_cal_hold_state == CAL_HOLD_COMPLETE) return;
     CALHOLD_HardStop();
     CALHOLD_AdcPollMode(0U);
+    g_cal_measure_active = 0U;
     g_cal_hold_state = state;
     g_cal_hold_stop_reason = reason;
     CALHOLD_FreezeFinal();
@@ -237,7 +238,6 @@ void CALHOLD_FastTask(void)
             {
                 AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;  /* stale-flag hygiene */
                 ADC_SoftwareTrigger();          /* tick N: force SOC0 */
-                g_cal_hold_dbg_force++;
             }
             else
             {
@@ -248,7 +248,6 @@ void CALHOLD_FastTask(void)
                  * stall on the flag. */
                 if (AdcRegs.ADCINTFLG.bit.ADCINT1 != 0U)
                 {
-                    g_cal_hold_dbg_eoc++;
                     AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
                 }
                 raw = (Uint16)AdcResult.ADCRESULT0;
@@ -319,7 +318,18 @@ void CALHOLD_FastTask(void)
                 }
             }
 
-            if (g_cal_hold_elapsed_ticks >= limit)
+            if (g_cal_measure_active != 0U)
+            {
+                /* Interactive DMM hold: no 1s auto-end. Stop on the operator
+                 * completion flag or the 30s wall-clock timeout. */
+                if (g_cal_measure_done != 0U ||
+                    g_cal_hold_elapsed_ticks >=
+                        (Uint32)(CAL_HOLD_MAX_DMM_HOLD_SECONDS * 50UL))
+                {
+                    CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
+                }
+            }
+            else if (g_cal_hold_elapsed_ticks >= limit)
             {
                 CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
             }
@@ -330,7 +340,17 @@ void CALHOLD_FastTask(void)
         {
             g_cal_hold_elapsed_ticks++;
             g_cal_hold_hold_active_ticks++;
-            if (g_cal_hold_elapsed_ticks >= limit)
+            if (g_cal_measure_active != 0U)
+            {
+                if (g_cal_measure_done != 0U ||
+                    g_cal_hold_elapsed_ticks >=
+                        (Uint32)(CAL_HOLD_MAX_DMM_HOLD_SECONDS * 50UL))
+                {
+                    CALHOLD_StopPacket(0U);
+                    CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
+                }
+            }
+            else if (g_cal_hold_elapsed_ticks >= limit)
             {
                 CALHOLD_StopPacket(0U);
                 CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
@@ -346,6 +366,27 @@ void CALHOLD_FastTask(void)
 /* 5 ms slow task. */
 void CALHOLD_SlowTask(void)
 {
+    if (g_cal_measure_request != 0U)
+    {
+        g_cal_measure_request = 0U;
+        if (g_cal_hold_state != CAL_HOLD_IDLE)
+        {
+            CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_REJECTED);
+            return;
+        }
+        /* Same PASSed Profile C charge + recharge hold, no 1s auto-end. */
+        g_cal_measure_active = 1U;
+        g_cal_measure_done = 0U;
+        g_cal_measure_ready = 0U;
+        g_cal_hold_state = CAL_HOLD_CHARGE;
+        g_cal_hold_stop_reason = CAL_HOLD_REASON_NONE;
+        g_cal_hold_run_id_at_arm = g_test_run_id;
+        g_accel_vout_target_raw = CAL_HOLD_RECHARGE_TARGET_RAW;
+        g_accel_request = 1U;
+        g_multi_cycle_probe_request = 1U;
+        return;
+    }
+
     if (g_cal_hold_request != 0U)
     {
         g_cal_hold_request = 0U;
@@ -410,10 +451,36 @@ void CALHOLD_SlowTask(void)
         }
         else
         {
+            static Uint16 s_last_avg = 0U;
+            static Uint16 s_stable_streak = 0U;
             CALHOLD_StatsPublish();
             if (g_cal_hold_cal_raw_samples > 0UL)
                 g_cal_hold_cal_raw_avg =
                     (Uint16)(g_cal_hold_cal_raw_sum / g_cal_hold_cal_raw_samples);
+
+            /* DMM stability: after 500ms settling, a rolling average that
+             * moves <=10 raw across 200ms marks DMM_MEASUREMENT_READY. */
+            if (g_cal_measure_active != 0U &&
+                g_cal_hold_elapsed_ticks >=
+                    (Uint32)(CAL_HOLD_MEASURE_SETTLING_MS * 50UL))
+            {
+                Uint16 delta = (Uint16)((g_cal_hold_cal_raw_avg >= s_last_avg)
+                    ? (g_cal_hold_cal_raw_avg - s_last_avg)
+                    : (s_last_avg - g_cal_hold_cal_raw_avg));
+                if (delta <= 10U)
+                {
+                    if (++s_stable_streak >=
+                        (Uint16)(CAL_HOLD_MEASURE_STABLE_MS / 5U))
+                    {
+                        g_cal_measure_ready = 1U;
+                    }
+                }
+                else
+                {
+                    s_stable_streak = 0U;
+                }
+                s_last_avg = g_cal_hold_cal_raw_avg;
+            }
         }
     }
 

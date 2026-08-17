@@ -372,6 +372,23 @@ check("g_cal_hold_zero_request" in calh_src2,
 
 
 # ----------------------------------------------------------------------
+# CALIBRATION_MEASURE_HOLD (LLC_STAGE5_ACCEPTANCE_SPRINT_V2)
+# ----------------------------------------------------------------------
+check("#define CAL_HOLD_MAX_DMM_HOLD_SECONDS   30U" in calh_h,
+      "interactive DMM hold 30s wall-clock cap")
+check("g_cal_measure_request" in calh_src2 and "g_cal_measure_done" in calh_src2
+      and "g_cal_measure_ready" in calh_src2,
+      "measure request/done/ready handshake fields")
+check("CAL_HOLD_MAX_DMM_HOLD_SECONDS * 50UL" in calh_src2,
+      "30s timeout enforced in fast task")
+check("g_cal_measure_done != 0U" in calh_src2,
+      "operator completion stops the hold")
+check("CAL_HOLD_MEASURE_SETTLING_MS * 50UL" in calh_src2
+      and "CAL_HOLD_MEASURE_STABLE_MS / 5U" in calh_src2,
+      "500ms settling + 200ms stable window for DMM_MEASUREMENT_READY")
+
+
+# ----------------------------------------------------------------------
 print()
 if failures:
     print(f"{len(failures)} check(s) FAILED")

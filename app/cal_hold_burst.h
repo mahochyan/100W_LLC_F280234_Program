@@ -38,6 +38,13 @@
 #define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S    40000UL
 #define CAL_HOLD_ZERO_SAMPLES           64U    /* post-test zero/offset capture */
 
+/* CALIBRATION_MEASURE_HOLD: interactive DMM hold (task
+ * LLC_STAGE5_ACCEPTANCE_SPRINT_V2). The hold does NOT end at 1s; it runs
+ * until the operator signals completion or the 30s wall-clock timeout. */
+#define CAL_HOLD_MEASURE_SETTLING_MS    500U
+#define CAL_HOLD_MEASURE_STABLE_MS      200U
+#define CAL_HOLD_MAX_DMM_HOLD_SECONDS   30U
+
 void CALHOLD_Init(void);
 void CALHOLD_SlowTask(void);       /* request detect, CHARGE supervision, end/abort bookkeeping */
 void CALHOLD_FastTask(void);       /* 20 us: OFF software ADC, packet scheduling, safety */
