@@ -289,6 +289,25 @@ check(">= 800U" not in probe_src and ">= 300U" not in probe_src,
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+# PROFILE_C_VOUT1400_EXTENDED_PHASEC_V2 (2026-08-17)
+# ----------------------------------------------------------------------
+check("#define PHASE_C_MAX_CYCLES   225U" in probe_src,
+      "Phase C MAX = 225")
+check("g_accel_phase_c_start_cycle + PHASE_C_MAX_CYCLES" in probe_src,
+      "total window = Phase C start + 225 (dynamic)")
+check("g_accel_phase_c_cycles >= PHASE_C_MAX_CYCLES" in probe_src,
+      "Phase C 225-cycle cap enforced")
+check("PHASE_AB_SAFETY_WINDOW" in probe_src,
+      "Phase A/B loose finite window present")
+check("g_multi_cycle_probe_cycles = 485UL" not in probe_src and "= 485UL" not in probe_src,
+      "magic 485 total-window constant removed")
+check(">= 300U" not in probe_src and ">= 150U" not in probe_src,
+      "no 300/150 hardcoded Phase C caps remain")
+check("while (1)" not in probe_src.split("APP_Run")[0] and "for (;;)" not in probe_src,
+      "no indefinite/auto-extend path in probe")
+
+
+# ----------------------------------------------------------------------
 print()
 if failures:
     print(f"{len(failures)} check(s) FAILED")

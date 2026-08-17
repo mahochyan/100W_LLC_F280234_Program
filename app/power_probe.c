@@ -39,6 +39,17 @@ static void PRE_STOP_Capture(void)
  * and never taken from any user/CCS writable variable: a larger CCS value is
  * simply ignored (the only legal targets are 1200 and 1400).
  */
+/* PROFILE_C_VOUT1400_EXTENDED_PHASEC_V2 (2026-08-17)
+ * Phase C window: 150 -> 225 cycles. The overall hard window is NOT a magic
+ * number anymore: once Phase C starts it is exactly
+ *     g_accel_phase_c_start_cycle + PHASE_C_MAX_CYCLES
+ * so a Phase A/B boundary shift can never shorten Phase C. */
+#define PHASE_C_MAX_CYCLES   225U
+/* Loose window while Phase A/B (fixed stage counts, nominal 325 cycles) run;
+ * it is tightened to start+225 the moment Phase C starts. Finite, so the
+ * probe always terminates (finite, bounded). */
+#define PHASE_AB_SAFETY_WINDOW 1000UL
+
 static Uint16 ACCEL_HardLimitForTarget(Uint16 target_raw)
 {
     if (target_raw == ACCEL_VOUT_TARGET_1200) return ACCEL_VOUT_HARD_LIMIT_1200;
@@ -549,7 +560,8 @@ __interrupt void EPWM1_INT_ISR(void)
                             g_accel_phase_c_vout_start = g_adc_vout_pwm_sync_raw;
                             g_accel_phase_c_vout_max = g_adc_vout_pwm_sync_raw;
                             g_accel_phase_c_vout_stop = 0U;
-                            g_multi_cycle_probe_cycles = 485UL;
+                            g_multi_cycle_probe_cycles =
+                                g_accel_phase_c_start_cycle + PHASE_C_MAX_CYCLES;
                         }
                     }
                 }
@@ -561,8 +573,9 @@ __interrupt void EPWM1_INT_ISR(void)
                     /* PROFILE_C_VOUT_TARGET_LADDER_V1: the old 300-raw
                      * diagnostic target is gone. The ladder target/hard-limit
                      * checks above own the stop decision; Phase C only keeps
-                     * its 150-cycle cap (MAX_TOTAL_CYCLES = 485 overall). */
-                    if (g_accel_phase_c_cycles >= 150U)
+                     * its PHASE_C_MAX_CYCLES cap; the total window is
+                     * start+PHASE_C_MAX_CYCLES (dynamic window). */
+                    if (g_accel_phase_c_cycles >= PHASE_C_MAX_CYCLES)
                     {
                         g_accel_stop_reason = ACCEL_STOP_MAX_CYCLES;
                         g_accel_phase = 5U;
@@ -861,8 +874,9 @@ void MULTICYCLE_SlowTask(void)
     g_truth_post_timer2_100us = 0UL;
     g_truth_ost_to_slow_timer2 = 0UL;
 
-    /* PROFILE_C ACCELERATED BOUNDED SOFTSTART: if requested, force 485-cycle
-     * hard window and start from the verified 250kHz/DB110 platform. */
+    /* PROFILE_C ACCELERATED BOUNDED SOFTSTART: if requested, start from the
+     * verified 250kHz/DB110 platform with a loose A/B safety window that is
+     * tightened to (Phase C start + PHASE_C_MAX_CYCLES) at Phase C entry. */
     if (g_accel_request != 0U)
     {
         g_accel_request = 0U;
@@ -929,7 +943,7 @@ void MULTICYCLE_SlowTask(void)
         g_accel_phase_c_vout_stop = 0U;
         g_single_cycle_probe_frequency_hz = 250000UL;
         g_single_cycle_probe_deadtime = 110U;
-        g_multi_cycle_probe_cycles = 485UL;
+        g_multi_cycle_probe_cycles = PHASE_AB_SAFETY_WINDOW;
         g_multi_cycle_probe_completed_cycles = 0UL;
     }
 
