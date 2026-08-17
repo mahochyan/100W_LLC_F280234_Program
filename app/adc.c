@@ -114,6 +114,7 @@ void ADC_UpdatePwmSyncPoint(Uint16 period)
 
 void ADC_CheckOverflow(void)
 {
+    EALLOW;
     if (AdcRegs.ADCINTOVF.all != 0U)
     {
         if (g_no_energy_test_mode == 0U)
@@ -123,6 +124,7 @@ void ADC_CheckOverflow(void)
         }
         AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
     }
+    EDIS;
 }
 
 __interrupt void ADCINT1_ISR(void)
@@ -151,6 +153,7 @@ __interrupt void ADCINT1_ISR(void)
 
     g_adc_sample_counter++;
     g_adc_sample_sequence++;
+    g_adc_isr_last_tbctr = EPwm1Regs.TBCTR;
 
     /* Stage 4D power probe peak capture */
     if (g_power_probe_active != 0U)
@@ -161,9 +164,19 @@ __interrupt void ADCINT1_ISR(void)
         }
     }
 
+    EALLOW;
     if (AdcRegs.ADCINTOVF.all != 0U)
     {
-        if (g_no_energy_test_mode == 0U)
+        g_adc_ovf_count++;
+        if (g_adc_ovf_first_tbctr == 0U)
+        {
+            g_adc_ovf_first_tbctr = EPwm1Regs.TBCTR;
+            g_adc_ovf_first_flag_was_set = AdcRegs.ADCINTFLG.bit.ADCINT1;
+        }
+        /* During the formal ramp FastUpdate's SOCA discipline owns freshness
+         * and the ADCINT1 vector is disabled; OVF here is a benign conversion
+         * timing race, not a fault of the ramp itself. */
+        if (g_no_energy_test_mode == 0U && g_softstart_ramp_active == 0U)
         {
             g_fault_flags |= FAULT_ADC_STALE_OVERFLOW;
             g_fault_history |= FAULT_ADC_STALE_OVERFLOW;
@@ -172,5 +185,6 @@ __interrupt void ADCINT1_ISR(void)
     }
 
     AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+    EDIS;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 }

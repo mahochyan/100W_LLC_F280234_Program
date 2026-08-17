@@ -346,6 +346,7 @@ volatile Uint32 g_softstart_miss_count = 0UL;
 volatile Uint16 g_softstart_consecutive_miss = 0U;
 volatile Uint16 g_softstart_stale_abort = 0U;
 volatile Uint16 g_softstart_no_energy = 0U;
+volatile Uint16 g_softstart_ramp_active = 0U;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;
@@ -474,3 +475,9 @@ volatile Uint32 g_cal_hold_max_total_extra_cycles = LLC_CAL_HOLD_MAX_TOTAL_EXTRA
 /* Timing */
 volatile Uint32 g_fast_tick ;
 volatile Uint16 g_5ms_flag ;
+
+/* OVF diagnostics (ISR instrumentation) */
+volatile Uint32 g_adc_ovf_count ;
+volatile Uint16 g_adc_ovf_first_tbctr ;
+volatile Uint16 g_adc_ovf_first_flag_was_set ;
+volatile Uint16 g_adc_isr_last_tbctr ;

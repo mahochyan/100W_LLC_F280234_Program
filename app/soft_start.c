@@ -34,7 +34,15 @@ static void SS_HardStop(void)
     EPwm1Regs.TZEINT.bit.OST = 0U;
     EPwm1Regs.TZFRC.bit.OST = 1U;
     EPwm1Regs.ETSEL.bit.INTEN = 0U;
+    /* Restore the ADCINT1 PIE vector. During the ramp it is disabled
+     * (FastUpdate owns fresh-sample flag discipline); re-enable cleanly so
+     * no stale pending request fires after the ramp. */
+    AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+    AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
+    PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;
+    PieCtrlRegs.PIEIER1.bit.INTx1 = 1U;
     EDIS;
+    g_softstart_ramp_active = 0U;
     g_pwm_enabled = 0U;
     g_pwm_enable_result = 0U;
 }
@@ -94,6 +102,13 @@ void SoftStart_StartPwmFormal(void)
     EPwm1Regs.ETPS.bit.INTPRD  = ET_1ST;
     EPwm1Regs.ETCLR.bit.INT    = 1U;
     EPwm1Regs.ETSEL.bit.INTEN  = 1U;
+    /* During the ramp the ADCINT1 CPU vector stays disabled: FastUpdate owns
+     * the fresh-sample discipline (ETFLG.SOCA + ADCRESULT0) and clears the
+     * ADC flags each cycle with EALLOW. The legacy ADCINT1 ISR is redundant
+     * here and its OVF check can race at 250 kHz (conversion batch ends
+     * within ~50 ticks of the period boundary). SS_HardStop re-enables it. */
+    PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;
+    PieCtrlRegs.PIEIER1.bit.INTx1 = 0U;
     EDIS;
 
     g_softstart_state = SOFTSTART_START_HOLD;
@@ -284,16 +299,27 @@ void SoftStart_Update5ms(void)
     {
         g_softstart_request = 0U;
 
+        /* Disable the ADCINT1 CPU vector for the whole ramp window (FastUpdate
+         * owns fresh-sample discipline; the legacy ISR's OVF check races at
+         * 250 kHz). Cleared request first so the window starts here. */
+        EALLOW;
+        PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;
+        PieCtrlRegs.PIEIER1.bit.INTx1 = 0U;
+        EDIS;
+        g_softstart_ramp_active = 1U;
+
         /* Calibration gate: real-power start requires valid board calibration. */
         if (BOARD_VOUT_CAL_VALID != 1 ||
             g_softstart_hard_ceiling_raw == 0U)
         {
+            g_softstart_ramp_active = 0U;
             g_softstart_result = SS_RESULT_REJECTED;
             return;
         }
 
         if (g_system_state != SYS_STATE_IDLE || g_fault_flags != 0UL)
         {
+            g_softstart_ramp_active = 0U;
             g_softstart_result = SS_RESULT_REJECTED;
             return;
         }
@@ -314,6 +340,14 @@ void SoftStart_Update5ms(void)
         g_softstart_miss_count = 0UL;
         g_softstart_consecutive_miss = 0U;
         g_softstart_stale_abort = 0U;
+        /* Defensive: the formal ramp owns the EPWM1 INT exclusively. Clear
+         * any residue that could divert the ISR into a probe/CAL_HOLD branch
+         * (RAM-loaded .ebss is not zeroed by loadProgram). */
+        g_single_cycle_probe_active = 0U;
+        g_multi_cycle_probe_active = 0U;
+        g_power_probe_active = 0U;
+        g_cal_hold_state = CAL_HOLD_IDLE;
+        g_cal_hold_packet_active = 0U;
         g_softstart_run_id_at_arm = g_test_run_id;
         g_pwm_enable_request = 1U;   /* formal enable; COMP arm requires it */
         g_system_state = SYS_STATE_SOFT_START;

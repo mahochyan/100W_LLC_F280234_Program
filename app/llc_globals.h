@@ -403,6 +403,7 @@ extern volatile Uint32 g_softstart_miss_count;
 extern volatile Uint16 g_softstart_consecutive_miss;
 extern volatile Uint16 g_softstart_stale_abort;
 extern volatile Uint16 g_softstart_no_energy;   /* 1 = software VOUT simulation */
+extern volatile Uint16 g_softstart_ramp_active; /* 1 = formal ramp window (ISR OVF guard) */
 
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
@@ -533,5 +534,11 @@ extern volatile Uint32 g_cal_hold_max_total_extra_cycles;
 /* Timing */
 extern volatile Uint32 g_fast_tick;
 extern volatile Uint16 g_5ms_flag;
+
+/* OVF diagnostics (ISR instrumentation) */
+extern volatile Uint32 g_adc_ovf_count;
+extern volatile Uint16 g_adc_ovf_first_tbctr;
+extern volatile Uint16 g_adc_ovf_first_flag_was_set;
+extern volatile Uint16 g_adc_isr_last_tbctr;
 
 #endif /* APP_LLC_GLOBALS_H */
