@@ -14,6 +14,7 @@
 #include "control.h"
 #include "comparator.h"
 #include "power_probe.h"
+#include "cal_hold_burst.h"
 #include "soft_start.h"
 #include "protection.h"
 
@@ -195,6 +196,7 @@ __interrupt void TINT0_ISR(void)
     /* Stage 4D one-shot power probe hardware-timer tick. */
 
     /* 20 us fast control: new ADC sample -> PI/PFM -> PWM update -> fast protection */
+    CALHOLD_FastTask();
     PROT_FastTask();
     CTRL_FastTask();
     SoftStart_ApplyLimits();

@@ -16,6 +16,7 @@
 #include "state_machine.h"
 #include "power_probe.h"
 #include "soft_start.h"
+#include "cal_hold_burst.h"
 #include "app.h"
 
 static void APP_InitInterrupts(void)
@@ -79,6 +80,7 @@ void APP_Init(void)
     CTRL_Init();
     SM_Init();
     SoftStart_Init();
+    CALHOLD_Init();
     APP_InitInterrupts();
 
     /* Stay in Stage 0 SAFE.  First board power-up must start here. */

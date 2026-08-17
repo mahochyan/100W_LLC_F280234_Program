@@ -310,6 +310,7 @@ void SM_Run(void)
     SINGLECYCLE_SlowTask();
     MULTICYCLE_SlowTask();
     POSTSTOP_SlowTask();
+    CALHOLD_SlowTask();
 
     /* Tutorial SoftStart Engine ramp (exactly one step per 5 ms). */
     SoftStart_Update5ms();

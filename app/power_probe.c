@@ -15,6 +15,7 @@
 #include "adc.h"
 #include "comparator.h"
 #include "power_probe.h"
+#include "cal_hold_burst.h"
 
 #define POWER_PROBE_TICK_US   20UL
 #define POWER_PROBE_TICKS_MAX (LLC_POWER_PROBE_MAX_US / POWER_PROBE_TICK_US)
@@ -675,6 +676,13 @@ __interrupt void EPWM1_INT_ISR(void)
                 MULTICYCLE_CaptureSample();
             }
         }
+    }
+    else if (g_cal_hold_state == CAL_HOLD_PACKET &&
+             g_cal_hold_packet_active != 0U)
+    {
+        /* PROFILE_C_CAL_HOLD_BURST_V1 recharge packet: per-cycle PWM-sync
+         * VOUT judgment and <=15-cycle cap (see cal_hold_burst.c). */
+        CALHOLD_PacketIsr();
     }
     EPwm1Regs.ETCLR.bit.INT = 1U;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP3;

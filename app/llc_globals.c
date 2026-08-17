@@ -279,6 +279,36 @@ volatile Uint32 g_accel_stop_fault_flags = 0UL;
 volatile Uint32 g_accel_stop_soca_count = 0UL;
 volatile Uint32 g_accel_stop_eoc_count = 0UL;
 volatile Uint32 g_accel_stop_miss_count = 0UL;
+volatile Uint16 g_cal_hold_request = 0U;
+volatile Uint16 g_cal_hold_duration_ms = 100U;   /* first shot: 100ms */
+volatile Uint16 g_cal_hold_state = CAL_HOLD_IDLE;
+volatile Uint16 g_cal_hold_stop_reason = CAL_HOLD_REASON_NONE;
+volatile Uint16 g_cal_hold_charge_stop_raw = 0U;
+volatile Uint16 g_cal_hold_raw = 0U;
+volatile Uint16 g_cal_hold_min = 0xFFFFU;
+volatile Uint16 g_cal_hold_max = 0U;
+volatile Uint32 g_cal_hold_sum = 0UL;
+volatile Uint32 g_cal_hold_samples = 0UL;
+volatile Uint16 g_cal_hold_steady_min = 0xFFFFU;
+volatile Uint16 g_cal_hold_steady_max = 0U;
+volatile Uint32 g_cal_hold_steady_sum = 0UL;
+volatile Uint32 g_cal_hold_steady_samples = 0UL;
+volatile Uint32 g_cal_hold_packet_count = 0UL;
+volatile Uint32 g_cal_hold_total_packet_cycles = 0UL;
+volatile Uint16 g_cal_hold_packet_min_cycles = 0xFFFFU;
+volatile Uint16 g_cal_hold_packet_max_cycles = 0U;
+volatile Uint32 g_cal_hold_packet_cycles_sum = 0UL;
+volatile Uint16 g_cal_hold_packet_active = 0U;
+volatile Uint16 g_cal_hold_packet_cycles = 0U;
+volatile Uint32 g_cal_hold_off_ticks = 0UL;
+volatile Uint32 g_cal_hold_elapsed_ticks = 0UL;
+volatile Uint32 g_cal_hold_hold_active_ticks = 0UL;
+volatile Uint16 g_cal_hold_hard_limit_events = 0U;
+volatile Uint32 g_cal_hold_run_id_at_arm = 0UL;
+volatile Uint32 g_cal_hold_run_id_at_stop = 0UL;
+volatile Uint32 g_cal_hold_run_id_at_tz_isr = 0UL;
+volatile Uint16 g_cal_hold_final_pwm = 0U;
+volatile Uint16 g_cal_hold_final_ost = 0U;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;
@@ -382,11 +412,8 @@ volatile Uint16 g_vout_probe_post_seen_active ;
 
 
 /* Calibration Hold Probe */
-volatile Uint16 g_cal_hold_request ;
 volatile Uint16 g_cal_hold_active ;
 volatile Uint16 g_cal_hold_charge_done ;
-volatile Uint16 g_cal_hold_packet_active ;
-volatile Uint32 g_cal_hold_packet_count ;
 volatile Uint32 g_cal_hold_total_on_cycles ;
 volatile Uint16 g_cal_hold_raw_min = 0xFFFFU;
 volatile Uint16 g_cal_hold_raw_max ;
@@ -394,9 +421,7 @@ volatile Uint16 g_cal_hold_raw_average ;
 volatile Uint32 g_cal_hold_raw_sum ;
 volatile Uint32 g_cal_hold_raw_samples ;
 volatile Uint16 g_cal_hold_fault ;
-volatile Uint16 g_cal_hold_stop_reason ;
 volatile Uint32 g_cal_hold_start_fast_tick ;
-volatile Uint32 g_cal_hold_duration_ms = LLC_CAL_HOLD_DEFAULT_DURATION_MS;
 volatile Uint32 g_cal_hold_slow_count ;
 volatile Uint16 g_cal_hold_charge_seen ;
 volatile Uint16 g_cal_hold_last_vout_stop_reason ;

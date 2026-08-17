@@ -119,14 +119,14 @@ SECTIONS   //������ͬ���ַ������
 #endif   
 
    .text            : >> RAMLALL | RAMM0, PAGE = 0
-   .cinit           : > RAMLALL,   PAGE = 0
+   .cinit           : > RAMM0,     PAGE = 0
    .pinit           : > RAMM0,     PAGE = 0
-   .switch          : > RAMM0,     PAGE = 0
+   .switch          : > RAMLALL,   PAGE = 0
    .reset           : > RESET,     PAGE = 0, TYPE = DSECT /* not used, */
 
    .stack           : > RAMM1,     PAGE = 1
    .ebss            : > RAMM1,     PAGE = 1
-   .econst          : > RAMM0,     PAGE = 0
+   .econst          : > RAMLALL,   PAGE = 0
    .esysmem         : > RAMLALL,   PAGE = 0
 
    IQmath           : > RAMLALL,   PAGE = 0

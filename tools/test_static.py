@@ -308,6 +308,50 @@ check("while (1)" not in probe_src.split("APP_Run")[0] and "for (;;)" not in pro
 
 
 # ----------------------------------------------------------------------
+# PROFILE_C_CAL_HOLD_BURST_V1 (2026-08-17)
+# ----------------------------------------------------------------------
+calh_src = read_text(ROOT / "app" / "cal_hold_burst.c")
+calh_h = read_text(ROOT / "app" / "cal_hold_burst.h")
+globals_h2 = read_text(ROOT / "app" / "llc_globals.h")
+
+check("CAL_HOLD_IDLE" in globals_h2 and "CAL_HOLD_CHARGE" in globals_h2
+      and "CAL_HOLD_OFF" in globals_h2 and "CAL_HOLD_PACKET" in globals_h2
+      and "CAL_HOLD_COMPLETE" in globals_h2 and "CAL_HOLD_ABORT" in globals_h2,
+      "CAL_HOLD six states present")
+check("#define CAL_HOLD_RECHARGE_LOW_RAW       1380U" in calh_h
+      and "#define CAL_HOLD_RECHARGE_TARGET_RAW    1400U" in calh_h
+      and "#define CAL_HOLD_HARD_LIMIT_RAW         1450U" in calh_h
+      and "#define CAL_HOLD_DIAG_LOW_ABORT_RAW     1300U" in calh_h,
+      "CAL_HOLD fixed thresholds (1380/1400/1450/1300) compile-time")
+check("#define CAL_HOLD_MAX_PACKET_CYCLES      15U" in calh_h
+      and "#define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS 6000UL" in calh_h,
+      "packet cap 15 cycles + 6000-cycle energy cap (compile-time, not CCS-writable)")
+check("CALHOLD_FastTask" in calh_src and "ADC_SoftwareTrigger()" in calh_src
+      and "ADCRESULT0" in calh_src,
+      "two-step software ADC in fast task (no DELAY_US wait in ISR)")
+check("CALHOLD_PacketIsr" in calh_src and "CAL_HOLD_MAX_PACKET_CYCLES" in calh_src
+      and "CAL_HOLD_RECHARGE_TARGET_RAW" in calh_src,
+      "packet per-cycle PWM-sync judgment + 15-cycle cap")
+check("PWM_PrepareStart(239UL, 110U, 1U)" in calh_src
+      and "COMPDACEN" in calh_src and "DACVAL.bit.DACVAL = LLC_SINGLE_CYCLE_PROBE_DAC" in calh_src
+      and "PWM_StartDeterministic()" in calh_src,
+      "packet fixed 250kHz/DB110 start via PrepareStart/StartDeterministic, COMP armed (direct regs)")
+check("g_cal_hold_off_ticks >= CAL_HOLD_OFF_MIN_TICKS" in calh_src,
+      ">=40us PWM-off gap enforced between packets")
+check("CAL_HOLD_UNDERSUPPLY_DELAY_TICKS" in calh_src and "CAL_HOLD_DIAG_LOW_ABORT_RAW" in calh_src,
+      "undersupply abort (hold>2ms && VOUT<1300)")
+check("g_cal_hold_duration_ms != 100U && g_cal_hold_duration_ms != 1000U" in calh_src,
+      "duration restricted to 100/1000 only")
+check("CALHOLD_SlowTask();" in state_machine_src,
+      "CALHOLD_SlowTask hooked in 5ms task")
+check("CALHOLD_FastTask();" in read_text(ROOT / "app" / "protection.c"),
+      "CALHOLD_FastTask hooked in 20us TINT0 ISR")
+check("CALHOLD_PacketIsr();" in probe_src,
+      "CALHOLD_PacketIsr hooked in EPWM1 INT ISR")
+check("CALHOLD_Init();" in read_text(ROOT / "app" / "app.c"),
+      "CALHOLD_Init hooked")
+
+# ----------------------------------------------------------------------
 print()
 if failures:
     print(f"{len(failures)} check(s) FAILED")

@@ -302,6 +302,68 @@ extern volatile Uint32 g_accel_stop_soca_count;
 extern volatile Uint32 g_accel_stop_eoc_count;
 extern volatile Uint32 g_accel_stop_miss_count;
 
+/* PROFILE_C_CAL_HOLD_BURST_V1 (2026-08-17)
+ * Low-energy hold platform near 1400 raw for ADC<->DMM calibration.
+ * New controller — the legacy CALHOLD_SlowTask / VOUTPROBE packet logic is
+ * NOT reused (5ms granularity is too coarse for the output decay).
+ * Hard limits are compile-time macros; no CCS-writable variable can enlarge
+ * them. */
+typedef enum
+{
+    CAL_HOLD_IDLE = 0,
+    CAL_HOLD_CHARGE,
+    CAL_HOLD_OFF,
+    CAL_HOLD_PACKET,
+    CAL_HOLD_COMPLETE,
+    CAL_HOLD_ABORT
+} cal_hold_state_t;
+
+/* g_cal_hold_stop_reason */
+#define CAL_HOLD_REASON_NONE            0U
+#define CAL_HOLD_REASON_COMPLETE        1U   /* duration reached, clean end */
+#define CAL_HOLD_REASON_HARD_LIMIT      2U   /* VOUT >= 1450 */
+#define CAL_HOLD_REASON_ACTIVE_TZ       3U
+#define CAL_HOLD_REASON_UNDERSUPPLIED   4U   /* hold > 2ms && VOUT < 1300 */
+#define CAL_HOLD_REASON_CHARGE_NOT_REACHED 5U
+#define CAL_HOLD_REASON_MAX_TOTAL_CYCLES 6U  /* 6000-cycle energy cap */
+#define CAL_HOLD_REASON_REJECTED        7U   /* bad duration or entry state */
+
+extern volatile Uint16 g_cal_hold_request;
+extern volatile Uint16 g_cal_hold_duration_ms;   /* 100 or 1000 only */
+extern volatile Uint16 g_cal_hold_state;
+extern volatile Uint16 g_cal_hold_stop_reason;
+
+extern volatile Uint16 g_cal_hold_charge_stop_raw;
+extern volatile Uint16 g_cal_hold_raw;           /* latest software ADC VOUT */
+extern volatile Uint16 g_cal_hold_min;
+extern volatile Uint16 g_cal_hold_max;
+extern volatile Uint32 g_cal_hold_sum;
+extern volatile Uint32 g_cal_hold_samples;
+extern volatile Uint16 g_cal_hold_steady_min;
+extern volatile Uint16 g_cal_hold_steady_max;
+extern volatile Uint32 g_cal_hold_steady_sum;
+extern volatile Uint32 g_cal_hold_steady_samples;
+
+extern volatile Uint32 g_cal_hold_packet_count;
+extern volatile Uint32 g_cal_hold_total_packet_cycles;
+extern volatile Uint16 g_cal_hold_packet_min_cycles;
+extern volatile Uint16 g_cal_hold_packet_max_cycles;
+extern volatile Uint32 g_cal_hold_packet_cycles_sum;
+
+extern volatile Uint16 g_cal_hold_packet_active;
+extern volatile Uint16 g_cal_hold_packet_cycles;    /* current packet cycles */
+extern volatile Uint32 g_cal_hold_off_ticks;        /* PWM-off gap (20us ticks) */
+extern volatile Uint32 g_cal_hold_elapsed_ticks;    /* 20us ticks since CHARGE end */
+extern volatile Uint32 g_cal_hold_hold_active_ticks;
+extern volatile Uint16 g_cal_hold_hard_limit_events;
+
+extern volatile Uint32 g_cal_hold_run_id_at_arm;
+extern volatile Uint32 g_cal_hold_run_id_at_stop;
+extern volatile Uint32 g_cal_hold_run_id_at_tz_isr;
+extern volatile Uint16 g_cal_hold_final_pwm;
+extern volatile Uint16 g_cal_hold_final_ost;
+
+
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 extern volatile Uint16 g_adc_pwm_sync_cmpb;
 extern volatile Uint16 g_adc_pwm_sync_cmpa;
@@ -405,11 +467,8 @@ extern volatile Uint16 g_vout_probe_post_seen_active;
 
 
 /* Calibration Hold Probe */
-extern volatile Uint16 g_cal_hold_request;
 extern volatile Uint16 g_cal_hold_active;
 extern volatile Uint16 g_cal_hold_charge_done;
-extern volatile Uint16 g_cal_hold_packet_active;
-extern volatile Uint32 g_cal_hold_packet_count;
 extern volatile Uint32 g_cal_hold_total_on_cycles;
 extern volatile Uint16 g_cal_hold_raw_min;
 extern volatile Uint16 g_cal_hold_raw_max;
@@ -417,9 +476,7 @@ extern volatile Uint16 g_cal_hold_raw_average;
 extern volatile Uint32 g_cal_hold_raw_sum;
 extern volatile Uint32 g_cal_hold_raw_samples;
 extern volatile Uint16 g_cal_hold_fault;
-extern volatile Uint16 g_cal_hold_stop_reason;
 extern volatile Uint32 g_cal_hold_start_fast_tick;
-extern volatile Uint32 g_cal_hold_duration_ms;
 extern volatile Uint32 g_cal_hold_slow_count;
 extern volatile Uint16 g_cal_hold_charge_seen;
 extern volatile Uint16 g_cal_hold_last_vout_stop_reason;
