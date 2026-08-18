@@ -107,6 +107,12 @@ typedef enum
 #define LLC_CONTROL_DIRECTION           0   /* 0 = unconfirmed; set to +1 or -1 for Stage 6 */
 #define BOARD_MAPPING_PENDING_PHYSICAL_VERIFY 1U
 
+/* OFFBENCH_LLC_VIRTUAL_BOARD_CHARACTERIZATION_V1: PI/PFM 仅虚拟环境验证。
+ * LLC_VIRTUAL_PI_VALIDATED=1 不代表真实板可闭环；LLC_HARDWARE_PI_VALIDATED
+ * 必须保持 0 直到真实板验证。禁止因虚拟 PASS 自动开启真实闭环。 */
+#define LLC_VIRTUAL_PI_VALIDATED        1U
+#define LLC_HARDWARE_PI_VALIDATED       0U
+
 #endif /* LLC_CONFIG_H */
 
 /* Calibration Hold Probe */

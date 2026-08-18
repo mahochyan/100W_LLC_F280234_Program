@@ -483,3 +483,9 @@ if failures:
     print(f"{len(failures)} check(s) FAILED")
     sys.exit(1)
 print("ALL STATIC CHECKS PASSED")
+# OFFBENCH virtual-board (T): PI validated only in virtual env
+check("LLC_VIRTUAL_PI_VALIDATED        1U" in cfg
+      and "LLC_HARDWARE_PI_VALIDATED       0U" in cfg,
+      "virtual PI validated=1 / hardware PI validated=0")
+check("LLC_POWER_RUN_ALLOWED           0U" in cfg,
+      "power run remains disallowed (no virtual-close-loop leak)")
