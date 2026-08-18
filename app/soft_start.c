@@ -66,6 +66,8 @@ static void SS_End(Uint16 result)
     g_softstart_final_ost = EPwm1Regs.TZFLG.bit.OST;
     g_softstart_run_id_at_stop = g_test_run_id;
     g_softstart_run_id_at_tz_isr = g_test_run_id_at_tz_isr;
+    /* STAGE5A_500MA: IPRI ADC diagnostic at stop (not a protection path). */
+    g_ipri_raw_at_stop = g_adc_ipri_raw;
 }
 
 /* ------------------------------------------------------------------ */
@@ -150,6 +152,9 @@ static void SS_EnterPfmWindow(void)
     g_pfm_hard_vout_abort = 0U;
     g_pfm_end_raw = 0U;
     g_pfm_max_raw = g_adc_vout_pwm_sync_raw;
+    /* STAGE5A_500MA: IPRI ADC diagnostic snapshot (not a protection path). */
+    g_ipri_raw_before = g_adc_ipri_raw;
+    g_ipri_raw_max = g_adc_ipri_raw;
 
     if (g_pfm_direction_test_mode == PFM_DIRECTION_MODE_TEST_150K)
     {
@@ -357,6 +362,11 @@ void SoftStart_FastUpdate(void)
             /* STAGE5A direction window: count complete cycles, abort on the
              * hard ceiling, otherwise scheduled OST when the window is done. */
             g_pfm_window_cycles++;
+            /* STAGE5A_500MA: IPRI ADC diagnostic max (not a protection path). */
+            if (g_adc_ipri_raw > g_ipri_raw_max)
+            {
+                g_ipri_raw_max = g_adc_ipri_raw;
+            }
             if (g_adc_vout_pwm_sync_raw >= g_softstart_hard_ceiling_raw)
             {
                 g_pfm_hard_vout_abort = 1U;
@@ -464,6 +474,9 @@ void SoftStart_Update5ms(void)
         g_pfm_tbprd = 0U;
         g_pfm_cmpa = 0U;
         g_pfm_cmpb = 0U;
+        g_ipri_raw_before = 0U;
+        g_ipri_raw_max = 0U;
+        g_ipri_raw_at_stop = 0U;
         g_pwm_enable_request = 1U;   /* formal enable; COMP arm requires it */
         g_system_state = SYS_STATE_SOFT_START;
         return;

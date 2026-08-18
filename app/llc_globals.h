@@ -419,6 +419,11 @@ extern volatile Uint32 g_pfm_frequency_hz;         /* actual window frequency */
 extern volatile Uint16 g_pfm_tbprd;                /* window PWM configuration */
 extern volatile Uint16 g_pfm_cmpa;
 extern volatile Uint16 g_pfm_cmpb;
+/* STAGE5A_500MA: IPRI ADC diagnostic only (NOT a protection path; fast OCP
+ * stays on COMP1->TZ1->OST). */
+extern volatile Uint16 g_ipri_raw_before;
+extern volatile Uint16 g_ipri_raw_max;
+extern volatile Uint16 g_ipri_raw_at_stop;
 
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */

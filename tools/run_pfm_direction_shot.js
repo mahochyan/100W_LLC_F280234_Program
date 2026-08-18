@@ -46,15 +46,27 @@ wv("g_pfm_direction_test_mode",TEST_MODE);
 wv("g_softstart_result",0);
 wv("g_softstart_request",0);
 wv("g_probe_scheduled_ost_occurred",0);
-print("--- PRE-STATE VERIFY (user rule: fault=0, pwm=0, ost=1) ---");
+print("--- PRE-STATE VERIFY (STAGE5A_500MA C: fault=0,pwm=0,ost=1,DAC300,COMP,TZ1,VOUT<=50) ---");
 var pre_fault = parseInt(rv("g_fault_flags"));
 var pre_pwm   = parseInt(rv("g_pwm_enabled"));
 var pre_ost   = parseInt(reg("EPwm1Regs.TZFLG.bit.OST"));
+var pre_dac   = parseInt(reg("Comp1Regs.DACVAL.bit.DACVAL"));
+var pre_comp  = parseInt(reg("Comp1Regs.COMPCTL.bit.COMPDACEN"));
+var pre_tz1   = parseInt(reg("EPwm1Regs.TZSEL.bit.OSHT1"));
+var pre_tza   = parseInt(reg("EPwm1Regs.TZCTL.bit.TZA"));
+var pre_tzb   = parseInt(reg("EPwm1Regs.TZCTL.bit.TZB"));
+var pre_vout  = parseInt(rv("g_adc_vout_raw"));
 print("test_mode="+TEST_MODE+" run_id=0x"+RUN_ID.toString(16));
 print("fault="+pre_fault+" pwm="+pre_pwm+" ost="+pre_ost
       +" sysstate="+rv("g_system_state")+" TZ="+reg("EPwm1Regs.TZFLG.all"));
-if (pre_fault != 0 || pre_pwm != 0 || pre_ost != 1) {
-    print("*** PRE-STATE VIOLATION — ABORT, DO NOT FIRE ***");
+print("DACVAL="+pre_dac+" COMPDACEN="+pre_comp+" TZ1_OSHT1="+pre_tz1
+      +" TZCTL_TZA="+pre_tza+" TZB="+pre_tzb+" VOUT_raw="+pre_vout);
+print("COMPSTS="+reg("Comp1Regs.COMPSTS.bit.COMPSTS")+" GPIO15="+reg("GpioDataRegs.GPADAT.bit.GPIO15"));
+// BOARD_VOUT_CAL_VALID=1 由固件 request 校准门保证（test_static 已静态确认宏=1）
+if (pre_fault != 0 || pre_pwm != 0 || pre_ost != 1 || pre_dac != 300 ||
+    pre_comp != 1 || pre_tz1 != 1 || pre_tza != 2 || pre_tzb != 2 ||
+    pre_vout > 50) {
+    print("*** PRE-STATE VIOLATION — REAL_SHOT_REJECTED, DO NOT FIRE ***");
     session.target.disconnect();
     print("DONE");
     quit();
@@ -103,6 +115,7 @@ print("slope_raw_per_ms = " + ((eraw-sraw)/(el/60000)).toFixed(3));
 print("window_cycles = " + rv("g_pfm_window_cycles"));
 print("window_total = " + rv("g_pfm_window_total"));
 print("hard_vout_abort = " + rv("g_pfm_hard_vout_abort"));
+print("theoretical_window_us = " + (parseInt(rv("g_pfm_window_total"))*(parseInt(reg("EPwm1Regs.TBPRD"))+1)/60).toFixed(2));
 print("cycle_count = " + rv32("g_softstart_cycle_count"));
 print("final_cycles = " + rv("g_softstart_final_cycles"));
 print("last_vout = " + rv("g_softstart_last_vout_raw"));
@@ -112,6 +125,13 @@ print("eoc = " + rv32("g_softstart_eoc_count"));
 print("miss = " + rv32("g_softstart_miss_count"));
 print("consecutive = " + rv("g_softstart_consecutive_miss"));
 print("stale = " + rv("g_softstart_stale_abort"));
+print("ipri_raw_before = " + rv("g_ipri_raw_before"));
+print("ipri_raw_max = " + rv("g_ipri_raw_max"));
+print("ipri_raw_at_stop = " + rv("g_ipri_raw_at_stop"));
+print("COMPSTS = " + reg("Comp1Regs.COMPSTS.bit.COMPSTS"));
+print("GPIO15 = " + reg("GpioDataRegs.GPADAT.bit.GPIO15"));
+print("TZFLG = " + reg("EPwm1Regs.TZFLG.all"));
+print("DACVAL = " + reg("Comp1Regs.DACVAL.bit.DACVAL"));
 print("fault = " + rv("g_fault_flags"));
 print("TZ = " + reg("EPwm1Regs.TZFLG.all"));
 print("pwm = " + rv("g_pwm_enabled"));
@@ -123,7 +143,7 @@ print("final_pwm = " + rv("g_softstart_final_pwm"));
 print("final_ost = " + rv("g_softstart_final_ost"));
 print("abort_reason = " + rv("g_softstart_abort_reason"));
 var res = parseInt(rv("g_softstart_result"));
-if (res == 8 && pre_ost == 1) print("*** PFM_DIRECTION_"+(TEST_MODE==1?"150K":"170K")+"_PASS ***");
+if (res == 8 && pre_ost == 1) print("*** PFM_DIRECTION_150K_500MA_PASS ***");
 else print("*** RESULT != PFM_WINDOW_DONE — REVIEW ***");
 session.target.disconnect();
 print("DONE");
