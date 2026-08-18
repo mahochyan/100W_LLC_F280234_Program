@@ -55,17 +55,25 @@ var pre_comp  = parseInt(reg("Comp1Regs.COMPCTL.bit.COMPDACEN"));
 var pre_tz1   = parseInt(reg("EPwm1Regs.TZSEL.bit.OSHT1"));
 var pre_tza   = parseInt(reg("EPwm1Regs.TZCTL.bit.TZA"));
 var pre_tzb   = parseInt(reg("EPwm1Regs.TZCTL.bit.TZB"));
-var pre_vout  = parseInt(rv("g_adc_vout_raw"));
+// 真实 VOUT 用软件 force 一次读 ADCRESULT0（g_adc_vout_raw 在无 SOCA 时是陈旧值）
+session.expression.evaluate("AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1");
+session.expression.evaluate("AdcRegs.ADCSOCFRC1.all = 1");
+session.target.runAsynch();
+java.lang.Thread.sleep(2000);
+session.target.halt();
+var pre_vout  = parseInt(reg("AdcResult.ADCRESULT0"));
+var pre_vout_sw = parseInt(rv("g_adc_vout_raw"));
 print("test_mode="+TEST_MODE+" run_id=0x"+RUN_ID.toString(16));
 print("fault="+pre_fault+" pwm="+pre_pwm+" ost="+pre_ost
       +" sysstate="+rv("g_system_state")+" TZ="+reg("EPwm1Regs.TZFLG.all"));
 print("DACVAL="+pre_dac+" COMPDACEN="+pre_comp+" TZ1_OSHT1="+pre_tz1
-      +" TZCTL_TZA="+pre_tza+" TZB="+pre_tzb+" VOUT_raw="+pre_vout);
+      +" TZCTL_TZA="+pre_tza+" TZB="+pre_tzb+" VOUT_raw(force)="+pre_vout+" SW_raw="+pre_vout_sw);
 print("COMPSTS="+reg("Comp1Regs.COMPSTS.bit.COMPSTS")+" GPIO15="+reg("GpioDataRegs.GPADAT.bit.GPIO15"));
 // BOARD_VOUT_CAL_VALID=1 由固件 request 校准门保证（test_static 已静态确认宏=1）
-if (pre_fault != 0 || pre_pwm != 0 || pre_ost != 1 || pre_dac != 300 ||
-    pre_comp != 1 || pre_tz1 != 1 || pre_tza != 2 || pre_tzb != 2 ||
-    pre_vout > 50) {
+// DACVAL=300 / COMPDACEN=1 由固件 request->StartPwmFormal 武装流程写入
+// （静态检查已确认），触发前必然为 0——故 PRE 硬门不含它们，枪后 dump 验证。
+if (pre_fault != 0 || pre_pwm != 0 || pre_ost != 1 ||
+    pre_tz1 != 1 || pre_tza != 2 || pre_tzb != 2 || pre_vout > 50) {
     print("*** PRE-STATE VIOLATION — REAL_SHOT_REJECTED, DO NOT FIRE ***");
     session.target.disconnect();
     print("DONE");
@@ -131,7 +139,10 @@ print("ipri_raw_at_stop = " + rv("g_ipri_raw_at_stop"));
 print("COMPSTS = " + reg("Comp1Regs.COMPSTS.bit.COMPSTS"));
 print("GPIO15 = " + reg("GpioDataRegs.GPADAT.bit.GPIO15"));
 print("TZFLG = " + reg("EPwm1Regs.TZFLG.all"));
-print("DACVAL = " + reg("Comp1Regs.DACVAL.bit.DACVAL"));
+print("comp_arm_dacval(ram) = " + rv("g_comp_arm_dacval"));
+print("comp_arm_compdacen(ram) = " + rv("g_comp_arm_compdacen"));
+print("comp_arm_tzsel(ram) = " + rv("g_comp_arm_tzsel_osht1"));
+print("DACVAL(reg, EALLOW-limited) = " + reg("Comp1Regs.DACVAL.bit.DACVAL"));
 print("fault = " + rv("g_fault_flags"));
 print("TZ = " + reg("EPwm1Regs.TZFLG.all"));
 print("pwm = " + rv("g_pwm_enabled"));

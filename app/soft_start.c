@@ -89,6 +89,10 @@ void SoftStart_StartPwmFormal(void)
     Comp1Regs.DACVAL.bit.DACVAL = g_softstart_ocp_dac_code & 0x03FFU;
     Comp1Regs.COMPCTL.bit.COMPDACEN = 1U;
     GpioCtrlRegs.GPBMUX1.bit.GPIO42 = 3U;
+    /* RAM 快照供 DSS 验证（受保护寄存器直读受限） */
+    g_comp_arm_dacval = Comp1Regs.DACVAL.bit.DACVAL;
+    g_comp_arm_compdacen = Comp1Regs.COMPCTL.bit.COMPDACEN;
+    g_comp_arm_tzsel_osht1 = EPwm1Regs.TZSEL.bit.OSHT1;
     EDIS;
 
     /* Fresh-sample discipline: SOC0 driven by ePWM1 SOCA (same verified

@@ -424,6 +424,10 @@ extern volatile Uint16 g_pfm_cmpb;
 extern volatile Uint16 g_ipri_raw_before;
 extern volatile Uint16 g_ipri_raw_max;
 extern volatile Uint16 g_ipri_raw_at_stop;
+/* COMP 武装状态 RAM 快照（DSS 读受 EALLOW 保护寄存器受限，故拷入 RAM 供验证） */
+extern volatile Uint16 g_comp_arm_dacval;
+extern volatile Uint16 g_comp_arm_compdacen;
+extern volatile Uint16 g_comp_arm_tzsel_osht1;
 
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */

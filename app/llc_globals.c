@@ -365,6 +365,9 @@ volatile Uint16 g_pfm_cmpb;
 volatile Uint16 g_ipri_raw_before = 0U;   /* STAGE5A_500MA diagnostic */
 volatile Uint16 g_ipri_raw_max = 0U;
 volatile Uint16 g_ipri_raw_at_stop = 0U;
+volatile Uint16 g_comp_arm_dacval = 0U;
+volatile Uint16 g_comp_arm_compdacen = 0U;
+volatile Uint16 g_comp_arm_tzsel_osht1 = 0U;
 
 /* PWM-sync ADC runtime freshness (Profile C diagnostic) */
 volatile Uint16 g_adc_pwm_sync_cmpb;
