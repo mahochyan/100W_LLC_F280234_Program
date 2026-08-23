@@ -70,7 +70,9 @@ void PROT_Init(void)
     /* Critical zero-init for globals that were previously compile-time zero.
      * Keeping them as uninitialized .ebss saves .cinit space, so they must be
      * explicitly reset here before the application loop starts. */
-    g_diag_frequency_override = 0U;
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    g_diag_frequency_override = 0U;   /* diagnostic override: absent from REAL shot binary */
+#endif
     g_adc_trigger_mode = 0U;
     g_adc_sample_counter = 0UL;
     g_adc_sample_sequence = 0UL;
@@ -241,6 +243,30 @@ __interrupt void TINT0_ISR(void)
         g_timer0_last_entry = t_isr_entry;
     }
 #endif
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* Passive whole-ISR / entry-interval observation (gate K1). Read-only
+     * Timer2 cycle counting; does not modify ADC, PI input, PWM command, or
+     * protection. Present in the final frozen REAL OUT. */
+    {
+        Uint32 r_entry = CpuTimer2Regs.TIM.all;
+        if (g_real_timer0_entry_count == 0UL)
+        {
+            g_real_timer0_entry_interval_min = 0UL;
+            g_real_timer0_entry_interval_max = 0UL;
+        }
+        else
+        {
+            Uint32 r_delta = (Uint32)((Uint32)(g_real_timer0_last_entry - r_entry) & 0xFFFFFFFFUL);
+            if (g_real_timer0_entry_interval_min == 0UL || r_delta < g_real_timer0_entry_interval_min)
+                g_real_timer0_entry_interval_min = r_delta;
+            if (r_delta > g_real_timer0_entry_interval_max)
+                g_real_timer0_entry_interval_max = r_delta;
+        }
+        g_real_timer0_entry_count++;
+        g_real_timer0_last_entry = r_entry;
+        g_real_isr_cycles_last = 0UL;   /* filled at ISR exit */
+    }
+#endif
     g_fast_tick++;
 
     /* Stage 3 static ADC monitor: software-trigger a sample set every 20 us. */
@@ -345,6 +371,20 @@ __interrupt void TINT0_ISR(void)
         g_fast_isr_cycles_count++;
         if (g_fast_isr_cycles_last >= 1200UL)
             g_fast_isr_overrun_count++;
+    }
+#endif
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* Whole-ISR budget snapshot (gate K1): taken at the very end of the ISR
+     * body so g_real_isr_cycles_* reflects the complete fast ISR. Passive. */
+    {
+        Uint32 r_exit = CpuTimer2Regs.TIM.all;
+        g_real_isr_cycles_last = (Uint32)((Uint32)(g_real_timer0_last_entry - r_exit) & 0xFFFFFFFFUL);
+        if (g_real_isr_cycles_last > g_real_isr_cycles_max)
+            g_real_isr_cycles_max = g_real_isr_cycles_last;
+        g_real_isr_cycles_sum += g_real_isr_cycles_last;
+        g_real_isr_cycles_count++;
+        if (g_real_isr_cycles_last >= 1200UL)
+            g_real_isr_overrun_count++;
     }
 #endif
 }

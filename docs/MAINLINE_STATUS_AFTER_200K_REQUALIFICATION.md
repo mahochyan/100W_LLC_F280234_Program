@@ -1,3 +1,8 @@
+> **HISTORICAL SNAPSHOT AT `eade849` / NOT CURRENT PROJECT STATUS**
+> This page records the mainline state after the 200k/DB140 requalification
+> attempt. It is a historical snapshot and does NOT reflect the current project
+> status. See `docs/CURRENT_MAINLINE_STATUS.md` for the current state.
+
 # MAINLINE STATUS — after 200k/DB140 requalification
 
 > main @ `eade849`（未改动）。本页只整理主线当前状态。

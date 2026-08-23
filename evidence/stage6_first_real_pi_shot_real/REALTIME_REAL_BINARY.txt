@@ -1,0 +1,32 @@
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
+REALTIME REAL BINARY (TIMING) RESULT
+==================================================
+
+Timing gate (K): whole TINT0 ISR max <= 900 cycles (15 us @ 60 MHz),
+overrun_count == 0.
+
+Instrumentation present in REAL binary (passive observation):
+  g_real_isr_cycles_last / max / sum / count
+  g_real_isr_overrun_count
+  g_real_timer0_entry_count / last_entry / interval_min / interval_max
+  g_first_real_pi_shot_first_write_timer2
+  g_first_real_pi_shot_ost_timer2
+
+Timing script: tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js
+  - no-power, CNT3/CNT4 OPEN, OST=1, PWM hardware-clamped low
+  - clears g_real_* accumulators together, discards first sample as warm-up
+  - runs 2 ms, reads max/overrun/interval, grades max<=900 PASS
+
+STATUS: NOT EXECUTED
+  CNT3/CNT4 OPEN state could NOT be physically confirmed in this session.
+  Per the safety boundary, all JTAG run tests (including the no-power
+  timing script) are STOPPED. Only offline work was completed.
+
+  ISR_MAX_CYCLES_LE_900 = NOT_VERIFIED (requires target, CNT34 unconfirmed)
+  OVERRUN_ZERO = NOT_VERIFIED (requires target, CNT34 unconfirmed)
+
+  The passive ISR observation instrumentation is present and compiled into
+  the REAL binary; the timing gate must be executed on the bench after
+  CNT3/CNT4 OPEN is confirmed.
+
+NO_REAL_POWER_EXECUTED

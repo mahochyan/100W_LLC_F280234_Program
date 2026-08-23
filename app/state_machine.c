@@ -14,6 +14,7 @@
 #include "protection.h"
 #include "power_probe.h"
 #include "soft_start.h"
+#include "shot.h"
 #include "state_machine.h"
 
 static Uint16 s_prev_enable_request = 0U;
@@ -169,7 +170,11 @@ static void SM_HandleEnable(void)
          * simulation bypasses the calibration/direction gates because it has no
          * real power; that bypass exists ONLY in the no-energy test build. The
          * production build applies these gates unconditionally (no runtime
-         * g_softstart_no_energy protection path). */
+         * g_softstart_no_energy protection path). The REAL bounded-shot build
+         * adds a narrow limited authorization (SHOT_RealStage6AuthOk) that lets
+         * formal Stage6 Profile C start ONLY when the shot is pre-armed and all
+         * bounded-shot conditions hold; it never unlocks LLC_CONTROL_DIRECTION
+         * and never fakes g_iout_amps (IOUT absolute calibration pending). */
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
         if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP &&
             g_softstart_no_energy == 0U)
@@ -177,18 +182,25 @@ static void SM_HandleEnable(void)
         if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
 #endif
         {
-            if (g_vout_volts < 0.0f || g_iout_amps < 0.0f)
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+            if (SHOT_RealStage6AuthOk() == 0U)
             {
-                PROT_RequestFault(FAULT_CAL_MISSING, 0U);
-                g_pwm_enable_result = 0U;
-                return;
+#endif
+                if (g_vout_volts < 0.0f || g_iout_amps < 0.0f)
+                {
+                    PROT_RequestFault(FAULT_CAL_MISSING, 0U);
+                    g_pwm_enable_result = 0U;
+                    return;
+                }
+                if (LLC_CONTROL_DIRECTION == 0)
+                {
+                    PROT_RequestFault(FAULT_CONTROL_DIRECTION, 0U);
+                    g_pwm_enable_result = 0U;
+                    return;
+                }
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
             }
-            if (LLC_CONTROL_DIRECTION == 0)
-            {
-                PROT_RequestFault(FAULT_CONTROL_DIRECTION, 0U);
-                g_pwm_enable_result = 0U;
-                return;
-            }
+#endif
         }
         if (g_bringup_stage == BRINGUP_STAGE_7_POWER_RUN && LLC_POWER_RUN_ALLOWED == 0)
         {

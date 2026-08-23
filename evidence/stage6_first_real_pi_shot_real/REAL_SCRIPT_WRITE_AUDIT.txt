@@ -1,0 +1,44 @@
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
+REAL SCRIPT WRITE AUDIT
+==================================================
+Audit target: tools/stage6_first_real_pi_shot_real.js
+REAL DSS script SHA256: E1C50C8AE20005E55B1844E23B58B9F7A4C588FF3D838CF428ABA07DD5007651
+
+Forbidden variable writes (must be 0):
+  writes_fault_flags = 0
+  writes_system_state = 0
+  writes_bringup_stage = 0
+  writes_comp_verified = 0
+  writes_cal_valid = 0
+  writes_synthetic_vout = 0
+  writes_diag_override = 0
+  writes_pwm_registers = 0
+  uses_runtime_poll_during_shot = 0
+  host_sha256_hard_gate = 1
+
+Allowed request interfaces used (firmware consumes, produces result):
+  g_loopback_diag_request
+  g_stage_confirm_request
+  g_pwm_enable_request
+  g_first_real_pi_shot_arm
+  g_test_run_id
+
+Forbidden register writes (must be 0):
+  Comparator registers: 0
+  TZSEL: 0
+  TZCLR.OST: 0
+  TBPRD: 0
+  CMPA: 0
+  CMPB: 0
+  DBRED: 0
+  DBFED: 0
+
+Runtime polling during shot:
+  runAsynch -> halt block contains NO memory/register reads (0)
+
+Host SHA256 hard gate:
+  Computes host SHA256 of local REAL OUT
+  Compares to frozen manifest REAL_OUT_SHA256
+  Mismatch -> immediate ABORT, no connect/download/state-machine op
+
+RESULT: REAL_SHOT_SCRIPT_REQUEST_ONLY

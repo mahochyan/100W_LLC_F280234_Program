@@ -11,6 +11,18 @@
 #include "DSP2803x_Device.h"
 
 /* ------------------------------------------------------------------ */
+/* Build-path mutual exclusion (STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD). */
+/* The REAL shot binary must be synthetic-free and carry no no-energy  */
+/* or OST-test instrumentation. These combinations are a hard error.   */
+/* ------------------------------------------------------------------ */
+#if defined(STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD) && defined(STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST)
+#error "STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD must NOT define STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST"
+#endif
+#if defined(STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD) && defined(STAGE6_REAL_ACTUATOR_OST_TEST)
+#error "STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD must NOT define STAGE6_REAL_ACTUATOR_OST_TEST"
+#endif
+
+/* ------------------------------------------------------------------ */
 /* Clock / PWM baseline (user-confirmed)                               */
 /* ------------------------------------------------------------------ */
 #define LLC_TBCLK_HZ                    60000000UL

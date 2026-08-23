@@ -52,3 +52,9 @@ M_req = (Vout + Vf) × 2n / Vin = (12 + 0.7) × 2.5 / Vin
 - 实板 250k/DB110 空载 11.14V → M_eff=1.16——两种情景都给不出（FHA 空载 250k：0.84/0.89）——**差异指向：匝比或 DB110 有效占空比或 Cr 预充的非 FHA 效应**
 
 **审计裁决**：n=1.25 维持为标称；模型-实板系统性偏差（~20-30%）在总报告中标记为 `MODEL_VS_HARDWARE_DEVIATION`，由实板 150/170k 两枪斜率校准（REMOTE_BENCH §15：不一致 → MODEL_DIRECTION_MISMATCH 检查项）。
+
+## ACTUAL_WINDING_RELATION (C1)
+
+`Ns1:Np:Ns2 = 4:5:4`, `Np = 5T`, `Ns1 = 4T`, `Ns2 = 4T`, `Ns_half = 4T`,
+`n = Np/Ns_half = 5/4 = 1.25`. This is the actual winding relation recorded
+for the first real PI shot; do not recompute PI or change to Np=4.

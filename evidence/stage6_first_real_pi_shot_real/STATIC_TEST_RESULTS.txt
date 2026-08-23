@@ -1,0 +1,58 @@
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
+STATIC TEST RESULTS
+==================================================
+
+L1 BUILD RESULTS (all PASS):
+  NOENERGY SHOT build (Stage6_FLASH_SHOT_NOENERGY) = PASS
+  REAL SHOT build (Stage6_FLASH_SHOT_REAL) = PASS
+  Production/Stage6 build (Stage6_FLASH) = PASS
+
+L2 STATIC TESTS (tools/stage6_real_binary_hardening_static_test.py):
+  build macro mutual-exclusion #error (REAL_BUILD && NOENERGY_TEST) = PASS
+  build macro mutual-exclusion #error (REAL_BUILD && OST_TEST) = PASS
+  REAL forbidden-symbol absence (9 symbols) = PASS
+  g_softstart_no_energy definition-only (0 code refs) = PASS
+  REAL script forbidden-write audit (17 vars) = PASS
+  REAL script request interfaces present = PASS
+  REAL script forbidden register writes (10 regs) = PASS
+  REAL script host SHA256 hard gate = PASS
+  REAL script no runtime polling during shot = PASS
+  shot frequency envelope 145..170 kHz = PASS
+  200 us on-chip cage (FIRST_REAL_PI_DURATION_TICKS == 10) = PASS
+  debug override absent from REAL build = PASS
+  no-energy protection bypass absent from REAL build = PASS
+  production build shot code compiled-out = PASS
+  Stage7 remains blocked (LLC_POWER_RUN_ALLOWED == 0) = PASS
+  LLC_HARDWARE_PI_VALIDATED remains 0 = PASS
+  LLC_CONTROL_DIRECTION remains 0 = PASS
+  LLC_CONTROL_SIGN = -1 (Stage5A confirmed) = PASS
+  REAL OUT != NOENERGY OUT (NOT BIT IDENTICAL) = PASS
+
+L3 REAL SCRIPT AUDIT (machine-readable):
+  writes_fault_flags = 0
+  writes_system_state = 0
+  writes_bringup_stage = 0
+  writes_comp_verified = 0
+  writes_cal_valid = 0
+  writes_synthetic_vout = 0
+  writes_diag_override = 0
+  writes_pwm_registers = 0
+  uses_runtime_poll_during_shot = 0
+  host_sha256_hard_gate = 1
+
+L4 BINARY DIFFERENCE:
+  NOENERGY OUT != REAL OUT (NOT BIT IDENTICAL)
+  Difference from: synthetic/test instrumentation removal, debug override
+  removal, REAL limited authorization, passive realtime observation,
+  necessary performance optimization. No Kp/Ki, deadtime, DAC, formal
+  SoftStart trajectory, or TZ policy change.
+
+EXISTING TEST SUITE (tools/test_static.py):
+  4 pre-existing failures unrelated to hardening:
+    - launch file renamed (.launches/LLC_100W_F28034_BRINGUP_DSH.launch missing)
+    - forbidden string absent: CAN (legacy string check)
+    - forbidden string absent: SCI (legacy string check)
+    - fresh .out exists (Debug RAM build .out missing, legacy build)
+  These are pre-existing and not caused by the hardening work.
+
+RESULT: ALL STAGE6 REAL BINARY HARDENING STATIC CHECKS PASSED

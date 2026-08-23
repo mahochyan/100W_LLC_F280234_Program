@@ -342,7 +342,7 @@ void CTRL_ApplyFrequencyCommand(void)
      *        (NOT merely g_fast_fault_count++). */
     if (SHOT_WriteAllowed() != 0U)
     {
-#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT && !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
         if (g_first_shot_debug_freq_hz != 0UL)
             target = g_first_shot_debug_freq_hz;   /* test-only: exercise the envelope clamp */
 #endif
@@ -357,6 +357,7 @@ void CTRL_ApplyFrequencyCommand(void)
                  * 200 us shot timer (IDLE/ARMED both advance here). */
                 g_first_real_pi_shot_state = SHOT_STATE_ACTIVE;
                 g_first_real_pi_shot_tick  = 0U;
+                g_first_real_pi_shot_first_write_timer2 = CpuTimer2Regs.TIM.all; /* H */
             }
         }
         else

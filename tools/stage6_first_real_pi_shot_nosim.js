@@ -7,7 +7,7 @@
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
-var OUT="D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot\\LLC_100W_F28034_BRINGUP_DSH_SHOT.out";
+var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_FLASH_SHOT_NOENERGY\\LLC_100W_F28034_BRINGUP_DSH.out";
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();

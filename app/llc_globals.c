@@ -18,7 +18,9 @@ volatile Uint16 g_pwm_period ;
 volatile Uint16 g_pwm_enabled ;
 volatile Uint16 g_pwm_enable_request ;
 volatile Uint16 g_pwm_enable_result ;
-volatile Uint16 g_diag_frequency_override ;
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+volatile Uint16 g_diag_frequency_override ;   /* diagnostic freq override: absent from REAL shot binary */
+#endif
 
 /* ADC */
 volatile Uint16 g_adc_vout_raw ;
@@ -143,6 +145,21 @@ volatile Uint32 g_stage6_actuator_cycles_last = 0UL;
 volatile Uint32 g_stage6_actuator_cycles_max  = 0UL;
 volatile Uint32 g_stage6_actuator_cycles_sum  = 0UL;
 volatile Uint32 g_stage6_actuator_cycles_count = 0UL;
+#endif
+
+/* STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD - passive whole-ISR / entry-interval
+ * observation. Read-only Timer2 cycle counting; does NOT modify ADC, PI input,
+ * PWM command, or protection. Present in the final frozen REAL OUT (gate K1). */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+volatile Uint32 g_real_isr_cycles_last      = 0UL;
+volatile Uint32 g_real_isr_cycles_max       = 0UL;
+volatile Uint32 g_real_isr_cycles_sum        = 0UL;
+volatile Uint32 g_real_isr_cycles_count      = 0UL;
+volatile Uint32 g_real_isr_overrun_count    = 0UL;   /* whole ISR >= 1200 cycles */
+volatile Uint32 g_real_timer0_entry_count    = 0UL;
+volatile Uint32 g_real_timer0_last_entry     = 0UL;
+volatile Uint32 g_real_timer0_entry_interval_min = 0UL;
+volatile Uint32 g_real_timer0_entry_interval_max = 0UL;
 #endif
 
 /* Tutorial SoftStart Engine */

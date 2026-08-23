@@ -1,0 +1,39 @@
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
+REAL FORBIDDEN SYMBOL AUDIT
+==================================================
+Audit target: Stage6_FLASH_SHOT_REAL/LLC_100W_F28034_BRINGUP_DSH.map
+Frozen copy:  evidence/stage6_first_real_pi_shot_real/LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.map
+REAL MAP SHA256: C34B69320377409B8F7D74D359FD4D8B33337930BCA87CA0E8855B00E08EF798
+
+Forbidden symbols (must be ABSENT from REAL MAP):
+  g_stage6_synthetic_vout_raw      : ABSENT (0 refs)
+  g_stage6_closeloop_vout_inject   : ABSENT (0 refs)
+  g_stage6_noenergy_test_enable    : ABSENT (0 refs)
+  g_stage6_noenergy_test_mode      : ABSENT (0 refs)
+  g_stage6_synthetic_sequence      : ABSENT (0 refs)
+  g_stage6_actuator_direct_cmd_hz  : ABSENT (0 refs)
+  g_first_shot_debug_freq_hz       : ABSENT (0 refs)
+  g_first_shot_debug_ticks        : ABSENT (0 refs)
+  g_diag_frequency_override        : ABSENT (0 refs)
+
+g_softstart_no_energy (definition allowed, 0 code refs):
+  Symbol-table entries only (definition): 3
+  Code references (relocations): 0
+  Protection bypass: 0
+  OST relatch path: 0
+  Simulated-freshness path: 0
+
+REAL ADC ISR:
+  vout = AdcResult.ADCRESULT0 (unconditional, no synthetic switch)
+  synthetic injection compiled OUT (STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST not defined)
+
+REAL protection path:
+  no-energy TZ event ignore: ABSENT
+  Comparator/TZ fault bypass: ABSENT
+  ADC overflow no-energy ignore: ABSENT
+  synthetic sample sequence: ABSENT
+  test actuator direct command: ABSENT
+  debug time extension: ABSENT
+  debug frequency force: ABSENT
+
+RESULT: REAL_SHOT_BINARY_SYNTHETIC_FREE

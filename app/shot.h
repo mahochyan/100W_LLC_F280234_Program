@@ -67,6 +67,7 @@ typedef struct
 void   SHOT_Init(void);
 Uint16 SHOT_PermissionOk(void);      /* D: all arm conditions */
 Uint16 SHOT_WriteAllowed(void);      /* D per-tick gate: full on first write, dynamic-only after */
+Uint16 SHOT_RealStage6AuthOk(void);  /* F2: bounded-shot Stage6 startup auth (REAL build only) */
 Uint16 SHOT_ClampFreq(Uint32 *p_hz); /* B: clamp into 145..170k, returns 1 if clamped applied */
 void   SHOT_Revoke(Uint16 reason);   /* on-chip termination (E/F/C/D) */
 void   SHOT_FastTask(void);          /* called from TINT0_ISR: timer + 11V abort + ring record */
@@ -84,13 +85,13 @@ extern volatile Uint16 g_first_real_pi_shot_abort_vout_raw;
 extern volatile Uint16 g_first_real_pi_shot_rb_index;
 extern volatile Uint16 g_first_real_pi_shot_rb_count;
 extern SHOT_RbEntry g_first_real_pi_shot_rb[SHOT_RB_SIZE];
-/* Test-only: 0 = use the Q12 PI shadow command; nonzero forces the write
- * command through the 145..170k envelope clamp (exercises FIRST_REAL_PI_*
- * envelope directly). Not used in the real shot. */
+/* H: Timer2 captures for the first-write -> OST elapsed proof. */
+extern volatile Uint32 g_first_real_pi_shot_first_write_timer2;
+extern volatile Uint32 g_first_real_pi_shot_ost_timer2;
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+/* Test-only debug overrides: compiled OUT of the REAL shot binary. */
 extern volatile Uint32 g_first_shot_debug_freq_hz;
-/* Test-only: 0 = auto-OST after FIRST_REAL_PI_DURATION_TICKS (200 us); nonzero
- * overrides the shot duration in ticks (so the sim can keep the shot active
- * while a trip is injected). Not used in the real shot. */
 extern volatile Uint16 g_first_shot_debug_ticks;
+#endif
 
 #endif /* APP_SHOT_H */

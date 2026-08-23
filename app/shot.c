@@ -26,8 +26,14 @@ volatile Uint16 g_first_real_pi_shot_ok          = 0U;
 volatile Uint16 g_first_real_pi_shot_abort_vout_raw = 0U;
 volatile Uint16 g_first_real_pi_shot_rb_index    = 0U;
 volatile Uint16 g_first_real_pi_shot_rb_count    = 0U;
+/* H: Timer2 captures for the first-write -> OST elapsed proof. */
+volatile Uint32 g_first_real_pi_shot_first_write_timer2 = 0UL;
+volatile Uint32 g_first_real_pi_shot_ost_timer2          = 0UL;
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+/* Test-only debug overrides: compiled OUT of the REAL shot binary. */
 volatile Uint32 g_first_shot_debug_freq_hz       = 0UL;
 volatile Uint16 g_first_shot_debug_ticks         = 0U;
+#endif
 #pragma DATA_SECTION(g_first_real_pi_shot_rb, "shot_ram")
 SHOT_RbEntry g_first_real_pi_shot_rb[SHOT_RB_SIZE];
 /* ------------------------------------------------------------------ */
@@ -41,8 +47,10 @@ void SHOT_Init(void)
     g_first_real_pi_shot_ok     = 0U;
     g_first_real_pi_shot_rb_index = 0U;
     g_first_real_pi_shot_rb_count = 0U;
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     g_first_shot_debug_freq_hz    = 0UL;
     g_first_shot_debug_ticks      = 0U;
+#endif
     /* 11 V fast-abort raw threshold computed from board_calibration.h, never a
      * hand-written magic number: raw = (11.0 - offset) / gain. */
     g_first_real_pi_shot_abort_vout_raw =
@@ -67,6 +75,30 @@ Uint16 SHOT_PermissionOk(void)
     if (g_board_vout_cal_valid == 0U)        return 0U;
     if (g_comp_tz_loopback_verified == 0U)   return 0U;
     if (g_fault_flags != 0U)                 return 0U;
+    return 1U;
+#else
+    return 0U;
+#endif
+}
+
+/* ------------------------------------------------------------------ */
+/* F2: bounded-shot limited authorization for formal Stage6 Profile C. */
+/* Only in the REAL build, and only when the shot is pre-armed and every */
+/* bounded-shot condition holds, may formal Stage6 closed-loop startup  */
+/* proceed WITHOUT globally unlocking LLC_CONTROL_DIRECTION or faking   */
+/* g_iout_amps (IOUT absolute calibration is pending; fast OCP is       */
+/* Comparator->TZ1->OST). Stage7 stays blocked (LLC_POWER_RUN_ALLOWED=0).*/
+/* ------------------------------------------------------------------ */
+Uint16 SHOT_RealStage6AuthOk(void)
+{
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    if (g_bringup_stage != BRINGUP_STAGE_6_CLOSED_LOOP) return 0U;
+    if (g_first_real_pi_shot_arm == 0U)                 return 0U;
+    if (g_board_vout_cal_valid == 0U)                   return 0U;
+    if (g_comp_tz_loopback_verified == 0U)              return 0U;
+    if (g_fault_flags != 0U)                            return 0U;
+    if (g_pwm_enabled != 0U)                            return 0U;   /* PWM initial off */
+    if (EPwm1Regs.TZFLG.bit.OST == 0U)                 return 0U;   /* OST initial latched */
     return 1U;
 #else
     return 0U;
@@ -120,6 +152,7 @@ void SHOT_Revoke(Uint16 reason)
     {
         /* E: auto-OST at 200 us. Force the one-shot trip (outputs to TZ safe
          * state), disable PWM, exit RUN, normal bounded end (not a FAULT). */
+        g_first_real_pi_shot_ost_timer2 = CpuTimer2Regs.TIM.all;   /* H */
         EALLOW;
         EPwm1Regs.TZFRC.bit.OST = 1U;   /* latch the TZ one-shot */
         EDIS;
@@ -170,6 +203,16 @@ void SHOT_FastTask(void)
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     if (g_first_real_pi_shot_state != SHOT_STATE_ACTIVE)
     {
+        /* G2: while armed (pre-handoff / during formal SoftStart), any fault or
+         * SYS_STATE_FAULT (e.g. formal SoftStart abort / stale ADC / ceiling)
+         * revokes the arm so a later handoff cannot activate the shot. */
+        if (g_first_real_pi_shot_arm != 0U &&
+            (g_fault_flags != 0U || g_system_state == SYS_STATE_FAULT))
+        {
+            g_first_real_pi_shot_arm   = 0U;
+            g_first_real_pi_shot_state = SHOT_STATE_ABORTED;
+            g_first_real_pi_shot_abort = SHOT_ABORT_PERMISSION;
+        }
         return;
     }
 
@@ -209,9 +252,13 @@ void SHOT_FastTask(void)
     }
 
     /* E: on-chip 200 us auto-OST. */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    if (g_first_real_pi_shot_tick >= FIRST_REAL_PI_DURATION_TICKS)
+#else
     if (g_first_real_pi_shot_tick >=
         (g_first_shot_debug_ticks != 0U ? g_first_shot_debug_ticks
                                         : FIRST_REAL_PI_DURATION_TICKS))
+#endif
     {
         SHOT_Revoke(SHOT_ABORT_TIMEOUT);
         return;

@@ -139,6 +139,7 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
     if (deadtime > 0xFFFFU) return 0U;
 
     /* Current safe profile range (Profile B). */
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
 #if LLC_DIAG_ALLOW_200K_DB140 || LLC_DIAG_ALLOW_250K_DB110
     if (g_diag_frequency_override != 0U &&
         ((period == 299UL && deadtime >= 120U && deadtime <= 140U) ||
@@ -152,6 +153,7 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
          * Production SoftStart Profile is unchanged. */
     }
     else
+#endif
 #endif
     {
         if (period < 399UL || period > 428UL) return 0U;
@@ -461,6 +463,11 @@ void PWM_Trip(Uint16 cause, Uint16 countTrip)
     g_system_state = SYS_STATE_FAULT;
     g_pwm_enabled = 0U;
     g_pwm_enable_result = 0U;
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* G2: any fault entering SYS_STATE_FAULT revokes the bounded shot arm
+     * (PWM already 0, OST already latched above). No auto retry. */
+    g_first_real_pi_shot_arm = 0U;
+#endif
 #if STAGE6_REAL_ACTUATOR_OST_TEST
     /* STAGE6_REAL_ACTUATOR_OST_TEST: any trip revokes the real actuator's PWM
      * write permission irreversibly (test_arm cleared + revoked latched). The

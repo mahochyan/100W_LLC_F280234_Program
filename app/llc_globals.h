@@ -138,6 +138,19 @@ extern volatile Uint32 g_stage6_actuator_cycles_max;
 extern volatile Uint32 g_stage6_actuator_cycles_sum;
 extern volatile Uint32 g_stage6_actuator_cycles_count;
 #endif
+
+/* STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD - passive whole-ISR / entry-interval observation. */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+extern volatile Uint32 g_real_isr_cycles_last;
+extern volatile Uint32 g_real_isr_cycles_max;
+extern volatile Uint32 g_real_isr_cycles_sum;
+extern volatile Uint32 g_real_isr_cycles_count;
+extern volatile Uint32 g_real_isr_overrun_count;
+extern volatile Uint32 g_real_timer0_entry_count;
+extern volatile Uint32 g_real_timer0_last_entry;
+extern volatile Uint32 g_real_timer0_entry_interval_min;
+extern volatile Uint32 g_real_timer0_entry_interval_max;
+#endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;
 extern volatile Uint16 g_softstart_handoff_result;
@@ -511,7 +524,7 @@ extern volatile Uint16 g_pfm_cmpb;
 extern volatile Uint16 g_ipri_raw_before;
 extern volatile Uint16 g_ipri_raw_max;
 extern volatile Uint16 g_ipri_raw_at_stop;
-/* COMP 武装状??RAM 快照（DSS 读受 EALLOW 保护寄存器受限，故拷??RAM 供验证） */
+/* COMP ??????RAM ?????DSS ???? EALLOW ???????????????????RAM ??????? */
 extern volatile Uint16 g_comp_arm_dacval;
 extern volatile Uint16 g_comp_arm_compdacen;
 extern volatile Uint16 g_comp_arm_tzsel_osht1;
