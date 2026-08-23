@@ -1,0 +1,9 @@
+stage6_usdelay_verify on F28034 (dss, frozen OUT 34C6E84F...F391)
+connect OK, load OK
+InitFlash: ram[0x8000]=7622 flash[0x3E8000]=7622   (copied OK)
+usDelay:   ram[0x801D]=0     flash[0x3EA5AA]=1901  (NOT copied)
+usDelay4:  ram[0x801D..0x8020]=0 0 0 0
+usDelayFLASH4: flash[0x3EA5AA..0x3EA5AD]=1901 56c3 ffff 6
+COPIED = FALSE
+CONCLUSION: DSP2803x_usDelay (.TI.ramfunc, LOAD 0x3EA5AA, RUN RAM 0x801D) is NOT copied to RAM;
+RAM 0x801D holds 0x0000 garbage. InitFlash (ramfuncs) IS copied correctly. Root cause of ITRAP confirmed.
