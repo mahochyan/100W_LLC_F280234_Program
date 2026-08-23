@@ -106,6 +106,59 @@ Uint16 SHOT_RealStage6AuthOk(void)
 }
 
 /* ------------------------------------------------------------------ */
+/* C: runtime SoftStart limited authorization (REAL build only).       */
+/* True while the formal Profile C ramp is actually running: Stage6,   */
+/* shot pre-armed, board VOUT cal valid, Comp/TZ loopback verified,   */
+/* no fault, system in SOFT_START, ramp not complete/aborted. This is */
+/* the context that lets PWM_RuntimeValuesValid accept the verified    */
+/* 250 kHz / TBPRD239 / DB110 .. 150 kHz / TBPRD399 / DB36 trajectory  */
+/* and lets PROT_SlowTask raise the frequency ceiling to 250 kHz.      */
+/* ------------------------------------------------------------------ */
+Uint16 SHOT_RealSoftStartAuthOk(void)
+{
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    if (g_bringup_stage != BRINGUP_STAGE_6_CLOSED_LOOP) return 0U;
+    if (g_first_real_pi_shot_arm == 0U)                 return 0U;
+    if (g_board_vout_cal_valid == 0U)                   return 0U;
+    if (g_comp_tz_loopback_verified == 0U)              return 0U;
+    if (g_fault_flags != 0U)                            return 0U;
+    if (g_system_state != SYS_STATE_SOFT_START)         return 0U;
+    if (g_softstart_state == SOFTSTART_COMPLETE ||
+        g_softstart_state == SOFTSTART_ABORTED)        return 0U;
+    return 1U;
+#else
+    return 0U;
+#endif
+}
+
+/* ------------------------------------------------------------------ */
+/* C: bounded PI limited authorization (REAL build only).              */
+/* True only during the bounded 200us PI window after the 10V handoff: */
+/* Stage6, shot pre-armed, handoff OK, reference valid, VOUT cal,      */
+/* Comp/TZ loopback verified, no fault, system in RUN. This is the     */
+/* context that lets PROT_SlowTask cap the frequency at                */
+/* FIRST_REAL_PI_MAX_HZ (145..170 kHz) and bypass the global           */
+/* calibration/direction gates for the bounded window only.            */
+/* ------------------------------------------------------------------ */
+Uint16 SHOT_RealBoundedPiAuthOk(void)
+{
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    if (g_bringup_stage != BRINGUP_STAGE_6_CLOSED_LOOP) return 0U;
+    if (g_first_real_pi_shot_arm == 0U)                 return 0U;
+    if (g_softstart_handoff_result != HANDOFF_RESULT_OK) return 0U;
+    if (g_control_reference_valid == 0U)                return 0U;
+    if (g_board_vout_cal_valid == 0U)                   return 0U;
+    if (g_comp_tz_loopback_verified == 0U)              return 0U;
+    if (g_fault_flags != 0U)                            return 0U;
+    if (g_system_state != SYS_STATE_RUN)                return 0U;
+    return 1U;
+#else
+    return 0U;
+#endif
+}
+
+
+/* ------------------------------------------------------------------ */
 /* D per-tick write gate. The full permission set is checked on the very
  * first shot write (IDLE/ARMED -> ACTIVE); once ACTIVE, only the dynamic
  * conditions that can change during the 200 us window are re-checked per

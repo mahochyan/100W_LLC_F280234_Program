@@ -23,6 +23,7 @@
 #include "adc.h"
 #include "soft_start.h"
 #include "board_calibration.h"
+#include "shot.h"
 
 /* STAGE5A PFM direction: 170 kHz window configuration, computed at compile
  * time from the 60 MHz TBCLK so no runtime division is needed:
@@ -105,6 +106,29 @@ static void SS_End(Uint16 result)
     g_softstart_run_id_at_tz_isr = g_test_run_id_at_tz_isr;
     /* STAGE5A_500MA: IPRI ADC diagnostic at stop (not a protection path). */
     g_ipri_raw_at_stop = g_adc_ipri_raw;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* D: REAL bounded-shot build — the ONLY acceptable SoftStart end is the
+     * 10V handoff (SoftStart_TransferToClosedLoop, which never calls SS_End).
+     * Every SS_End here therefore means the shot did NOT proceed: force OST +
+     * PWM=0 (SS_HardStop above) and revoke the shot arm into FAULT so there is
+     * no unverified RUN and no auto retry. */
+    if (result == SS_RESULT_NOT_REACHED)
+    {
+        SHOT_Revoke(SHOT_ABORT_NO_HANDOFF);
+    }
+    else if (result == SS_RESULT_HARD_CEILING)
+    {
+        SHOT_Revoke(SHOT_ABORT_CEILING);
+    }
+    else if (result == SS_RESULT_ACTIVE_TZ)
+    {
+        SHOT_Revoke(SHOT_ABORT_TZ);
+    }
+    else
+    {
+        SHOT_Revoke(SHOT_ABORT_FAULT);
+    }
+#endif
 }
 
 /* ------------------------------------------------------------------ */
@@ -426,6 +450,15 @@ void SoftStart_FastUpdate(void)
             }
             if (g_softstart_final_cycles >= SS_FINAL_MAX_CYCLES)
             {
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+                /* D: REAL bounded-shot build — never enter unverified RUN. If
+                 * the formal Profile C reached the FINAL max window without the
+                 * 10V handoff, SS_End(NOT_REACHED) forces OST + PWM=0 and
+                 * revokes the shot arm into FAULT (see SS_End). No auto retry. */
+                g_softstart_abort_reason = 3U;   /* SS_ABORT_NO_HANDOFF */
+                SS_End(SS_RESULT_NOT_REACHED);
+                g_softstart_state = SOFTSTART_ABORTED;
+#else
                 if (g_softstart_acceptance_mode == 0U)
                 {
                     /* Production: ramp finished -> complete, continue to RUN. */
@@ -437,6 +470,7 @@ void SoftStart_FastUpdate(void)
                 {
                     SS_End(SS_RESULT_NOT_REACHED);
                 }
+#endif
             }
             break;
 

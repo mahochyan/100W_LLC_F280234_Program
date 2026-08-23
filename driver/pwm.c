@@ -156,8 +156,24 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
 #endif
 #endif
     {
-        if (period < 399UL || period > 428UL) return 0U;
-        if (deadtime < 36U || deadtime > 190U) return 0U;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+        /* B: REAL bounded-shot build. The formal Profile C trajectory
+         * (250 kHz / TBPRD239 / DB110 .. 150 kHz / TBPRD399 / DB36) is allowed
+         * ONLY while the runtime SoftStart limited authorization holds (formal
+         * ramp actually running, shot pre-armed, VOUT cal + Comp/TZ loopback
+         * verified, no fault). Outside that context the production range
+         * applies, so a 200k/250k write can never slip through any other path. */
+        if (SHOT_RealSoftStartAuthOk() != 0U)
+        {
+            if (period < 239UL || period > 399UL) return 0U;
+            if (deadtime < 36U || deadtime > 110U) return 0U;
+        }
+        else
+#endif
+        {
+            if (period < 399UL || period > 428UL) return 0U;
+            if (deadtime < 36U || deadtime > 190U) return 0U;
+        }
     }
 
     cmp = (period + 1UL) / 2UL;

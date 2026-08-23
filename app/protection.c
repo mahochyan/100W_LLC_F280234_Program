@@ -395,9 +395,19 @@ void PROT_FastTask(void)
     COMP_StaticCalibrationFastTask();
 
     /* Calibrated raw-limit checks only; uncalibrated engineering values are
-     * guarded in PROT_SlowTask. */
+     * guarded in PROT_SlowTask. In the REAL bounded-shot build the raw OVP
+     * ceiling is enforced whenever the limited authorization holds (the
+     * volts-domain calibration is pending, so the g_vout_volts gate would
+     * otherwise skip the check during the formal ramp / 200us shot). */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    if (g_vout_volts >= 0.0f ||
+        SHOT_RealSoftStartAuthOk() != 0U ||
+        SHOT_RealBoundedPiAuthOk() != 0U)
+    {
+#else
     if (g_vout_volts >= 0.0f)
     {
+#endif
         if (g_adc_vout_raw > LLC_OVP_RAW_THRESHOLD)
         {
             PROT_RequestFault(FAULT_VOUT_OVP, 0U);
@@ -553,7 +563,22 @@ void PROT_SlowTask(void)
     else if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
     {
         Uint32 max_h = LLC_HARD_MAX_HZ;
-#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+        /* B: REAL bounded-shot build — the frequency ceiling is context
+         * dependent. Formal SoftStart (runtime limited auth) may run the
+         * board-verified Profile C trajectory up to 250 kHz; the bounded PI
+         * window (bounded-PI limited auth) is capped at FIRST_REAL_PI_MAX_HZ
+         * (145..170 kHz); every other path keeps the production
+         * LLC_HARD_MAX_HZ (150 kHz) ceiling. */
+        if (SHOT_RealSoftStartAuthOk() != 0U)
+        {
+            max_h = LLC_DIAG_MAX_HZ;
+        }
+        else if (SHOT_RealBoundedPiAuthOk() != 0U)
+        {
+            max_h = FIRST_REAL_PI_MAX_HZ;
+        }
+#elif STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
         /* First bounded real PI shot build: the shot envelope is 145..170 kHz
          * and MUST NOT reach 200k/250k. The slow-task frequency gate therefore
          * allows exactly the shot max. Production keeps LLC_HARD_MAX_HZ (150k). */
@@ -587,13 +612,25 @@ void PROT_SlowTask(void)
     if (g_pwm_enabled != 0U)
 #endif
     {
+    /* C: REAL bounded-shot build — the limited authorization (runtime
+     * SoftStart or bounded PI) substitutes for the global calibration and
+     * control-direction gates ONLY for the formal SoftStart -> 200us PI
+     * window. IOUT absolute calibration is pending (never faked) and
+     * LLC_CONTROL_DIRECTION stays 0 (Stage5A confirmed the direction via
+     * LLC_CONTROL_SIGN=-1); fast OCP remains Comparator->TZ1->OST. */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    Uint16 limited_auth = (SHOT_RealSoftStartAuthOk() != 0U ||
+                           SHOT_RealBoundedPiAuthOk() != 0U);
+#else
+    Uint16 limited_auth = 0U;
+#endif
     if (g_bringup_stage >= BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
         g_comp_tz_loopback_verified == 0U)
     {
         PROT_RequestFault(FAULT_COMP_TZ_LOOPBACK, 0U);
         return;
     }
-    if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
+    if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP && limited_auth == 0U)
     {
         if (g_vout_volts < 0.0f || g_iout_amps < 0.0f)
         {
@@ -601,7 +638,7 @@ void PROT_SlowTask(void)
             return;
         }
     }
-    if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
+    if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP && limited_auth == 0U)
     {
         if (LLC_CONTROL_DIRECTION == 0)
         {

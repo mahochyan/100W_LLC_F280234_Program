@@ -45,6 +45,8 @@
 #define SHOT_ABORT_FAULT      4U   /* some other fault latched */
 #define SHOT_ABORT_ACTUATOR   5U   /* LLC_SetFrequencyHz failed */
 #define SHOT_ABORT_PERMISSION 6U   /* a permission condition disappeared */
+#define SHOT_ABORT_NO_HANDOFF 7U   /* SoftStart FINAL window expired without 10V handoff */
+#define SHOT_ABORT_CEILING    8U   /* SoftStart hard ceiling (12V) reached during ramp */
 
 /* One recorded control tick (H). Fields are plain (written once by the ISR,
  * read post-shot by CCS while halted), so the compiler can batch the stores. */
@@ -68,6 +70,8 @@ void   SHOT_Init(void);
 Uint16 SHOT_PermissionOk(void);      /* D: all arm conditions */
 Uint16 SHOT_WriteAllowed(void);      /* D per-tick gate: full on first write, dynamic-only after */
 Uint16 SHOT_RealStage6AuthOk(void);  /* F2: bounded-shot Stage6 startup auth (REAL build only) */
+Uint16 SHOT_RealSoftStartAuthOk(void);  /* C: runtime formal-SoftStart auth (REAL build only) */
+Uint16 SHOT_RealBoundedPiAuthOk(void);  /* C: bounded-PI auth (REAL build only) */
 Uint16 SHOT_ClampFreq(Uint32 *p_hz); /* B: clamp into 145..170k, returns 1 if clamped applied */
 void   SHOT_Revoke(Uint16 reason);   /* on-chip termination (E/F/C/D) */
 void   SHOT_FastTask(void);          /* called from TINT0_ISR: timer + 11V abort + ring record */

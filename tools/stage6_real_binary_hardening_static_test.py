@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1 - static test suite.
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 - static test suite.
 
 These tests do NOT power hardware and do NOT connect JTAG. They verify the
 REAL shot binary hardening requirements against source and the frozen REAL
-MAP/OUT artifacts.
+MAP/OUT artifacts. They run on a clean checkout: when the local
+Stage6_FLASH_SHOT_REAL / Stage6_FLASH_SHOT_NOENERGY build directories are
+absent, the committed evidence artifacts are audited instead.
 """
 import pathlib
 import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-REAL_MAP = ROOT / "Stage6_FLASH_SHOT_REAL" / "LLC_100W_F28034_BRINGUP_DSH.map"
-REAL_OUT = ROOT / "Stage6_FLASH_SHOT_REAL" / "LLC_100W_F28034_BRINGUP_DSH.out"
-NOENERGY_OUT = ROOT / "Stage6_FLASH_SHOT_NOENERGY" / "LLC_100W_F28034_BRINGUP_DSH.out"
+EVID = ROOT / "evidence" / "stage6_first_real_pi_shot_real"
+
+LOCAL_REAL_MAP = ROOT / "Stage6_FLASH_SHOT_REAL" / "LLC_100W_F28034_BRINGUP_DSH.map"
+LOCAL_REAL_OUT = ROOT / "Stage6_FLASH_SHOT_REAL" / "LLC_100W_F28034_BRINGUP_DSH.out"
+LOCAL_NOENERGY_OUT = ROOT / "Stage6_FLASH_SHOT_NOENERGY" / "LLC_100W_F28034_BRINGUP_DSH.out"
+
+EVID_REAL_MAP = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.map"
+EVID_REAL_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out"
+EVID_NOENERGY_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_NOENERGY.out"
+
+REAL_MAP = LOCAL_REAL_MAP if LOCAL_REAL_MAP.exists() else EVID_REAL_MAP
+REAL_OUT = LOCAL_REAL_OUT if LOCAL_REAL_OUT.exists() else EVID_REAL_OUT
+NOENERGY_OUT = LOCAL_NOENERGY_OUT if LOCAL_NOENERGY_OUT.exists() else EVID_NOENERGY_OUT
 
 failures = []
 
@@ -31,6 +43,31 @@ def read_text(p):
 def sha256(p):
     import hashlib
     return hashlib.sha256(p.read_bytes()).hexdigest().upper()
+
+print("artifact source: " +
+      ("LOCAL build dirs" if LOCAL_REAL_MAP.exists() and LOCAL_REAL_OUT.exists()
+       else "COMMITTED evidence (clean checkout)"))
+
+# 0. Evidence artifacts present and manifest-consistent (G2/G4/G6)
+manifest = read_text(EVID / "REAL_SHA256SUMS.txt")
+m_real = re.search(r"REAL_OUT_SHA256\s*=\s*([0-9A-Fa-f]{64})", manifest)
+m_map = re.search(r"REAL_MAP_SHA256\s*=\s*([0-9A-Fa-f]{64})", manifest)
+check(REAL_OUT.exists(), "REAL OUT artifact present")
+check(REAL_MAP.exists(), "REAL MAP artifact present")
+if m_real:
+    check(sha256(REAL_OUT) == m_real.group(1).upper(),
+          "REAL OUT SHA256 matches REAL_SHA256SUMS.txt")
+if m_map:
+    check(sha256(REAL_MAP) == m_map.group(1).upper(),
+          "REAL MAP SHA256 matches REAL_SHA256SUMS.txt")
+check((EVID / "REVOKED_9CE0EFBA.txt").exists(),
+      "old 9ce0efba OUT revocation marker present")
+if (EVID / "REVOKED_9CE0EFBA.txt").exists():
+    rev = read_text(EVID / "REVOKED_9CE0EFBA.txt")
+    check("REVOKED_BY_REVIEW" in rev and "DO_NOT_EXECUTE" in rev,
+          "revocation marker contains REVOKED_BY_REVIEW + DO_NOT_EXECUTE")
+check((EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_REVOKED_9CE0EFBA.out").exists(),
+      "old 9ce0efba OUT preserved under REVOKED name")
 
 # 1. Build macro mutual-exclusion
 cfg = read_text(ROOT / "llc_config.h")
@@ -91,6 +128,36 @@ if m:
 else:
     check(False, "REAL script runAsynch->halt block not found")
 
+# 3a. E3: APP_Init run to completion before preflight
+check("run(300)" in real_script, "REAL script runs APP_Init to completion (run 300 ms)")
+
+# 3b. E4/E8: preflight hard gates
+for g in ["INIT_SYS_IDLE", "INIT_PWM_OFF", "INIT_FAULT_ZERO", "INIT_OST_LATCHED",
+          "INIT_VOUT_CAL_VALID", "PREFLIGHT_SYS_IDLE", "PREFLIGHT_PWM_OFF",
+          "PREFLIGHT_FAULT_ZERO", "PREFLIGHT_OST_LATCHED", "PREFLIGHT_VOUT_CAL",
+          "PREFLIGHT_COMP_VERIFIED", "PREFLIGHT_STAGE6", "PREFLIGHT_ARM_CLEAR"]:
+    check(f"gate(\"{g}\"" in real_script or f"gate(\"{g}\"," in real_script,
+          f"REAL script preflight hard gate {g} present")
+
+# 3c. E5: loopback request + verify
+check('wv("g_loopback_diag_request",1)' in real_script and
+      "LOOPBACK_PASS" in real_script and "g_comp_tz_loopback_verified" in real_script,
+      "REAL script requests Comparator loopback and verifies PASS")
+
+# 3d. E6/E7: sequential stage confirm 1..6 (requests 1..7), each verified
+check("for(var s=1;s<=7;s++)" in real_script and
+      'wv("g_stage_confirm_request",s)' in real_script and
+      'gate("STAGE_CONFIRM_"+s, stg===s)' in real_script,
+      "REAL script confirms stages sequentially 1->2->3->4->5->6 (requests 1..7), each verified")
+
+# 3e. E13/E14: strict PASS/FAIL + power_writes read as Uint16
+check("REAL_SHOT_STRICT_PASS" in real_script and "REAL_SHOT_STRICT_FAIL" in real_script,
+      "REAL script strict PASS/FAIL after black-box read")
+check('rw("g_first_real_pi_shot_power_writes")' in real_script,
+      "REAL script reads power_writes as Uint16 (rw)")
+check('rv32("g_first_real_pi_shot_power_writes")' not in real_script,
+      "REAL script does NOT read power_writes as rv32")
+
 # 4. Shot frequency envelope 145..170 kHz
 shot_h = read_text(ROOT / "app" / "shot.h")
 shot_c = read_text(ROOT / "app" / "shot.c")
@@ -139,6 +206,106 @@ if REAL_OUT.exists() and NOENERGY_OUT.exists():
     check(sha256(REAL_OUT) != sha256(NOENERGY_OUT), "REAL OUT != NOENERGY OUT (NOT BIT IDENTICAL)")
 else:
     check(False, "REAL/NOENERGY OUT missing for bit-identity check")
+
+# 12. B: REAL Profile C TBPRD239/DB110 allowed ONLY under SoftStart auth
+pwm = read_text(ROOT / "driver" / "pwm.c")
+check("SHOT_RealSoftStartAuthOk() != 0U" in pwm,
+      "PWM_RuntimeValuesValid gates Profile C on SoftStart limited auth")
+check("period < 239UL || period > 399UL" in pwm and "deadtime < 36U || deadtime > 110U" in pwm,
+      "PWM_RuntimeValuesValid allows TBPRD 239..399 / DB 36..110 under SoftStart auth")
+check("period < 399UL || period > 428UL" in pwm and "deadtime < 36U || deadtime > 190U" in pwm,
+      "PWM_RuntimeValuesValid keeps production range outside SoftStart auth")
+
+# 13. B: SoftStart vs PI frequency gates separated; PI 250k rejected
+check("max_h = LLC_DIAG_MAX_HZ;" in prot and "SHOT_RealSoftStartAuthOk() != 0U" in prot,
+      "PROT_SlowTask SoftStart frequency gate allows up to 250 kHz (Profile C)")
+check("max_h = FIRST_REAL_PI_MAX_HZ;" in prot and "SHOT_RealBoundedPiAuthOk() != 0U" in prot,
+      "PROT_SlowTask bounded-PI frequency gate caps at 170 kHz (250k rejected)")
+check("max_h = LLC_HARD_MAX_HZ;" in prot,
+      "PROT_SlowTask keeps production 150 kHz ceiling for other paths")
+
+# 14. C: PROT_FastTask recognizes limited auth
+ft = prot[prot.find("void PROT_FastTask"):]
+check("SHOT_RealSoftStartAuthOk() != 0U" in ft and "SHOT_RealBoundedPiAuthOk() != 0U" in ft,
+      "PROT_FastTask raw OVP check recognizes limited auth (REAL build)")
+
+# 15. C: limited-auth bypass of CAL_MISSING / CONTROL_DIRECTION
+check("limited_auth" in prot and "SHOT_RealSoftStartAuthOk() != 0U ||" in prot,
+      "PROT_SlowTask computes limited_auth from SoftStart/PI auth")
+check("g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP && limited_auth == 0U" in prot,
+      "CAL_MISSING gate bypassed only while limited auth holds")
+check("LLC_CONTROL_DIRECTION == 0" in prot,
+      "CONTROL_DIRECTION gate still present (bypassed only under limited auth)")
+
+# 16. C: auth functions implemented in shot.c, declared in shot.h
+check("Uint16 SHOT_RealSoftStartAuthOk(void)" in shot_c and
+      "Uint16 SHOT_RealBoundedPiAuthOk(void)" in shot_c,
+      "shot.c implements both limited-auth functions")
+check("Uint16 SHOT_RealSoftStartAuthOk(void);" in shot_h and
+      "Uint16 SHOT_RealBoundedPiAuthOk(void);" in shot_h,
+      "shot.h declares both limited-auth functions")
+check("SYS_STATE_SOFT_START" in shot_c and "SYS_STATE_RUN" in shot_c,
+      "auth functions check system state (SOFT_START / RUN)")
+
+# 17. D: no-handoff FINAL max window -> OST, never unverified RUN
+check("SS_End(SS_RESULT_NOT_REACHED)" in ss and "SOFTSTART_ABORTED" in ss,
+      "SoftStart FINAL max window ends NOT_REACHED + ABORTED (REAL build)")
+check("SHOT_Revoke(SHOT_ABORT_NO_HANDOFF)" in ss,
+      "no-handoff path revokes shot arm with SHOT_ABORT_NO_HANDOFF")
+check("SHOT_Revoke(SHOT_ABORT_CEILING)" in ss and "SHOT_Revoke(SHOT_ABORT_TZ)" in ss and
+      "SHOT_Revoke(SHOT_ABORT_FAULT)" in ss,
+      "SS_End revokes shot arm on every other abort path (REAL build)")
+check("SHOT_ABORT_NO_HANDOFF" in shot_h and "SHOT_ABORT_CEILING" in shot_h,
+      "shot.h defines SHOT_ABORT_NO_HANDOFF / SHOT_ABORT_CEILING")
+
+# 18. F: timing script symbol audit against REAL MAP
+timing = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_binary_timing_nopower.js")
+timing_syms = [
+    "g_voltage_reference", "g_control_vref_raw",
+    "g_real_timer0_entry_interval_min", "g_real_timer0_entry_interval_max",
+    "g_real_timer0_last_entry", "g_real_timer0_entry_count",
+    "g_real_isr_cycles_max", "g_real_isr_cycles_sum", "g_real_isr_cycles_count",
+    "g_real_isr_overrun_count", "g_switching_frequency_hz",
+    "g_power_run_min_frequency_hz", "g_softstart_handoff_result",
+    "g_board_vout_cal_valid", "g_comp_tz_loopback_verified",
+    "g_first_real_pi_shot_arm", "g_control_reference_valid",
+    "g_system_state", "g_pwm_enabled", "g_bringup_stage",
+]
+if REAL_MAP.exists():
+    for sym in timing_syms:
+        check(f"_{sym}" in map_text, f"timing script symbol {sym} exists in REAL MAP")
+else:
+    check(False, "REAL MAP missing for timing symbol audit")
+check("g_control_reference_volts" not in timing and "g_real_timer0_interval_min" not in timing and
+      "g_real_timer0_interval_max" not in timing,
+      "timing script uses real symbol names (no g_control_reference_volts / g_real_timer0_interval_*)")
+check("DSH_CNT34_OPEN_CONFIRMED" in timing, "timing script gates on DSH_CNT34_OPEN_CONFIRMED=1")
+check("TIMING_HOST_SHA256_HARD_GATE_PASS" in timing, "timing script host SHA256 hard gate present")
+for g in ["FAULT_ZERO", "OST_LATCHED", "PWM_OFF", "AQCSFRC_FORCE_LOW"]:
+    check(f"gate(\"{g}\"" in timing, f"timing script hard gate {g} present")
+i_fault = timing.find('gate("FAULT_ZERO"')
+i_state = timing.find('wv("g_system_state"')
+check(i_fault != -1 and i_state != -1 and i_fault < i_state,
+      "timing script gates run BEFORE any test-state write")
+check(not re.search(r"\bwv(?:32)?\(\s*\"g_fault_flags\"\s*,", timing),
+      "timing script does not clear fault flags")
+check("TZCLR" not in re.sub(r"//.*", "", timing),
+      "timing script has no TZCLR.OST write")
+check("g_pwm_enable_request" not in timing, "timing script has no real enable request")
+check("g_bringup_stage\",7" in timing, "timing script uses BRINGUP_STAGE_6_CLOSED_LOOP (7)")
+
+# 19. G: REAL_BUILD_MANIFEST source_commit accounting
+if (EVID / "REAL_BUILD_MANIFEST.txt").exists():
+    bm = read_text(EVID / "REAL_BUILD_MANIFEST.txt")
+    check("SOURCE_COMMIT" in bm and "EVIDENCE_COMMIT" in bm,
+          "manifest records SOURCE_COMMIT and EVIDENCE_COMMIT separately")
+    check("NON_DETERMINISTIC" in bm or "timestamp" in bm.lower(),
+          "manifest documents non-deterministic build (timestamp)")
+
+# 20. G: MAP newline policy (frozen MAP stored as-is, -text)
+ga = read_text(ROOT / ".gitattributes")
+check("evidence/stage6_first_real_pi_shot_real/*.map -text" in ga,
+      ".gitattributes marks frozen MAP as -text (no EOL normalization)")
 
 print()
 if failures:

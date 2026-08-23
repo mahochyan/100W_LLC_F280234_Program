@@ -1,10 +1,16 @@
-// stage6_first_real_pi_shot_real.js
+// stage6_first_real_pi_shot_real.js  (V1-1)
 // REQUEST-ONLY driver for the FIRST BOUNDED REAL PI SHOT (200 us).
-//   host SHA256 hard gate -> connect -> load frozen REAL OUT -> safe preflight
-//   (read-only) -> shot pre-arm -> formal enable request -> runAsynch ->
-//   wait > 200 us (on-chip auto-OST) -> halt -> one-shot result dump.
+//   E1 host SHA256 hard gate (before connect) -> E2 human auth env gate ->
+//   connect -> load frozen REAL OUT -> E3 run APP_Init to completion, halt ->
+//   E4 hard gate (sys=IDLE, PWM=0, fault=0, OST=1, VOUT cal=1) ->
+//   E5 Comparator loopback request, run, halt, verify PASS ->
+//   E6/E7 sequential stage confirm 1..6 (requests 1..7), each verified ->
+//   E8 final preflight re-verify all -> E9 shot arm + pwm enable request ->
+//   E10/E11 runAsynch, wait > worst-case termination, halt (NO reads between) ->
+//   E13 black-box read once, strict PASS/FAIL. E14 power_writes read as Uint16.
 // NO runtime polling during the shot. NO writes to fault/system/stage/cal/comp/
-// synthetic/diag/PWM-register state. Requires DSH_CNT34_APPROVED=1.
+// synthetic/diag/PWM-register state. Any gate failure ABORTS (throws).
+// Requires DSH_CNT34_APPROVED=1 (human auth).
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
@@ -14,7 +20,7 @@ importPackage(Packages.java.security);
 var OUT="D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out";
 var MANIFEST="D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real\\REAL_SHA256SUMS.txt";
 
-// ---- host SHA256 hard gate (J) ----
+// ---- E1: host SHA256 hard gate (BEFORE connect/download) ----
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
   var fis=new FileInputStream(path);
@@ -44,7 +50,7 @@ if(actual!==expected){
 }
 print("REAL_SHOT_HOST_SHA256_HARD_GATE_PASS");
 
-// ---- CNT3/CNT4 approval gate ----
+// ---- E2: human auth env gate ----
 var approved=(java.lang.System.getenv("DSH_CNT34_APPROVED")||"").equals("1");
 print("CNT3/CNT4 real-shot approval present: "+approved);
 if(!approved){ print("ABORT: DSH_CNT34_APPROVED != 1. No real shot."); throw "no-approval"; }
@@ -58,34 +64,98 @@ function rv32(n){try{var a=addr(n);return(session.memory.readWord(1,a)|(session.
 function wv(n,v){session.memory.writeWord(1,addr(n),v);}
 function wv32(n,v){var a=addr(n);session.memory.writeWord(1,a,v&0xFFFF);session.memory.writeWord(1,a+1,(v>>>16)&0xFFFF);}
 function reg(e){try{return ""+session.expression.evaluate(e);}catch(err){return "<f>";}}
+function run(ms){session.target.runAsynch();java.lang.Thread.sleep(ms);session.target.halt();}
+function gate(name,cond){
+  print("GATE "+name+": "+(cond?"PASS":"FAIL"));
+  if(!cond){ print("ABORT: gate "+name+" failed"); throw "gate-"+name; }
+}
 
 try{session.target.connect();}catch(e){}
 session.memory.loadProgram(OUT);
 
-// ---- safe preflight (READ-ONLY) ----
-print("preflight sys="+rw("g_system_state")+" pwm="+rw("g_pwm_enabled")+
-      " fault="+rv32("g_fault_flags")+" ost="+reg("EPwm1Regs.TZFLG.bit.OST")+
-      " dac="+reg("Comp1Regs.DACVAL.all")+" voutcal="+rw("g_board_vout_cal_valid")+
-      " comp="+rw("g_comp_tz_loopback_verified")+" stage="+rw("g_bringup_stage"));
+// ---- E3: run APP_Init to completion, then halt ----
+run(300);
 
-// ---- request-only shot sequence ----
+// ---- E4: hard gate after init (READ-ONLY) ----
+var sys=rw("g_system_state"); var pwm=rw("g_pwm_enabled"); var fault=rv32("g_fault_flags");
+var ost=reg("EPwm1Regs.TZFLG.bit.OST"); var voutcal=rw("g_board_vout_cal_valid");
+var comp=rw("g_comp_tz_loopback_verified"); var stage=rw("g_bringup_stage");
+print("post-init sys="+sys+" pwm="+pwm+" fault="+fault+" ost="+ost+
+      " voutcal="+voutcal+" comp="+comp+" stage="+stage);
+gate("INIT_SYS_IDLE", sys===1);
+gate("INIT_PWM_OFF", pwm===0);
+gate("INIT_FAULT_ZERO", fault===0);
+gate("INIT_OST_LATCHED", ost==="1");
+gate("INIT_VOUT_CAL_VALID", voutcal===1);
+gate("INIT_STAGE_ZERO", stage===0);
+
+// ---- E5: Comparator loopback request, run, halt, verify PASS ----
 wv("g_loopback_diag_request",1);          // allowed request interface
-wv("g_stage_confirm_request",6);          // allowed request interface
-wv32("g_test_run_id",0x5A11);             // allowed request interface
-wv("g_first_real_pi_shot_arm",1);         // pre-arm BEFORE formal enable (G1)
-wv("g_pwm_enable_request",1);             // formal enable request
-session.target.runAsynch();               // no reads during run
-java.lang.Thread.sleep(2);                // > 200 us; firmware SoftStart + 200 us shot self-end
+run(50);
+var diag=rw("g_loopback_diag_result"); var comp2=rw("g_comp_tz_loopback_verified");
+print("loopback diag result="+diag+" comp_verified="+comp2);
+gate("LOOPBACK_PASS", diag===1 && comp2===1);
+
+// ---- E6/E7: sequential stage confirm 1..6 (requests 1..7), each verified ----
+for(var s=1;s<=7;s++){
+  wv("g_stage_confirm_request",s);       // allowed request interface
+  run(50);
+  var stg=rw("g_bringup_stage");
+  print("stage confirm request="+s+" -> stage="+stg);
+  gate("STAGE_CONFIRM_"+s, stg===s);
+}
+
+// ---- E8: final preflight re-verify all (READ-ONLY) ----
+sys=rw("g_system_state"); pwm=rw("g_pwm_enabled"); fault=rv32("g_fault_flags");
+ost=reg("EPwm1Regs.TZFLG.bit.OST"); voutcal=rw("g_board_vout_cal_valid");
+comp=rw("g_comp_tz_loopback_verified"); stage=rw("g_bringup_stage");
+var arm=rw("g_first_real_pi_shot_arm");
+print("final preflight sys="+sys+" pwm="+pwm+" fault="+fault+" ost="+ost+
+      " voutcal="+voutcal+" comp="+comp+" stage="+stage+" arm="+arm);
+gate("PREFLIGHT_SYS_IDLE", sys===1);
+gate("PREFLIGHT_PWM_OFF", pwm===0);
+gate("PREFLIGHT_FAULT_ZERO", fault===0);
+gate("PREFLIGHT_OST_LATCHED", ost==="1");
+gate("PREFLIGHT_VOUT_CAL", voutcal===1);
+gate("PREFLIGHT_COMP_VERIFIED", comp===1);
+gate("PREFLIGHT_STAGE6", stage===7);
+gate("PREFLIGHT_ARM_CLEAR", arm===0);
+
+// ---- E9: shot pre-arm + formal enable request (request interface only) ----
+wv32("g_test_run_id",0x5A11);            // allowed request interface
+wv("g_first_real_pi_shot_arm",1);        // pre-arm BEFORE formal enable (G1)
+wv("g_pwm_enable_request",1);            // formal enable request
+
+// ---- E10/E11: runAsynch, wait > worst-case termination, halt. NO reads. ----
+// Worst case: 5 ms enable-request latency + ~3.5 ms formal ramp + 0.2 ms shot
+// + termination = ~8.7 ms. 15 ms exceeds it with margin.
+session.target.runAsynch();
+java.lang.Thread.sleep(15);
 session.target.halt();
 
-// ---- one-shot result dump ----
-var st=rw("g_first_real_pi_shot_state");var tk=rw("g_first_real_pi_shot_tick");
-var ab=rw("g_first_real_pi_shot_abort");var rbc=rw("g_first_real_pi_shot_rb_count");
-var pw=rv32("g_first_real_pi_shot_power_writes");
+// ---- E13: black-box read once, strict PASS/FAIL ----
+var st=rw("g_first_real_pi_shot_state"); var tk=rw("g_first_real_pi_shot_tick");
+var ab=rw("g_first_real_pi_shot_abort"); var okf=rw("g_first_real_pi_shot_ok");
+var rbc=rw("g_first_real_pi_shot_rb_count");
+var pw=rw("g_first_real_pi_shot_power_writes");   // E14: Uint16, NOT rv32
 var fw=rv32("g_first_real_pi_shot_first_write_timer2");
-var ost=rv32("g_first_real_pi_shot_ost_timer2");
-print("shot state="+st+" tick="+tk+" abort="+ab+" rb="+rbc+" power_writes="+pw);
-print("first_write_timer2="+fw+" ost_timer2="+ost);
+var ostt=rv32("g_first_real_pi_shot_ost_timer2");
+var sys2=rw("g_system_state"); var pwm2=rw("g_pwm_enabled"); var fault2=rv32("g_fault_flags");
+var ost2=reg("EPwm1Regs.TZFLG.bit.OST");
+var ssres=rw("g_softstart_result"); var hres=rw("g_softstart_handoff_result");
+print("shot state="+st+" tick="+tk+" abort="+ab+" ok="+okf+" rb="+rbc+" power_writes="+pw);
+print("first_write_timer2="+fw+" ost_timer2="+ostt);
+print("post-shot sys="+sys2+" pwm="+pwm2+" fault="+fault2+" ost="+ost2+
+      " softstart_result="+ssres+" handoff_result="+hres);
+var pass = (st===3 && okf===1 && ab===1 && pwm2===0 && ost2==="1" &&
+            fault2===0 && sys2===1 && pw>0);
+print(pass ? "REAL_SHOT_STRICT_PASS" : "REAL_SHOT_STRICT_FAIL");
+if(!pass){
+  print("REAL_SHOT_RESULT_FAIL");
+  throw "shot-fail";
+}
+
+// ---- evidence: ring buffer dump (read-only, after strict evaluation) ----
 for(var j=0;j<rbc && j<32;j++){
   var i=j;
   print("  rb["+i+"] tick="+rv32("g_first_real_pi_shot_rb["+i+"].tick")+
