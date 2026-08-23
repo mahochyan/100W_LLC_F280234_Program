@@ -165,13 +165,17 @@ static void SM_HandleEnable(void)
             return;
         }
 
-        /* Closed-loop / power-run pre-enable gates. In the no-energy software
-         * simulation (g_softstart_no_energy != 0) there is no real power, so
-         * the calibration/direction gates are bypassed to let the formal ramp
-         * + handoff be exercised end-to-end; the physical board stays safe
-         * (OST=1, LLC_HARDWARE_PI_VALIDATED=0, LLC_CONTROL_DIRECTION=0). */
+        /* Closed-loop / power-run pre-enable gates. The no-energy software
+         * simulation bypasses the calibration/direction gates because it has no
+         * real power; that bypass exists ONLY in the no-energy test build. The
+         * production build applies these gates unconditionally (no runtime
+         * g_softstart_no_energy protection path). */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
         if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP &&
             g_softstart_no_energy == 0U)
+#else
+        if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
+#endif
         {
             if (g_vout_volts < 0.0f || g_iout_amps < 0.0f)
             {

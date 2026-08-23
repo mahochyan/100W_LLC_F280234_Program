@@ -321,11 +321,44 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
 void CTRL_ApplyFrequencyCommand(void)
 {
     Uint32 target = g_control_shadow_frequency_hz;
+#if STAGE6_REAL_ACTUATOR_OST_TEST
+    /* Test override: the harness may command an exact frequency through the
+     * real actuator path for the mapping / dynamic-cadence tests. 0 = use the
+     * Q12 PI shadow command. */
+    if (g_stage6_actuator_direct_cmd_hz != 0UL)
+        target = g_stage6_actuator_direct_cmd_hz;
+#endif
     g_control_frequency_hz = target;
 #if LLC_HARDWARE_PI_VALIDATED
     if (LLC_SetFrequencyHz(target) != 1U)
     {
         g_fast_fault_count++;
+    }
+#elif STAGE6_REAL_ACTUATOR_OST_TEST
+    /* STAGE6_REAL_ACTUATOR_OST_TEST: first real PWM actuator validation under
+     * an OST lock. The PI/shadow command is written to the REAL ePWM time-base
+     * (LLC_SetFrequencyHz -> TBPRD/CMPA/CMPB) ONLY while all of:
+     *   - the one-shot trip (TZFLG.OST) is latched  -> outputs in safe TZ state
+     *   - the harness has armed the reference after confirming OST=1 and
+     *     AQCSFRC force-LOW (no effective PWM output)
+     *   - a trip has NOT revoked actuator permission
+     * LLC_HARDWARE_PI_VALIDATED stays 0 (independent gate). Any single
+     * condition false -> NO PWM write. */
+    if (g_stage6_actuator_test_arm != 0U &&
+        g_stage6_actuator_revoked == 0U &&
+        EPwm1Regs.TZFLG.bit.OST != 0U)
+    {
+        Uint32 t_ae = (Uint32)CpuTimer2Regs.TIM.all;
+        if (LLC_SetFrequencyHz(target) == 1U)
+        {
+            Uint32 t_ax = (Uint32)CpuTimer2Regs.TIM.all;
+            g_stage6_actuator_write_count++;
+            g_stage6_actuator_cycles_last = t_ae - t_ax;
+            if (g_stage6_actuator_cycles_last > g_stage6_actuator_cycles_max)
+                g_stage6_actuator_cycles_max = g_stage6_actuator_cycles_last;
+            g_stage6_actuator_cycles_sum += g_stage6_actuator_cycles_last;
+            g_stage6_actuator_cycles_count++;
+        }
     }
 #else
     /* Stage6 offline: write-gate locked (LLC_HARDWARE_PI_VALIDATED = 0).

@@ -150,6 +150,7 @@ void SoftStart_StartPwmFormal(void)
     }
     PWM_StartDeterministic();
 
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     if (g_softstart_no_energy != 0U)
     {
         /* No-energy ramp: PWM_StartDeterministic clears OST and releases the
@@ -157,13 +158,14 @@ void SoftStart_StartPwmFormal(void)
          * re-latch the TZ one-shot trip and force the outputs low — the ePWM
          * time-base and EPWM1 INT keep running so the ramp and the closed-loop
          * handoff are fully exercised in software with NO effective PWM output.
-         * Production (no_energy == 0) never takes this path. */
+         * This is test-build-only; production keeps the real-power OST release. */
         EALLOW;
         EPwm1Regs.TZFRC.bit.OST = 1U;   /* force OST trip -> OST stays latched */
         EPwm1Regs.AQCSFRC.bit.CSFA = AQ_CLEAR;
         EPwm1Regs.AQCSFRC.bit.CSFB = AQ_CLEAR;
         EDIS;
     }
+#endif
 
     EALLOW;
     EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
@@ -291,8 +293,10 @@ void SoftStart_FastUpdate(void)
             g_softstart_last_vout_max = g_adc_vout_pwm_sync_raw;
     }
 
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     /* No-energy software simulation: synthetic VOUT that follows the ramp and
-     * crosses the acceptance target only in the FINAL stage. */
+     * crosses the acceptance target only in the FINAL stage. Test-build only;
+     * production reads the real ADC. */
     if (g_softstart_no_energy != 0U)
     {
         /* PFM window keeps the FINAL-stage simulated VOUT (no real energy).
@@ -306,8 +310,13 @@ void SoftStart_FastUpdate(void)
         g_softstart_last_vout_raw = sim;
         if (sim > g_softstart_last_vout_max) g_softstart_last_vout_max = sim;
     }
+#endif
 
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     if (fresh != 0U || g_softstart_no_energy != 0U)
+#else
+    if (fresh != 0U)
+#endif
     {
 
         /* In the PFM window the window case owns the ceiling check and the
@@ -734,6 +743,7 @@ Uint16 SoftStart_TransferToClosedLoop(void)
     g_stage6_run_entry_count++;
     g_system_state = SYS_STATE_RUN;
     g_pwm_enabled = 1U;   /* PWM already running deterministic (gated by HW) */
+    g_pwm_fastpath_ready = 1U;   /* topology validated by the formal ramp: skip per-tick re-validation */
     g_stage6_transfer_request = 1U;
     return 1U;
 }

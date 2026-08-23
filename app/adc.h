@@ -13,6 +13,7 @@ void ADC_SetSoftwareTriggerMode(void);
 void ADC_SetPwmSyncTriggerMode(void);
 void ADC_SetClosedLoopSyncTriggerMode(void);
 void ADC_UpdatePwmSyncPoint(Uint16 period);
+void ADC_UpdatePwmSyncPointKeepCadence(Uint16 period);
 void ADC_SoftwareTrigger(void);
 void ADC_CheckOverflow(void);
 

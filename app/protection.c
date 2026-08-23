@@ -147,9 +147,12 @@ __interrupt void EPWM1_TZINT_ISR(void)
     /* No-energy benchmark: there is no real power, so a real comparator/TZ1
      * trip is environmental noise (floating comparator on the open bench),
      * not a hardware fault. Count it and leave OST latched (outputs stay
-     * clamped) but DO NOT fault the software sim. Production (no_energy == 0)
-     * never takes this path. */
-    if (g_softstart_no_energy != 0U)
+     * clamped) but DO NOT fault the software sim. This path exists ONLY in the
+     * no-energy test build and is inactive while the real actuator is armed.
+     * The production build has NO such bypass: every real TZ1 event becomes
+     * FAULT_COMP_TZ1 / SYS_STATE_FAULT / PWM inhibited. */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_softstart_no_energy != 0U && g_stage6_actuator_test_arm == 0U)
     {
         g_tz_noenergy_trip_count++;
         g_tz_hardware_trip_count++;
@@ -157,6 +160,7 @@ __interrupt void EPWM1_TZINT_ISR(void)
         PieCtrlRegs.PIEACK.all = PIEACK_GROUP2;
         return;
     }
+#endif
 
     /*
      * Real hardware TZ1 event. Classify by power-window state:
@@ -187,6 +191,13 @@ __interrupt void EPWM1_TZINT_ISR(void)
     g_system_state = SYS_STATE_FAULT;
     g_pwm_enabled = 0U;
     g_pwm_enable_result = 0U;
+#if STAGE6_REAL_ACTUATOR_OST_TEST
+    /* Real actuator under OST: a real trip revokes actuator write permission
+     * immediately and irreversibly until the harness resets it. The write gate
+     * (CTRL_ApplyFrequencyCommand) then refuses to touch PWM. */
+    g_stage6_actuator_test_arm = 0U;
+    g_stage6_actuator_revoked = 1U;
+#endif
 
     /* Single/multi-cycle probe abort hooks */
     SINGLECYCLE_AbortByFault();
@@ -492,8 +503,17 @@ void PROT_SlowTask(void)
     }
     else if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
     {
+        Uint32 max_h = LLC_HARD_MAX_HZ;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+        /* No-energy test build: the real-actuator cadence tests sweep the
+         * 120-180 kHz diagnostic envelope. The diagnostic frequency override
+         * already lets LLC_SetFrequencyHz reach LLC_DIAG_MAX_HZ, so the slow
+         * task frequency gate mirrors that here. Production keeps the formal
+         * LLC_HARD_MAX_HZ (150 kHz) ceiling. */
+        if (g_diag_frequency_override != 0U) max_h = LLC_DIAG_MAX_HZ;
+#endif
         if (g_switching_frequency_hz < g_power_run_min_frequency_hz ||
-            g_switching_frequency_hz > LLC_HARD_MAX_HZ)
+            g_switching_frequency_hz > max_h)
         {
             PROT_RequestFault(FAULT_ILLEGAL_FREQUENCY, 0U);
             return;
@@ -503,11 +523,15 @@ void PROT_SlowTask(void)
     }
 
     /* Calibration / control-direction gates. These are REAL-POWER physical
-     * gates; in the no-energy software simulation (g_softstart_no_energy != 0)
-     * there is no real power, so they are bypassed so the formal ramp + closed
-     * loop handoff can be exercised end-to-end on the safe bench. Production
-     * (g_softstart_no_energy == 0) keeps every gate. */
+     * gates; the no-energy software simulation bypasses them because it has no
+     * real power. That bypass exists ONLY in the no-energy test build. The
+     * production build keeps every gate unconditionally (no runtime
+     * g_softstart_no_energy protection path). */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     if (g_pwm_enabled != 0U && g_softstart_no_energy == 0U)
+#else
+    if (g_pwm_enabled != 0U)
+#endif
     {
     if (g_bringup_stage >= BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
         g_comp_tz_loopback_verified == 0U)

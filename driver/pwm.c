@@ -13,6 +13,7 @@
 #include "llc_config.h"
 #include "llc_globals.h"
 #include "pwm.h"
+#include "adc.h"
 
 /*
  * PWM_Init
@@ -192,11 +193,31 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
         if (g_diag_frequency_override == 0U || hz > LLC_DIAG_MAX_HZ) return 0U;
     }
 
-    /* Correction #3: never auto-adapt to a changed PWM mode. */
-    if (PWM_ConfigMatchesFrozenBaseline() == 0U)
+    /* Correction #3: never auto-adapt to a changed PWM mode. The topology
+     * (count mode, clock div, dead-band, AQ, TZ) is validated at enable /
+     * handoff and is fixed during RUN. Once g_pwm_fastpath_ready is set the
+     * per-tick re-validation is skipped (the closed-loop writes every 20 us and
+     * the redundant register re-read dominates the actuator cost). The caller
+     * set fastpath_ready only after a full validation succeeded. */
+    if (g_pwm_fastpath_ready == 0U &&
+        PWM_ConfigMatchesFrozenBaseline() == 0U)
     {
         PWM_Trip(FAULT_PWM_CONFIG_MISMATCH, 0U);
         return 0U;
+    }
+
+    /*
+     * Closed-loop fast path: the Q12 PI steps the command by at most 100 Hz per
+     * 20 us tick, so the frequency is very often unchanged between ticks. When
+     * the commanded frequency is identical to the last applied one, the period
+     * (and TBPRD/CMPA/CMPB) is already correct and the expensive period divide
+     * + write is skipped. This is what lets the real actuator fit the 20 us
+     * budget. The first call after any frequency change still recomputes.
+     */
+    if (hz == g_switching_frequency_hz && g_pwm_period != 0U)
+    {
+        g_switching_frequency_hz = hz;
+        return 1U;
     }
 
     /*
@@ -216,16 +237,26 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
     if (cmp <= LLC_DEADBAND_TICKS + LLC_MIN_PULSE_TICKS) return 0U;
     if ((period - cmp) <= LLC_DEADBAND_TICKS + LLC_MIN_PULSE_TICKS) return 0U;
 
-    DINT;
+    if (period != (Uint32)g_pwm_period)
+    {
+        DINT;
 
-    EPwm1Regs.TBPRD = (Uint16)period;
-    EPwm1Regs.CMPA.half.CMPA = (Uint16)cmp;
+        EPwm1Regs.TBPRD = (Uint16)period;
+        EPwm1Regs.CMPA.half.CMPA = (Uint16)cmp;
 
-    EINT;
+        EINT;
+
+        /* Keep the ADC VOUT sampling phase correct as the switching period
+         * moves: re-position CMPB to the new period midpoint while preserving
+         * the current SOCAPRD cadence (ET_3RD in closed loop). Only when the
+         * period actually changes (the closed-loop steps are small, so the
+         * period is often unchanged and the write/CMPB cost is skipped). */
+        ADC_UpdatePwmSyncPointKeepCadence((Uint16)period);
+        g_actual_switching_frequency_hz = LLC_TBCLK_HZ / (period + 1UL);
+    }
 
     g_pwm_period = (Uint16)period;
     g_switching_frequency_hz = hz;
-    g_actual_switching_frequency_hz = LLC_TBCLK_HZ / (period + 1UL);
     ok = 1U;
     return ok;
 }
@@ -422,6 +453,13 @@ void PWM_Trip(Uint16 cause, Uint16 countTrip)
     g_system_state = SYS_STATE_FAULT;
     g_pwm_enabled = 0U;
     g_pwm_enable_result = 0U;
+#if STAGE6_REAL_ACTUATOR_OST_TEST
+    /* STAGE6_REAL_ACTUATOR_OST_TEST: any trip revokes the real actuator's PWM
+     * write permission irreversibly (test_arm cleared + revoked latched). The
+     * CTRL_ApplyFrequencyCommand write gate then refuses to touch PWM. */
+    g_stage6_actuator_test_arm = 0U;
+    g_stage6_actuator_revoked = 1U;
+#endif
 }
 
 /*

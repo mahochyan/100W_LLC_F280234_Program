@@ -17,7 +17,7 @@ mkdir "%BUILD%"
 echo === CGT 25.11.1.LTS clean Stage6_FLASH_NOENERGY compile (COFF, NOENERGY) ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
   -DSTAGE6_FLASH_BUILD=1 ^
-  -DSTAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1 ^
+  -DSTAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1 -DSTAGE6_REAL_ACTUATOR_OST_TEST=1 ^
   -I"%PROJ%" -I"%PROJ%\app" -I"%PROJ%\driver" -I"%PROJ%\device" -I"%PROJ%\device\include" -I"%PROJ%\IQmath\c28\include" ^
   -c ^
   "%PROJ%\main.c" ^
@@ -55,7 +55,7 @@ if errorlevel 1 exit /b 1
 echo === compile soft_start.c (-O2, size) ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O2 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
   -DSTAGE6_FLASH_BUILD=1 ^
-  -DSTAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1 ^
+  -DSTAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1 -DSTAGE6_REAL_ACTUATOR_OST_TEST=1 ^
   -I"%PROJ%" -I"%PROJ%\app" -I"%PROJ%\driver" -I"%PROJ%\device" -I"%PROJ%\device\include" -I"%PROJ%\IQmath\c28\include" ^
   -c "%PROJ%\app\soft_start.c" --obj_directory="%BUILD%" || exit /b 1
 
@@ -96,3 +96,4 @@ if errorlevel 1 exit /b 1
 
 echo === BUILD OK (Stage6_FLASH_NOENERGY, CGT 25.11.1.LTS, COFF, NOENERGY) ===
 endlocal
+

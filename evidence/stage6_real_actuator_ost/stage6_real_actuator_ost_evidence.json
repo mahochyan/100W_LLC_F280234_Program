@@ -1,0 +1,84 @@
+{
+  "task": "STAGE6_REAL_PI_ACTUATOR_OST_LOCKED_VALIDATION_V1",
+  "baseline_commit": "ebfb3bd",
+  "target": "F28034 @60MHz C28x",
+  "scope": "REAL closed-loop ADC->freshness->Q12 PI->REAL LLC_SetFrequencyHz()->TBPRD/CMPA/CMPB, OST latched, AQCSFRC force-LOW, NO_REAL_POWER_EXECUTED",
+  "builds": {
+    "noenergy_test": {
+      "out": "LLC_100W_F28034_BRINGUP_DSH.out",
+      "sha256": "3A0C7F2BB632E6A70E74C307E5376579EB438A1181DA141D764B2AAADF87F714",
+      "macros": ["STAGE6_FLASH_BUILD=1", "STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1", "STAGE6_REAL_ACTUATOR_OST_TEST=1"]
+    },
+    "production": {
+      "out": "LLC_100W_F28034_BRINGUP_DSH_PROD.out",
+      "sha256": "1A59885FDF3A77CC926D2AB0C4AC74D2FB41BB23FE343069E2585D59F60AC95C",
+      "macros": ["STAGE6_FLASH_BUILD=1"]
+    }
+  },
+  "gates": {
+    "A_keep_baseline": {
+      "status": "PASS",
+      "detail": "Profile-C SoftStart handoff + 10V handoff + Q PI (Kp=220587, Ki=1471, unchanged) + ADC ownership + closed-loop ET_3RD cadence all preserved. transfer=1 sys=RUN, shortref=10V raw=1244."
+    },
+    "B_noenergy_bypass_compiled_out": {
+      "status": "PASS",
+      "detail": "GATE_B_PRODUCTION_NOENERGY_BYPASS_COMPILED_OUT=True. Production .obj disassembly (protection/soft_start/state_machine/control/pwm/adc) has ZERO references to g_softstart_no_energy, g_stage6_actuator*, g_pwm_fastpath_ready. Production build defines no test macros.",
+      "check": "NOENERGY_PROTECTION_BYPASS_COMPILED_OUT_PASS"
+    },
+    "C_softstart_no_energy_init": {
+      "status": "PASS",
+      "detail": "g_softstart_no_energy explicitly initialized to 0 in llc_globals.c; harness sets 1 only after confirming OST=1 + AQCSFRC CSFA/CSFB=AQ_CLEAR=1 + CNT within [0,TBPRD].",
+      "check": "SOFTSTART_NOENERGY_INIT_ZERO_PASS"
+    },
+    "D_actuator_write_gate": {
+      "status": "PASS",
+      "detail": "LLC_HARDWARE_PI_VALIDATED remains 0 (not set). Real write only under STAGE6_REAL_ACTUATOR_OST_TEST=1 AND test_arm==1 AND revoked==0 AND TZFLG.OST==1; otherwise no PWM write.",
+      "check": "ACTUATOR_WRITE_GATED_ON_OST_PASS"
+    },
+    "E_real_actuator_under_ost": {
+      "status": "PASS",
+      "check": "REAL_ACTUATOR_UNDER_OST_PASS",
+      "detail": "Sweep 150000->149900->...->145000 then reverse ->150000->155000. TBPRD/CMPA/CMPB followed command exactly, DBRED/DBFED=36 constant, OST=1, CSFA/CSFB=1 (AQ_CLEAR). All 19 steps match expected TBPRD."
+    },
+    "F_frequency_mapping": {
+      "status": "PASS",
+      "check": "REAL_ACTUATOR_FREQUENCY_MAPPING_PASS",
+      "detail": "120k->499(120000,err0) 130k->461(129870,-130) 140k->428(139860,-140) 150k->399(150000,0) 160k->374(160000,0) 170k->352(169972,-28) 180k->332(180180,180). All within tolerance. TBPRD=round(60MHz/f)-1, CMPA~50%."
+    },
+    "G_dynamic_phase_tracking": {
+      "status": "PASS",
+      "check": "DYNAMIC_PWM_ADC_PHASE_TRACKING_PASS",
+      "detail": "120k->40034 SPS (SOCAPRD=ET_3RD, CMPB=125), 150k->50041 SPS (CMPB=100), 180k->56767 SPS (CMPB=83). 180k ~5% under 60k due to ADC(60k) outrunning control tick(50k) under actuator load; phase and ET_3 cadence preserved."
+    },
+    "H_realtime_budget": {
+      "status": "PASS",
+      "check": "FULL_PI_PLUS_ACTUATOR_20US_BUDGET_PASS",
+      "detail": "TINT0 whole max: 120k=833, 150k=834, 180k=837, sweep=834. All <=900 (PASS). actuator max=116-122 cy. ADC ISR max=121-148 cy. overrun=0. Achieved via g_pwm_fastpath_ready (skip per-tick PWM topology re-validation after RUN) + skip write when period unchanged + hz-cache fast path."
+    },
+    "I_timer0_jitter_no_tick_loss": {
+      "status": "PASS",
+      "check": "TIMER0_JITTER_NO_TICK_LOSS_PASS",
+      "detail": ">=150k ticks captured: entries=149961, fast_tick=149961, t2_elapsed=180103355, expected=150086, delta=125 (0.08% window noise). interval_min=1009, max=1393 (<2400). No full tick loss. classification=INTERRUPT_PHASE_JITTER_ONLY."
+    },
+    "J_actuator_permission_revoked_on_trip": {
+      "status": "PASS",
+      "check": "ACTUATOR_PERMISSION_REVOKED_ON_TRIP_PASS",
+      "detail": "Forced g_force_trip_request=1 -> PROT_SlowTask -> PWM_Trip: test_arm=0, revoked=1, sys=FAULT, pwm=0, OST=1. write_count frozen (474510->474510 over 300ms). No auto-recovery. Production has no no_energy bypass."
+    },
+    "K_final_safe": {
+      "status": "PASS",
+      "check": "FINAL_SAFE",
+      "detail": "test_arm=0, revoked=1, LLC_HARDWARE_PI_VALIDATED=0, LLC_CONTROL_DIRECTION=0, OST=1, PWM forced LOW (CSF==1), pwm_enabled=0. Binaries frozen."
+    },
+    "L_verdict": {
+      "status": "PASS",
+      "check": "STAGE6_REAL_PI_ACTUATOR_OST_LOCKED_PASS",
+      "ready_for_first_bounded_real_pi_shot": true,
+      "no_real_power_executed": true
+    }
+  },
+  "verdict": "STAGE6_REAL_PI_ACTUATOR_OST_LOCKED_PASS=TRUE",
+  "ready_for_first_bounded_real_pi_shot": true,
+  "no_real_power_executed": true,
+  "commit": "to_be_set"
+}

@@ -138,6 +138,36 @@ void ADC_UpdatePwmSyncPoint(Uint16 period)
     g_adc_pwm_sync_edge_distance = (Uint16)(cmpa - sample_cmpb);
 }
 
+/*
+ * ADC_UpdatePwmSyncPointKeepCadence
+ *
+ * Like ADC_UpdatePwmSyncPoint but preserves the current SOCAPRD cadence
+ * (e.g. ET_3RD in closed loop). Re-positions the CMPB VOUT sampling point to
+ * the midpoint of the new switching period WITHOUT resetting the sampling
+ * cadence to every-period (ET_1ST). Used by the real LLC actuator so that a
+ * dynamic frequency change keeps both the ADC phase (CMPB) and the cadence
+ * (ET_3RD) correct.
+ */
+void ADC_UpdatePwmSyncPointKeepCadence(Uint16 period)
+{
+    Uint16 cmpa;
+    Uint16 sample_cmpb;
+
+    cmpa = (Uint16)((period + 1U) / 2U);
+    sample_cmpb = (Uint16)(cmpa / 2U);
+
+    EALLOW;
+    EPwm1Regs.CMPB = sample_cmpb;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTRU_CMPB;
+    EPwm1Regs.ETCLR.bit.SOCA = 1U;
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1U;
+    EDIS;
+
+    g_adc_pwm_sync_cmpb = sample_cmpb;
+    g_adc_pwm_sync_cmpa = cmpa;
+    g_adc_pwm_sync_edge_distance = (Uint16)(cmpa - sample_cmpb);
+}
+
 void ADC_CheckOverflow(void)
 {
     EALLOW;

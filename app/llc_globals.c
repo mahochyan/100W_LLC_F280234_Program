@@ -44,6 +44,7 @@ volatile Uint16 g_trip_count ;
 volatile Uint16 g_fast_fault_count ;
 volatile Uint16 g_fault_reset_request ;
 volatile Uint16 g_force_trip_request ;
+volatile Uint16 g_pwm_fastpath_ready = 0U;   /* closed-loop: skip per-tick PWM topology re-validation */
 
 /* Control */
 volatile Uint32 g_softstart_frequency_hz ;
@@ -132,6 +133,15 @@ volatile Uint16 g_stage6_first_pi_sample_raw  = 0U;
 volatile Uint32 g_stage6_first_pi_freq_hz     = 0UL;
 volatile Uint16 g_stage6_first_pi_observed    = 0U;
 volatile Uint32 g_stage6_cadence_test_freq  = 0UL;   /* test time-base config (applied once) */
+/* STAGE6_REAL_ACTUATOR_OST_TEST - real PWM actuator write gate (test build). */
+volatile Uint16 g_stage6_actuator_test_arm   = 0U;   /* harness arms only after OST=1 + AQCSFRC LOW */
+volatile Uint16 g_stage6_actuator_revoked    = 0U;   /* set on trip: actuator write permission lost */
+volatile Uint32 g_stage6_actuator_write_count = 0UL;   /* wraps, count of real LLC_SetFrequencyHz calls */
+volatile Uint32 g_stage6_actuator_direct_cmd_hz = 0UL; /* test override command (0 = PI shadow) */
+volatile Uint32 g_stage6_actuator_cycles_last = 0UL;
+volatile Uint32 g_stage6_actuator_cycles_max  = 0UL;
+volatile Uint32 g_stage6_actuator_cycles_sum  = 0UL;
+volatile Uint32 g_stage6_actuator_cycles_count = 0UL;
 #endif
 
 /* Tutorial SoftStart Engine */
@@ -423,7 +433,7 @@ volatile Uint32 g_softstart_eoc_count;
 volatile Uint32 g_softstart_miss_count;
 volatile Uint16 g_softstart_consecutive_miss;
 volatile Uint16 g_softstart_stale_abort;
-volatile Uint16 g_softstart_no_energy;
+volatile Uint16 g_softstart_no_energy = 0U;
 volatile Uint16 g_softstart_ramp_active;
 
 /* STAGE5A PFM direction test window */
@@ -584,6 +594,11 @@ volatile Uint32 g_adc_ovf_count ;
 volatile Uint16 g_adc_ovf_first_tbctr ;
 volatile Uint16 g_adc_ovf_first_flag_was_set ;
 volatile Uint16 g_adc_isr_last_tbctr ;
+
+
+
+
+
 
 
 

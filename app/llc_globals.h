@@ -46,6 +46,7 @@ extern volatile Uint16 g_trip_count;
 extern volatile Uint16 g_fast_fault_count;
 extern volatile Uint16 g_fault_reset_request;
 extern volatile Uint16 g_force_trip_request;
+extern volatile Uint16 g_pwm_fastpath_ready;
 
 /* Control */
 extern volatile Uint32 g_softstart_frequency_hz;
@@ -128,6 +129,14 @@ extern volatile Uint16 g_stage6_first_pi_sample_raw;
 extern volatile Uint32 g_stage6_first_pi_freq_hz;
 extern volatile Uint16 g_stage6_first_pi_observed;
 extern volatile Uint32 g_stage6_cadence_test_freq;
+extern volatile Uint16 g_stage6_actuator_test_arm;
+extern volatile Uint16 g_stage6_actuator_revoked;
+extern volatile Uint32 g_stage6_actuator_write_count;
+extern volatile Uint32 g_stage6_actuator_direct_cmd_hz;
+extern volatile Uint32 g_stage6_actuator_cycles_last;
+extern volatile Uint32 g_stage6_actuator_cycles_max;
+extern volatile Uint32 g_stage6_actuator_cycles_sum;
+extern volatile Uint32 g_stage6_actuator_cycles_count;
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;
@@ -647,6 +656,10 @@ extern volatile Uint16 g_adc_ovf_first_flag_was_set;
 extern volatile Uint16 g_adc_isr_last_tbctr;
 
 #endif /* APP_LLC_GLOBALS_H */
+
+
+
+
 
 
 
