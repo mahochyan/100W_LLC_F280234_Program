@@ -1,15 +1,41 @@
-// stage6_first_real_pi_shot_real_binary_timing_nopower.js  (V1-1)
+// stage6_first_real_pi_shot_real_binary_timing_nopower.js  (V1-2)
 // Gate K: whole TINT0_ISR budget re-test for the FIRST bounded real PI SHOT
 // REAL binary. NO POWER: CNT3/CNT4 OPEN, OST=1, PWM hardware-clamped low.
-//   <=900 PASS | 901..1080 MARGIN_LOW | >1080 FAIL | >=1200 ABS FAIL; overrun=0.
-// F: host SHA256 hard gate + DSH_CNT34_OPEN_CONFIRMED=1 before connect; after
-// loadProgram+run(300)+halt hard-gate fault=0, OST=1, PWM=0, then explicitly
-// force AQCSFRC low and verify read-back. Any gate failure exits immediately
-// WITHOUT writing any test run state. Clears all g_real_* accumulators
-// together, discards the first sample as warm-up, runs 2 ms, grades.
+//   <=900 PASS | 901..1080 MARGIN_LOW | >1080 FAIL; overrun=0.
+// V1-2 (STAGE6_REAL_BINARY_TIMING_HARNESS_FRESH_PATH_CLOSURE_V1):
+//   - after ALL safety hard gates (fault=0, OST=1, PWM=0, AQCSFRC force-low
+//     verified by read-back), manufactures EXACTLY ONCE a deterministic fresh
+//     control input:
+//       g_control_adc_sequence_last = 0
+//       g_adc_sample_sequence       = 1
+//       g_adc_vout_raw             = 1200
+//       g_adc_vout_filtered_raw     = 1200
+//       g_control_vref_raw         = 1244   (10 V board-calibrated raw)
+//       g_control_frequency_hz     = 150000
+//       g_control_shadow_frequency_hz = 150000
+//       g_switching_frequency_hz   = 150000
+//       g_pwm_period               = 399
+//     First control tick: sample_valid=1, error_raw = 1244-1200 = 44 != 0,
+//     PI update happens, frequency command moves away from 150000, so
+//     LLC_SetFrequencyHz takes the FULL non-same-frequency path (period
+//     recompute + TBPRD/CMPA write + ADC sync), power_writes++, and the ring
+//     buffer records fresh_sample=1. Later samples may be stale;
+//     g_real_isr_cycles_max must capture this first worst fresh tick.
+//   - result hard gates: fresh_sample_count delta>=1, pi_update_count
+//     delta>=1, power_writes>0, ring first entry fresh_sample==1, frequency
+//     command != 150000, shot COMPLETE/TIMEOUT/tick==10, PWM=0, OST=1,
+//     fault=0, g_real_isr_cycles_max<=900, overrun==0. Any failure ->
+//     TIMING_NOPOWER_FAIL (no real power).
+//   - run(20) = 20 ms (NOT 2 s): the test state starts directly in RUN with
+//     the shot armed; the 200 us cage ends after ~0.22 ms (11 x 20 us ticks)
+//     with on-chip OST=1 / PWM=0 / sys=IDLE; the remaining time observes idle
+//     ticks. The first fresh control tick (worst case) is captured in the
+//     first 20 us. (The previous run(2000) was 2 SECONDS, not 2 ms.)
+// These RAM writes exist ONLY in this no-power timing script (CNT3/CNT4 OPEN,
+// OST latched, AQCSFRC force-low). NO synthetic injection in REAL firmware.
 // Forbidden: auto-clear fault, clear OST, any TZCLR.OST, any real enable
-// request, any power shot. This script is NOT to be executed while CNT3/CNT4
-// remain open (DSH_CNT34_OPEN_CONFIRMED=1 is the human gate).
+// request, any power shot. NOT to be executed while CNT3/CNT4 remain open
+// (DSH_CNT34_OPEN_CONFIRMED=1 is the human gate).
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
@@ -92,18 +118,35 @@ gate("AQCSFRC_FORCE_LOW", cfa==="1" && cfb==="1");
 // ---- safe no-power RAM test state (CNT3/CNT4 OPEN, OST=1, AQCSFRC low) ----
 wv("g_system_state",3);            // SYS_STATE_RUN
 wv("g_pwm_enabled",1);             // PWM logically enabled (hardware clamped low)
-wv("g_bringup_stage",7);           // BRINGUP_STAGE_6_CLOSED_LOOP
+wv("g_bringup_stage",7);           // BRINGUP_STAGE_6_CLOSED_LOOP == 7, BRINGUP_STAGE_7_POWER_RUN == 8
 wv("g_control_reference_valid",1);
 wv32("g_voltage_reference",0x41200000);   // 10.0f IEEE-754 bits
-wv("g_control_vref_raw",1244);            // 10 V board-calibrated raw
 wv("g_first_real_pi_shot_arm",1);
 wv("g_softstart_handoff_result",1);       // HANDOFF_RESULT_OK
 wv("g_board_vout_cal_valid",1);
 wv("g_comp_tz_loopback_verified",1);
 wv32("g_power_run_min_frequency_hz",150000);
-wv32("g_switching_frequency_hz",150000);  // keep slow-task freq gate quiet
 
-// ---- clear all g_real_* accumulators together (warm-up discard) ----
+// ---- B: manufacture the deterministic fresh control input EXACTLY ONCE ----
+// (only here, after all safety hard gates: CNT3/CNT4 OPEN, OST latched,
+//  AQCSFRC force-low; no synthetic injection in REAL firmware)
+wv32("g_control_adc_sequence_last",0);        // force first control tick FRESH
+wv32("g_adc_sample_sequence",1);              // new sample sequence (ADC ISR advances it)
+wv("g_adc_vout_raw",1200);                    // VOUT raw != Vref raw -> error_raw != 0
+wv("g_adc_vout_filtered_raw",1200);
+wv("g_control_vref_raw",1244);                // 10 V board-calibrated raw
+wv32("g_control_frequency_hz",150000);        // committed command == switching freq
+wv32("g_control_shadow_frequency_hz",150000); // PI shadow base
+wv32("g_switching_frequency_hz",150000);     // keep slow-task freq gate quiet
+wv("g_pwm_period",399);                       // 150 kHz baseline period
+
+// ---- pre-run counters (delta semantics) ----
+var fresh0=rv32("g_control_fresh_sample_count");
+var pi0=rv32("g_control_pi_update_count");
+var pw0=rw("g_first_real_pi_shot_power_writes");
+print("pre-run fresh_count="+fresh0+" pi_update_count="+pi0+" power_writes="+pw0);
+
+// ---- clear all g_real_* accumulators together (measurement window) ----
 wv32("g_real_isr_cycles_max",0);
 wv32("g_real_isr_cycles_sum",0);
 wv32("g_real_isr_cycles_count",0);
@@ -113,16 +156,73 @@ wv32("g_real_timer0_last_entry",0);
 wv32("g_real_timer0_entry_interval_min",0xFFFFFFFF);
 wv32("g_real_timer0_entry_interval_max",0);
 
-run(2000);   // ~100000 fast ticks, shot ACTIVE, whole-ISR observation
+// run(20) = 20 ms (NOT 2 s): state starts directly in RUN with the shot armed;
+// the 200 us cage ends after ~0.22 ms (11 x 20 us ticks) with on-chip
+// OST=1/PWM=0/IDLE; the remaining time observes idle ticks. The first fresh
+// control tick (worst case: full LLC_SetFrequencyHz path) is captured in the
+// first 20 us.
+run(20);
 
+// ---- C: result hard gates (any failure -> TIMING_NOPOWER_FAIL) ----
 var max=rv32("g_real_isr_cycles_max");
 var ovf=rv32("g_real_isr_overrun_count");
 var tmax=rv32("g_real_timer0_entry_interval_max");
 var tmin=rv32("g_real_timer0_entry_interval_min");
 var count=rv32("g_real_isr_cycles_count");
 var ecnt=rv32("g_real_timer0_entry_count");
+var fresh1=rv32("g_control_fresh_sample_count");
+var pi1=rv32("g_control_pi_update_count");
+var pw1=rw("g_first_real_pi_shot_power_writes");
+var fdelta=(fresh1-fresh0)>>>0;
+var pdelta=(pi1-pi0)>>>0;
+var pwdelta=(pw1-pw0)>>>0;
+var freq_cmd=rv32("g_control_frequency_hz");
+var st=rw("g_first_real_pi_shot_state");
+var ab=rw("g_first_real_pi_shot_abort");
+var tk=rw("g_first_real_pi_shot_tick");
+var pwm2=rw("g_pwm_enabled");
+var ost2=reg("EPwm1Regs.TZFLG.bit.OST");
+var fault2=rv32("g_fault_flags");
+var rbi=rw("g_first_real_pi_shot_rb_index");
+var rbc=rw("g_first_real_pi_shot_rb_count");
+var rstart=((rbi-rbc)%32+32)%32;
+var rbf=rw("g_first_real_pi_shot_rb["+rstart+"].fresh_sample");
 print("real_isr_max="+max+" overrun="+ovf+" entry_interval_max="+tmax+" min="+tmin+" count="+count+" entry_count="+ecnt);
-var grade = (max<=900)?"PASS":(max<=1080)?"MARGIN_LOW":"FAIL";
-print("REALTIME_REAL_BINARY_GRADE="+grade);
-if(ovf!==0){ print("REALTIME_REAL_BINARY_OVERRUN_FAIL"); }
+print("fresh_delta="+fdelta+" pi_delta="+pdelta+" power_writes="+pw1+" (delta "+pwdelta+")");
+print("freq_cmd="+freq_cmd+" shot_state="+st+" abort="+ab+" tick="+tk);
+print("post-run pwm="+pwm2+" ost="+ost2+" fault="+fault2+" rb_index="+rbi+" rb_count="+rbc+" rb_first_fresh="+rbf);
+
+try{
+  gate("FRESH_SAMPLE_DELTA", fdelta>=1);
+  gate("PI_UPDATE_DELTA", pdelta>=1);
+  gate("POWER_WRITES_POSITIVE", pw1>0);
+  gate("RING_FIRST_FRESH", rbf===1);
+  gate("FREQ_CMD_CHANGED", freq_cmd!==150000);
+  gate("SHOT_STATE_COMPLETE", st===3);
+  gate("SHOT_ABORT_TIMEOUT", ab===1);
+  gate("SHOT_TICK_10", tk===10);
+  gate("PWM_ZERO", pwm2===0);
+  gate("OST_LATCHED_END", ost2==="1");
+  gate("FAULT_ZERO_END", fault2===0);
+  gate("ISR_MAX_LE_900", max<=900);
+  gate("OVERRUN_ZERO", ovf===0);
+}catch(e){
+  print("TIMING_NOPOWER_FAIL");
+  throw e;
+}
+print("TIMING_NOPOWER_PASS");
+
+// ---- evidence: ring dump (read-only, after strict evaluation) ----
+for(var j=0;j<rbc && j<32;j++){
+  var i=(rstart+j)%32;
+  print("  rb["+i+"] tick="+rv32("g_first_real_pi_shot_rb["+i+"].tick")+
+        " fresh="+rw("g_first_real_pi_shot_rb["+i+"].fresh_sample")+
+        " freq_cmd="+rv32("g_first_real_pi_shot_rb["+i+"].freq_cmd_hz")+
+        " actual="+rv32("g_first_real_pi_shot_rb["+i+"].actual_freq_hz")+
+        " vout_raw="+rw("g_first_real_pi_shot_rb["+i+"].vout_raw")+
+        " err="+rw("g_first_real_pi_shot_rb["+i+"].error_raw")+
+        " tbprd="+rw("g_first_real_pi_shot_rb["+i+"].tbprd")+
+        " pi="+rv32("g_first_real_pi_shot_rb["+i+"].pi_integral_q12"));
+}
+print("REALTIME_REAL_BINARY_GRADE="+((max<=900)?"PASS":(max<=1080)?"MARGIN_LOW":"FAIL"));
 print("REALTIME_REAL_BINARY_DONE");

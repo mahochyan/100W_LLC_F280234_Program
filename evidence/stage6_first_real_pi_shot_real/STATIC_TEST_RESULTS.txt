@@ -1,4 +1,4 @@
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 / V1-2
 STATIC TEST RESULTS (clean-checkout capable)
 ==================================================
 
@@ -129,6 +129,24 @@ PASS: timing script symbol g_control_reference_valid exists in REAL MAP
 PASS: timing script symbol g_system_state exists in REAL MAP
 PASS: timing script symbol g_pwm_enabled exists in REAL MAP
 PASS: timing script symbol g_bringup_stage exists in REAL MAP
+PASS: timing script symbol g_control_adc_sequence_last exists in REAL MAP
+PASS: timing script symbol g_adc_sample_sequence exists in REAL MAP
+PASS: timing script symbol g_adc_vout_raw exists in REAL MAP
+PASS: timing script symbol g_adc_vout_filtered_raw exists in REAL MAP
+PASS: timing script symbol g_control_frequency_hz exists in REAL MAP
+PASS: timing script symbol g_control_shadow_frequency_hz exists in REAL MAP
+PASS: timing script symbol g_pwm_period exists in REAL MAP
+PASS: timing script symbol g_control_fresh_sample_count exists in REAL MAP
+PASS: timing script symbol g_control_pi_update_count exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_state exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_abort exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_tick exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_power_writes exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_rb_index exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_rb_count exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_rb exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_first_write_timer2 exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_ost_timer2 exists in REAL MAP
 PASS: timing script uses real symbol names (no g_control_reference_volts / g_real_timer0_interval_*)
 PASS: timing script gates on DSH_CNT34_OPEN_CONFIRMED=1
 PASS: timing script host SHA256 hard gate present
@@ -144,5 +162,31 @@ PASS: timing script uses BRINGUP_STAGE_6_CLOSED_LOOP (7)
 PASS: manifest records SOURCE_COMMIT and EVIDENCE_COMMIT separately
 PASS: manifest documents non-deterministic build (timestamp)
 PASS: .gitattributes marks frozen MAP as -text (no EOL normalization)
+PASS: timing script manufactures one fresh ADC sequence (seq_last=0, seq=1)
+PASS: timing script sets VOUT raw 1200 (differs from Vref raw 1244)
+PASS: timing script sets Vref raw 1244 -> VOUT raw != Vref raw -> error_raw != 0
+PASS: timing script starts freq cmd == switching freq == 150000 (first PI write takes the full non-same-frequency actuator path)
+PASS: timing script constructs the fresh control input exactly once
+PASS: timing result hard gate FRESH_SAMPLE_DELTA present
+PASS: timing result hard gate PI_UPDATE_DELTA present
+PASS: timing result hard gate POWER_WRITES_POSITIVE present
+PASS: timing result hard gate RING_FIRST_FRESH present
+PASS: timing result hard gate FREQ_CMD_CHANGED present
+PASS: timing result hard gate SHOT_STATE_COMPLETE present
+PASS: timing result hard gate SHOT_ABORT_TIMEOUT present
+PASS: timing result hard gate SHOT_TICK_10 present
+PASS: timing result hard gate PWM_ZERO present
+PASS: timing result hard gate OST_LATCHED_END present
+PASS: timing result hard gate FAULT_ZERO_END present
+PASS: timing result hard gate ISR_MAX_LE_900 present
+PASS: timing result hard gate OVERRUN_ZERO present
+PASS: timing script prints TIMING_NOPOWER_FAIL on any gate failure
+PASS: timing script runs 20 ms (not 2 s) from direct RUN state
+PASS: timing script comments clarify Stage6 == 7 / Stage7 == 8
+PASS: REAL script waits >= 25 ms for worst-case termination (no reads)
+PASS: REAL strict PASS checks handoff_result==OK and softstart_result==COMPLETE
+PASS: REAL strict PASS checks shot_tick==10, ring_count==11, power_writes==11
+PASS: REAL strict PASS checks Timer2 delta 11000..14000 cycles (~200 us)
+PASS: REAL script comments clarify Stage6 == 7 / Stage7 == 8
 
 ALL STAGE6 REAL BINARY HARDENING STATIC CHECKS PASSED

@@ -270,6 +270,16 @@ timing_syms = [
     "g_board_vout_cal_valid", "g_comp_tz_loopback_verified",
     "g_first_real_pi_shot_arm", "g_control_reference_valid",
     "g_system_state", "g_pwm_enabled", "g_bringup_stage",
+    # V1-2 fresh-path closure symbols
+    "g_control_adc_sequence_last", "g_adc_sample_sequence",
+    "g_adc_vout_raw", "g_adc_vout_filtered_raw",
+    "g_control_frequency_hz", "g_control_shadow_frequency_hz",
+    "g_pwm_period", "g_control_fresh_sample_count", "g_control_pi_update_count",
+    "g_first_real_pi_shot_state", "g_first_real_pi_shot_abort",
+    "g_first_real_pi_shot_tick", "g_first_real_pi_shot_power_writes",
+    "g_first_real_pi_shot_rb_index", "g_first_real_pi_shot_rb_count",
+    "g_first_real_pi_shot_rb", "g_first_real_pi_shot_first_write_timer2",
+    "g_first_real_pi_shot_ost_timer2",
 ]
 if REAL_MAP.exists():
     for sym in timing_syms:
@@ -306,6 +316,53 @@ if (EVID / "REAL_BUILD_MANIFEST.txt").exists():
 ga = read_text(ROOT / ".gitattributes")
 check("evidence/stage6_first_real_pi_shot_real/*.map -text" in ga,
       ".gitattributes marks frozen MAP as -text (no EOL normalization)")
+
+# 21. FRESH_PI_TIMING_HARNESS_FRESH_PATH_CLOSURE_V1 (V1-2)
+real_script = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real.js")
+# B: timing script manufactures exactly one deterministic fresh sequence
+check('wv32("g_control_adc_sequence_last",0)' in timing and
+      'wv32("g_adc_sample_sequence",1)' in timing,
+      "timing script manufactures one fresh ADC sequence (seq_last=0, seq=1)")
+check('wv("g_adc_vout_raw",1200)' in timing and
+      'wv("g_adc_vout_filtered_raw",1200)' in timing,
+      "timing script sets VOUT raw 1200 (differs from Vref raw 1244)")
+check('wv("g_control_vref_raw",1244)' in timing,
+      "timing script sets Vref raw 1244 -> VOUT raw != Vref raw -> error_raw != 0")
+check('wv32("g_control_frequency_hz",150000)' in timing and
+      'wv32("g_control_shadow_frequency_hz",150000)' in timing and
+      'wv32("g_switching_frequency_hz",150000)' in timing and
+      'wv("g_pwm_period",399)' in timing,
+      "timing script starts freq cmd == switching freq == 150000 (first PI write takes the full non-same-frequency actuator path)")
+check(timing.count('wv32("g_control_adc_sequence_last",0)') == 1 and
+      timing.count('wv32("g_adc_sample_sequence",1)') == 1 and
+      timing.count('wv("g_adc_vout_raw",1200)') == 1 and
+      timing.count('wv("g_control_vref_raw",1244)') == 1,
+      "timing script constructs the fresh control input exactly once")
+# C: timing result hard gates
+for g in ["FRESH_SAMPLE_DELTA", "PI_UPDATE_DELTA", "POWER_WRITES_POSITIVE",
+          "RING_FIRST_FRESH", "FREQ_CMD_CHANGED", "SHOT_STATE_COMPLETE",
+          "SHOT_ABORT_TIMEOUT", "SHOT_TICK_10", "PWM_ZERO", "OST_LATCHED_END",
+          "FAULT_ZERO_END", "ISR_MAX_LE_900", "OVERRUN_ZERO"]:
+    check(f"gate(\"{g}\"" in timing, f"timing result hard gate {g} present")
+check("TIMING_NOPOWER_FAIL" in timing and "TIMING_NOPOWER_PASS" in timing,
+      "timing script prints TIMING_NOPOWER_FAIL on any gate failure")
+check("run(20)" in timing and "20 ms" in timing,
+      "timing script runs 20 ms (not 2 s) from direct RUN state")
+check("BRINGUP_STAGE_6_CLOSED_LOOP == 7" in timing and
+      "BRINGUP_STAGE_7_POWER_RUN == 8" in timing,
+      "timing script comments clarify Stage6 == 7 / Stage7 == 8")
+# D: REAL script 25 ms wait + strict gates
+check("sleep(25)" in real_script,
+      "REAL script waits >= 25 ms for worst-case termination (no reads)")
+check("hres===1" in real_script and "ssres===1" in real_script,
+      "REAL strict PASS checks handoff_result==OK and softstart_result==COMPLETE")
+check("tk===10" in real_script and "rbc===11" in real_script and "pw===11" in real_script,
+      "REAL strict PASS checks shot_tick==10, ring_count==11, power_writes==11")
+check("t2d>=11000" in real_script and "t2d<=14000" in real_script,
+      "REAL strict PASS checks Timer2 delta 11000..14000 cycles (~200 us)")
+check("BRINGUP_STAGE_6_CLOSED_LOOP == 7" in real_script and
+      "BRINGUP_STAGE_7_POWER_RUN == 8" in real_script,
+      "REAL script comments clarify Stage6 == 7 / Stage7 == 8")
 
 print()
 if failures:

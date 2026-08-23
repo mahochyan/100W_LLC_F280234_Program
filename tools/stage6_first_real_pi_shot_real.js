@@ -1,4 +1,4 @@
-// stage6_first_real_pi_shot_real.js  (V1-1)
+// stage6_first_real_pi_shot_real.js  (V1-2)
 // REQUEST-ONLY driver for the FIRST BOUNDED REAL PI SHOT (200 us).
 //   E1 host SHA256 hard gate (before connect) -> E2 human auth env gate ->
 //   connect -> load frozen REAL OUT -> E3 run APP_Init to completion, halt ->
@@ -6,8 +6,17 @@
 //   E5 Comparator loopback request, run, halt, verify PASS ->
 //   E6/E7 sequential stage confirm 1..6 (requests 1..7), each verified ->
 //   E8 final preflight re-verify all -> E9 shot arm + pwm enable request ->
-//   E10/E11 runAsynch, wait > worst-case termination, halt (NO reads between) ->
+//   E10/E11 runAsynch, wait 25 ms > worst-case termination, halt (NO reads) ->
 //   E13 black-box read once, strict PASS/FAIL. E14 power_writes read as Uint16.
+// V1-2 (STAGE6_REAL_BINARY_TIMING_HARNESS_FRESH_PATH_CLOSURE_V1):
+//   - host no-read wait raised 15 ms -> 25 ms: worst-case state-machine ticks
+//     include first 5 ms enable-request processing, next 5 ms SoftStart PWM
+//     start, ~3.5 ms Profile C trajectory, FINAL window, 200 us PI window.
+//   - strict PASS additionally requires softstart_handoff_result==OK,
+//     softstart_result==COMPLETE, shot_tick==10, ring_buffer_count==11,
+//     power_writes==11, and Timer2 delta (first_write_timer2 - ost_timer2)
+//     within 11000..14000 cycles (~200 us @ 60 MHz; final exact tolerance to
+//     be set from the no-power timing results).
 // NO runtime polling during the shot. NO writes to fault/system/stage/cal/comp/
 // synthetic/diag/PWM-register state. Any gate failure ABORTS (throws).
 // Requires DSH_CNT34_APPROVED=1 (human auth).
@@ -97,6 +106,7 @@ print("loopback diag result="+diag+" comp_verified="+comp2);
 gate("LOOPBACK_PASS", diag===1 && comp2===1);
 
 // ---- E6/E7: sequential stage confirm 1..6 (requests 1..7), each verified ----
+// BRINGUP_STAGE_6_CLOSED_LOOP == 7, BRINGUP_STAGE_7_POWER_RUN == 8
 for(var s=1;s<=7;s++){
   wv("g_stage_confirm_request",s);       // allowed request interface
   run(50);
@@ -118,7 +128,7 @@ gate("PREFLIGHT_FAULT_ZERO", fault===0);
 gate("PREFLIGHT_OST_LATCHED", ost==="1");
 gate("PREFLIGHT_VOUT_CAL", voutcal===1);
 gate("PREFLIGHT_COMP_VERIFIED", comp===1);
-gate("PREFLIGHT_STAGE6", stage===7);
+gate("PREFLIGHT_STAGE6", stage===7);   // BRINGUP_STAGE_6_CLOSED_LOOP == 7, BRINGUP_STAGE_7_POWER_RUN == 8
 gate("PREFLIGHT_ARM_CLEAR", arm===0);
 
 // ---- E9: shot pre-arm + formal enable request (request interface only) ----
@@ -127,10 +137,11 @@ wv("g_first_real_pi_shot_arm",1);        // pre-arm BEFORE formal enable (G1)
 wv("g_pwm_enable_request",1);            // formal enable request
 
 // ---- E10/E11: runAsynch, wait > worst-case termination, halt. NO reads. ----
-// Worst case: 5 ms enable-request latency + ~3.5 ms formal ramp + 0.2 ms shot
-// + termination = ~8.7 ms. 15 ms exceeds it with margin.
+// Worst case: 5 ms enable-request processing + 5 ms SoftStart PWM start tick
+// + ~3.5 ms formal Profile C ramp + FINAL window + 0.2 ms PI shot + on-chip
+// termination = ~12.2 ms. 25 ms exceeds it with margin (no reads during wait).
 session.target.runAsynch();
-java.lang.Thread.sleep(15);
+java.lang.Thread.sleep(25);
 session.target.halt();
 
 // ---- E13: black-box read once, strict PASS/FAIL ----
@@ -143,12 +154,16 @@ var ostt=rv32("g_first_real_pi_shot_ost_timer2");
 var sys2=rw("g_system_state"); var pwm2=rw("g_pwm_enabled"); var fault2=rv32("g_fault_flags");
 var ost2=reg("EPwm1Regs.TZFLG.bit.OST");
 var ssres=rw("g_softstart_result"); var hres=rw("g_softstart_handoff_result");
+var t2d=(fw-ostt)>>>0;   // Timer2 down-counter: first_write - ost = elapsed cycles
 print("shot state="+st+" tick="+tk+" abort="+ab+" ok="+okf+" rb="+rbc+" power_writes="+pw);
-print("first_write_timer2="+fw+" ost_timer2="+ostt);
+print("first_write_timer2="+fw+" ost_timer2="+ostt+" timer2_delta="+t2d+
+      " (expect 11000..14000 cycles, ~200 us @ 60 MHz)");
 print("post-shot sys="+sys2+" pwm="+pwm2+" fault="+fault2+" ost="+ost2+
       " softstart_result="+ssres+" handoff_result="+hres);
 var pass = (st===3 && okf===1 && ab===1 && pwm2===0 && ost2==="1" &&
-            fault2===0 && sys2===1 && pw>0);
+            fault2===0 && sys2===1 && hres===1 && ssres===1 &&
+            tk===10 && rbc===11 && pw===11 &&
+            t2d>=11000 && t2d<=14000);
 print(pass ? "REAL_SHOT_STRICT_PASS" : "REAL_SHOT_STRICT_FAIL");
 if(!pass){
   print("REAL_SHOT_RESULT_FAIL");
@@ -159,6 +174,7 @@ if(!pass){
 for(var j=0;j<rbc && j<32;j++){
   var i=j;
   print("  rb["+i+"] tick="+rv32("g_first_real_pi_shot_rb["+i+"].tick")+
+        " fresh="+rw("g_first_real_pi_shot_rb["+i+"].fresh_sample")+
         " freq_cmd="+rv32("g_first_real_pi_shot_rb["+i+"].freq_cmd_hz")+
         " actual="+rv32("g_first_real_pi_shot_rb["+i+"].actual_freq_hz")+
         " vout_raw="+rw("g_first_real_pi_shot_rb["+i+"].vout_raw")+

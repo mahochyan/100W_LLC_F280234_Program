@@ -1,4 +1,4 @@
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 / V1-2
 REAL SCRIPT WRITE AUDIT
 ==================================================
 Audit target: tools/stage6_first_real_pi_shot_real.js
@@ -42,6 +42,12 @@ Comparator loopback: request -> run -> halt -> verify g_loopback_diag_result==1
   && g_comp_tz_loopback_verified==1 (LOOPBACK_PASS)
 Stage confirm: sequential requests 1..7 (Stage1..Stage6), each verified
   (STAGE_CONFIRM_<n> gate on g_bringup_stage==n), fail -> ABORT
-Shot window: runAsynch -> sleep(15 ms) -> halt, NO reads/polling between
-Black box: read once, strict PASS/FAIL (state==COMPLETE, ok==1, abort==TIMEOUT,
-  pwm==0, ost==1, fault==0, sys==IDLE, power_writes>0 read as Uint16)
+Shot window: runAsynch -> sleep(25 ms) -> halt, NO reads/polling between
+  (V1-2: 15 ms -> 25 ms; worst case = 5 ms request processing + 5 ms SoftStart
+  PWM start + ~3.5 ms Profile C ramp + FINAL window + 0.2 ms PI + termination)
+Black box: read once, strict PASS/FAIL (V1-2):
+  state==COMPLETE, ok==1, abort==TIMEOUT, pwm==0, ost==1, fault==0, sys==IDLE,
+  softstart_handoff_result==OK, softstart_result==COMPLETE, shot_tick==10,
+  ring_buffer_count==11, power_writes==11 (read as Uint16),
+  timer2_delta = first_write_timer2 - ost_timer2 within 11000..14000 cycles
+  (~200 us @ 60 MHz; final exact tolerance from no-power timing results)

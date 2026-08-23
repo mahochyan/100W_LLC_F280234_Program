@@ -219,3 +219,74 @@ target and is NOT_VERIFIED (CNT34 unconfirmed).
 
 `Ns1:Np:Ns2 = 4:5:4`, `Np = 5T`, `Ns1 = 4T`, `Ns2 = 4T`, `Ns_half = 4T`,
 `n = Np/Ns_half = 5/4 = 1.25` — recorded as `ACTUAL_WINDING_RELATION`.
+
+
+## 15. V1-2 — Fresh PI timing harness closure
+
+Task: `STAGE6_REAL_BINARY_TIMING_HARNESS_FRESH_PATH_CLOSURE_V1` (offline only).
+
+### 15.1 Timing coverage (B) — `tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js`
+
+After all safety hard gates pass (fault=0, OST=1, PWM=0, AQCSFRC force-low
+verified by read-back), the script manufactures **exactly once** a
+deterministic fresh control input (RAM writes only; no synthetic injection in
+REAL firmware):
+
+| symbol | value | purpose |
+|---|---|---|
+| `g_control_adc_sequence_last` | 0 | force the first control tick FRESH |
+| `g_adc_sample_sequence` | 1 | new sample sequence (ADC ISR advances it) |
+| `g_adc_vout_raw` / `g_adc_vout_filtered_raw` | 1200 | VOUT raw != Vref raw |
+| `g_control_vref_raw` | 1244 | 10 V board-calibrated raw |
+| `g_control_frequency_hz` / `g_control_shadow_frequency_hz` | 150000 | PI base |
+| `g_switching_frequency_hz` | 150000 | same-frequency fast path disabled |
+| `g_pwm_period` | 399 | 150 kHz baseline period |
+
+First control tick: `sample_valid=1`, `error_raw=44 != 0`, PI update happens,
+frequency command moves away from 150000, so `LLC_SetFrequencyHz` takes the
+**full non-same-frequency path** (period recompute + TBPRD/CMPA write + ADC
+sync), `power_writes++`, and the ring buffer records `fresh_sample=1`. Later
+samples may be stale; `g_real_isr_cycles_max` must capture this first worst
+fresh tick. All symbols verified present in the frozen REAL MAP
+(`4B167EFC...`); no firmware change required — REAL OUT stays `CAD61C38...`.
+
+### 15.2 Timing result hard gates (C)
+
+`fresh_sample_count` delta >= 1, `pi_update_count` delta >= 1,
+`power_writes > 0`, ring first entry `fresh_sample == 1`, frequency command
+!= 150000, shot `COMPLETE` / `TIMEOUT` / `tick == 10`, PWM == 0, OST == 1,
+fault == 0, `g_real_isr_cycles_max <= 900`, `overrun == 0`. Any failure prints
+`TIMING_NOPOWER_FAIL` (no real power). `run(2000)` corrected to `run(20)` =
+**20 ms** (the old value was 2 SECONDS, not 2 ms): the test state starts
+directly in RUN, the 200 us cage ends after ~0.22 ms with on-chip
+OST=1/PWM=0/IDLE, and the first fresh tick is captured in the first 20 us.
+
+### 15.3 REAL shot script (D) — `tools/stage6_first_real_pi_shot_real.js`
+
+- Host no-read wait raised **15 ms -> 25 ms** (worst case: 5 ms enable-request
+  processing + 5 ms SoftStart PWM start + ~3.5 ms Profile C ramp + FINAL
+  window + 0.2 ms PI + termination ≈ 12.2 ms).
+- Strict PASS additionally requires `softstart_handoff_result == OK`,
+  `softstart_result == COMPLETE`, `shot_tick == 10`, `ring_buffer_count == 11`,
+  `power_writes == 11` (Uint16), and
+  `timer2_delta = first_write_timer2 - ost_timer2` within
+  **11000..14000 cycles** (~200 us @ 60 MHz; conservative static gate — the
+  final exact tolerance is set from the no-power timing results).
+
+### 15.4 Static regressions (E)
+
+`tools/stage6_real_binary_hardening_static_test.py` extended: fresh-sequence
+manufacture (exactly once), VOUT raw != Vref raw, full actuator
+frequency-change path required, timing PASS depends on
+fresh/pi_update/power_writes and PWM0/OST1/fault0, REAL script waits >= 25 ms,
+REAL strict PASS checks handoff/tick/ring/writes/Timer2 delta, and the
+Stage6/Stage7 numeric comments (`BRINGUP_STAGE_6_CLOSED_LOOP == 7`,
+`BRINGUP_STAGE_7_POWER_RUN == 8`). All checks PASS from the repo and from a
+clean checkout.
+
+### 15.5 Delivery
+
+Only `tools/`, static tests, docs/evidence text and the delivery ZIP changed.
+Firmware source unchanged -> REAL OUT **not rebuilt**, SHA stays
+`CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72`.
+Commit: `tools: exercise fresh PI actuator path in Stage6 no-power timing gate`.
