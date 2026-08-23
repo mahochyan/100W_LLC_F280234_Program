@@ -150,6 +150,21 @@ void SoftStart_StartPwmFormal(void)
     }
     PWM_StartDeterministic();
 
+    if (g_softstart_no_energy != 0U)
+    {
+        /* No-energy ramp: PWM_StartDeterministic clears OST and releases the
+         * output clamps for real power. On the safe bench there is no input, so
+         * re-latch the TZ one-shot trip and force the outputs low — the ePWM
+         * time-base and EPWM1 INT keep running so the ramp and the closed-loop
+         * handoff are fully exercised in software with NO effective PWM output.
+         * Production (no_energy == 0) never takes this path. */
+        EALLOW;
+        EPwm1Regs.TZFRC.bit.OST = 1U;   /* force OST trip -> OST stays latched */
+        EPwm1Regs.AQCSFRC.bit.CSFA = AQ_CLEAR;
+        EPwm1Regs.AQCSFRC.bit.CSFB = AQ_CLEAR;
+        EDIS;
+    }
+
     EALLOW;
     EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
     EPwm1Regs.ETPS.bit.INTPRD  = ET_1ST;
@@ -280,9 +295,12 @@ void SoftStart_FastUpdate(void)
      * crosses the acceptance target only in the FINAL stage. */
     if (g_softstart_no_energy != 0U)
     {
-        /* PFM window keeps the FINAL-stage simulated VOUT (no real energy). */
+        /* PFM window keeps the FINAL-stage simulated VOUT (no real energy).
+         * The FINAL value is the exact 10V handoff target so the closed-loop
+         * filter seed (gate L) and first injected sample match the reference,
+         * giving a clean bumpless 150 kHz entry (gate G/N). */
         Uint16 sim = (g_softstart_state == SOFTSTART_FINAL ||
-                      g_softstart_state == SOFTSTART_PFM_WINDOW) ? 1260U
+                      g_softstart_state == SOFTSTART_PFM_WINDOW) ? 1244U
                    : (g_softstart_state >= SOFTSTART_PHASE_B) ? 900U : 400U;
         g_adc_vout_pwm_sync_raw = sim;
         g_softstart_last_vout_raw = sim;
@@ -383,6 +401,20 @@ void SoftStart_FastUpdate(void)
 
         case SOFTSTART_FINAL:
             g_softstart_final_cycles++;
+            /* STAGE6 closed-loop handoff: when formal Profile C reaches the
+             * FINAL stage and Vout >= 10V handoff target, transfer to the Q12
+             * closed-loop PI instead of a scheduled OST. The 12V raw ceiling
+             * is enforced before this (SS_HardStop ceiling check). */
+            if (g_bringup_stage == BRINGUP_STAGE_6_CLOSED_LOOP &&
+                g_adc_vout_pwm_sync_raw >= g_softstart_accept_target_raw)
+            {
+                if (SoftStart_TransferToClosedLoop() != 0U)
+                {
+                    return;
+                }
+                /* transfer rejected (gate/ceiling/PWM invalid) -> stay FINAL
+                 * until the 300-cycle window decides (COMPLETE or NOT_REACHED). */
+            }
             if (g_softstart_final_cycles >= SS_FINAL_MAX_CYCLES)
             {
                 if (g_softstart_acceptance_mode == 0U)
@@ -594,6 +626,116 @@ void SoftStart_ApplyLimits(void)
 {
     /* The formal trajectory writes PWM in FastUpdate; this 5ms limiter is a
      * no-op for the formal states (kept for the legacy reference path). */
+}
+
+/* ------------------------------------------------------------------ */
+/* STAGE6 closed-loop handoff: Formal SoftStart -> Q12 closed-loop PI  */
+/* ------------------------------------------------------------------ */
+
+Uint16 SoftStart_TransferToClosedLoop(void)
+{
+    Uint16 raw;
+
+    /* ---- D: entry guards (only Stage6 + formal Profile C + no fault) ---- */
+    if (g_bringup_stage != BRINGUP_STAGE_6_CLOSED_LOOP)
+    {
+        g_softstart_handoff_result = HANDOFF_GATE_FAIL;
+        return 0U;
+    }
+    if (g_softstart_state != SOFTSTART_FINAL)
+    {
+        g_softstart_handoff_result = HANDOFF_GATE_FAIL;
+        return 0U;
+    }
+    if (g_fault_flags != 0UL || g_system_state == SYS_STATE_FAULT)
+    {
+        g_softstart_handoff_result = HANDOFF_FAULT;
+        return 0U;
+    }
+    if (g_system_state != SYS_STATE_SOFT_START)
+    {
+        g_softstart_handoff_result = HANDOFF_GATE_FAIL;
+        return 0U;
+    }
+
+    /* E: first handoff target = 10V; the 12V ceiling is handled upstream
+     * (SS_HardStop ceiling check aborts before transfer). Guard here too. */
+    if (g_adc_vout_pwm_sync_raw < g_softstart_accept_target_raw)   /* < 10V */
+    {
+        g_softstart_handoff_result = HANDOFF_GATE_FAIL;
+        return 0U;
+    }
+    if (g_adc_vout_pwm_sync_raw >= g_softstart_hard_ceiling_raw)   /* >= 12V */
+    {
+        g_softstart_handoff_result = HANDOFF_CEILING;
+        g_softstart_state = SOFTSTART_ABORTED;
+        g_system_state = SYS_STATE_FAULT;
+        return 0U;
+    }
+
+    /* F: PWM state must be the verified 150kHz + formal dead-time config:
+     * TBPRD=399, CMPA=200, DBRED=36, DBFED=36. Otherwise STOP safe. */
+    if (EPwm1Regs.TBPRD != SS_FINAL_PERIOD ||
+        EPwm1Regs.CMPA.half.CMPA != SS_FINAL_CMPA ||
+        EPwm1Regs.DBCTL.bit.OUT_MODE == 0U ||
+        EPwm1Regs.DBRED != SS_FINAL_DB ||
+        EPwm1Regs.DBFED != SS_FINAL_DB)
+    {
+        g_softstart_handoff_result = HANDOFF_PWM_STATE_INVALID;
+        g_softstart_state = SOFTSTART_ABORTED;
+        g_system_state = SYS_STATE_FAULT;
+        return 0U;
+    }
+
+    /* I + K: ADC ownership handoff. The SoftStart ePWM-cycle ISR stops
+     * owning ADC freshness; ADCINT1 closed-loop vector takes over. */
+    EALLOW;
+    EPwm1Regs.ETSEL.bit.INTEN = 0U;               /* release SoftStart ePWM INT */
+    PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;           /* clear pending ADCINT1 */
+    AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;        /* clear ADCINT1 flag */
+    AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;           /* clear ADC overflow */
+    EDIS;
+
+    /* J) - closed-loop ADC mode: SOCAPRD = ET_3RD (40/50/60 kS/s). */
+    ADC_SetClosedLoopSyncTriggerMode();
+
+    EALLOW;
+    PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;
+    PieCtrlRegs.PIEIER1.bit.INTx1 = 1U;           /* re-enable ADCINT1 */
+    EDIS;
+
+    /* K) - freshness baseline: PI must NOT consume a stale sample. */
+    g_control_adc_sequence_last    = g_adc_sample_sequence;
+    g_control_adc_sequence_consumed = g_adc_sample_sequence;
+
+    /* L) - filter seed: avoid an old/zero IIR state at the first closed-loop
+     * sample. Seed from the last SoftStart sample (>=10V crossing). */
+    raw = g_softstart_last_vout_raw;
+    if (raw == 0U) raw = g_softstart_accept_target_raw;
+    g_adc_vout_filter_acc     = ((Uint32)raw) << 4U;
+    g_adc_vout_filtered_raw   = raw;
+
+    /* G) - bumpless control state (PI bias = SoftStart final = 150 kHz). */
+    g_control_frequency_hz       = LLC_DEFAULT_FREQUENCY_HZ;
+    g_control_shadow_frequency_hz = LLC_DEFAULT_FREQUENCY_HZ;
+    g_pi_integral_q12            = 0;
+    g_control_unsat_q12          = 150000 * 4096;   /* Q12 bias = 150 kHz */
+
+    /* H) - first real-PI reference target = 10V. Production slow path derives
+     * g_control_vref_raw (~1244) and reference_valid=1 from this only. */
+    g_voltage_reference = 10.0f;
+
+    /* Complete SoftStart exactly once, then enter RUN. */
+    g_softstart_state    = SOFTSTART_COMPLETE;
+    g_softstart_result   = SS_RESULT_COMPLETE;
+    g_softstart_ramp_active = 0U;
+    g_stage6_handoff_count++;
+    g_softstart_handoff_result = HANDOFF_RESULT_OK;
+    g_stage6_run_entry_count++;
+    g_system_state = SYS_STATE_RUN;
+    g_pwm_enabled = 1U;   /* PWM already running deterministic (gated by HW) */
+    g_stage6_transfer_request = 1U;
+    return 1U;
 }
 
 Uint32 SoftStart_GetPeriodLimit(void)

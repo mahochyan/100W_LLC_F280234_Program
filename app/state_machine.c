@@ -165,8 +165,13 @@ static void SM_HandleEnable(void)
             return;
         }
 
-        /* Closed-loop / power-run pre-enable gates */
-        if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
+        /* Closed-loop / power-run pre-enable gates. In the no-energy software
+         * simulation (g_softstart_no_energy != 0) there is no real power, so
+         * the calibration/direction gates are bypassed to let the formal ramp
+         * + handoff be exercised end-to-end; the physical board stays safe
+         * (OST=1, LLC_HARDWARE_PI_VALIDATED=0, LLC_CONTROL_DIRECTION=0). */
+        if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP &&
+            g_softstart_no_energy == 0U)
         {
             if (g_vout_volts < 0.0f || g_iout_amps < 0.0f)
             {
@@ -195,6 +200,19 @@ static void SM_HandleEnable(void)
         {
             SoftStart_Begin();
             g_system_state = SYS_STATE_SOFT_START;
+            g_pwm_enable_result = 1U;
+            return;
+        }
+
+        /* STAGE6_FORMAL_SOFTSTART_PATH: Stage 6 (and 7) MUST reuse the formal
+         * Profile C engine instead of the direct LLC_PWM_Enable/SYS_STATE_RUN
+         * path. The engine transfers to closed loop at the 10V handoff target
+         * (SoftStart_TransferToClosedLoop). No direct PWM enable, no direct
+         * RUN. SoftStart_Update5ms() processes the request and sets
+         * SYS_STATE_SOFT_START itself, so sys is left in IDLE here. */
+        if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
+        {
+            SoftStart_Begin();
             g_pwm_enable_result = 1U;
             return;
         }

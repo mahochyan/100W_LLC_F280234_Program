@@ -1,0 +1,53 @@
+{
+  "task": "STAGE6_CLOSED_LOOP_HANDOFF_NOENERGY_CLOSURE_V1",
+  "objective": "Connect the verified Profile-C formal soft-start to the Q12 20us closed-loop PI through the production IDLE->Formal SoftStart->Closed-loop handoff->RUN path. NO real power executed, OST=1, PWM effective output disabled, LLC_HARDWARE_PI_VALIDATED=0, LLC_CONTROL_DIRECTION=0, no Kp/Ki re-tuning.",
+  "frozen_out": "evidence/stage6_closedloop_handoff_noenergy/LLC_100W_F28034_BRINGUP_DSH.out",
+  "frozen_out_sha256": "C3EA2475C4AA2A067E1CA9C61D525B272DEF46F967B4FE5069F3F6AB590038B5",
+  "power_gates": {
+    "LLC_HARDWARE_PI_VALIDATED": 0,
+    "LLC_CONTROL_DIRECTION": 0,
+    "PWM_effective_output": "inhibited (OST latched + AQCSFRC force-low in no-energy)",
+    "OST": 1,
+    "no_real_power_executed": true
+  },
+  "firmware_changes": {
+    "llc_globals.c/h": "g_control_adc_sequence_last/consumed Uint16->Uint32; STAGE6 handoff globals (handoff_count, softstart_handoff_result, run_entry_count, transfer_request) as production; cadence/CPU/freshness test globals; timer0 entry-interval + ISR cycle-sum globals; g_tz_noenergy_trip_count",
+    "control.c": "CTRL_RunFastControl fresh_seq -> Uint32; STAGE6 first-PI sample/freq capture (bumpless gate)",
+    "soft_start.c": "SoftStart_TransferToClosedLoop(); FINAL stage triggers handoff at >=10V on Stage6; no-energy FINAL sim vout = exact 10V (1244) for bumpless seed; no-energy TZ re-clamp after PWM_StartDeterministic",
+    "soft_start.h": "HANDOFF_RESULT_* constants; SoftStart_TransferToClosedLoop prototype",
+    "adc.c": "ADC_SetClosedLoopSyncTriggerMode (SOCAPRD=ET_3RD); closed-loop synthetic Vout inject test flag; ADC ISR cycle measurement",
+    "protection.c": "no-energy bypass for real-power calibration/direction gates; TZ1 benign path in no-energy; Timer0 entry-interval + whole-ISR cycle-sum measurement",
+    "state_machine.c": "Stage6/7 enable routes to SoftStart_Begin (no direct LLC_PWM_Enable/RUN); no-energy bypass on Stage6 pre-enable gates"
+  },
+  "on_target_results": {
+    "STAGE6_DIRECT_RUN_PATH_CONFIRMED": "B audited: legacy direct LLC_SetFrequencyHz->ADC_SetPwmSyncTriggerMode->LLC_PWM_Enable->RUN bypassed for Stage6 (now SoftStart route)",
+    "STAGE6_DIRECT_RUN_PATH_CLOSED_PASS": true,
+    "STAGE6_FORMAL_SOFTSTART_PATH_PASS": true,
+    "HANDOFF_ONCE_PASS": true,
+    "RUN_ONCE_PASS": true,
+    "HANDOFF_PWM_STATE_OK": "TBPRD=399 CMPA=200 DBRED=36 DBFED=36",
+    "BUMPLESS_150K_CONTROL_STATE_PASS": "freq=150000 shadow=150000 integral_q12=0",
+    "HANDOFF_REFERENCE_SYNC_PASS": "g_voltage_reference=10.0 -> vref_raw=1244 reference_valid=1",
+    "FIRST_CLOSED_LOOP_SAMPLE_BUMPLESS_PASS": "first sample raw=1244 (~10V) -> first PI freq=150000 (no jump)",
+    "CLOSED_LOOP_ADC_CADENCE_PASS": true,
+    "cadence_rates_sps": {"120kHz": 40031, "150kHz": 50041, "180kHz": 60108},
+    "CLOSED_LOOP_ADC_PLUS_PI_REALTIME_PASS": true,
+    "tint0_whole_isr_max_cycles": 645,
+    "tint0_overrun": 0,
+    "timer0_entry_interval_max": 1417,
+    "adc_isr_max_cycles": 120,
+    "CPU_ISR_UTILIZATION": {"120kHz": "60.3%", "150kHz": "63.6%", "180kHz": "65.6%"},
+    "REAL_ADC_FRESHNESS_SEMANTICS_PASS": true,
+    "freshness_adc_x10_per_tick": {"120000": 8.01, "150000": 10.01, "180000": 12.02},
+    "HANDOFF_PI_PWM_WRITE_GATE_LOCKED_PASS": "PWM regs unchanged by PI (shadow-only); TBPRD 399->399 CMPA 200->200",
+    "STAGE6_HANDOFF_FAULT_GATE_ALL_PASS": true
+  },
+  "static_checks": {
+    "FULL_FAST_CONTROL_PATH_SOFTFLOAT_FREE_PASS": true,
+    "FIXED_POINT_PI_SIL_PARITY_PASS": true,
+    "SIL_CADENCE_FULL_FRESH_MATCH_PASS": true,
+    "SIL_CADENCE_MISSING_1_2_3_STALE_PASS": true
+  },
+  "verdict": "STAGE6_CLOSED_LOOP_HANDOFF_NOENERGY_PASS",
+  "ready": "READY_FOR_FIRST_BOUNDED_REAL_PI_SHOT_REVIEW"
+}

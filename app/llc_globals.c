@@ -88,10 +88,16 @@ volatile int16   g_control_error_raw    ;
 volatile int32   g_control_p_term_q12   ;
 volatile int32   g_control_i_term_q12   ;
 volatile int32   g_control_unsat_q12    ;
+/* STAGE6_CLOSED_LOOP_HANDOFF - handoff state (production, always built). */
+volatile Uint32 g_stage6_handoff_count        = 0UL;
+volatile Uint16 g_softstart_handoff_result    = 0U;
+volatile Uint32 g_stage6_run_entry_count      = 0UL;
+volatile Uint16 g_stage6_transfer_request     = 0U;
+
 /* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - input-binding runtime state. */
 volatile Uint16  g_control_reference_valid          = 0U;
-volatile Uint16  g_control_adc_sequence_last        = 0U;
-volatile Uint16  g_control_adc_sequence_consumed    = 0U;
+volatile Uint32  g_control_adc_sequence_last        = 0UL;
+volatile Uint32  g_control_adc_sequence_consumed    = 0UL;
 volatile Uint32  g_control_fresh_sample_count       = 0UL;
 volatile Uint32  g_control_duplicate_sample_block_count = 0UL;
 volatile Uint32  g_control_stale_tick_count         = 0UL;
@@ -103,6 +109,10 @@ volatile Uint32 g_control_exec_cycles_last  = 0UL;
 volatile Uint32 g_control_exec_cycles_max   = 0UL;
 volatile Uint32 g_fast_isr_cycles_last      = 0UL;
 volatile Uint32 g_fast_isr_cycles_max       = 0UL;
+volatile Uint32 g_fast_isr_cycles_sum        = 0UL;
+volatile Uint32 g_fast_isr_cycles_count       = 0UL;
+volatile Uint32 g_adc_isr_cycles_sum          = 0UL;
+volatile Uint32 g_adc_isr_cycles_count        = 0UL;
 volatile Uint32 g_fast_isr_overrun_count    = 0UL;
 volatile Uint32 g_stage6_noenergy_test_ticks= 0UL;
 volatile Uint16 g_stage6_noenergy_test_enable = 0U;
@@ -113,6 +123,15 @@ volatile Uint16 g_stage6_noenergy_test_mode = 0U;
 volatile Uint16 g_stage6_noenergy_step_req  = 0U;
 volatile Uint32 g_stage6_noenergy_step_shadow_hz  = 0UL;
 volatile float  g_stage6_noenergy_step_integral_hz= 0.0f;
+/* STAGE6_CLOSED_LOOP_HANDOFF_NOENERGY_CLOSURE_V1 - handoff + cadence obs. */
+volatile Uint16 g_stage6_closeloop_vout_inject= 0U;
+volatile Uint32 g_stage6_adc_isr_count        = 0UL;
+volatile Uint32 g_adc_isr_cycles_last         = 0UL;
+volatile Uint32 g_adc_isr_cycles_max          = 0UL;
+volatile Uint16 g_stage6_first_pi_sample_raw  = 0U;
+volatile Uint32 g_stage6_first_pi_freq_hz     = 0UL;
+volatile Uint16 g_stage6_first_pi_observed    = 0U;
+volatile Uint32 g_stage6_cadence_test_freq  = 0UL;   /* test time-base config (applied once) */
 #endif
 
 /* Tutorial SoftStart Engine */
@@ -205,6 +224,7 @@ volatile Uint16 g_tz_isr_tzflg ;
 volatile Uint16 g_tz_event_phase ;
 volatile Uint32 g_tz_software_ost_count ;
 volatile Uint32 g_tz_hardware_trip_count ;
+volatile Uint32 g_tz_noenergy_trip_count ;
 volatile Uint32 g_tz_active_window_trip_count ;
 volatile Uint32 g_tz_post_ost_trip_count ;
 volatile Uint32 g_post_ost_trip_delay_ticks ;
@@ -553,6 +573,10 @@ volatile Uint32 g_cal_hold_max_total_extra_cycles = LLC_CAL_HOLD_MAX_TOTAL_EXTRA
 
 /* Timing */
 volatile Uint32 g_fast_tick ;
+volatile Uint32 g_timer0_entry_count           = 0UL;
+volatile Uint32 g_timer0_last_entry            = 0UL;
+volatile Uint32 g_timer0_entry_interval_min    = 0UL;
+volatile Uint32 g_timer0_entry_interval_max    = 0UL;
 volatile Uint16 g_5ms_flag ;
 
 /* OVF diagnostics (ISR instrumentation) */
@@ -560,5 +584,12 @@ volatile Uint32 g_adc_ovf_count ;
 volatile Uint16 g_adc_ovf_first_tbctr ;
 volatile Uint16 g_adc_ovf_first_flag_was_set ;
 volatile Uint16 g_adc_isr_last_tbctr ;
+
+
+
+
+
+
+
 
 

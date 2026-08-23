@@ -344,7 +344,7 @@ void CTRL_ApplyFrequencyCommand(void)
  */
 void CTRL_RunFastControl(void)
 {
-    Uint16 fresh_seq, sample_valid, vout_raw;
+    Uint32 fresh_seq;    Uint16 sample_valid, vout_raw;
 
     fresh_seq = g_adc_sample_sequence;
     if (fresh_seq == g_control_adc_sequence_last)
@@ -367,6 +367,18 @@ void CTRL_RunFastControl(void)
 
     CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
     CTRL_ApplyFrequencyCommand();
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* STAGE6 handoff: capture the FIRST post-handoff fresh closed-loop sample
+     * and the resulting command for the bumpless gate (FIRST_CLOSED_LOOP_
+     * SAMPLE_BUMPLESS_PASS). Only the first fresh sample is recorded. */
+    if (g_stage6_first_pi_observed == 0U && sample_valid != 0U)
+    {
+        g_stage6_first_pi_observed = 1U;
+        g_stage6_first_pi_sample_raw = vout_raw;
+        g_stage6_first_pi_freq_hz = g_control_shadow_frequency_hz;
+    }
+#endif
 }
 
 void CTRL_FastTask(void)
@@ -565,6 +577,7 @@ void CTRL_OfflineSelfTest(void)
     g_offline_test_status = pass;
 }
 #endif /* STAGE6_OFFLINE_SELFTEST */
+
 
 
 

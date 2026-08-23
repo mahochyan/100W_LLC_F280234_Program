@@ -144,6 +144,20 @@ __interrupt void EPWM1_TZINT_ISR(void)
         return;
     }
 
+    /* No-energy benchmark: there is no real power, so a real comparator/TZ1
+     * trip is environmental noise (floating comparator on the open bench),
+     * not a hardware fault. Count it and leave OST latched (outputs stay
+     * clamped) but DO NOT fault the software sim. Production (no_energy == 0)
+     * never takes this path. */
+    if (g_softstart_no_energy != 0U)
+    {
+        g_tz_noenergy_trip_count++;
+        g_tz_hardware_trip_count++;
+        EPwm1Regs.TZCLR.bit.INT = 1U;
+        PieCtrlRegs.PIEACK.all = PIEACK_GROUP2;
+        return;
+    }
+
     /*
      * Real hardware TZ1 event. Classify by power-window state:
      *   ACTIVE            -> ACTIVE_WINDOW_TZ_TRIP -> FAULT
@@ -189,6 +203,25 @@ __interrupt void TINT0_ISR(void)
     if (g_stage6_noenergy_test_enable != 0U)
     {
         t_isr_entry = CpuTimer2Regs.TIM.all;   /* free-running 60 MHz down counter */
+        /* Timer0 entry interval: cycles between successive TINT0 ISR entries.
+         * Nominal is ~1200 cycles (20 us). A longer interval means the previous
+         * ISR (e.g. an ADCINT1 + PI) missed the deadline and the next tick was
+         * deferred -> real-time violation detection (gate Q). */
+        if (g_timer0_entry_count == 0UL)
+        {
+            g_timer0_entry_interval_min = 0UL;
+            g_timer0_entry_interval_max = 0UL;
+        }
+        else
+        {
+            Uint32 delta = (Uint32)((Uint32)(g_timer0_last_entry - t_isr_entry) & 0xFFFFFFFFUL);
+            if (g_timer0_entry_interval_min == 0UL || delta < g_timer0_entry_interval_min)
+                g_timer0_entry_interval_min = delta;
+            if (delta > g_timer0_entry_interval_max)
+                g_timer0_entry_interval_max = delta;
+        }
+        g_timer0_entry_count++;
+        g_timer0_last_entry = t_isr_entry;
     }
 #endif
     g_fast_tick++;
@@ -217,29 +250,55 @@ __interrupt void TINT0_ISR(void)
      * never clears OST, never sets g_pwm_enabled, never enters real RUN. */
     if (g_stage6_noenergy_test_enable != 0U)
     {
-        Uint32 tb, tx;
         g_stage6_noenergy_test_ticks++;
-        /* Production-input-binding: emulate the real ADCINT path producing the
-         * LATEST frame + NEW-sample sequence, then run the production fast
-         * control body (freshness + binding + PI + shadow apply).
-         *   mode 1 = FRESH (auto-advance sequence every tick; worst case)
-         *   mode 3 = HELD  (sequence held; first tick consumes once, then freeze)
-         * PWM stays 0 / OST stays 1; no real power. */
-        if (g_stage6_noenergy_test_mode == 1U)
+        if (g_stage6_noenergy_test_mode == 4U)
         {
-            g_stage6_synthetic_sequence++;   /* new sample every 20 us tick */
+            /* CLOSED-LOOP OBSERVE (STAGE6_CLOSED_LOOP_HANDOFF): the real
+             * ADCINT1_ISR + real CTRL_FastTask own the closed loop. This hook
+             * only (a) applies a one-shot test time-base configuration for the
+             * ADC cadence runs (120/150/180 kHz), and (b) lets the whole-ISR
+             * budget snapshot below measure the REAL closed-loop TINT0 load. No
+             * synthetic ADC injection, no second PI call. */
+            if (g_stage6_cadence_test_freq != 0UL)
+            {
+                Uint32 per;
+                per = (LLC_TBCLK_HZ + (g_stage6_cadence_test_freq / 2UL)) /
+                      g_stage6_cadence_test_freq;
+                if (per > 0UL) per -= 1UL;
+                EALLOW;
+                EPwm1Regs.TBPRD = (Uint16)per;
+                EPwm1Regs.CMPA.half.CMPA = (Uint16)((per + 1UL) / 2UL);
+                ADC_UpdatePwmSyncPoint((Uint16)(per + 1UL));
+                EPwm1Regs.ETPS.bit.SOCAPRD = ET_3RD;   /* keep closed-loop cadence */
+                EDIS;
+                g_stage6_cadence_test_freq = 0UL;      /* applied once */
+            }
         }
-        g_adc_sample_sequence    = g_stage6_synthetic_sequence;
-        g_adc_vout_filtered_raw  = g_stage6_synthetic_vout_raw;
-        tb = CpuTimer2Regs.TIM.all;
-        g_control_running = 1U;
-        g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
-        CTRL_RunFastControl();   /* production freshness + binding + PI + apply */
-        tx = CpuTimer2Regs.TIM.all;
-        /* region B: one Compute+Apply (down counter -> entry-exit diff) */
-        g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
-        if (g_control_exec_cycles_last > g_control_exec_cycles_max)
-            g_control_exec_cycles_max = g_control_exec_cycles_last;
+        else
+        {
+            /* Production-input-binding: emulate the real ADCINT path producing
+             * the LATEST frame + NEW-sample sequence, then run the production
+             * fast control body (freshness + binding + PI + shadow apply).
+             *   mode 1 = FRESH (auto-advance sequence every tick; worst case)
+             *   mode 3 = HELD  (sequence held; first tick consumes once, then freeze)
+             * PWM stays 0 / OST stays 1; no real power. */
+            Uint32 tb, tx;
+            if (g_stage6_noenergy_test_mode == 1U)
+            {
+                g_stage6_synthetic_sequence++;   /* new sample every 20 us tick */
+            }
+            g_adc_sample_sequence    = g_stage6_synthetic_sequence;
+            g_adc_vout_filtered_raw  = g_stage6_synthetic_vout_raw;
+            tb = CpuTimer2Regs.TIM.all;
+            g_control_running = 1U;
+            g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
+            CTRL_RunFastControl();   /* production freshness + binding + PI + apply */
+            tx = CpuTimer2Regs.TIM.all;
+            /* region B: one Compute+Apply (down counter -> entry-exit diff) */
+            g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
+            if (g_control_exec_cycles_last > g_control_exec_cycles_max)
+                g_control_exec_cycles_max = g_control_exec_cycles_last;
+        }
     }
 #endif
 
@@ -262,6 +321,8 @@ __interrupt void TINT0_ISR(void)
         g_fast_isr_cycles_last = (Uint32)((Uint32)(t_isr_entry - t_isr_exit) & 0xFFFFFFFFUL);
         if (g_fast_isr_cycles_last > g_fast_isr_cycles_max)
             g_fast_isr_cycles_max = g_fast_isr_cycles_last;
+        g_fast_isr_cycles_sum += g_fast_isr_cycles_last;
+        g_fast_isr_cycles_count++;
         if (g_fast_isr_cycles_last >= 1200UL)
             g_fast_isr_overrun_count++;
     }
@@ -441,8 +502,12 @@ void PROT_SlowTask(void)
 
     }
 
-    /* Calibration / control-direction gates */
-    if (g_pwm_enabled != 0U)
+    /* Calibration / control-direction gates. These are REAL-POWER physical
+     * gates; in the no-energy software simulation (g_softstart_no_energy != 0)
+     * there is no real power, so they are bypassed so the formal ramp + closed
+     * loop handoff can be exercised end-to-end on the safe bench. Production
+     * (g_softstart_no_energy == 0) keeps every gate. */
+    if (g_pwm_enabled != 0U && g_softstart_no_energy == 0U)
     {
     if (g_bringup_stage >= BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
         g_comp_tz_loopback_verified == 0U)

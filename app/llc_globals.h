@@ -92,8 +92,8 @@ extern volatile int32   g_control_i_term_q12;
 extern volatile int32   g_control_unsat_q12;
 /* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - input-binding runtime state. */
 extern volatile Uint16  g_control_reference_valid;
-extern volatile Uint16  g_control_adc_sequence_last;
-extern volatile Uint16  g_control_adc_sequence_consumed;
+extern volatile Uint32  g_control_adc_sequence_last;
+extern volatile Uint32  g_control_adc_sequence_consumed;
 extern volatile Uint32  g_control_fresh_sample_count;
 extern volatile Uint32  g_control_duplicate_sample_block_count;
 extern volatile Uint32  g_control_stale_tick_count;
@@ -106,6 +106,10 @@ extern volatile Uint32 g_control_exec_cycles_last;   /* region B: one PI step */
 extern volatile Uint32 g_control_exec_cycles_max;
 extern volatile Uint32 g_fast_isr_cycles_last;       /* whole TINT0_ISR */
 extern volatile Uint32 g_fast_isr_cycles_max;
+extern volatile Uint32 g_fast_isr_cycles_sum;
+extern volatile Uint32 g_fast_isr_cycles_count;
+extern volatile Uint32 g_adc_isr_cycles_sum;
+extern volatile Uint32 g_adc_isr_cycles_count;
 extern volatile Uint32 g_fast_isr_overrun_count;     /* ISR >= 1200 cycles */
 extern volatile Uint32 g_stage6_noenergy_test_ticks;
 extern volatile Uint16 g_stage6_noenergy_test_enable;
@@ -116,7 +120,20 @@ extern volatile Uint16 g_stage6_noenergy_test_mode;  /* 0 idle,1 first-step(11V)
 extern volatile Uint16 g_stage6_noenergy_step_req;   /* one-shot: run exactly one PI step */
 extern volatile Uint32 g_stage6_noenergy_step_shadow_hz;
 extern volatile float  g_stage6_noenergy_step_integral_hz;
+extern volatile Uint16 g_stage6_closeloop_vout_inject;
+extern volatile Uint32 g_stage6_adc_isr_count;
+extern volatile Uint32 g_adc_isr_cycles_last;
+extern volatile Uint32 g_adc_isr_cycles_max;
+extern volatile Uint16 g_stage6_first_pi_sample_raw;
+extern volatile Uint32 g_stage6_first_pi_freq_hz;
+extern volatile Uint16 g_stage6_first_pi_observed;
+extern volatile Uint32 g_stage6_cadence_test_freq;
 #endif
+/* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
+extern volatile Uint32 g_stage6_handoff_count;
+extern volatile Uint16 g_softstart_handoff_result;
+extern volatile Uint32 g_stage6_run_entry_count;
+extern volatile Uint16 g_stage6_transfer_request;
 
 /* Tutorial SoftStart Engine */
 extern volatile Uint16 g_softstart_state;
@@ -208,6 +225,7 @@ extern volatile Uint16 g_tz_isr_tzflg;
 extern volatile Uint16 g_tz_event_phase;
 extern volatile Uint32 g_tz_software_ost_count;
 extern volatile Uint32 g_tz_hardware_trip_count;
+extern volatile Uint32 g_tz_noenergy_trip_count;
 extern volatile Uint32 g_tz_active_window_trip_count;
 extern volatile Uint32 g_tz_post_ost_trip_count;
 extern volatile Uint32 g_post_ost_trip_delay_ticks;
@@ -616,6 +634,10 @@ extern volatile Uint32 g_cal_hold_max_total_extra_cycles;
 
 /* Timing */
 extern volatile Uint32 g_fast_tick;
+extern volatile Uint32 g_timer0_entry_count ;
+extern volatile Uint32 g_timer0_last_entry ;
+extern volatile Uint32 g_timer0_entry_interval_min ;
+extern volatile Uint32 g_timer0_entry_interval_max ;
 extern volatile Uint16 g_5ms_flag;
 
 /* OVF diagnostics (ISR instrumentation) */
@@ -625,5 +647,13 @@ extern volatile Uint16 g_adc_ovf_first_flag_was_set;
 extern volatile Uint16 g_adc_isr_last_tbctr;
 
 #endif /* APP_LLC_GLOBALS_H */
+
+
+
+
+
+
+
+
 
 

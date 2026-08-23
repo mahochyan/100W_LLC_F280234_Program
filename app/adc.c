@@ -74,6 +74,32 @@ void ADC_SetPwmSyncTriggerMode(void)
     g_adc_trigger_mode = 1U;
 }
 
+/*
+ * ADC_SetClosedLoopSyncTriggerMode
+ *
+ * STAGE6_CLOSED_LOOP_HANDOFF: closed-loop ADC sampling. SOCA still comes from
+ * the CMPB fixed-phase point (kept by ADC_UpdatePwmSyncPoint), but the sample
+ * is taken every 3rd PWM period (SOCAPRD = ET_3RD). This yields:
+ *     120 kHz switching -> ~40 kS/s
+ *     150 kHz switching -> ~50 kS/s
+ *     180 kHz switching -> ~60 kS/s
+ * which matches the 20 us / 50 kHz control tick. The SoftStart ramp keeps
+ * ET_1ST (ADC_SetPwmSyncTriggerMode / ADC_UpdatePwmSyncPoint); only the
+ * closed-loop path calls this.
+ */
+void ADC_SetClosedLoopSyncTriggerMode(void)
+{
+    EALLOW;
+    ADC_ConfigureSocs(5U);           /* ePWM1 SOCA */
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTRU_CMPB;   /* fixed-phase CMPB point */
+    EPwm1Regs.ETSEL.bit.SOCAEN  = 1U;
+    EPwm1Regs.ETPS.bit.SOCAPRD  = ET_3RD;         /* every 3rd PWM period */
+    AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
+    AdcRegs.ADCINTFLGCLR.all = 0xFFFFU;
+    EDIS;
+    g_adc_trigger_mode = 1U;
+}
+
 void ADC_SoftwareTrigger(void)
 {
     EALLOW;
@@ -129,9 +155,28 @@ void ADC_CheckOverflow(void)
 
 __interrupt void ADCINT1_ISR(void)
 {
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    Uint32 adc_t_entry, adc_t_exit;
+    if (g_stage6_noenergy_test_enable != 0U)
+    {
+        adc_t_entry = CpuTimer2Regs.TIM.all;
+        g_stage6_adc_isr_count++;
+    }
+#endif
     Uint16 vout = AdcResult.ADCRESULT0;
     Uint16 ipri = AdcResult.ADCRESULT1;
     Uint16 iout = AdcResult.ADCRESULT2;
+
+    /* STAGE6 closed-loop no-energy: inject a synthetic Vout VALUE while the
+     * real ADC cadence (sequence advance, filter, OVF) stays fully authentic.
+     * Used only by the on-target no-energy harness so the closed-loop PI sees
+     * a controlled sample (e.g. ~10V at the first post-handoff sample). */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_stage6_closeloop_vout_inject != 0U)
+    {
+        vout = g_stage6_synthetic_vout_raw;
+    }
+#endif
 
     g_adc_vout_raw = vout;
     g_adc_ipri_raw = ipri;
@@ -187,4 +232,16 @@ __interrupt void ADCINT1_ISR(void)
     AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
     EDIS;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_stage6_noenergy_test_enable != 0U)
+    {
+        adc_t_exit = CpuTimer2Regs.TIM.all;
+        g_adc_isr_cycles_last = (Uint32)((Uint32)(adc_t_entry - adc_t_exit) & 0xFFFFFFFFUL);
+        if (g_adc_isr_cycles_last > g_adc_isr_cycles_max)
+            g_adc_isr_cycles_max = g_adc_isr_cycles_last;
+        g_adc_isr_cycles_sum += g_adc_isr_cycles_last;
+        g_adc_isr_cycles_count++;
+    }
+#endif
 }

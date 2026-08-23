@@ -80,12 +80,21 @@
 #define TUTORIAL_PERIOD_STEP 10U
 #define TUTORIAL_WAIT_5MS_TICKS 20U   /* ~100 ms */
 
+/* STAGE6_CLOSED_LOOP_HANDOFF: handoff results (g_softstart_handoff_result) */
+#define HANDOFF_RESULT_NONE            0U
+#define HANDOFF_RESULT_OK              1U
+#define HANDOFF_PWM_STATE_INVALID      2U
+#define HANDOFF_GATE_FAIL              3U
+#define HANDOFF_CEILING                4U
+#define HANDOFF_FAULT                  5U
+
 void SoftStart_Init(void);
 void SoftStart_Begin(void);
 void SoftStart_SelectProfile(Uint16 profile);
 void SoftStart_Update5ms(void);
 void SoftStart_ApplyLimits(void);
 void SoftStart_FastUpdate(void);   /* ePWM-cycle driven (formal trajectory) */
+Uint16 SoftStart_TransferToClosedLoop(void);  /* STAGE6 closed-loop handoff */
 Uint32 SoftStart_GetPeriodLimit(void);
 Uint16 SoftStart_GetDeadtime(void);
 Uint16 SoftStart_IsComplete(void);
