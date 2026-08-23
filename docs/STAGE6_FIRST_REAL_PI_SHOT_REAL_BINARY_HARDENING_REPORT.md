@@ -517,7 +517,80 @@ LLC_SetFrequencyHz grew 109 -> 208 words (+198 bytes); table 124 words
 
 ### 18.8 H: candidate OUT
 
-New REAL candidate OUT SHA256 = `{new_sha}` (Stage6_FLASH_SHOT_REAL,
-CGT 25.11.1.LTS, COFF). Old CAD61C38 OUT is preserved as
-TIMING_FAILED_1406_CYCLES / DO_NOT_EXECUTE_REAL_POWER; old RAW evidence
-untouched. NOENERGY and REAL builds remain isolated.
+New REAL candidate OUT SHA256 = `0691C52431E7EA1140264FFED55DB8C4F870EF0A0F3FDACCC2403EFCC3647076`
+(Stage6_FLASH_SHOT_REAL, CGT 25.11.1.LTS, COFF). Old CAD61C38 OUT is
+preserved as TIMING_FAILED_1406_CYCLES / DO_NOT_EXECUTE_REAL_POWER; old RAW
+evidence untouched. NOENERGY and REAL builds remain isolated.
+
+### 18.9 I: candidate 1 (0691C524) no-power re-verification
+
+Field re-confirmed CNT3/CNT4 physically OPEN; no power executed. Timing
+harness re-run with the bounded-fastpath candidate OUT
+(`FASTPATH_CANDIDATE1_0691C524_RAW.txt` / `FASTPATH_CANDIDATE1_0691C524_RESULT.json`):
+
+- `FASTPATH_READY_REAL_ISR_MAX = 1247`, `OVERRUN = 1`, `ENTRY_INTERVAL_MAX = 1312`
+- All behavioral gates PASS (ring[0] 149800/400/149625, power_writes delta 11,
+  rb_count 11, state COMPLETE, abort TIMEOUT, tick 10, ok 1, PWM 0, OST 1,
+  fault 0, TIMER2_DELTA 11888).
+- Gate `ISR_MAX_LE_900` FAIL (1247 > 900): the no-division period calc only
+  saved ~9 cycles vs the frozen binary (1256 -> 1247) - the dominant cost is
+  the full RUN write tick (PI + 12-field ring record + actuator path), not the
+  divide -> candidate 2 required.
+
+### 18.10 I: candidate 2 (05BAA75C) firmware implementation
+
+Last allowed different-SHA candidate. All changes compiled only for the
+bounded REAL shot build (`STAGE6_FIRST_BOUNDED_REAL_PI_SHOT`); the generic
+path and formal Profile C SoftStart behavior are unchanged:
+
+1. `shot.h`/`shot.c`: ring record trimmed 12 -> 4 fields (the task-required
+   first-write proof: freq_cmd_hz / actual_freq_hz / tbprd / fresh_sample);
+   approx -40 words in SHOT_FastTask (118 -> 78 words).
+2. `control.c`: PI diagnostic global stores removed in the bounded build
+   (g_control_p_term_q12 / i_term_q12 / unsat_q12 / saturated_high/low /
+   integrator_frozen / adc_stale_inhibit); the local computed values are
+   unchanged, only the per-tick diagnostic stores are gone; approx -52 words
+   in CTRL_ComputeFrequencyCommand (183 -> 131 words).
+3. `protection.c`: the 5 ms flag modulo (`g_fast_tick % 250`, inlined
+   32-iteration SUBCUL) replaced by a counter with identical phase (first
+   assert on tick 0); redundant `g_real_isr_cycles_last = 0` entry store
+   removed (always filled at ISR exit).
+4. `adc.c` (`ADC_UpdatePwmSyncPointKeepCadence`): three diagnostic global
+   stores removed in the bounded build (g_adc_pwm_sync_cmpa/cmpb/
+   edge_distance - no code readers); 37 -> 23 words.
+5. Timing harness ring dump updated to the 4-field ring.
+
+Function sizes: TINT0_ISR 203 -> 201, CTRL_ComputeFrequencyCommand 183 -> 131,
+SHOT_FastTask 118 -> 78, ADC_UpdatePwmSyncPointKeepCadence 37 -> 23;
+LLC_SetFrequencyHz 208 unchanged; CALHOLD_FastTask 329 unchanged.
+
+### 18.11 I: candidate 2 (05BAA75C) no-power re-verification + final result
+
+CNT3/CNT4 remain physically OPEN; no power executed. Clean run
+(`FASTPATH_CANDIDATE2_05BAA75C_RAW.txt` /
+`FASTPATH_CANDIDATE2_05BAA75C_RESULT.json`; drain[1] max 441 = clean IDLE
+tick):
+
+- `FASTPATH_READY_REAL_ISR_MAX = 1148` (1247 -> 1148, -99 cycles),
+  `OVERRUN = 0`, `ENTRY_INTERVAL_MAX = 1218`
+- All behavioral gates PASS (ring[0] 149800/400/149625, power_writes delta 11,
+  rb_count 11, state COMPLETE, abort TIMEOUT, tick 10, ok 1, PWM 0, OST 1,
+  fault 0, TIMER2_DELTA 11836).
+- Gates FAIL: `ISR_MAX_LE_900` (1148 > 900) and entry-interval max 1218 >= 1200.
+
+Candidate budget (max two different-SHA candidates) is exhausted; the 900-cycle
+gate and the 1200 entry-interval gate are NOT lowered and 1200 is not treated
+as PASS. Final no-power timing result:
+
+```
+REAL_PI_FASTPATH_TIMING_FAIL
+CNT34_REMAIN_OPEN
+NO_REAL_POWER_EXECUTED
+REAL_POWER_NOT_AUTHORIZED
+```
+
+The next real-power authorized first shot remains blocked until a firmware
+budget fix is accepted by review (the RUN write tick baseline is ~1148 cycles
+with the fastest passive-safe record; the 900-cycle gate needs a structural
+change, e.g. moving the diagnostic record fully out of the ISR or a
+hardware-assisted period write).

@@ -82,7 +82,10 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var OUT="D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out";
+var out_env = java.lang.System.getenv("DSH_TIMING_OUT");
+var OUT = (out_env != null && out_env.length() > 0)
+    ? out_env
+    : "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out";
 var MANIFEST="D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real\\REAL_SHA256SUMS.txt";
 
 // ---- F: host SHA256 hard gate (BEFORE connect) ----
@@ -103,12 +106,17 @@ function sha256File(path){
   return sb.toString();
 }
 var expected="";
-var lines=java.io.BufferedReader(new java.io.FileReader(MANIFEST));
-var t;
-while((t=lines.readLine())!=null){
-  if(t.indexOf("REAL_OUT_SHA256")===0){ expected=t.split("=")[1].trim(); }
+var exp_env = java.lang.System.getenv("DSH_TIMING_EXPECTED_SHA");
+if (exp_env != null && exp_env.length() > 0) {
+    expected = exp_env;
+} else {
+    var lines=java.io.BufferedReader(new java.io.FileReader(MANIFEST));
+    var t;
+    while((t=lines.readLine())!=null){
+        if(t.indexOf("REAL_OUT_SHA256")===0){ expected=t.split("=")[1].trim(); }
+    }
+    lines.close();
 }
-lines.close();
 var actual=sha256File(OUT);
 print("REAL OUT host SHA256: "+actual);
 print("REAL OUT manifest   : "+expected);
@@ -420,16 +428,13 @@ if (!done) {
 }
 
 // ---- evidence: ring dump (read-only, after strict evaluation) ----
+// RECOVERY V1 candidate 2: ring holds the 4 first-write proof fields only.
 for(var j=0;j<rbc && j<32;j++){
   var i=(rstart+j)%32;
-  print("  rb["+i+"] tick="+rv32("g_first_real_pi_shot_rb["+i+"].tick")+
-        " fresh="+rw("g_first_real_pi_shot_rb["+i+"].fresh_sample")+
+  print("  rb["+i+"] fresh="+rw("g_first_real_pi_shot_rb["+i+"].fresh_sample")+
         " freq_cmd="+rv32("g_first_real_pi_shot_rb["+i+"].freq_cmd_hz")+
         " actual="+rv32("g_first_real_pi_shot_rb["+i+"].actual_freq_hz")+
-        " vout_raw="+rw("g_first_real_pi_shot_rb["+i+"].vout_raw")+
-        " err="+rw("g_first_real_pi_shot_rb["+i+"].error_raw")+
-        " tbprd="+rw("g_first_real_pi_shot_rb["+i+"].tbprd")+
-        " pi="+rv32("g_first_real_pi_shot_rb["+i+"].pi_integral_q12"));
+        " tbprd="+rw("g_first_real_pi_shot_rb["+i+"].tbprd"));
 }
 print("REALTIME_REAL_BINARY_GRADE="+((max<=900)?"PASS":(max<=1080)?"MARGIN_LOW":"FAIL"));
 print("REALTIME_REAL_BINARY_DONE");

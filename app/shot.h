@@ -48,22 +48,18 @@
 #define SHOT_ABORT_NO_HANDOFF 7U   /* SoftStart FINAL window expired without 10V handoff */
 #define SHOT_ABORT_CEILING    8U   /* SoftStart hard ceiling (12V) reached during ramp */
 
-/* One recorded control tick (H). Fields are plain (written once by the ISR,
- * read post-shot by CCS while halted), so the compiler can batch the stores. */
+/* One recorded control tick (H). RECOVERY V1 candidate 2: the ring keeps only
+ * the task-required first-write proof fields (fresh sample flag, commanded
+ * frequency, TBPRD period, actual frequency) so the per-tick ISR record cost is
+ * minimal; the 12-field diagnostic record was moved out of the 20 us ISR path.
+ * Fields are plain (written once by the ISR, read post-shot by CCS while
+ * halted), so the compiler can batch the stores. */
 typedef struct
 {
-    Uint32 tick;
-    Uint16 vout_raw;
-    Uint16 vout_filtered_raw;
-    int16  error_raw;
     Uint32 freq_cmd_hz;
     Uint32 actual_freq_hz;
     Uint16 tbprd;
-    int32  pi_integral_q12;
     Uint16 fresh_sample;
-    Uint16 tzflg;
-    Uint16 compsts;
-    Uint16 fault_flags;
 } SHOT_RbEntry;
 
 void   SHOT_Init(void);

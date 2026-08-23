@@ -264,7 +264,9 @@ __interrupt void TINT0_ISR(void)
         }
         g_real_timer0_entry_count++;
         g_real_timer0_last_entry = r_entry;
-        g_real_isr_cycles_last = 0UL;   /* filled at ISR exit */
+    /* RECOVERY V1 candidate 2: g_real_isr_cycles_last is always filled at ISR
+     * exit (below); the zero store at entry was redundant and is removed to
+     * keep the 20 us budget. */
     }
 #endif
     g_fast_tick++;
@@ -348,10 +350,17 @@ __interrupt void TINT0_ISR(void)
     }
 #endif
 
-    /* 5 ms slow-task tick */
-    if ((g_fast_tick % LLC_FAST_TICKS_PER_SLOW) == 0U)
+    /* 5 ms slow-task tick. RECOVERY V1 candidate 2: a counter replaces the
+     * 32-bit modulo (SUBCUL 32-iteration division) so every 20 us tick only
+     * increments; the flag still asserts exactly every LLC_FAST_TICKS_PER_SLOW
+     * ticks with the same phase (first assertion on tick 0). */
     {
-        g_5ms_flag = 1U;
+        static Uint32 s_slow_flag_counter = LLC_FAST_TICKS_PER_SLOW - 1U;
+        if (++s_slow_flag_counter >= LLC_FAST_TICKS_PER_SLOW)
+        {
+            s_slow_flag_counter = 0U;
+            g_5ms_flag = 1U;
+        }
     }
 
     CpuTimer0Regs.TCR.bit.TIF = 1U;

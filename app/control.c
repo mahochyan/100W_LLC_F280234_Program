@@ -255,19 +255,23 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     stale = (Uint16)((sample_valid == 0U) ||
                      (g_adc_pwm_sync_consecutive_miss >= (Uint16)CTRL_ADC_STALE_LIMIT));
     g_control_sample_valid = sample_valid;
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_adc_stale_inhibit = stale;
+#endif
     g_control_vout_raw = vout_raw;
 
     if ((g_control_running == 0U) || (stale != 0U))
 {
         g_control_error_raw = 0;
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
         g_control_p_term_q12 = 0;
         g_control_i_term_q12 = g_pi_integral_q12;
         g_control_unsat_q12 = CTRL_BIAS_Q12;
-        g_control_shadow_frequency_hz = g_control_frequency_hz;
         g_control_integrator_frozen = 1U;
         g_control_saturated_high = (g_control_frequency_hz >= (Uint32)OFFLINE_CONTROL_MAX_HZ);
         g_control_saturated_low  = (g_control_frequency_hz <= (Uint32)OFFLINE_CONTROL_MIN_HZ);
+#endif
+        g_control_shadow_frequency_hz = g_control_frequency_hz;
         return g_control_frequency_hz;
 }
 
@@ -275,17 +279,23 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     g_control_error_raw = (int16)error;
 
     p_q12 = CTRL_KP_RAW_Q12 * error;                       /* [-903303765,903303765] */
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_p_term_q12 = p_q12;
+#endif
 
     sat_high = (g_control_frequency_hz >= (Uint32)OFFLINE_CONTROL_MAX_HZ);
     sat_low  = (g_control_frequency_hz <= (Uint32)OFFLINE_CONTROL_MIN_HZ);
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_saturated_high = sat_high;
     g_control_saturated_low  = sat_low;
+#endif
 
     freeze = 0U;
     if (sat_high && (error < 0)) freeze = 1U;
     if (sat_low  && (error > 0)) freeze = 1U;
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_integrator_frozen = freeze;
+#endif
 
     if (freeze == 0U)
 {
@@ -294,10 +304,14 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
         if (g_pi_integral_q12 < -CTRL_INTEGRAL_MAX_Q12) g_pi_integral_q12 = -CTRL_INTEGRAL_MAX_Q12;
     }
     i_q12 = g_pi_integral_q12;
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_i_term_q12 = i_q12;
+#endif
 
     unsat_q12 = CTRL_BIAS_Q12 + (int32)LLC_CONTROL_SIGN * (p_q12 + i_q12);
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_unsat_q12 = unsat_q12;
+#endif
 
     if (unsat_q12 < CTRL_CLAMP_MIN_Q12) unsat_q12 = CTRL_CLAMP_MIN_Q12;
     if (unsat_q12 > CTRL_CLAMP_MAX_Q12) unsat_q12 = CTRL_CLAMP_MAX_Q12;

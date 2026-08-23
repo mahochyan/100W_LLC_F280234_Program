@@ -269,21 +269,17 @@ void SHOT_FastTask(void)
         return;
     }
 
-    /* H: record this control tick into the ring buffer. */
+    /* H: record this control tick into the ring buffer. RECOVERY V1 candidate
+     * 2: only the first-write proof fields are stored (fresh flag, commanded
+     * frequency, TBPRD, actual frequency) to keep the 20 us ISR budget; the
+     * ring order/tick can be inferred from rb_index/rb_count + the control
+     * tick history. */
     {
         SHOT_RbEntry *e = &g_first_real_pi_shot_rb[g_first_real_pi_shot_rb_index];
-        e->tick              = g_fast_tick;
-        e->vout_raw          = g_adc_vout_raw;
-        e->vout_filtered_raw = g_adc_vout_filtered_raw;
-        e->error_raw         = g_control_error_raw;
-        e->freq_cmd_hz       = g_control_frequency_hz;
-        e->actual_freq_hz    = g_actual_switching_frequency_hz;
-        e->tbprd             = g_pwm_period;
-        e->pi_integral_q12   = g_pi_integral_q12;
-        e->fresh_sample      = g_control_sample_valid;
-        e->tzflg             = EPwm1Regs.TZFLG.all;
-        e->compsts           = Comp1Regs.COMPSTS.bit.COMPSTS;
-        e->fault_flags       = (Uint16)g_fault_flags;
+        e->freq_cmd_hz    = g_control_frequency_hz;
+        e->actual_freq_hz = g_actual_switching_frequency_hz;
+        e->tbprd          = g_pwm_period;
+        e->fresh_sample   = g_control_sample_valid;
         g_first_real_pi_shot_rb_index = (Uint16)((g_first_real_pi_shot_rb_index + 1U) % SHOT_RB_SIZE);
         g_first_real_pi_shot_rb_count++;
     }

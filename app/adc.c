@@ -163,9 +163,11 @@ void ADC_UpdatePwmSyncPointKeepCadence(Uint16 period)
     EPwm1Regs.ETSEL.bit.SOCAEN = 1U;
     EDIS;
 
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_adc_pwm_sync_cmpb = sample_cmpb;
     g_adc_pwm_sync_cmpa = cmpa;
     g_adc_pwm_sync_edge_distance = (Uint16)(cmpa - sample_cmpb);
+#endif
 }
 
 void ADC_CheckOverflow(void)
