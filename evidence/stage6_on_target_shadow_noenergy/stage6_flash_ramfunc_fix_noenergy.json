@@ -62,7 +62,15 @@
     "ticks": 57236,
     "overrun_count": 41928,
     "threshold": "<=900 PASS, 901-1080 MARGIN_LOW, >1080 FAIL, >=1200 absolute FAIL, overrun must be 0",
-    "finding": "Typical active-PI ISR is ~834-858 cycles (14us, PASS). Worst case under required saturation coverage (lower/upper clamp) reaches ~2770 cycles (46us), exceeding the 1200-cycle absolute-fail threshold with overrun>0. This is a real-time performance finding of the soft-float C28x PI step (up to ~2426 cycles) against a 20us ISR, independent of the flash fix."
+    "permode_whole_isr_cycles": {
+      "12V": {"isr": 1915, "ctrl_pi_step": 1566, "overrun": 7483},
+      "11V": {"isr": 2044, "ctrl_pi_step": 1695, "overrun": 14744},
+      "13V": {"isr": 2128, "ctrl_pi_step": 1779, "overrun": 21552},
+      "5V_lowSat": {"isr": 2038, "ctrl_pi_step": 1689, "overrun": 28587},
+      "14V_hiSat": {"isr": 2128, "ctrl_pi_step": 1779, "overrun": 35372},
+      "stale": {"isr": 746, "ctrl_pi_step": 397, "overrun": 35372}
+    },
+    "finding": "DECISIVE: in EVERY active-PI mode (12V/11V/13V/5V-sat/14V-sat) the whole-ISR is ~1915-2128 cycles (32-35us) and the PI step (Compute+Apply) is ~1566-1779 cycles; every active-PI tick overruns the 1200-cycle absolute-fail threshold. Only the STALE (frozen-PI) mode is fast (746 cycles). The soft-float C28x PI controller's active step (~1600 cycles) does not fit a 20us (1200-cycle) ISR. This is a genuine real-time performance limitation of the firmware's PI computation, fully independent of the flash ramfunc fix."
   },
   "final_verdicts": {
     "FLASH_RAMFUNC_COPY_FIX": "COMPLETE",

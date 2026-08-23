@@ -38,11 +38,19 @@ Functional gates (with no-power ADC-stale counter cleared):
 - ON_TARGET_BINARY_IDENTITY_PASS (SHA 9F875131...DDF0)
 - FAST_ISR_BUDGET_MEASUREMENT_BOUNDARY_PASS (exit snapshot moved to end of ISR)
 
-## 6. 20 µs whole-ISR budget — FAIL
-- Typical active-PI ISR: 834-858 cycles (~14 µs, PASS).
-- Worst case under required coverage (lower/upper saturation): ISR max **2772 cycles = 46 µs**, PI step max **2426 cycles**, **overrun_count > 0**.
-- Threshold: <=900 PASS / 901-1080 MARGIN_LOW / >1080 FAIL / >=1200 absolute FAIL, overrun must be 0. → **absolute FAIL.**
-- Finding: the soft-float C28x PI step (up to ~2426 cycles) against a 20 µs (1200-cycle) ISR does not fit at the saturation extremes. Independent of the flash fix. Typical 12V steady-state is fine; the clamp/slew extremes over-run.
+## 6. 20 µs whole-ISR budget — FAIL (decisive, per-mode)
+- **Active-PI ISR is over-budget in EVERY mode**, not just saturation:
+  | Mode | whole-ISR cycles | PI step (Compute+Apply) | overrun |
+  |---|---|---|---|
+  | 12V | 1915 | 1566 | every tick |
+  | 11V | 2044 | 1695 | every tick |
+  | 13V | 2128 | 1779 | every tick |
+  | 5V lower-sat | 2038 | 1689 | every tick |
+  | 14V upper-sat | 2128 | 1779 | every tick |
+  | stale (PI frozen) | 746 | 397 | 0 |
+- ISR max **2772 cycles = 46 µs**; PI step max **2426 cycles**; **overrun>0** in all active-PI modes.
+- Threshold: <=900 PASS / 901-1080 MARGIN_LOW / >1080 FAIL / >=1200 absolute FAIL, overrun must be 0 → **absolute FAIL.**
+- **Finding:** the soft-float C28034 PI controller's active step (~1600 cycles) does not fit a 20 µs (1200-cycle) ISR. Every active-control tick overruns; only the stale/frozen path is fast. This is a genuine real-time performance issue in the firmware's PI computation, fully independent of the flash ramfunc fix.
 
 ## 7. Verdicts
 - **Flash fix COMPLETE** and validated: `ON_TARGET_TI_RAMFUNC_COPY_PASS`, `USDELAY_RAM_EXECUTION_PASS`, `CONTINUOUS_FLASH_RUNTIME_PASS`, `FLASH_RAMFUNC_RUN_REGION_LAYOUT_PASS`, `LEGACY_RAMFUNCS_COPY_PRESENT`, `TI_RAMFUNCS_COPY_PRESENT`.
