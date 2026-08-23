@@ -19,10 +19,13 @@ try{ session.target.halt(); }catch(e){}
 out("BPM connect OK");
 session.memory.loadProgram(OUT);
 wv32("g_control_frequency_hz",150000); wv32("g_control_shadow_frequency_hz",150000);
-wv32("g_pi_integral",0); wv32("g_pi_integral_q12",0); wv("g_control_vref_raw",1491);
+wv32("g_pi_integral",0); wv32("g_pi_integral_q12",0);
+wv("g_control_reference_valid",1); wv("g_control_vref_raw",1491);
+wv("g_control_adc_sequence_last",0); wv("g_stage6_synthetic_sequence",0);
 wv32("g_voltage_reference",0x41400000);
 wv("g_control_running",1); wv("g_adc_pwm_sync_consecutive_miss",0); wv("g_adc_pwm_sync_valid",1);
 wv("g_stage6_noenergy_test_enable",1);
+// modes: voltage=FRESH(mode1) worst-case, stale=HELD(mode3)
 var modes=[["12V",1491,1],["11V",1368,1],["13V",1615,1],
            ["5V-lowSat",626,1],["14V-hiSat",1739,1],["stale",0,3]];
 for(var i=0;i<modes.length;i++){

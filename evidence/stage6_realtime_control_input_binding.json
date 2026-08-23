@@ -1,0 +1,101 @@
+{
+  "task": "STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1",
+  "baseline_commit": "29c5e61",
+  "objective": "Close and verify the production runtime data chain before real-PI entry: real ADC -> fresh sample -> Q12 PI, and Vref engineering value -> raw reference. Keep real power / PI unlock / PWM loop disabled.",
+  "no_real_power": true,
+  "power_gates": {
+    "LLC_HARDWARE_PI_VALIDATED": 0,
+    "LLC_CONTROL_DIRECTION": 0,
+    "PWM": 0,
+    "g_pwm_enabled": 0,
+    "OST": 1,
+    "NO_REAL_POWER_EXECUTED": true
+  },
+  "compiler": "ti-cgt-c2000_25.11.1.LTS --abi=coffabi -v28 -ml -mt -O4 -ms -DSTAGE6_FLASH_BUILD=1",
+  "frozen_binary": {
+    "config": "Stage6_FLASH_NOENERGY",
+    "out_sha256": "D38D21ED3FC3152D9897EA764EAEA0471D9760413FEF36E7578741DD4D238F1B"
+  },
+  "binding_design": {
+    "freshness_signal": "g_adc_sample_sequence (advances on every ADC conversion in ADCINT1_ISR)",
+    "latest_sample": "g_adc_vout_filtered_raw (IIR-smoothed, same raw scale; identical physical semantics to pre-migration g_vout_volts source)",
+    "consume_rule": "CTRL_RunFastControl consumes g_adc_vout_filtered_raw EXACTLY once per fresh sequence; g_control_adc_sequence_last tracks consumed seq; duplicate seq -> sample_valid=0 -> PI/integrator FREEZE; multiple samples between two ticks -> only the LATEST is consumed once",
+    "control_vout_raw": "g_control_vout_raw records the sample actually consumed by the PI at Compute entry (no slow-task refresh)",
+    "reference_valid_gate": "g_control_reference_valid set in CTRL_SlowTask ONLY when g_voltage_reference>0.5V; CTRL_FastTask early-returns while invalid -> 0V init reference can never become a real RUN reference",
+    "reference_raw_path": "g_control_vref_raw = CTRL_VoltsToRaw(g_voltage_reference) in the 5ms slow task (only source = engineering Vref), never hard-coded"
+  },
+  "gates": {
+    "B_CONTROL_INPUT_CADENCE_BUG_CONFIRMED": true,
+    "C_CONTROL_SAMPLE_SOURCE_AUDIT_PASS": true,
+    "D_FRESH_ADC_SAMPLE_SINGLE_CONSUME_PASS": true,
+    "E_OBSERVABILITY_COUNTERS_PRESENT": true,
+    "F_VREF_RAW_RUNTIME_SYNC_PASS": true,
+    "G_REFERENCE_VALID_GATE_PASS": true,
+    "H_TELEMETRY_AFTER_DATA_SYNC": true,
+    "I_FULL_FAST_CONTROL_PATH_SOFTFLOAT_FREE_PASS": true,
+    "L_DUPLICATE_ADC_SAMPLE_INTEGRATION_BLOCKED_PASS": true,
+    "M_20US_CONTROL_SAMPLE_BINDING_PASS": true,
+    "N_SIL_CADENCE_MISSING_1_2_3_STALE_PASS": true,
+    "O_20US_FULL_SHADOW_CONTROL_BUDGET_PASS": true,
+    "PWM_REGISTER_ISOLATION_PASS": true,
+    "overrun": 0
+  },
+  "on_target_noenergy": {
+    "ON_TARGET_PRELOAD_SAFE_PASS": true,
+    "ON_TARGET_8CASE_PASS": true,
+    "ONTC_STALE_FROZEN_PASS": true,
+    "ONTC_STALE_RECOVER_PASS": true,
+    "VREF_RAW_RUNTIME_SYNC_PASS": true,
+    "vref_runtime": {"12V": 1491, "11V": 1368, "10V": 1244, "15V": 1862, "13V": 1615, "12V_back": 1491},
+    "DUPLICATE_ADC_SAMPLE_INTEGRATION_BLOCKED_PASS": true,
+    "duplicate": {"fresh1": 1, "dup1": 10167, "pi1": 1, "fresh2": 1, "pi2": 1, "fresh3": 2, "pi3": 2, "integral_stable": true, "oneMore": true},
+    "20US_CONTROL_SAMPLE_BINDING_PASS": true,
+    "binding": {"seq100": 1491, "seq101": 1480, "seq102": 1470, "seq103": 1460},
+    "REFERENCE_VALID_GATE_PASS": true,
+    "ref_gate": {"0V_valid": 0, "0V_vref_raw": 0, "12V_valid": 1, "12V_vref_raw": 1491},
+    "PWM_REGISTER_ISOLATION_PASS": true,
+    "final_safe": true,
+    "post_pwm_enabled": 0,
+    "post_ost": 1
+  },
+  "20us_budget_production_binding": {
+    "measurement": "whole TINT0 ISR including real ADC-sequence freshness + CTRL_RunFastControl + Q12 Compute + shadow Apply",
+    "clean_isr_max_cyc": 575,
+    "clean_isr_max_us": 9.583,
+    "clean_pct_of_20us": 47.9,
+    "clean_ctrl_binding_cyc_max": 208,
+    "clean_overrun": 0,
+    "clean_ticks": 91213,
+    "permode_isr_max_cyc": 575,
+    "permode_ctrl_binding_cyc_max": 208,
+    "permode_overrun": 0,
+    "permode_min_ticks_per_mode": 12336,
+    "threshold": "<=900 PASS / 901-1080 MARGIN_LOW / >1080 FAIL / >=1200 ABS FAIL; overrun must be 0"
+  },
+  "sil": {
+    "FIXED_POINT_PI_SIL_PARITY_PASS": true,
+    "ensemble_cases": 108,
+    "ensemble_max_dev_hz": 5.7821,
+    "FIXED_POINT_FIRST_STEP_PASS": true,
+    "SIL_CADENCE_FULL_FRESH_MATCH_PASS": true,
+    "SIL_CADENCE_MISSING_1_2_3_STALE_PASS": true,
+    "cadence_transient_dev_hz": 17.455,
+    "cadence_note": "Q12 output quantized to integer Hz (out>>12); transient slew divergence ~17Hz (~0.016% of 150kHz) within 25Hz transient tolerance; steady-state ensemble holds 5.78Hz < 10Hz"
+  },
+  "static": {
+    "FULL_FAST_CONTROL_PATH_SOFTFLOAT_FREE_PASS": true,
+    "fast_path_symbols": ["CTRL_FastTask", "CTRL_RunFastControl", "CTRL_ComputeFrequencyCommand", "CTRL_ApplyFrequencyCommand"],
+    "fast_path_FFC": 0,
+    "fast_path_softfloat_refs": 0,
+    "FIXED_POINT_FIXED_CORE_FFC": 0,
+    "FAST_PI_SOFTFLOAT_FREE_PASS": true
+  },
+  "verdict": {
+    "STAGE6_ON_TARGET_SHADOW_NOENERGY_PASS": true,
+    "F28034_BALANCED_PI_EXECUTION_VALIDATED": true,
+    "READY_FOR_STAGE6_REAL_POWER_PI_ENTRY_REVIEW": true,
+    "LLC_HARDWARE_PI_VALIDATED": 0,
+    "LLC_CONTROL_DIRECTION": 0,
+    "overrun": 0
+  }
+}

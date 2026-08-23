@@ -88,6 +88,14 @@ volatile int16   g_control_error_raw    ;
 volatile int32   g_control_p_term_q12   ;
 volatile int32   g_control_i_term_q12   ;
 volatile int32   g_control_unsat_q12    ;
+/* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - input-binding runtime state. */
+volatile Uint16  g_control_reference_valid          = 0U;
+volatile Uint16  g_control_adc_sequence_last        = 0U;
+volatile Uint16  g_control_adc_sequence_consumed    = 0U;
+volatile Uint32  g_control_fresh_sample_count       = 0UL;
+volatile Uint32  g_control_duplicate_sample_block_count = 0UL;
+volatile Uint32  g_control_stale_tick_count         = 0UL;
+volatile Uint32  g_control_pi_update_count          = 0UL;
 
 /* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation (test build only). */
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
@@ -100,6 +108,7 @@ volatile Uint32 g_stage6_noenergy_test_ticks= 0UL;
 volatile Uint16 g_stage6_noenergy_test_enable = 0U;
 volatile float  g_stage6_synthetic_vout     = 12.0f;
 volatile Uint16  g_stage6_synthetic_vout_raw = 1491U;  /* raw mirror (12V); harness writes both */
+volatile Uint16  g_stage6_synthetic_sequence   = 0U;    /* synthetic ADC sample-sequence (binding tests) */
 volatile Uint16 g_stage6_noenergy_test_mode = 0U;
 volatile Uint16 g_stage6_noenergy_step_req  = 0U;
 volatile Uint32 g_stage6_noenergy_step_shadow_hz  = 0UL;
@@ -551,4 +560,5 @@ volatile Uint32 g_adc_ovf_count ;
 volatile Uint16 g_adc_ovf_first_tbctr ;
 volatile Uint16 g_adc_ovf_first_flag_was_set ;
 volatile Uint16 g_adc_isr_last_tbctr ;
+
 

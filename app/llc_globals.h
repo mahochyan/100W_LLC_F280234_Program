@@ -90,6 +90,14 @@ extern volatile int16   g_control_error_raw;
 extern volatile int32   g_control_p_term_q12;
 extern volatile int32   g_control_i_term_q12;
 extern volatile int32   g_control_unsat_q12;
+/* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - input-binding runtime state. */
+extern volatile Uint16  g_control_reference_valid;
+extern volatile Uint16  g_control_adc_sequence_last;
+extern volatile Uint16  g_control_adc_sequence_consumed;
+extern volatile Uint32  g_control_fresh_sample_count;
+extern volatile Uint32  g_control_duplicate_sample_block_count;
+extern volatile Uint32  g_control_stale_tick_count;
+extern volatile Uint32  g_control_pi_update_count;
 
 /* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation. Macro is set ONLY in
  * the Stage6_FLASH_NOENERGY test build; production Stage6_FLASH keeps it 0. */
@@ -103,6 +111,7 @@ extern volatile Uint32 g_stage6_noenergy_test_ticks;
 extern volatile Uint16 g_stage6_noenergy_test_enable;
 extern volatile float  g_stage6_synthetic_vout;
 extern volatile Uint16  g_stage6_synthetic_vout_raw;
+extern volatile Uint16  g_stage6_synthetic_sequence;
 extern volatile Uint16 g_stage6_noenergy_test_mode;  /* 0 idle,1 first-step(11V),2 first-step(13V),3 stale-run */
 extern volatile Uint16 g_stage6_noenergy_step_req;   /* one-shot: run exactly one PI step */
 extern volatile Uint32 g_stage6_noenergy_step_shadow_hz;
@@ -354,7 +363,7 @@ extern volatile Uint32 g_accel_stop_miss_count;
 
 /* PROFILE_C_CAL_HOLD_BURST_V1 (2026-08-17)
  * Low-energy hold platform near 1400 raw for ADC<->DMM calibration.
- * New controller 鈥?the legacy CALHOLD_SlowTask / VOUTPROBE packet logic is
+ * New controller ??the legacy CALHOLD_SlowTask / VOUTPROBE packet logic is
  * NOT reused (5ms granularity is too coarse for the output decay).
  * Hard limits are compile-time macros; no CCS-writable variable can enlarge
  * them. */
@@ -474,7 +483,7 @@ extern volatile Uint16 g_pfm_cmpb;
 extern volatile Uint16 g_ipri_raw_before;
 extern volatile Uint16 g_ipri_raw_max;
 extern volatile Uint16 g_ipri_raw_at_stop;
-/* COMP 姝﹁鐘舵�?RAM 蹇収锛圖SS 璇诲彈 EALLOW 淇濇姢瀵勫瓨鍣ㄥ彈闄愶紝鏁呮嫹鍏?RAM 渚涢獙璇侊級 */
+/* COMP 武装状??RAM 快照（DSS 读受 EALLOW 保护寄存器受限，故拷??RAM 供验证） */
 extern volatile Uint16 g_comp_arm_dacval;
 extern volatile Uint16 g_comp_arm_compdacen;
 extern volatile Uint16 g_comp_arm_tzsel_osht1;
@@ -616,4 +625,5 @@ extern volatile Uint16 g_adc_ovf_first_flag_was_set;
 extern volatile Uint16 g_adc_isr_last_tbctr;
 
 #endif /* APP_LLC_GLOBALS_H */
+
 

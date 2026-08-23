@@ -23,7 +23,10 @@ wv32("g_control_frequency_hz",150000);
 wv32("g_control_shadow_frequency_hz",150000);
 wv32("g_pi_integral",0x00000000);
 wv32("g_pi_integral_q12",0);
+wv("g_control_reference_valid",1);
 wv("g_control_vref_raw",1491);          // 12V raw ref (Q12 controller)
+wv("g_control_adc_sequence_last",0);
+wv("g_stage6_synthetic_sequence",0);
 wv32("g_voltage_reference",0x41400000);
 wv("g_control_running",1);
 wv("g_adc_pwm_sync_consecutive_miss",0);
@@ -32,7 +35,7 @@ wv("g_stage6_noenergy_test_enable",1);
 wv("g_stage6_noenergy_test_ticks",0);
 wv("g_fast_isr_cycles_max",0);
 wv("g_fast_isr_overrun_count",0);
-// coverage: 12V,11V,13V, low sat, high sat, stale (raw-domain samples)
+// coverage: 12V,11V,13V, low sat, high sat, stale (raw-domain samples; mode1=fresh, mode3=held)
 wv("g_stage6_noenergy_test_mode",1); wv("g_stage6_synthetic_vout_raw",1491); run(300);
 wv("g_stage6_synthetic_vout_raw",1368); run(300);
 wv("g_stage6_synthetic_vout_raw",1615); run(300);

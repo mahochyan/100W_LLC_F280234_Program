@@ -219,12 +219,22 @@ __interrupt void TINT0_ISR(void)
     {
         Uint32 tb, tx;
         g_stage6_noenergy_test_ticks++;
+        /* Production-input-binding: emulate the real ADCINT path producing the
+         * LATEST frame + NEW-sample sequence, then run the production fast
+         * control body (freshness + binding + PI + shadow apply).
+         *   mode 1 = FRESH (auto-advance sequence every tick; worst case)
+         *   mode 3 = HELD  (sequence held; first tick consumes once, then freeze)
+         * PWM stays 0 / OST stays 1; no real power. */
+        if (g_stage6_noenergy_test_mode == 1U)
+        {
+            g_stage6_synthetic_sequence++;   /* new sample every 20 us tick */
+        }
+        g_adc_sample_sequence    = g_stage6_synthetic_sequence;
+        g_adc_vout_filtered_raw  = g_stage6_synthetic_vout_raw;
         tb = CpuTimer2Regs.TIM.all;
         g_control_running = 1U;
         g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
-        CTRL_ComputeFrequencyCommand((g_stage6_noenergy_test_mode == 3U) ? 0U : 1U,
-                                     g_stage6_synthetic_vout_raw);
-        CTRL_ApplyFrequencyCommand();
+        CTRL_RunFastControl();   /* production freshness + binding + PI + apply */
         tx = CpuTimer2Regs.TIM.all;
         /* region B: one Compute+Apply (down counter -> entry-exit diff) */
         g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
@@ -466,4 +476,5 @@ void PROT_SlowTask(void)
     }
     }
 }
+
 

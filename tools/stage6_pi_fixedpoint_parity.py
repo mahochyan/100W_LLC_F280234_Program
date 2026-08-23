@@ -110,6 +110,86 @@ def run_float(vout_v, steps, vref_v=VREF_F, freq0=150000.0, integ0=0.0):
     return f, i
 
 # ----------------------------------------------------------------------
+# Task N: production freshness cadence SIL (input-binding closure).
+# A tick is FRESH when the ADC sample-sequence advances (new sample arrived);
+# otherwise it is STALE and the PI/integrator must FREEZE (hold last output).
+# Both the fixed (Q12) and float (V2.1 reference) controllers consume the SAME
+# freshness cadence so the ONLY difference is Q12-vs-f32 arithmetic.
+#
+# CAD_TOL (25 Hz): transient fresh-match tolerance. The Q12 command is
+# quantized to integer Hz (out>>12); during a slew the fixed controller can
+# diverge from the continuous float reference by up to ~17 Hz (0.016 % of the
+# ~150 kHz nominal, well under the 100 Hz single-step slew). Steady-state
+# parity stays far tighter (the ensemble gate holds to 10 Hz / ~5.8 Hz max).
+# ----------------------------------------------------------------------
+CAD_TOL = 25.0   # Hz transient fresh-match tolerance (fixed vs float)
+
+def run_cadence(steps, fixed=True, vref_raw=None, vref_v=None):
+    """steps: list of (is_fresh, vout_raw). Returns [(freq, integ), ...] per tick.
+       stale ticks hold the previous output/integral (production freeze)."""
+    if vref_raw is None: vref_raw = volts_to_raw(12.0)
+    if vref_v is None:   vref_v   = 12.0
+    f, i = 150000.0, (0 if fixed else 0.0)
+    last_raw = steps[0][1]
+    out = []
+    for (fresh, raw) in steps:
+        if fresh:
+            last_raw = raw
+            if fixed:
+                f, i = fixed_step(vref_raw, last_raw, f, i)
+            else:
+                f, i = float_step(vref_v, raw_to_volts(last_raw), f, i)
+        # stale: hold f,i (frozen)
+        out.append((f, i))
+    return out
+
+def make_cadence(fresh_every):
+    """Build a cadence with a FRESH sample every `fresh_every` tick (1 = every
+       20us; 2,3,4 = 1,2,3 missing tick(s) between freshes) and a SMOOTH ramp of
+       vout raw across fresh samples (realistic slow change: 11 -> ~12.1 V)."""
+    nfresh = 14
+    start_v, dv = 11.0, 0.09
+    ramp = [volts_to_raw(start_v + k * dv) for k in range(nfresh)]
+    steps = []
+    ri = 0
+    total = (len(ramp) - 1) * fresh_every + 1
+    for t in range(total):
+        fresh = (t % fresh_every == 0)
+        steps.append((fresh, ramp[ri]))
+        if fresh:
+            ri = min(ri + 1, len(ramp) - 1)
+    return steps
+
+def run_cadence_suite():
+    ok = True
+    details = {}
+    for fresh_every in (1, 2, 3, 4):   # fresh every 20us(=1), missing 1,2,3 tick(s)
+        steps = make_cadence(fresh_every)
+        fx = run_cadence(steps, fixed=True)
+        fl = run_cadence(steps, fixed=False)
+        max_dev = 0.0
+        frozen_all = True
+        for t, (is_fresh, _) in enumerate(steps):
+            d = abs(fx[t][0] - fl[t][0])
+            max_dev = max(max_dev, d)
+            # on a STALE tick both controllers must have held the PREVIOUS output
+            if not is_fresh and t > 0:
+                if not (fx[t][0] == fx[t-1][0] and abs(fl[t][0] - fl[t-1][0]) < 1e-6):
+                    frozen_all = False
+        # fresh ticks must match V2.1 within tol
+        match = max_dev <= CAD_TOL
+        this_ok = match and frozen_all
+        ok = ok and this_ok
+        print("CADENCE fresh_every=%d ticks=%d fresh_match_dev=%.3fHz freeze=%s : %s"
+              % (fresh_every, len(steps), max_dev, "OK" if frozen_all else "FAIL",
+                 "PASS" if this_ok else "FAIL"))
+        details[fresh_every] = {"ticks": len(steps), "max_dev_hz": round(max_dev, 3),
+                                "frozen": frozen_all, "pass": this_ok}
+    print("SIL_CADENCE_FULL_FRESH_MATCH_PASS=" + ("TRUE" if details[1]["pass"] else "FALSE"))
+    print("SIL_CADENCE_MISSING_1_2_3_STALE_PASS=" + ("TRUE" if (details[2]["pass"] and details[3]["pass"] and details[4]["pass"]) else "FALSE"))
+    return ok, details
+
+# ----------------------------------------------------------------------
 def main():
     results = {"cases": [], "pass": True, "max_dev_hz": 0.0, "worst": None}
     TOL = 10.0   # Hz: max allowed |fixed-float| (Q12 vs f32 arithmetic rounding)
@@ -176,6 +256,14 @@ def main():
     print("FIXED_POINT_PI_SIL_PARITY_PASS=" + ("TRUE" if results["pass"] else "FALSE"))
     if results["worst"]:
         print("worst case: " + json.dumps(results["worst"]))
+
+    # ----- Task N: production freshness cadence (missing 1/2/3 tick) -----
+    cad_ok, cad_detail = run_cadence_suite()
+    results["cadence"] = cad_detail
+    results["cadence_pass"] = cad_ok
+    if not cad_ok:
+        results["pass"] = False
+
     with open(r"D:\CCS21_workspace\Codex_Project\evidence\stage6_pi_fixedpoint_parity.json", "w") as fh:
         json.dump(results, fh, indent=2)
     return 0 if results["pass"] else 1

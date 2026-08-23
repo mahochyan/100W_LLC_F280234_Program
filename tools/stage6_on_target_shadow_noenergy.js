@@ -85,8 +85,16 @@ function resetCtrlBase(){
   wv32("g_control_shadow_frequency_hz",150000);
   wv32("g_pi_integral",0x00000000);            // float mirror (telemetry)
   wv32("g_pi_integral_q12",0);                 // Q12 integral state
-  wv("g_control_vref_raw",1491);               // 12V raw ref (Q12 controller)
-  wv32("g_voltage_reference",0x41400000);      // 12.0f
+  wv32("g_voltage_reference",0x41400000);      // 12.0f (ONLY reference source under test)
+  wv("g_control_reference_valid",0);           // slow task re-derives from g_voltage_reference
+  wv("g_control_vref_raw",0);
+  wv("g_control_adc_sequence_last",0);
+  wv("g_control_adc_sequence_consumed",0);
+  wv32("g_control_fresh_sample_count",0);
+  wv32("g_control_duplicate_sample_block_count",0);
+  wv32("g_control_stale_tick_count",0);
+  wv32("g_control_pi_update_count",0);
+  wv("g_stage6_synthetic_sequence",0);
   wv("g_stage6_noenergy_test_enable",0);
   wv("g_control_running",1);
   wv("g_adc_pwm_sync_consecutive_miss",0);     // clear ADC-stale counter (no-power env)
@@ -135,7 +143,97 @@ print("STALE_RECOVER shadow="+r_shadow+" delta="+d);
 print("ONTC_STALE_FROZEN_PASS="+(frozen_ok?"TRUE":"FALSE"));
 print("ONTC_STALE_RECOVER_PASS="+(d<=100?"TRUE":"FALSE"));
 
-// ---- N/O/P/Q: 20us budget ticks across coverage (raw-domain) ----
+// ---- F/K: reference raw runtime sync - ONLY write g_voltage_reference ----
+var GAIN=0.008089325, OFFSET=-0.063715;
+function voltsToRaw(v){ var r=(v-OFFSET)/GAIN; r=Math.max(0,Math.min(4095,r)); return Math.round(r); }
+resetCtrlBase();
+wv32("g_voltage_reference",0x41400000); run(120); var r12=rw("g_control_vref_raw");   // 12V ~1491
+wv32("g_voltage_reference",0x41300000); run(120); var r11=rw("g_control_vref_raw");   // 11V ~1368
+wv32("g_voltage_reference",0x41200000); run(120); var r10=rw("g_control_vref_raw");   // 10V ~1244
+wv32("g_voltage_reference",0x41700000); run(120); var r15=rw("g_control_vref_raw");   // 15V ~1862
+wv32("g_voltage_reference",0x41500000); run(120); var r13=rw("g_control_vref_raw");   // 13V ~1615
+wv32("g_voltage_reference",0x41400000); run(120); var r12b=rw("g_control_vref_raw");  // back to 12V
+print("VREF runtime: 12V="+r12+"(exp "+voltsToRaw(12)+") 11V="+r11+"("+voltsToRaw(11)+") 10V="+r10+"("+voltsToRaw(10)+") 15V="+r15+"("+voltsToRaw(15)+") 13V="+r13+"("+voltsToRaw(13)+") 12Vb="+r12b);
+var vrefOk=(Math.abs(r12-voltsToRaw(12))<=1)&&(Math.abs(r11-voltsToRaw(11))<=1)&&(Math.abs(r10-voltsToRaw(10))<=1)&&(Math.abs(r15-voltsToRaw(15))<=1)&&(Math.abs(r13-voltsToRaw(13))<=1)&&(Math.abs(r12b-voltsToRaw(12))<=1);
+print("VREF_RAW_RUNTIME_SYNC_PASS="+(vrefOk?"TRUE":"FALSE"));
+
+// ---- E/L: duplicate-sample integration blocked (freshness) ----
+resetCtrlBase();
+wv("g_stage6_noenergy_test_mode",3);            // HELD: consume once, then freeze
+wv("g_stage6_synthetic_sequence",100);
+wv("g_stage6_synthetic_vout_raw",1368);
+wv("g_stage6_noenergy_test_enable",1);
+run(200);                                       // first tick fresh, rest duplicate-blocked
+session.target.halt();
+var Lf1=rv32u("g_control_fresh_sample_count");
+var Ld1=rv32u("g_control_duplicate_sample_block_count");
+var Lp1=rv32u("g_control_pi_update_count");
+var LI1=rv32u("g_pi_integral_q12");
+run(200);                                       // more held ticks; integral must NOT grow
+session.target.halt();
+var Lf2=rv32u("g_control_fresh_sample_count");
+var Lp2=rv32u("g_control_pi_update_count");
+var LI2=rv32u("g_pi_integral_q12");
+var integStable=(LI1==LI2);
+var piEqFresh=((Lp1==Lf1)&&(Lp2==Lf2));
+wv("g_stage6_synthetic_sequence",101);          // new sample -> exactly one more PI update
+run(60);
+session.target.halt();
+var Lf3=rv32u("g_control_fresh_sample_count");
+var Lp3=rv32u("g_control_pi_update_count");
+var oneMore=((Lf3-Lf2)==1)&&((Lp3-Lp2)==1);
+print("DUPLICATE fresh1="+Lf1+" dup1="+Ld1+" pi1="+Lp1+" fresh2="+Lf2+" pi2="+Lp2+" fresh3="+Lf3+" pi3="+Lp3);
+print("DUPLICATE integral_stable="+(integStable?"TRUE":"FALSE")+" pi==fresh="+(piEqFresh?"TRUE":"FALSE")+" oneMore="+(oneMore?"TRUE":"FALSE"));
+print("DUPLICATE_ADC_SAMPLE_INTEGRATION_BLOCKED_PASS="+((Ld1>0&&integStable&&piEqFresh&&oneMore)?"TRUE":"FALSE"));
+
+// ---- M: fast sample change binding (each fresh sample -> g_control_vout_raw follows) ----
+resetCtrlBase();
+wv("g_stage6_noenergy_test_mode",3);           // HELD (harness controls sequence per phase)
+wv("g_stage6_noenergy_test_enable",1);
+wv("g_stage6_synthetic_sequence",100); wv("g_stage6_synthetic_vout_raw",1491); run(30); var c1=rw("g_control_vout_raw");
+wv("g_stage6_synthetic_sequence",101); wv("g_stage6_synthetic_vout_raw",1480); run(30); var c2=rw("g_control_vout_raw");
+wv("g_stage6_synthetic_sequence",102); wv("g_stage6_synthetic_vout_raw",1470); run(30); var c3=rw("g_control_vout_raw");
+wv("g_stage6_synthetic_sequence",103); wv("g_stage6_synthetic_vout_raw",1460); run(30); var c4=rw("g_control_vout_raw");
+print("BIND 100->"+c1+" 101->"+c2+" 102->"+c3+" 103->"+c4);
+print("20US_CONTROL_SAMPLE_BINDING_PASS="+((c1==1491&&c2==1480&&c3==1470&&c4==1460)?"TRUE":"FALSE"));
+
+// ---- G: REFERENCE_VALID gate - 0V init never becomes a real RUN reference ----
+// The reference_valid flag derives ONLY from g_voltage_reference>0.5 V in the
+// slow path (CTRL_SlowTask). While invalid, g_control_vref_raw stays 0 and the
+// fast PI is gated (CTRL_FastTask early-returns on reference_valid==0, verified
+// statically). Tested in IDLE (no PWM, no protection fault) so the slow sync is
+// the sole writer.
+wv("g_stage6_noenergy_test_enable",0);
+wv("g_system_state",0);                       // SYS_STATE_IDLE (slow task still runs)
+wv("g_pwm_enabled",0);
+wv32("g_voltage_reference",0x00000000);       // 0V -> INVALID
+wv("g_control_reference_valid",0);
+wv("g_control_vref_raw",0);
+run(200);
+session.target.halt();
+var gV0=rw("g_control_reference_valid");
+var gR0=rw("g_control_vref_raw");
+wv32("g_voltage_reference",0x41400000);       // 12V -> VALID
+run(150);
+session.target.halt();
+var gV1=rw("g_control_reference_valid");
+var gR1=rw("g_control_vref_raw");
+print("REF_GATE 0V valid="+gV0+" vref_raw="+gR0+" | 12V valid="+gV1+" vref_raw="+gR1);
+print("REFERENCE_VALID_GATE_PASS="+((gV0==0&&gR0==0&&gV1==1&&Math.abs(gR1-1491)<=1)?"TRUE":"FALSE"));
+// restore clean neutral state + budget counters for an uncontaminated measurement
+wv("g_system_state",0);                        // SYS_STATE_IDLE
+wv("g_pwm_enabled",0);
+wv("g_control_running",0);
+wv("g_control_reference_valid",1);
+wv("g_control_vref_raw",1491);
+wv("g_control_adc_sequence_last",0);
+wv("g_stage6_synthetic_sequence",0);
+
+// ---- N/O/P/Q: 20us budget ticks across coverage (production binding path) ----
+wv("g_stage6_noenergy_test_ticks",0);
+wv("g_fast_isr_cycles_max",0);
+wv("g_fast_isr_overrun_count",0);
+wv("g_control_exec_cycles_max",0);
 wv("g_stage6_noenergy_test_enable",1);
 wv("g_stage6_noenergy_test_mode",1); wv("g_stage6_synthetic_vout_raw",1491); run(250);  // 12V err0
 wv("g_stage6_synthetic_vout_raw",1368); run(250);                                        // 11V
@@ -165,6 +263,6 @@ wv("g_system_state",0);
 run(50);
 snap("POST");
 print("ON_TARGET_BINARY_LOADED="+OUT);
-print("ON_TARGET_BINARY_SHA=20777C423FDDAFF6197F8D3DA5817B02B58B8176B01A6BC43ED73EDFE4A9F434");
+print("ON_TARGET_BINARY_SHA=D38D21ED3FC3152D9897EA764EAEA0471D9760413FEF36E7578741DD4D238F1B");
 print("DONE");
 try{ session.terminate(); }catch(e){}

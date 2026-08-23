@@ -113,6 +113,16 @@ void CTRL_Init(void)
     g_offline_test_request = 0U;
     g_offline_test_status = 0U;
     g_offline_pwm_isolated = 0U;
+    /* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1: input-binding state.
+     * Reference is NOT valid until the slow task observes g_voltage_reference
+     * > 0.5 V (so the init 0 V raw can never become a real RUN reference). */
+    g_control_reference_valid = 0U;
+    g_control_adc_sequence_last = 0U;
+    g_control_adc_sequence_consumed = 0U;
+    g_control_fresh_sample_count = 0UL;
+    g_control_duplicate_sample_block_count = 0UL;
+    g_control_stale_tick_count = 0UL;
+    g_control_pi_update_count = 0UL;
 
     /* Teaching / observation: which PI profile is loaded (G). CCS Expressions
      * shows these directly. Values mirror control_profile.h. */
@@ -324,6 +334,41 @@ void CTRL_ApplyFrequencyCommand(void)
 #endif
 }
 
+/*
+ * STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - production fast control
+ * body (integer-only): NEW-sample freshness selection, single consumption of
+ * the LATEST ADC sample, and PI entry. Called by CTRL_FastTask after the
+ * stage/PWM/reference gates, and by the no-energy production-binding hook.
+ * Reads g_adc_sample_sequence for NEW-SAMPLE freshness and consumes
+ * g_adc_vout_filtered_raw (latest) exactly once per fresh sequence.
+ */
+void CTRL_RunFastControl(void)
+{
+    Uint16 fresh_seq, sample_valid, vout_raw;
+
+    fresh_seq = g_adc_sample_sequence;
+    if (fresh_seq == g_control_adc_sequence_last)
+    {
+        g_control_duplicate_sample_block_count++;
+        g_control_stale_tick_count++;
+        sample_valid = 0U;
+        vout_raw = g_control_vout_raw;   /* hold last consumed */
+    }
+    else
+    {
+        g_control_adc_sequence_last = fresh_seq;
+        g_control_adc_sequence_consumed = fresh_seq;
+        g_control_fresh_sample_count++;
+        g_control_pi_update_count++;
+        sample_valid = 1U;
+        vout_raw = g_adc_vout_filtered_raw;  /* latest, consumed once */
+    }
+    g_control_sample_valid = sample_valid;
+
+    CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
+    CTRL_ApplyFrequencyCommand();
+}
+
 void CTRL_FastTask(void)
 {
     if (g_system_state != SYS_STATE_RUN)
@@ -339,14 +384,13 @@ void CTRL_FastTask(void)
         g_control_running = 0U;
         return;
     }
-    if (g_vout_volts < 0.0f)
+    if (g_control_reference_valid == 0U)
     {
-        return;
+        return;   /* no valid Vref yet -> no PI */
     }
 
     g_control_running = 1U;
-    CTRL_ComputeFrequencyCommand(g_adc_pwm_sync_valid, g_control_vout_raw);
-    CTRL_ApplyFrequencyCommand();
+    CTRL_RunFastControl();
 }
 
 void CTRL_UpdateTelemetrySlow(void)
@@ -366,8 +410,17 @@ void CTRL_UpdateTelemetrySlow(void)
 
 void CTRL_SlowTask(void)
 {
+    /* Reference engineering value -> raw (slow path, float allowed).
+     * Only ever sourced from g_voltage_reference; the production conversion
+     * path (CTRL_VoltsToRaw) is the one under test. Gate PI on validity. */
+    g_control_reference_valid = (g_voltage_reference > 0.5f) ? 1U : 0U;
+    if (g_control_reference_valid != 0U)
+    {
+        g_control_vref_raw = CTRL_VoltsToRaw(g_voltage_reference);
+    }
+    /* Telemetry AFTER reference/data sync. g_control_vout_raw holds the last
+     * sample the fast PI consumed (owned by the fast path). */
     CTRL_UpdateTelemetrySlow();
-    g_control_vout_raw = g_adc_vout_filtered_raw;
 #if STAGE6_OFFLINE_SELFTEST
     /* Offline self-test trigger (no-energy, no PWM writes). */
     if (g_offline_test_request != 0U)
@@ -493,6 +546,16 @@ void CTRL_OfflineSelfTest(void)
             if (g_offline_pwm_post[q] != g_offline_pwm_pre[q])
             {
                 g_offline_pwm_isolated = 0U;
+    /* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1: input-binding state.
+     * Reference is NOT valid until the slow task observes g_voltage_reference
+     * > 0.5 V (so the init 0 V raw can never become a real RUN reference). */
+    g_control_reference_valid = 0U;
+    g_control_adc_sequence_last = 0U;
+    g_control_adc_sequence_consumed = 0U;
+    g_control_fresh_sample_count = 0UL;
+    g_control_duplicate_sample_block_count = 0UL;
+    g_control_stale_tick_count = 0UL;
+    g_control_pi_update_count = 0UL;
                 break;
             }
         }
@@ -502,6 +565,9 @@ void CTRL_OfflineSelfTest(void)
     g_offline_test_status = pass;
 }
 #endif /* STAGE6_OFFLINE_SELFTEST */
+
+
+
 
 
 

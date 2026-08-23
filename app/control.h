@@ -23,6 +23,10 @@ void   CTRL_FastTask(void);
 void   CTRL_SlowTask(void);
 void   CTRL_Reset(void);
 
+/* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1: production fast control
+ * body (freshness selection + sample binding + PI entry). Integer-only. */
+void   CTRL_RunFastControl(void);
+
 /* Fixed-point Q12 fast controller (raw-domain). No float in this path. */
 Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw);
 /* Float reference core (STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1): parity /

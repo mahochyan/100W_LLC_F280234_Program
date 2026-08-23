@@ -880,5 +880,32 @@
     "11V": 149900,
     "13V": 150100
   },
-  "slew_ok": true
+  "slew_ok": true,
+  "cadence": {
+    "1": {
+      "ticks": 14,
+      "max_dev_hz": 17.455,
+      "frozen": true,
+      "pass": true
+    },
+    "2": {
+      "ticks": 27,
+      "max_dev_hz": 17.455,
+      "frozen": true,
+      "pass": true
+    },
+    "3": {
+      "ticks": 40,
+      "max_dev_hz": 17.455,
+      "frozen": true,
+      "pass": true
+    },
+    "4": {
+      "ticks": 53,
+      "max_dev_hz": 17.455,
+      "frozen": true,
+      "pass": true
+    }
+  },
+  "cadence_pass": true
 }
