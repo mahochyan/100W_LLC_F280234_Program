@@ -1,5 +1,6 @@
 # Build artifacts
 Debug/
+Stage6_FLASH/
 *.obj
 *.out
 *.map
