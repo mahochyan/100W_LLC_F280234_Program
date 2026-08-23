@@ -34,11 +34,18 @@ R_SRC     = 0.15
 COUT      = 2350e-6
 
 class Controller:
-    """Mirror of CTRL_ComputeFrequencyCommand + CTRL_ApplyFrequencyCommand."""
-    def __init__(self, vref=12.0):
+    """Mirror of CTRL_ComputeFrequencyCommand + CTRL_ApplyFrequencyCommand.
+    Parameterizable: kp (Hz/V), ki_step (Hz/(V*control_step)), bias (Hz),
+    dt (s). Defaults = module KP/KI which are LOGIC_PLACEHOLDER_ONLY, NOT a
+    tuning starting point."""
+    def __init__(self, kp=KP, ki=KI, vref=12.0, bias=150000.0, dt=DT):
+        self.kp = kp
+        self.ki = ki
+        self.bias = bias
+        self.dt = dt
         self.vref = vref
-        self.f = 150000.0          # g_control_frequency_hz (last committed)
-        self.shadow = 150000.0     # g_control_shadow_frequency_hz
+        self.f = bias              # g_control_frequency_hz (last committed)
+        self.shadow = bias         # g_control_shadow_frequency_hz
         self.integral = 0.0
         self.stale_counter = 0
         # teaching/observability
@@ -67,17 +74,17 @@ class Controller:
             return self.f
         err = self.vref - vout
         self.error = err
-        self.p_term = KP * err
+        self.p_term = self.kp * err
         sat_high = (self.f >= FMAX)
         sat_low  = (self.f <= FMIN)
         self.sat_high, self.sat_low = 1 if sat_high else 0, 1 if sat_low else 0
         freeze = (sat_high and err < 0.0) or (sat_low and err > 0.0)
         self.frozen = 1 if freeze else 0
         if not freeze:
-            self.integral += KI * err
+            self.integral += self.ki * err
             self.integral = max(-I_MAX, min(I_MAX, self.integral))
         self.i_term = self.integral
-        unsat = 150000.0 + SIGN * (self.p_term + self.integral)   # bias = 150k
+        unsat = self.bias + SIGN * (self.p_term + self.integral)   # bias = 150k
         self.unsat = unsat
         clamped = min(max(unsat, FMIN), FMAX)
         self.clamped = clamped
@@ -93,9 +100,12 @@ class Controller:
 
 class Plant:
     """Small virtual plant (same as llc_control_sil.LLCVirtualPlant)."""
-    def __init__(self, vin, pout, vref):
+    def __init__(self, vin, pout, vref, params=None):
         self.vin, self.pout, self.vref = vin, pout, vref
-        self.p = dict(NOM); self.p["Cr"] = 0.33e-6
+        self.p = dict(NOM)
+        if params is None:
+            params = {"Cr": 0.33e-6}   # empirical-trend default (preserves prior behavior)
+        self.p.update(params)
         self.vout = 0.5
     def rl(self):
         if self.pout <= 0: return 1e9
@@ -126,19 +136,19 @@ def reachable(vin, vref, pout):
 results = {}
 
 def c1_low_vout():
-    c = Controller(12.0)
+    c = Controller(KP, KI, 12.0)
     init = c.f
     for _ in range(200): c.step(11.0)
     return c.error > 0.0 and c.f < init
 
 def c2_high_vout():
-    c = Controller(12.0)
+    c = Controller(KP, KI, 12.0)
     init = c.f
     for _ in range(150): c.step(13.0)
     return c.error < 0.0 and c.f > init
 
 def c3_equal():
-    c = Controller(12.0)
+    c = Controller(KP, KI, 12.0)
     init = c.f
     for _ in range(150): c.step(12.0)
     return abs(c.f - init) < 500.0
@@ -147,24 +157,24 @@ def c4_lower_clamp():
     # Seed the integral so the unsaturated command pushes far below the floor,
     # then verify the command holds AT the floor and the integrator freezes
     # (conditional-integration anti-windup) while error still wants lower.
-    c = Controller(12.0); c.integral = 50000.0   # SIGN=-1: unsat = 150k - 50k = 100k < 120k
+    c = Controller(KP, KI, 12.0); c.integral = 50000.0   # SIGN=-1: unsat = 150k - 50k = 100k < 120k
     for _ in range(400): c.step(8.0)
     return c.f == FMIN and c.sat_low == 1 and c.frozen == 1
 
 def c5_upper_clamp():
-    c = Controller(12.0); c.integral = -50000.0     # unsat = 150k + 50k = 200k > 180k
+    c = Controller(KP, KI, 12.0); c.integral = -50000.0     # unsat = 150k + 50k = 200k > 180k
     for _ in range(400): c.step(16.0)
     return c.f == FMAX and c.sat_high == 1 and c.frozen == 1
 
 def c6_stale():
-    c = Controller(12.0)
+    c = Controller(KP, KI, 12.0)
     for _ in range(5): c.step(11.0)
     before = c.f
     for _ in range(5): c.step(11.0, sample_valid=0)
     return c.stale_inhibit == 1 and c.frozen == 1 and c.f == before
 
 def c7_recover():
-    c = Controller(12.0)
+    c = Controller(KP, KI, 12.0)
     for _ in range(5): c.step(11.0)
     for _ in range(5): c.step(11.0, sample_valid=0)
     before = c.f
@@ -174,7 +184,7 @@ def c7_recover():
 def c8_no_pwm_effect():
     # Host mirror: controller core must produce a bounded, slew-limited command
     # with no path to any PWM write (actuator is shadow-only in offline).
-    c = Controller(12.0)
+    c = Controller(KP, KI, 12.0)
     for _ in range(10000): c.step(11.0 if (_ & 1) else 13.0)
     return FMIN <= c.f <= FMAX
 
@@ -201,7 +211,7 @@ def run_plant_matrix():
                 matrix[(vin, vout0)] = ("PLANT_TARGET_UNREACHABLE", v_lo, v_hi)
                 continue
             # closed-loop settle (bounded)
-            c = Controller(12.0)
+            c = Controller(KP, KI, 12.0)
             pl = Plant(vin, 50.0, 12.0); pl.vout = vout0
             for _ in range(5000):
                 f = c.step(pl.vout)
