@@ -1,0 +1,62 @@
+{
+  "shot": "STAGE5A 170k PFM direction single shot",
+  "RUN_ID": "0x250C5A17",
+  "TEST_MODE": 2,
+  "method": "STAGE5A established poll-loop DSS script (path-fixed); loadProgram fresh main OUT",
+  "MAIN_SOURCE_COMMIT": "ccb89e6",
+  "MAIN_OUT_SHA256": "C13E1225B747E81F7818C6614770ACF1575F56805660B1E96ECF157DE3BDC217",
+  "OUT_status": "cross-build (CGT 25.11.1 coffabi; !=6ad22db7 from original env; actual hash recorded)",
+  "pre_gate": {
+    "fault": 0, "pwm": 0, "ost": 1, "sysstate": "IDLE(1)", "TZ": 4,
+    "DACVAL": 300, "COMPDACEN": 1, "TZ1_OSHT1": 1, "TZCTL_TZA": 2, "TZCTL_TZB": 2,
+    "VOUT_raw_force": 17, "VOUT_sw_raw": 65, "COMPSTS": 1, "GPIO15": 1,
+    "pre_gate_ok": true
+  },
+  "result": {
+    "result": 8, "state": 10, "stage": 4, "abort_reason": 0,
+    "result_code": "PFM_WINDOW_DONE",
+    "test_mode_rec": 2
+  },
+  "pwm_window": {
+    "freq_hz": 169971, "TBPRD": 352, "CMPA": 176, "CMPB": 88, "DBRED": 36, "DBFED": 36,
+    "window_cycles": 51, "window_total": 51, "window_complete": true,
+    "theoretical_window_us": 300.05
+  },
+  "vout_window": {
+    "start_raw": 1248, "end_raw": 1369, "max_raw": 1369, "delta_raw": 121,
+    "start_V": 10.032, "end_V": 11.011, "max_V": 11.011,
+    "Timer2_elapsed_us": 325.6,
+    "slope_raw_per_ms_timer": 371.584,
+    "slope_raw_per_ms_cycle_norm": 121/0.30005 = 403.27
+  },
+  "adc": {
+    "soca": 444, "eoc": 444, "miss": 40, "consecutive_miss": 0, "stale_abort": 0,
+    "note": "40 sporadic misses (8%) and fault=64 FAULT_ADC_STALE_OVERFLOW latched; ADCINTOVF from DSS readWord polling halts during window (measurement artifact, same class as 200k polling issue); no 3-in-row, no stale abort."
+  },
+  "protection": {
+    "ACTIVE_TZ": false, "hard_vout_abort": 0, "Comparator_trip": false,
+    "COMPSTS": 1, "GPIO15": 1, "TZFLG": 4,
+    "comp_arm_dacval": 300, "comp_arm_compdacen": 1, "comp_arm_tzsel_osht1": 1,
+    "ipri_raw_before": 0, "ipri_raw_max": 0, "ipri_raw_at_stop": 0
+  },
+  "fault": {
+    "g_fault_flags": 64,
+    "meaning": "FAULT_ADC_STALE_OVERFLOW (0x40)",
+    "source": "ADCINTOVF -> adc.c fault set; ADC overflow from DSS polling halts",
+    "gate_violation": "Section 11 requires fault=0; got 64 -> NOT clean PASS"
+  },
+  "run_id": {
+    "arm": 621566487, "stop": 621566487, "tz_isr": 0,
+    "arm_hex": "0x250A5A17", "stop_hex": "0x250A5A17"
+  },
+  "final": { "pwm": 0, "ost": 1, "pwm_flag": 0 },
+  "softstart": { "cycle_count": 484, "final_cycles": 87, "last_vout": 1369, "vout_max": 1369 },
+  "direction_vs_150k": {
+    "slope150_cycle": 453.33, "slope150_timer": 444.8,
+    "slope170_cycle": 403.27, "slope170_timer": 371.58,
+    "cycle_diff_pct": 11.04,
+    "timer_diff_pct": 16.46,
+    "verdict": "PFM_DIRECTION_PROVISIONAL (10-25% band, not CONFIRMED>=25%)"
+  },
+  "conclusion": "170k window completed 51/51 with clean monotonic VOUT rise (1248->1369, delta+121), correct PWM config, no COMP/TZ/abort. BUT fault=64 FAULT_ADC_STALE_OVERFLOW latched (DSS polling ADC-overflow artifact), so Section 11 fault=0 gate NOT met. Direction 150k>170k (~11-16%) -> PROVISIONAL. NOT declared clean PASS. Board SAFE: PWM=0, OST=1. No retry per rule."
+}

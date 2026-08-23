@@ -1,0 +1,34 @@
+{
+  "shot": "STAGE5A 150k PFM direction STRICT SAME-BINARY NO-POLL single shot (final AB)",
+  "RUN_ID": "0x250C5A15",
+  "TEST_MODE": 1,
+  "method": "NO-POLLING: PRE gates -> trigger -> runAsynch -> sleep(1000ms) no target access -> single halt -> one dump",
+  "binary": {"OUT_SHA256":"2D1F2BA0B463AEFE1FF41E8A208672E8B5F2A5EFE3B8259286B95FB8F2A775E7","loaded_from":"evidence/stage5a_strict_ab/LLC_STAGE5A_2D1F2BA0.out","MAP_SHA256":"01C46504F412F77EE6837F710A9BD82BD9DB43D1A8B23BF9A804FCB20F57D9CC","compiler":"ti-cgt-c2000_25.11.1.LTS --abi=coffabi"},
+  "pre_gate": {"fault":0,"pwm":0,"ost":1,"sysstate":"IDLE(1)","TZ":4,"DACVAL":300,"COMPDACEN":1,"TZ1_OSHT1":1,"TZCTL_TZA":2,"TZCTL_TZB":2,"VOUT_raw_force":12,"COMPSTS":1,"GPIO15":1,"pre_gate_ok":true},
+  "result": {"result":8,"state":10,"test_mode_rec":1,"result_code":"PFM_WINDOW_DONE"},
+  "pwm_window": {"freq_hz":150000,"TBPRD":399,"CMPA":200,"CMPB":100,"DBRED":36,"DBFED":36,"window_cycles":45,"window_total":45,"window_complete":true,"theoretical_window_us":300.00},
+  "vout_window": {"start_raw":1244,"end_raw":1376,"max_raw":1376,"delta_raw":132,"start_V":9.999,"end_V":11.067,"max_V":11.067,"Timer2_elapsed_us":305.7,"slope_timer_raw_per_ms":431.843,"slope_cycle_raw_per_ms":440.00},
+  "adc": {"soca":436,"eoc":436,"miss":41,"consecutive_miss":0,"stale_abort":0,"note":"41 sporadic misses (consecutive=0) benign during freq ramp; NO ADC fault"},
+  "protection": {"ACTIVE_TZ":false,"hard_vout_abort":0,"Comparator_trip":false,"COMPSTS":1,"GPIO15":1,"TZFLG":4,"comp_arm_dacval":300,"comp_arm_compdacen":1,"comp_arm_tzsel_osht1":1,"ipri_raw_before/max/stop":5},
+  "fault": {"g_fault_flags":0,"meaning":"none","gate_violation":false},
+  "post_stop_adc_cleanup": {"SOCAEN_after_stop":0,"ADCINTOVF_after_stop":0,"adc_trigger_mode_after":0},
+  "run_id": {"arm":621566485,"stop":621566485,"arm_hex":"0x250C5A15","stop_hex":"0x250C5A15"},
+  "final": {"pwm":0,"ost":1},
+  "verdict": "PFM_DIRECTION_150K_NOPOLL_SAME_BINARY_PASS",
+  "strict_same_binary": {"AB":true,"note":"150k and 170k both loaded the frozen 2e1F2BA0 OUT from evidence dir; OUT_SHA256 identical -> STRICT_SAME_BINARY_AB=1"},
+  "direction_vs_170k_same_binary": {
+    "slope150_cycle":440.00,"slope170_cycle":409.93,
+    "delta150":132,"delta170":123,
+    "difference_ratio_pct":6.83,
+    "rule":"(slope150-slope170)/max(slope150,slope170)",
+    "direction":"150k > 170k (higher freq -> slower VOUT rise = NORMAL PFM sense)",
+    "verdict":"PFM_DIRECTION_SAME_BINARY_NORMAL_BUT_SMALL_EFFECT (0 < 6.83% < 10%)",
+    "STAGE5A_PFM_DIRECTION_ACCEPTED":0
+  },
+  "repeatability": {
+    "170k_old_polling_delta":121,"170k_old_fault":64,"170k_old_status":"CORROBORATING ONLY",
+    "170k_nopoll_delta":123,"150k_old_crossbuild_delta":136,"150k_old_status":"CORROBORATING ONLY",
+    "150k_nopoll_same_binary_delta":132,"note":"170k repeatability: 121 vs 123 very close; formal ruling uses same-binary 150k(132) vs 170k(123) -> 6.83% small effect"
+  },
+  "conclusion": "150k same-binary nopoll shot is a CLEAN PASS (fault=0, 45/45, correct config, SOCAEN/ADCINTOVF=0 after stop). Direction slope150>slope170 (NORMAL sense) but difference_ratio only 6.83% (<10%) -> PFM_DIRECTION_SAME_BINARY_NORMAL_BUT_SMALL_EFFECT. STAGE5A_PFM_DIRECTION_ACCEPTED=0 (not formally confirmed). Board safe PWM=0/OST=1. Hand to human review with repeatability."
+}

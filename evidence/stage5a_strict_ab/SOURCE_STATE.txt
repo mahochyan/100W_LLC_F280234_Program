@@ -1,0 +1,16 @@
+STAGE5A STRICT SAME-BINARY FINAL AB - SOURCE STATE (BEFORE 150k nopoll shot)
+HEAD: ccb89e66bce694cd5a175d1885873370dfa68fd5
+branch: main
+soft_start.c SHA256: 6E7CF2B837704D4F3578981472791D4A63DECD0DA656714631D5D71A639FEED6
+OUT SHA256 (frozen): 2D1F2BA0B463AEFE1FF41E8A208672E8B5F2A5EFE3B8259286B95FB8F2A775E7
+MAP SHA256 (frozen): 01C46504F412F77EE6837F710A9BD82BD9DB43D1A8B23BF9A804FCB20F57D9CC
+compiler: ti-cgt-c2000_25.11.1.LTS --abi=coffabi
+--- git status --short ---
+ M app/soft_start.c
+?? debug_capture/
+?? docs/ADC_170K_POSTSTOP_TRIGGER_AUDIT.md
+?? evidence/
+?? tools/run_pfm_direction_shot_170k_nopoll.js
+--- git diff --stat ---
+ app/soft_start.c | 43 ++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 40 insertions(+), 3 deletions(-)

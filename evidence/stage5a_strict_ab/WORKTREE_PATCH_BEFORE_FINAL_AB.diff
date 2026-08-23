@@ -1,0 +1,64 @@
+diff --git a/app/soft_start.c b/app/soft_start.c
+index 41f8d3c..0fdd459 100644
+--- a/app/soft_start.c
++++ b/app/soft_start.c
+@@ -40,19 +40,56 @@
+ 
+ static void SS_HardStop(void)
+ {
++    /*
++     * 此时 formal ramp 中 ADCINT1 PIE 本来就是 disabled，
++     * 保持它 disabled，先彻底关闭所有 PWM 同步 ADC 源。
++     */
++
+     EALLOW;
++
++    /* 1. 先锁死功率输出 */
+     EPwm1Regs.TZEINT.bit.OST = 0U;
+     EPwm1Regs.TZFRC.bit.OST = 1U;
++
++    /* 2. 停止 ePWM 控制中断 */
+     EPwm1Regs.ETSEL.bit.INTEN = 0U;
+-    /* Restore the ADCINT1 PIE vector. During the ramp it is disabled
+-     * (FastUpdate owns fresh-sample flag discipline); re-enable cleanly so
+-     * no stale pending request fires after the ramp. */
++
++    /* 3. 关键修复：停止 PWM 同步 ADC 触发 */
++    EPwm1Regs.ETSEL.bit.SOCAEN = 0U;
++
++    EDIS;
++
++    /*
++     * 不要在外层 EALLOW 内调用。
++     * 该函数内部自己执行 EALLOW/EDIS，
++     * 并把 SOC0/1/2 切回 TRIGSEL=0，
++     * 不会主动产生新的 SOC。
++     */
++    ADC_SetSoftwareTriggerMode();
++
++    EALLOW;
++
++    /* 4. 清掉最后可能残留的 ADC 事件 */
+     AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+     AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
+     PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;
++
++    /*
++     * 5. 所有 trigger 都已经关闭/切回 software 后，
++     * 最后再恢复 ADCINT1 PIE。
++     */
+     PieCtrlRegs.PIEIER1.bit.INTx1 = 1U;
++
+     EDIS;
++
++    /*
++     * ramp_active 最后再清。
++     * 这样 cleanup 期间即使有最后一个残留 ADC ISR，
++     * 也仍处在 softstart guard 内，
++     * 不会误置 FAULT_ADC_STALE_OVERFLOW。
++     */
+     g_softstart_ramp_active = 0U;
++
+     g_pwm_enabled = 0U;
+     g_pwm_enable_result = 0U;
+ }

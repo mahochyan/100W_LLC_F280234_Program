@@ -1,0 +1,30 @@
+{
+  "shot": "STAGE5A 170k PFM direction NO-POLL single shot (after SS_HardStop ADC post-stop fix)",
+  "RUN_ID": "0x250C5A17",
+  "TEST_MODE": 2,
+  "method": "NO-POLLING: PRE halt/read/write gates -> trigger g_softstart_request=1 -> runAsynch -> sleep(500ms) no target access -> single halt -> one dump",
+  "MAIN_SOURCE_COMMIT": "ccb89e6 + local SS_HardStop fix (uncommitted)",
+  "COMPILER_VERSION": "ti-cgt-c2000_25.11.1.LTS --abi=coffabi (TOOLCHAIN_25_11_1_STAGE5A_VALIDATED=1; FINAL_PRODUCTION_TOOLCHAIN_DECISION_PENDING=1)",
+  "MAIN_OUT_SHA256": "2D1F2BA0B463AEFE1FF41E8A208672E8B5F2A5EFE3B8259286B95FB8F2A775E7",
+  "MAIN_MAP_SHA256": "01C46504F412F77EE6837F710A9BD82BD9DB43D1A8B23BF9A804FCB20F57D9CC",
+  "pre_gate": {"fault":0,"pwm":0,"ost":1,"sysstate":"IDLE(1)","TZ":4,"DACVAL":300,"COMPDACEN":1,"TZ1_OSHT1":1,"TZCTL_TZA":2,"TZCTL_TZB":2,"VOUT_raw_force":31,"COMPSTS":1,"GPIO15":1,"pre_gate_ok":true},
+  "result": {"result":8,"state":10,"test_mode_rec":2,"result_code":"PFM_WINDOW_DONE"},
+  "pwm_window": {"freq_hz":169971,"TBPRD":352,"CMPA":176,"CMPB":88,"DBRED":36,"DBFED":36,"window_cycles":51,"window_total":51,"window_complete":true,"theoretical_window_us":300.05},
+  "vout_window": {"start_raw":1246,"end_raw":1369,"max_raw":1369,"delta_raw":123,"start_V":10.016,"end_V":11.011,"max_V":11.011,"Timer2_elapsed_us":321.5,"slope_timer_raw_per_ms":382.542,"slope_cycle_raw_per_ms":409.932},
+  "adc": {"soca":454,"eoc":454,"miss":29,"consecutive_miss":0,"stale_abort":0,"note":"29 sporadic misses (consecutive=0) benign during freq ramp; NO ADC fault this time (fix active)"},
+  "protection": {"ACTIVE_TZ":false,"hard_vout_abort":0,"Comparator_trip":false,"COMPSTS":1,"GPIO15":1,"TZFLG":4,"comp_arm_dacval":300,"comp_arm_compdacen":1,"comp_arm_tzsel_osht1":1,"ipri_raw_before/max/stop":5},
+  "fault": {"g_fault_flags":0,"meaning":"none","gate_violation":false},
+  "post_stop_adc_cleanup": {"SOCAEN_after_stop":0,"ADCINTOVF_after_stop":0,"adc_trigger_mode_after":0,"result":"ADC_POSTSTOP_CLEANUP_CONFIRMED_IN_REAL_SHOT"},
+  "run_id": {"arm":621566487,"stop":621566487,"arm_hex":"0x250C5A17","stop_hex":"0x250C5A17"},
+  "final": {"pwm":0,"ost":1},
+  "verdict": "PFM_DIRECTION_170K_NOPOLL_PASS",
+  "noenergy_preverify": "ADC_POSTSTOP_CLEANUP_NOENERGY_PASS (offline, no real power)",
+  "direction_vs_150k": {
+    "slope150_cycle":453.33,"slope150_timer":444.7,
+    "slope170_cycle":409.93,"slope170_timer":382.54,
+    "cycle_diff_pct_rel_150k":9.57,"cycle_diff_pct_rel_170k":10.59,"timer_diff_pct_rel_150k":13.98,
+    "direction": "150k > 170k (higher freq -> slower VOUT rise = NORMAL PFM sense)",
+    "verdict": "borderline ~10% -> PFM_DIRECTION_INCONCLUSIVE per Section J (<10% cycle); direction consistent NORMAL; needs same-binary A-B to resolve"
+  },
+  "conclusion": "170k nopoll shot is a CLEAN PASS (fault=0, 51/51, correct config, SOCAEN/ADCINTOVF=0 after stop -> SS_HardStop ADC post-stop fix validated on real power). Direction 150k>170k is NORMAL sense but cycle diff only ~9.6-10.6% (borderline 10%) -> PFM_DIRECTION_INCONCLUSIVE. STAGE5A_PFM_DIRECTION_ACCEPTED=0. Board safe PWM=0/OST=1. No retry, no closed loop."
+}
