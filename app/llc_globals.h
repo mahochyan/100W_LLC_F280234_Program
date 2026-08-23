@@ -83,6 +83,23 @@ extern volatile float   g_control_kp_hz_per_v;
 extern volatile float   g_control_ki_step_hz_per_v_step;
 extern volatile Uint16  g_control_pi_virtual_only;
 
+/* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation. Macro is set ONLY in
+ * the Stage6_FLASH_NOENERGY test build; production Stage6_FLASH keeps it 0. */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+extern volatile Uint32 g_control_exec_cycles_last;   /* region B: one PI step */
+extern volatile Uint32 g_control_exec_cycles_max;
+extern volatile Uint32 g_fast_isr_cycles_last;       /* whole TINT0_ISR */
+extern volatile Uint32 g_fast_isr_cycles_max;
+extern volatile Uint32 g_fast_isr_overrun_count;     /* ISR >= 1200 cycles */
+extern volatile Uint32 g_stage6_noenergy_test_ticks;
+extern volatile Uint16 g_stage6_noenergy_test_enable;
+extern volatile float  g_stage6_synthetic_vout;
+extern volatile Uint16 g_stage6_noenergy_test_mode;  /* 0 idle,1 first-step(11V),2 first-step(13V),3 stale-run */
+extern volatile Uint16 g_stage6_noenergy_step_req;   /* one-shot: run exactly one PI step */
+extern volatile Uint32 g_stage6_noenergy_step_shadow_hz;
+extern volatile float  g_stage6_noenergy_step_integral_hz;
+#endif
+
 /* Tutorial SoftStart Engine */
 extern volatile Uint16 g_softstart_state;
 extern volatile Uint32 g_softstart_period_limit;

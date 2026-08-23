@@ -1,0 +1,96 @@
+{
+  "stage": "STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST_V1",
+  "baseline_commit": "c1abaf3",
+  "frozen_binary": {
+    "build_config": "Stage6_FLASH_NOENERGY",
+    "base_config": "Stage6_FLASH",
+    "compiler": "ti-cgt-c2000_25.11.1.LTS",
+    "abi": "coffabi",
+    "flags": "--abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --gen_func_subsections",
+    "build_macros": {
+      "STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST": 1,
+      "STAGE6_OFFLINE_SELFTEST": 1,
+      "LLC_HARDWARE_PI_VALIDATED": 0,
+      "LLC_CONTROL_DIRECTION": 0,
+      "CTRL_PI_PROFILE_VIRTUAL_ONLY": 1,
+      "CTRL_PI_PROFILE_HARDWARE_VALIDATED": 0
+    },
+    "profile": {
+      "id": "0x060201",
+      "kp_hz_per_v": 6657.43331,
+      "ki_step_hz_per_v_20us": 44.3828888
+    },
+    "out_sha256": "DDC6E8C75A7D70F5876FB015DB67977B9DE5F4CB99A075FE4B5E1FC434BE17A3",
+    "map_sha256": "BEB9DF9F59510CAA470E8E3BA3DDA2FB78A24E64D04789B7E90D253338EF7A4E",
+    "flash_used_words": 10132,
+    "flash_capacity_words": 65408,
+    "flash_used_pct": 15.5
+  },
+  "static_gates": {
+    "LLC_HARDWARE_PI_VALIDATED_0": true,
+    "LLC_CONTROL_DIRECTION_0": true,
+    "CTRL_PI_PROFILE_VIRTUAL_ONLY_1": true,
+    "CTRL_PI_PROFILE_HARDWARE_VALIDATED_0": true,
+    "CTRL_ApplyFrequencyCommand_shadow_only": true,
+    "control_obj_LLC_SetFrequencyHz_refs": 0,
+    "ON_TARGET_PRELOAD_PWM_WRITE_GATE_PASS": true
+  },
+  "measurement_design": {
+    "timer": "CpuTimer2 (free-running 60MHz 32-bit down counter, TIE=0, read-only)",
+    "region_b": ["CTRL_ComputeFrequencyCommand", "CTRL_ApplyFrequencyCommand"],
+    "whole_isr": "TINT0_ISR entry -> before PIEACK/TIF clear",
+    "budget_cycles_20us": 1200,
+    "pass_cycle_ceiling": 900,
+    "margin_low_low": 901,
+    "margin_low_high": 1080
+  },
+  "on_target_results": {
+    "preload_identity_verified": null,
+    "pre_pwm_regs": null,
+    "post_pwm_regs": null,
+    "ost_pre": null,
+    "ost_post": null,
+    "g_pwm_enabled": null,
+    "offline_self_test_status": null,
+    "8case_pass": null,
+    "first_step_11v_shadow_hz": null,
+    "first_step_13v_shadow_hz": null,
+    "adc_stale_recovery_pass": null,
+    "control_exec_cycles_last": null,
+    "control_exec_cycles_max": null,
+    "fast_isr_cycles_last": null,
+    "fast_isr_cycles_max": null,
+    "fast_isr_max_us": null,
+    "fast_isr_budget_pct": null,
+    "overrun_count": null,
+    "test_ticks": null,
+    "loaded_binary_sha_matches_frozen": null,
+    "final_safe_state_pass": null,
+    "STAGE6_ON_TARGET_SHADOW_NOENERGY_PASS": null
+  },
+  "on_target_blocker_evidence": {
+    "status": "BLOCKED_on_target_execution",
+    "debugger_connect": "OK",
+    "debugger_halt": "OK",
+    "loadProgram_flash": "reports OK, PC set to main (0x003EA3EA)",
+    "flash_content_valid": true,
+    "flash_c_int00_0x3E9B63": "0x28AD",
+    "flash_main_0x3EA3EA": "0xB2BD",
+    "flash_CTRL_Compute_0x3E876C": "0xD004",
+    "run_behavior": "runAsynch resets CPU to boot ROM; PC ends 0x3FF8CD; main NEVER executes",
+    "g_fast_tick_after_run": "uninitialized garbage (Timer0 ISR not running)",
+    "profile_id_after_run": "uninitialized garbage (CTRL_Init not executed)",
+    "flash_load_errors": "reported 'Power Failure on Target CPU' / 'target is not connected' / flash loader errors during a prior load attempt",
+    "memory_0xC00_read": "error 0x20000 (likely CSM/security-gated region)",
+    "conclusion": "Board connects and loads flash, but CPU does NOT execute the FLASH-resident image in this boot configuration (boot ROM stall). RAM-resident execution worked in prior sessions. FLASH-resident measurement (incl. flash wait-states) is blocked until board boot-to-flash / CSM state is resolved by the operator."
+  },
+  "gates_pending_real_board": [
+    "ON_TARGET_BALANCED_8CASE_PASS",
+    "ON_TARGET_PWM_REGISTER_ISOLATION_PASS",
+    "ON_TARGET_BALANCED_FIRST_STEP_PASS",
+    "ON_TARGET_ADC_STALE_RECOVERY_PASS",
+    "20US_FAST_ISR_BUDGET_PASS",
+    "ON_TARGET_FINAL_SAFE_STATE_PASS",
+    "ON_TARGET_BINARY_IDENTITY_PASS"
+  ]
+}

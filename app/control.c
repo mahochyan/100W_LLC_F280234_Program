@@ -243,6 +243,23 @@ void CTRL_SlowTask(void)
         CTRL_OfflineSelfTest();
     }
 #endif
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* STAGE6 no-energy on-target: one-shot single PI step (first-step / stale).
+     * Runs in the slow task so the ISR path is untouched by test orchestration.
+     * mode 3 == stale-run (sample_valid=0); else sample_valid=1. */
+    if (g_stage6_noenergy_step_req != 0U)
+    {
+        Uint16 valid;
+        Uint32 hz;
+        g_stage6_noenergy_step_req = 0U;
+        valid = (g_stage6_noenergy_test_mode == 3U) ? 0U : 1U;
+        g_control_running = 1U;
+        hz = CTRL_ComputeFrequencyCommand(valid, g_stage6_synthetic_vout);
+        CTRL_ApplyFrequencyCommand();
+        g_stage6_noenergy_step_shadow_hz = hz;
+        g_stage6_noenergy_step_integral_hz = g_pi_integral;
+    }
+#endif
 }
 
 #if STAGE6_OFFLINE_SELFTEST

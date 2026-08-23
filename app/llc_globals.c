@@ -81,6 +81,22 @@ volatile float   g_control_kp_hz_per_v ;
 volatile float   g_control_ki_step_hz_per_v_step ;
 volatile Uint16  g_control_pi_virtual_only ;
 
+/* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation (test build only). */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+volatile Uint32 g_control_exec_cycles_last  = 0UL;
+volatile Uint32 g_control_exec_cycles_max   = 0UL;
+volatile Uint32 g_fast_isr_cycles_last      = 0UL;
+volatile Uint32 g_fast_isr_cycles_max       = 0UL;
+volatile Uint32 g_fast_isr_overrun_count    = 0UL;
+volatile Uint32 g_stage6_noenergy_test_ticks= 0UL;
+volatile Uint16 g_stage6_noenergy_test_enable = 0U;
+volatile float  g_stage6_synthetic_vout     = 12.0f;
+volatile Uint16 g_stage6_noenergy_test_mode = 0U;
+volatile Uint16 g_stage6_noenergy_step_req  = 0U;
+volatile Uint32 g_stage6_noenergy_step_shadow_hz  = 0UL;
+volatile float  g_stage6_noenergy_step_integral_hz= 0.0f;
+#endif
+
 /* Tutorial SoftStart Engine */
 volatile Uint16 g_softstart_state;
 volatile Uint32 g_softstart_period_limit;

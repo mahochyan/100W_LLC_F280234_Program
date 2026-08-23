@@ -184,6 +184,13 @@ __interrupt void EPWM1_TZINT_ISR(void)
 
 __interrupt void TINT0_ISR(void)
 {
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    Uint32 t_isr_entry = 0UL, t_isr_exit = 0UL;
+    if (g_stage6_noenergy_test_enable != 0U)
+    {
+        t_isr_entry = CpuTimer2Regs.TIM.all;   /* free-running 60 MHz down counter */
+    }
+#endif
     g_fast_tick++;
 
     /* Stage 3 static ADC monitor: software-trigger a sample set every 20 us. */
@@ -200,6 +207,37 @@ __interrupt void TINT0_ISR(void)
     PROT_FastTask();
     CTRL_FastTask();
     SoftStart_ApplyLimits();
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* STAGE6 no-energy budget measurement hook. Runs on top of the normal
+     * fast-task base load (CTRL_FastTask already returned safely because
+     * g_pwm_enabled==0), then executes one real PI shadow step with the
+     * synthetic Vout. This is a CONSERVATIVE whole-ISR measurement: normal
+     * base + real PI compute + the small hook overhead. It never toggles PWM,
+     * never clears OST, never sets g_pwm_enabled, never enters real RUN. */
+    if (g_stage6_noenergy_test_enable != 0U)
+    {
+        Uint32 tb, tx;
+        g_stage6_noenergy_test_ticks++;
+        tb = CpuTimer2Regs.TIM.all;
+        g_control_running = 1U;
+        g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
+        CTRL_ComputeFrequencyCommand((g_stage6_noenergy_test_mode == 3U) ? 0U : 1U,
+                                     g_stage6_synthetic_vout);
+        CTRL_ApplyFrequencyCommand();
+        tx = CpuTimer2Regs.TIM.all;
+        /* region B: one Compute+Apply (down counter -> entry-exit diff) */
+        g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
+        if (g_control_exec_cycles_last > g_control_exec_cycles_max)
+            g_control_exec_cycles_max = g_control_exec_cycles_last;
+        t_isr_exit = CpuTimer2Regs.TIM.all;
+        g_fast_isr_cycles_last = (Uint32)((Uint32)(t_isr_entry - t_isr_exit) & 0xFFFFFFFFUL);
+        if (g_fast_isr_cycles_last > g_fast_isr_cycles_max)
+            g_fast_isr_cycles_max = g_fast_isr_cycles_last;
+        if (g_fast_isr_cycles_last >= 1200UL)
+            g_fast_isr_overrun_count++;
+    }
+#endif
 
     /* 5 ms slow-task tick */
     if ((g_fast_tick % LLC_FAST_TICKS_PER_SLOW) == 0U)
