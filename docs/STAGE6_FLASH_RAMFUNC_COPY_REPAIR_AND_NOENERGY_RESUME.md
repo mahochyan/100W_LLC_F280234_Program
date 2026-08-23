@@ -52,6 +52,14 @@ Functional gates (with no-power ADC-stale counter cleared):
 - Threshold: <=900 PASS / 901-1080 MARGIN_LOW / >1080 FAIL / >=1200 absolute FAIL, overrun must be 0 → **absolute FAIL.**
 - **Finding:** the soft-float C28034 PI controller's active step (~1600 cycles) does not fit a 20 µs (1200-cycle) ISR. Every active-control tick overruns; only the stale/frozen path is fast. This is a genuine real-time performance issue in the firmware's PI computation, fully independent of the flash ramfunc fix.
 
+## 6b. PI-step cost analysis (why over budget; headroom is small)
+Active path `CTRL_ComputeFrequencyCommand` + `CTRL_ApplyFrequencyCommand` measured = **~1566 cycles** (12 V). Composition:
+- ~16 software-float RTS ops (`_Rfs_add/_Rfs_sub/_Rfs_mpy/_Rfs_cmp`, each ~15-60 cycles) for error, P, I, unsat, clamp, slew;
+- ~15 global observation stores (`g_control_error_volts/_p_term_hz/_i_term_hz/_unsat/_clamped/_integrator_frozen/_saturated_*`, etc.) — teaching/teaching mirrors written every step;
+- function-call/return overhead + `-ms` (minimize-size) codegen which trades speed for size.
+
+To reach the <=900-cycle threshold the PI step would need to drop ~2x, requiring e.g. IQmath/fixed-point or removing the per-step observation-store mirror — a real-time PI **optimization project**, outside the flash-ramfunc-fix scope. Headroom is real but not trivially tapped without changing the production PI binary.
+
 ## 7. Verdicts
 - **Flash fix COMPLETE** and validated: `ON_TARGET_TI_RAMFUNC_COPY_PASS`, `USDELAY_RAM_EXECUTION_PASS`, `CONTINUOUS_FLASH_RUNTIME_PASS`, `FLASH_RAMFUNC_RUN_REGION_LAYOUT_PASS`, `LEGACY_RAMFUNCS_COPY_PRESENT`, `TI_RAMFUNCS_COPY_PRESENT`.
 - **STAGE6_ON_TARGET_SHADOW_NOENERGY_PASS = NOT met** (20US_FAST_ISR_BUDGET_PASS false; overrun>0).
