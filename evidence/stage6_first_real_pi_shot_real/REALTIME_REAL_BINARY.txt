@@ -1,4 +1,4 @@
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 / V1-2
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 / V1-2 / V1-3
 REALTIME REAL BINARY (TIMING) RESULT
 ==================================================
 
@@ -12,29 +12,42 @@ Instrumentation present in REAL binary (passive observation):
   g_first_real_pi_shot_first_write_timer2
   g_first_real_pi_shot_ost_timer2
   g_control_fresh_sample_count / g_control_pi_update_count (existing counters)
-  g_first_real_pi_shot_rb[].fresh_sample (existing ring field)
+  g_first_real_pi_shot_rb[].fresh_sample / freq_cmd_hz / tbprd /
+  actual_freq_hz (existing ring fields)
 
-Timing script: tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js (V1-2)
+Timing script: tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js (V1-3)
   - no-power, CNT3/CNT4 OPEN, OST=1, PWM hardware-clamped low
   - host SHA256 hard gate + DSH_CNT34_OPEN_CONFIRMED=1 before connect
   - hard gates fault=0, OST=1, PWM=0, AQCSFRC force-low BEFORE any test-state write
-  - V1-2: after all safety hard gates, manufactures EXACTLY ONCE a deterministic
-    fresh control input (RAM writes only, no synthetic injection in firmware):
+  - V1-2: manufactures EXACTLY ONCE a deterministic fresh control input
+    (RAM writes only, no synthetic injection in firmware):
       g_control_adc_sequence_last=0, g_adc_sample_sequence=1,
-      g_adc_vout_raw=g_adc_vout_filtered_raw=1200, g_control_vref_raw=1244,
+      g_adc_vout_raw=g_adc_vout_filtered_raw=1200, g_control_vref_raw=1244
+  - V1-3: initial frequency state changed to
       g_control_frequency_hz=g_control_shadow_frequency_hz=
-      g_switching_frequency_hz=150000, g_pwm_period=399
-    First control tick: sample_valid=1, error_raw=44 != 0, PI update,
-    frequency command != 150000 -> LLC_SetFrequencyHz takes the FULL
-    non-same-frequency path (period recompute + TBPRD/CMPA write + ADC sync),
-    power_writes++, ring records fresh_sample=1. Later samples may be stale;
-    g_real_isr_cycles_max must capture this first worst fresh tick.
-  - result hard gates: fresh_sample_count delta>=1, pi_update_count delta>=1,
-    power_writes>0, ring first entry fresh_sample==1, frequency command != 150000,
-    shot COMPLETE/TIMEOUT/tick==10, PWM=0, OST=1, fault=0,
-    g_real_isr_cycles_max<=900, overrun==0. Any failure -> TIMING_NOPOWER_FAIL.
-  - run(20) = 20 ms (NOT 2 s): state starts directly in RUN with the shot armed;
-    the 200 us cage ends after ~0.22 ms (11 x 20 us ticks) with on-chip
+      g_switching_frequency_hz=149900, g_pwm_period=399
+    First fresh PI tick: error_raw=+44, step clamped to -100 Hz/tick ->
+    frequency command = 149800 Hz, period(149800) = 400 != g_pwm_period (399)
+    -> LLC_SetFrequencyHz takes the FULL period-changing path:
+      period division, TBPRD write (400), CMPA write (200),
+      ADC_UpdatePwmSyncPointKeepCadence, g_pwm_period update (400),
+      g_actual_switching_frequency_hz update (60000000/401 = 149625 Hz).
+  - pre-run READ-ONLY gates: EPwm1Regs.TBPRD == 399, g_pwm_period == 399.
+  - post-run strict gates (ring first entry records the FIRST write's state,
+    CTRL_FastTask runs before SHOT_FastTask):
+      ring[0].fresh_sample == 1, ring[0].freq_cmd_hz == 149800,
+      ring[0].tbprd == 400, ring[0].actual_freq_hz == 149625.
+    NOT just "freq_cmd != 150000" (prevents
+    FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED).
+  - Timer2 no-power hard gate: timer2_delta = (first_write_timer2 -
+    ost_timer2) unsigned 32-bit, 11000 <= delta <= 14000 (~200 us @ 60 MHz);
+    prints FIRST_WRITE_TIMER2 / OST_TIMER2 / TIMER2_DELTA.
+  - result consistency gates: shot ok==1, rb_count==11, power_writes delta==11,
+    g_real_isr_cycles_count>0, g_real_timer0_entry_count>0, state==COMPLETE,
+    abort==TIMEOUT, tick==10, PWM==0, OST==1, fault==0, isr_max<=900,
+    overrun==0. Any failure -> TIMING_NOPOWER_FAIL.
+  - run(20) = 20 ms (NOT 2 s): state starts directly in RUN with the shot
+    armed; the 200 us cage ends after ~0.22 ms (11 x 20 us ticks) with on-chip
     OST=1/PWM=0/IDLE; the first fresh control tick (worst case) is captured in
     the first 20 us.
 
@@ -46,6 +59,8 @@ STATUS: NOT EXECUTED
   ISR_MAX_CYCLES_LE_900 = NOT_VERIFIED (requires target, CNT34 unconfirmed)
   OVERRUN_ZERO = NOT_VERIFIED (requires target, CNT34 unconfirmed)
   FRESH_PI_PATH_EXERCISED = NOT_VERIFIED (requires target, CNT34 unconfirmed)
+  PERIOD_CHANGE_399_TO_400 = NOT_VERIFIED (requires target, CNT34 unconfirmed)
+  NOPOWER_TIMER2_DELTA = NOT_VERIFIED (requires target, CNT34 unconfirmed)
 
   The passive ISR observation instrumentation is present and compiled into
   the REAL binary; the timing gate must be executed on the bench after

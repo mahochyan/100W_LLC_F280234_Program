@@ -290,3 +290,80 @@ Only `tools/`, static tests, docs/evidence text and the delivery ZIP changed.
 Firmware source unchanged -> REAL OUT **not rebuilt**, SHA stays
 `CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72`.
 Commit: `tools: exercise fresh PI actuator path in Stage6 no-power timing gate`.
+
+
+## 16. V1-3 — Period-write closure of the no-power timing harness
+
+Task: `STAGE6_REAL_BINARY_TIMING_HARNESS_PERIOD_WRITE_CLOSURE_V1_3` (offline only).
+
+### 16.1 Deterministic period-changing first write (B)
+
+The fresh control input from V1-2 is kept
+(`g_control_adc_sequence_last=0`, `g_adc_sample_sequence=1`,
+`g_adc_vout_raw=g_adc_vout_filtered_raw=1200`, `g_control_vref_raw=1244`),
+but the initial frequency state is changed to
+`g_control_frequency_hz = g_control_shadow_frequency_hz =
+g_switching_frequency_hz = 149900`, `g_pwm_period = 399`.
+
+First fresh PI tick: `error_raw = 1244 - 1200 = +44`; the Q12 step is clamped
+to `-100 Hz/tick` (`CTRL_MAX_STEP_Q12`), so the frequency command becomes
+exactly **149800 Hz**. `period(149800) = round(60000000/149800) - 1 = 400`
+differs from `g_pwm_period` (399), which forces the **full period-changing
+actuator path** in `LLC_SetFrequencyHz`:
+
+- period division (`period = (TBCLK + hz/2) / hz - 1`),
+- `EPwm1Regs.TBPRD` write (400),
+- `EPwm1Regs.CMPA` write (200),
+- `ADC_UpdatePwmSyncPointKeepCadence` (SOCA phase re-position),
+- `g_pwm_period` update (400),
+- `g_actual_switching_frequency_hz` update (`60000000/401 = 149625 Hz`).
+
+Integer arithmetic (verified in the static test, not just string matching):
+`period(150000) = 399`, `period(149900) = 399`, `period(149800) = 400`,
+`initial period != result period`.
+
+### 16.2 Pre/post period hard gates (C)
+
+Pre-run READ-ONLY: `EPwm1Regs.TBPRD == 399` and `g_pwm_period == 399`
+(init baseline `LLC_BASELINE_PERIOD_150K == 399`). Post-run strict gates on
+the ring first entry (records the FIRST write's state because `CTRL_FastTask`
+runs before `SHOT_FastTask`): `fresh_sample == 1`, `freq_cmd_hz == 149800`,
+`tbprd == 400` (the value written to `EPwm1Regs.TBPRD` and stored in
+`g_pwm_period` at the first write), `actual_freq_hz == 149625`. The old
+`freq_cmd != 150000` gate is removed — the TBPRD change and the
+actual-frequency update are required, preventing
+`FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED`. (Post-run globals hold the LAST
+write's state — 11 steps of -100 Hz from 149900: `freq=148800`,
+`period=402`, `TBPRD=402`, `actual=148883` — printed as evidence.)
+
+### 16.3 Timer2 no-power hard gate (D)
+
+`timer2_delta = (g_first_real_pi_shot_first_write_timer2 -
+g_first_real_pi_shot_ost_timer2)` unsigned 32-bit, hard gate
+`11000 <= delta <= 14000` (~200 us @ 60 MHz), with
+`FIRST_WRITE_TIMER2` / `OST_TIMER2` / `TIMER2_DELTA` printed. Any failure ->
+`TIMING_NOPOWER_FAIL`.
+
+### 16.4 Result consistency (E)
+
+Added: `g_first_real_pi_shot_ok == 1`, `rb_count == 11`,
+`power_writes delta == 11`, `g_real_isr_cycles_count > 0`,
+`g_real_timer0_entry_count > 0`. Kept: `state == COMPLETE`,
+`abort == TIMEOUT`, `tick == 10`, `PWM == 0`, `OST == 1`, `fault == 0`,
+`isr_max <= 900`, `overrun == 0`.
+
+### 16.5 Static regressions (F)
+
+`tools/stage6_real_binary_hardening_static_test.py` now performs actual
+integer period arithmetic (`period(150000)==399`, `period(149900)==399`,
+`period(149800)==400`), verifies the initial frequency state is 149900, the
+expected first command is 149800, and `initial period != result period`, and
+requires the `RING_FIRST_TBPRD_400` / `RING_FIRST_ACTUAL_149625` gates
+(explicitly preventing `FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED`).
+
+### 16.6 Delivery
+
+Only `tools/`, static tests, docs/evidence text and the delivery ZIP changed.
+Firmware source unchanged -> REAL OUT **not rebuilt**, SHA stays
+`CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72`.
+Commit: `tools: force period-changing actuator path in Stage6 no-power timing gate`.

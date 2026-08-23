@@ -1,4 +1,4 @@
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 / V1-2
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1 / V1-2 / V1-3
 STATIC TEST RESULTS (clean-checkout capable)
 ==================================================
 
@@ -164,22 +164,37 @@ PASS: manifest documents non-deterministic build (timestamp)
 PASS: .gitattributes marks frozen MAP as -text (no EOL normalization)
 PASS: timing script manufactures one fresh ADC sequence (seq_last=0, seq=1)
 PASS: timing script sets VOUT raw 1200 (differs from Vref raw 1244)
-PASS: timing script sets Vref raw 1244 -> VOUT raw != Vref raw -> error_raw != 0
-PASS: timing script starts freq cmd == switching freq == 150000 (first PI write takes the full non-same-frequency actuator path)
+PASS: timing script sets Vref raw 1244 -> VOUT raw != Vref raw -> error_raw = +44
 PASS: timing script constructs the fresh control input exactly once
+PASS: period(150000) == 399 (integer division)
+PASS: period(149900) == 399 (integer division)
+PASS: period(149800) == 400 (integer division)
+PASS: timing script initial frequency state = 149900 / period 399
+PASS: initial period != result period (399 != 400) -> period-changing path required
+PASS: timing script expects first command 149800 and actual 60000000/401=149625
+PASS: timing script read-only confirms EPwm1Regs.TBPRD==399 and g_pwm_period==399 before any write
+PASS: timing result hard gate RING_FIRST_FRESH present
+PASS: timing result hard gate RING_FIRST_FREQ_149800 present
+PASS: timing result hard gate RING_FIRST_TBPRD_400 present
+PASS: timing result hard gate RING_FIRST_ACTUAL_149625 present
+PASS: timing PASS requires TBPRD change + actual-frequency update (prevents FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED)
+PASS: timing script does NOT rely on freq_cmd != 150000 as the actuator-path proof
+PASS: timing script Timer2 delta gate 11000..14000 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output
 PASS: timing result hard gate FRESH_SAMPLE_DELTA present
 PASS: timing result hard gate PI_UPDATE_DELTA present
-PASS: timing result hard gate POWER_WRITES_POSITIVE present
-PASS: timing result hard gate RING_FIRST_FRESH present
-PASS: timing result hard gate FREQ_CMD_CHANGED present
+PASS: timing result hard gate POWER_WRITES_DELTA_11 present
 PASS: timing result hard gate SHOT_STATE_COMPLETE present
 PASS: timing result hard gate SHOT_ABORT_TIMEOUT present
 PASS: timing result hard gate SHOT_TICK_10 present
+PASS: timing result hard gate SHOT_OK_1 present
+PASS: timing result hard gate RB_COUNT_11 present
 PASS: timing result hard gate PWM_ZERO present
 PASS: timing result hard gate OST_LATCHED_END present
 PASS: timing result hard gate FAULT_ZERO_END present
 PASS: timing result hard gate ISR_MAX_LE_900 present
 PASS: timing result hard gate OVERRUN_ZERO present
+PASS: timing result hard gate ISR_COUNT_POSITIVE present
+PASS: timing result hard gate TIMER0_ENTRY_POSITIVE present
 PASS: timing script prints TIMING_NOPOWER_FAIL on any gate failure
 PASS: timing script runs 20 ms (not 2 s) from direct RUN state
 PASS: timing script comments clarify Stage6 == 7 / Stage7 == 8
