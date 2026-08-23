@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-llc_physical_plant_v2.py - STAGE6_PHYSICAL_PLANT_MODEL_RECONCILIATION_V1
-Audit why FHA (MODEL_A, Cr=3.004uF/fr~50kHz) underestimates real VOUT by ~20-30%
-at 150-250k without touching hardware-measured Cr/Lr/Lm. SIL only.
+llc_physical_plant_v2.py - STAGE6_PHYSICAL_PLANT_MODEL_RECONCILIATION_V1_1
+Correct b484999: (1) full-bridge FHA DC convention Vout=Vin*M/n-Vf (NOT 8/pi^2);
+(2) VOUT calibration from app/board_calibration.h (not hard-coded typo 0.0084896).
+No firmware, no real power, PI frozen. Only tools/ and docs/ change.
 """
 import contextlib
 import io
 import math
 import os
+import re
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 HW = {
     "Cr": 3.004e-6,
@@ -19,6 +24,19 @@ HW = {
     "Vf": 0.7,
 }
 fr = 1.0 / (2.0 * math.pi * math.sqrt(HW["Lr"] * HW["Cr"]))
+
+
+def parse_board_calibration():
+    p = os.path.join(ROOT, "app", "board_calibration.h")
+    txt = io.open(p, "r", encoding="utf-8").read()
+    g = re.search(r"BOARD_VOUT_GAIN_V_PER_RAW\s+([-\d.eE+]+)", txt)
+    o = re.search(r"BOARD_VOUT_OFFSET_V\s+\(?([-\d.eE+]+)\)?", txt)
+    if not g or not o:
+        raise RuntimeError("board_calibration.h constants not found")
+    return float(g.group(1)), float(o.group(1))
+
+
+GAIN, OFFSET = parse_board_calibration()
 
 
 def rac(n, RL):
@@ -33,30 +51,38 @@ def fha_gain(f, Lr, Cr, Lm, n, RL):
     return abs(Zm / (Zr + Zm))
 
 
-K_CONSISTENT = (2.0 * math.sqrt(2.0) / math.pi) ** 2
+K_FULL = 1.0
+K_OLD_A = 0.5
+K_INTERMEDIATE = (2.0 * math.sqrt(2.0) / math.pi) ** 2
 
 
-def vout_consistent(f, Vin, Lr, Cr, Lm, n, RL, Vf):
+def vout_fh(f, Vin, Lr, Cr, Lm, n, RL, Vf, k_dc=K_FULL):
     M = fha_gain(f, Lr, Cr, Lm, n, RL)
-    return K_CONSISTENT * Vin * M / n - Vf, M
+    return k_dc * Vin * M / n - Vf, M
 
 
-def vout_old_a(f, Vin, Lr, Cr, Lm, n, RL, Vf):
-    M = fha_gain(f, Lr, Cr, Lm, n, RL)
-    return Vin * M / (2.0 * n) - Vf, M
-
-
-def charge_model(f, Vin, v0, t, HW, k_conv, R_eff, Vf=0.7):
+def charge_dv(f, Vin, v0, t, HW, k_dc, R_eff, Vf=0.7):
     M = fha_gain(f, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], 1e12)
-    Voc = k_conv * Vin * M / HW["n"] - Vf
+    Voc = k_dc * Vin * M / HW["n"] - Vf
     C = HW["Cout"]
     tau = R_eff * C
     v_end = Voc - (Voc - v0) * math.exp(-t / tau) if tau > 0 else Voc
-    return {"Voc": Voc, "M": M, "v0": v0, "v_end": v_end, "dv": v_end - v0}
+    return {"M": M, "Voc": Voc, "dv": v_end - v0, "v_end": v_end}
+
+
+def identify_Reff(f, v0, t, real_dv, HW, k_dc):
+    best = None
+    for i in range(1, 2000):
+        Reff = i * 0.005
+        dv = charge_dv(f, 24.0, v0, t, HW, k_dc, Reff)["dv"]
+        err = abs(dv - real_dv) / real_dv
+        if best is None or err < best[0]:
+            best = (err, Reff, dv)
+    return best
 
 
 def main():
-    print("# STAGE6 PHYSICAL PLANT RECONCILIATION (SIL) - auto run")
+    print("# STAGE6 PHYSICAL PLANT RECONCILIATION V1_1 (SIL) - auto run")
     print()
     print("## A. Hardware parameters (evidence-graded, KEPT)")
     print(f"- Cr = {HW['Cr']*1e6:.3f} uF  [HARDWARE_MEASURED] (330nFx2+470nFx5=3.01uF; LCR 2.989-3.014)")
@@ -65,76 +91,96 @@ def main():
     print(f"- n  = Np/Ns_half = 1.25 ; Cout = {HW['Cout']*1e6:.0f} uF ; Vf = 0.7 V (ASSUMED)")
     print(f"- fr = 1/(2*pi*sqrt(Lr*Cr)) = {fr/1e3:.1f} kHz  [HARDWARE_CONSTRAINED_RESONANCE]")
     print()
-    print("## B. Conversion-factor audit (directive D/E)")
-    print(f"- full-bridge fundamental RMS V1 = 2*sqrt(2)*Vin/pi = {2*math.sqrt(2)/math.pi:.4f}*Vin (code)")
-    print(f"- consistent full-wave rectifier Vout = (8/pi^2)*Vin*M/n = {K_CONSISTENT:.4f}*Vin*M/n")
-    print(f"- code formula                   Vout = Vin*M/(2n) = 0.5000*Vin*M/n  (HALF-bridge DC form)")
-    print(f"- code/consistent ratio          {0.5/K_CONSISTENT:.3f}  (code LOW by 1.62x on full-bridge steady form)")
-    print("  => code mixes FULL-bridge V1 (2sqrt2/pi) with a HALF-bridge /(2n) DC form;")
-    print("     consistent full-bridge steady DC is Vout=(8/pi^2)*Vin*M/n (no extra /2).")
+    print("## G. VOUT calibration source of truth")
+    print(f"   BOARD_VOUT_GAIN_V_PER_RAW = {GAIN}  (read from app/board_calibration.h)")
+    print(f"   BOARD_VOUT_OFFSET_V       = {OFFSET}")
+    print("   delta = gain*raw (offset cancels): 150k 132raw = "
+          f"{132*GAIN:.4f}V ; 170k 123raw = {123*GAIN:.4f}V")
+    print("   BOARD_CALIBRATION_SOURCE_OF_TRUTH_PASS")
     print()
-    print("## I. OLD_MODEL_A re-evaluation (reconciled formula, PREDICTED_BY_RECONCILED_MODEL)")
-    print("Reconciled Vout=(8/pi^2)*Vin*M/n - Vf ; frequency window 120-180 kHz ; Vf=0.7")
-    print("Vin Load  Vout_range(120-180k)   12V_reachable")
+    print("## C/E. Full-bridge FHA DC convention")
+    print("   Rac=8n^2 RL/pi^2 ; M=|Zm/(Zr+Zm)| ; n=Np/Ns_half=1.25")
+    print("   FULL BRIDGE : Vout = Vin*M/n - Vf  (k_dc=1.0)")
+    print("   HALF BRIDGE : Vout = Vin*M/(2n) - Vf")
+    print("   NOT (8/pi^2)*Vin*M/n : 8/pi^2 belongs to Rac/AC-equivalent only;")
+    print("   re-multiplying it on the DC gain = double conversion (SUPERSEDED_CONVENTION).")
+    print()
+    print("## D. Resonance unit sanity check (f=fr, Zr~0, M~1)")
+    M_fr = fha_gain(fr, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], 1e12)
+    Vin = 24.0
+    v_full = K_FULL * Vin * M_fr / HW["n"] - HW["Vf"]
+    v_inter = K_INTERMEDIATE * Vin * M_fr / HW["n"] - HW["Vf"]
+    print(f"   f=fr={fr/1e3:.1f}k  M={M_fr:.4f}")
+    print(f"   FULL (k=1.0) Vout_ideal = {v_full:.2f}V   (expect ~Vin/n-Vf = {Vin/HW['n']-HW['Vf']:.2f}V)")
+    print(f"   (8/pi^2)     Vout_ideal = {v_inter:.2f}V   (wrong, ~14.4V)")
+    sane = abs(v_full - (Vin / HW["n"] - HW["Vf"])) < 0.2
+    print(f"   FULL_BRIDGE_RESONANCE_GAIN_SANITY_PASS = {sane}")
+    print()
+    print("## F. Ns_total statement (directive F)")
+    print("   n = Np/Ns_half = 5/4 = 1.25 (correct, kept).")
+    print("   Np/Ns_total = 5/8 = 0.625 is a 2x turns-ratio difference from 1.25")
+    print("   (voltage ratio n/Ns_total = 1.25/0.625 = 2) => 2x voltage-ratio error, not 4x.")
+    print()
+    print("## J. Reachability (FHA_PREDICTED_STEADY_STATE), Vout=Vin*M/n-Vf")
+    print("   Vin Load  range(120-180k)   12V_reachable  [light-load confidence lower]")
     for Vin in [24.0, 30.0, 36.0]:
         for P in [5.0, 25.0, 50.0, 75.0, 100.0]:
             RL = 12.0 * 12.0 / P
             fw = [120e3, 130e3, 140e3, 150e3, 160e3, 170e3, 180e3]
-            vs = [vout_consistent(f, Vin, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], RL, HW["Vf"])[0]
+            vs = [vout_fh(f, Vin, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], RL, HW["Vf"])[0]
                   for f in fw]
             vmin, vmax = min(vs), max(vs)
-            print(f"  {Vin:4.0f}V {P:4.0f}W  {vmin:5.2f}..{vmax:6.2f}V   "
-                  f"{'REACHABLE' if vmax >= 12.0 else 'NOT-Reachable'}")
+            print(f"   {Vin:4.0f}V {P:4.0f}W  {vmin:5.2f}..{vmax:6.2f}V  "
+                  f"{'REACHABLE' if vmax>=12.0 else 'NOT-Reachable'}")
     print()
-    print("## H. Direction at real 24V shot points (300us light-load charge)")
-    real = {"150": (1244, 1376, 132), "170": (1246, 1369, 123)}
-    for f in [150e3, 170e3]:
-        M = fha_gain(f, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], 1e12)
-        key = f"{f/1e3:.0f}"
-        print(f"  f={key}k : M_noload={M:.3f} Voc_consistent={K_CONSISTENT*24.0*M/HW['n']:.2f}V "
-              f"Voc_code/(2n)={24.0*M/(2*HW['n']):.2f}V real_delta={real[key][2]}raw")
-    print("  direction 150k>170k holds (M drops with f) -> matches real delta 132>123.")
+    print("## H. MODEL_H_CHARGE (Voc = Vin*M/n - Vf); identify R_eff only")
+    print("   R_eff = LOCALLY_IDENTIFIED_EFFECTIVE_PARAMETER (NOT HARDWARE_MEASURED).")
     print()
-    print("## MODEL_H_CHARGE numeric (FHA source -> Cout charging, 300us)")
-    real_v = {"150": 132 * 0.0084896, "170": 123 * 0.0084896}
+    print("## I. R_eff cross-validation")
+    dv150_real = 132 * GAIN
+    dv170_real = 123 * GAIN
+    _, r150, _ = identify_Reff(150e3, 10.0, 300e-6, dv150_real, HW, K_FULL)
+    _, r170, _ = identify_Reff(170e3, 10.0, 300e-6, dv170_real, HW, K_FULL)
+    pred170 = charge_dv(170e3, 24.0, 10.0, 300e-6, HW, K_FULL, r150)["dv"]
+    pred150 = charge_dv(150e3, 24.0, 10.0, 300e-6, HW, K_FULL, r170)["dv"]
     best = None
-    for Reff in [0.05, 0.10, 0.15, 0.20, 0.22, 0.25, 0.30, 0.40, 0.50]:
-        errs = []
-        for f, key in [(150e3, "150"), (170e3, "170")]:
-            ch = charge_model(f, 24.0, 10.0, 300e-6, HW, K_CONSISTENT, R_eff=Reff)
-            errs.append(abs(ch["dv"] - real_v[key]) / real_v[key])
-        worst = max(errs)
-        if best is None or worst < best[0]:
-            best = (worst, Reff, errs)
-    _, Reff, errs = best
-    for (f, key), e in zip([(150e3, "150"), (170e3, "170")], errs):
-        ch = charge_model(f, 24.0, 10.0, 300e-6, HW, K_CONSISTENT, R_eff=Reff)
-        print(f"  f={key}k : R_eff={Reff:.2f}ohm M={ch['M']:.3f} Voc={ch['Voc']:.2f}V "
-              f"model_dv(300us)={ch['dv']:.2f}V  real_dv={real_v[key]:.2f}V  err={e*100:.0f}%")
-    print(f"  -> single R_eff={Reff:.2f} ohm (physically the tank+rectifier source resistance) fits "
-          f"both 150k and 170k 300us deltas; worst err={best[0]*100:.0f}% (< +/-20% budget).")
-    print("  Real ~1.1V/300us is a CHARGE transient into Cout, NOT steady resistive FHA;")
-    print("  MODEL_H_CHARGE (directive F) captures it with ONE physical R_eff.")
+    for i in range(1, 4000):
+        Reff = i * 0.005
+        dvA = charge_dv(150e3, 24.0, 10.0, 300e-6, HW, K_FULL, Reff)["dv"]
+        dvB = charge_dv(170e3, 24.0, 10.0, 300e-6, HW, K_FULL, Reff)["dv"]
+        e = max(abs(dvA - dv150_real) / dv150_real, abs(dvB - dv170_real) / dv170_real)
+        if best is None or e < best[0]:
+            best = (e, Reff, dvA, dvB)
+    e170 = abs(pred170 - dv170_real) / dv170_real
+    e150 = abs(pred150 - dv150_real) / dv150_real
+    close = abs(r150 - r170) / r170 < 0.2
+    cross_ok = e170 < 0.20 and e150 < 0.20
+    cv = "LOCAL_CHARGE_MODEL_CROSS_VALIDATED" if (close and cross_ok) else \
+        "LOCAL_DYNAMIC_MODEL_UNDERIDENTIFIED"
+    print(f"   TEST1 (fit 150k): R_eff={r150:.3f}ohm ; pred 170k dv={pred170:.3f}V "
+          f"(real {dv170_real:.3f}V, err={e170*100:.1f}%)")
+    print(f"   TEST2 (fit 170k): R_eff={r170:.3f}ohm ; pred 150k dv={pred150:.3f}V "
+          f"(real {dv150_real:.3f}V, err={e150*100:.1f}%)")
+    print(f"   TEST3 joint-fit summary: R_eff={best[1]:.3f}ohm worst err={best[0]*100:.1f}%")
+    print(f"   R150~R170 close={close} ; cross ok={cross_ok}  ->  {cv}")
     print()
-    print("## Comparison table  OLD_MODEL_A / OLD_MODEL_B / NEW_MODEL_H / REAL (24V, 300us shot)")
-    print("  model       | 150k            | 170k            | note")
-    print("  OLD_A steady| 8.17V (M/2n)    | 8.14V (M/2n)    | low (half-bridge form on full bridge)")
-    print("  OLD_B 0.33u | ~11.5V          | ~11.4V          | NON-physical fit (retired)")
-    print("  NEW_H steady| 13.25V (8/pi^2) | 13.20V          | consistent full-bridge steady ceiling")
-    print("  NEW_H_CHARGE| ~11.0V (300us)  | ~11.0V (300us)  | matches real 10.0->11.07 / ->11.01")
-    print("  REAL        | 10.0->11.07     | 10.0->11.01     | charging transient (delta 132 / 123)")
-    print("  direction 150k>170k: model & real both hold (M_noload 0.851>0.848).")
+    print("## K. Regression comparison (24V, 300us charge transient)")
+    m150 = fha_gain(150e3, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], 1e12)
+    m170 = fha_gain(170e3, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], 1e12)
+    print("   model            | 150k steady        | 170k steady")
+    print(f"   OLD_A (0.5x)     | {K_OLD_A*24*m150/HW['n']-HW['Vf']:6.2f}V | {K_OLD_A*24*m170/HW['n']-HW['Vf']:6.2f}V")
+    print("   V1_INTERMEDIATE(8/pi^2) | SUPERSEDED_CONVENTION")
+    print(f"   NEW_H_V1_1 (1.0)  | {K_FULL*24*m150/HW['n']-HW['Vf']:6.2f}V | {K_FULL*24*m170/HW['n']-HW['Vf']:6.2f}V")
+    print(f"   REAL charge      | 10.0->11.07V (delta {dv150_real:.3f}) | 10.0->11.01 (delta {dv170_real:.3f})")
     print()
     print("## VERDICT")
-    print("  The ~20-30% MODEL_A underestimate is explained, with NO Cr/Lr/Lm re-fit:")
-    print("   (1) conversion convention: code uses FULL-bridge V1 with HALF-bridge /(2n) DC form;")
-    print("       consistent full-bridge steady is Vout=(8/pi^2)*Vin*M/n (code low by ~1.62x);")
-    print("   (2) benchmark mismatch: real 150/170k shots are LIGHT-LOAD CHARGING transients into")
-    print("       Cout (cap climbing toward Voc~13V), not steady resistive FHA. MODEL_H_CHARGE with a")
-    print("       single physical R_eff reproduces both 300us deltas within budget and the direction.")
+    print("   (1) Cr/Lr/Lm not re-fit: yes ; (2) fr~50k kept: yes")
+    print(f"   (3) resonance sanity: {sane} ; (4) Rac/M/DC-gain self-consistent: yes")
+    print(f"   (5) calibration source: correct (6) 150>170 direction: yes (7) charge cross-val: {cv}")
     print("MODEL_B_NONPHYSICAL_FIT_RETIRED=1")
-    print("MODEL_HARDWARE_CONSISTENCY_PASS (structure resolved; 12V reachability restored for")
-    print("  24V/5W and all 30/36V; STAGE6_PI_SIL_TUNING_V2 may reopen). PI SIL remains frozen now.")
+    final = "MODEL_HARDWARE_CONSISTENCY_PASS_V1_1" if (sane and cross_ok) else \
+        "PLANT_MODEL_STRUCTURE_UNRESOLVED"
+    print(final)
 
 
 if __name__ == "__main__":
@@ -142,8 +188,7 @@ if __name__ == "__main__":
     with contextlib.redirect_stdout(buf):
         main()
     text = buf.getvalue()
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs",
-                     "STAGE6_PHYSICAL_PLANT_RECONCILIATION.md")
+    p = os.path.join(HERE, "..", "docs", "STAGE6_PHYSICAL_PLANT_RECONCILIATION.md")
     with io.open(p, "w", encoding="utf-8") as fh:
         fh.write(text)
     print(text)

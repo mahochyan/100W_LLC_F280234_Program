@@ -1,113 +1,116 @@
 # STAGE6_TRANSFORMER_RECTIFIER_GAIN_DERIVATION
 
-> Task: STAGE6_PHYSICAL_PLANT_MODEL_RECONCILIATION_V1 — directive D & E.
+> Task: STAGE6_PHYSICAL_PLANT_MODEL_RECONCILIATION_V1_1 — directives D & E (and F, G).
 > Rigorous derivation of the LLC **Vout** DC-gain formula from topology.
 > **No reverse-engineering to fit measured data.** Hardware Cr/Lr/Lm are NOT touched.
+> Supersedes the b484999 derivation (that doc's `8/pi^2` DC factor is now
+> `SUPERSEDED_CONVENTION` — see below).
 
 ## 0. Topology under analysis
 
-- Primary: full bridge, `Np = 5T`, switches drive the primary from `+Vin` to `-Vin`.
+- Primary: full bridge, `Np = 5T`, drives the primary from `+Vin` to `-Vin`.
 - Secondary: center-tap full-wave rectifier, `Ns1 = 4T`, `Ns2 = 4T`.
-- `n = Np / Ns_half = 5/4 = 1.25`  (one half-winding carries each alternation).
+- `n = Np / Ns_half = 5/4 = 1.25`.
 - Output: `Cout` + resistive load `RL`.
 
-## 1. Full-bridge primary square-wave fundamental
+## 1. Full-bridge primary fundamental
 
-The primary port sees a square wave swinging `+Vin ↔ -Vin` (peak amplitude `Vin`,
-peak-to-peak `2Vin`). Fourier fundamental:
-
-```
-A1 (peak)  = (4/pi) * Vin
-V1 (RMS)   = A1 / sqrt(2) = (2*sqrt(2)/pi) * Vin = 0.9003 * Vin
-```
-
-A half bridge would produce `V1 = (sqrt(2)/pi)*Vin` (half the fundamental). So the
-full bridge injects **2× the fundamental RMS** of a half bridge.
-
-## 2. Turns ratio definition
-
-Each center-tap half-winding carries exactly one alternation. The ratio between the
-primary voltage and **one** conductive half-winding is
+The primary port sees a square wave `+Vin ↔ -Vin` (peak amplitude `Vin`).
 
 ```
-n = Np / Ns_half = 5/4 = 1.25
+V1 (RMS) = (2*sqrt(2)/pi) * Vin
 ```
 
-`Ns_total = 8T` is NOT the ratio of the conductive path (the two halves never conduct
-simultaneously into a common series path). Using `n_total = 5/8` would overstate the
-secondary voltage 4×. **Correct n = Np/Ns_half = 1.25.**
+A half bridge would be `(sqrt(2)/pi)*Vin` (half). The full bridge injects 2× the
+half-bridge fundamental.
 
-## 3. FHA M: where it lives
+## 2. Turns ratio
 
-`M(f) = |Zm / (Zr + Zm)|`, `Zr = jωLr + 1/(jωCr)`, `Zm = jωLm ∥ Rac`,
-`Rac = 8·n²·RL/π²`, is the **fundamental AC voltage gain** of the tank:
-input = bridge fundamental `V1`, output = the fundamental voltage across the
-primary-referred load branch `Zm`. It is **not** yet a DC gain; the rectifier and the
-bridge fundamental add the conversion factor below.
+`n = Np/Ns_half = 1.25` (each half-winding carries one alternation).
+**`Np/Ns_total = 5/8 = 0.625` would be a 2× turns-ratio (voltage) error, not 4×**
+(1.25 vs 0.625 → ratio 2). Correct `n = Np/Ns_half = 1.25`.
 
-## 4. Transformer ratio
+## 3. FHA M and the secondary rectified square wave (directive E)
 
-The secondary half-winding fundamental voltage (per alternation):
+Input fundamental to the tank: `Vi1_rms = (2*sqrt(2)/pi)*Vin`.
 
-```
-Vs_half (RMS) = V1 * M / n
-```
-
-## 5. Full-wave rectification (center tap)
-
-Full-wave rectification of a sinusoid of RMS `Vs` gives (ideal, resistive-average
-convention, fundamental):
+The output rectifier + `Cout` in FHA is represented as a secondary **square wave**
+`±(Vout+Vf)`. Its fundamental RMS is
 
 ```
-Vout = (2*sqrt(2)/pi) * Vs      k_rect = 2*sqrt(2)/pi = 0.9003
+Vo1_sec_rms = (2*sqrt(2)/pi) * (Vout + Vf)
 ```
 
-## 6. Combine — the full-bridge Vout formula
+Reflected to the primary:
 
 ```
-Vout = k_rect * Vs_half
-     = (2*sqrt(2)/pi) * (V1 * M / n)
-     = (2*sqrt(2)/pi) * ((2*sqrt(2)/pi)*Vin) * M / n
-     = (8/pi^2) * Vin * M / n
-     = 0.8106 * Vin * M / n
+Vo1_pri = n * Vo1_sec_rms
 ```
 
-**Result (self-consistent full-bridge):** `Vout = (8/pi^2) * Vin * M / n`. There is
-**no extra `/2`** beyond the `8/pi^2` factor.
+The FHA tank gain `M = |Zm/(Zr+Zm)|` is exactly the ratio of these two fundamental
+amplitudes:
 
-## 7. Peak vs average — light-load peak-hold (directive E, F)
+```
+M = Vo1_pri / V1 = n * (Vout+Vf) / Vin
+```
 
-At light/no load the rectifier runs in **discontinuous / peak-hold** mode: the tank is
-a quasi-current source and `Cout` rides the **peak** of the rectified secondary
-instead of the resistive average. Then `Vout → sqrt(2)·Vs = (4/pi)·Vin·M/n`
-(`0.8106→1.273` coefficient), i.e. the cap climbs **above** the resistive-average
-steady value toward the open-load ceiling `Voc`. The 300us bench shots are exactly
-this charging transient, **not** a steady resistive point. Both cases are physical;
-they differ in the effective rectifier conduction factor.
+Inverting:
 
-## 8. Convention audit of the existing code (directive E)
+```
+Vout + Vf = Vin * M / n
+Vout      = Vin * M / n - Vf
+```
 
-| quantity | code | consistent | match? |
+**This is the full-bridge DC gain.** There is **no extra factor** in the DC
+conversion.
+
+## 4. Full bridge vs half bridge
+
+```
+FULL BRIDGE : Vout = Vin * M / n - Vf
+HALF BRIDGE : Vout = Vin * M / (2*n) - Vf
+```
+
+`8/pi^2` appears only inside the **AC-equivalent relations** (`Rac = 8 n^2 RL / pi^2`
+and the fundamental/rms conversion of the waveforms). Once you use `Rac = 8n^2 RL/pi^2`
+and the above `M` definition, multiplying the DC gain by `8/pi^2` again is a
+**double conversion** and must NOT be done.
+
+> The b's `Vout = (8/pi^2) * Vin * M / n` was exactly that double conversion →
+> **SUPERSEDED_CONVENTION**, and it also broke the resonance unit check (below).
+
+## 4. Resonance unit sanity check (directive D)
+
+At `f = fr`: `Zr ≈ 0`, `M ≈ 1`, so a full bridge must give
+
+```
+Vout_ideal ≈ Vin/n - Vf
+```
+
+For `Vin = 24, n = 1.25, Vf = 0.7`:  `24/1.25 - 0.7 = 18.5 V`.
+
+`8/pi^2` would give `0.8106*19.2 - 0.7 = 14.86 V` (in the forbidden 14-15 V band),
+which is why it is rejected. **FULL_BRIDGE_RESONANCE_GAIN_SANITY_PASS** requires the
+`1.0` factor.
+
+## 5. Peak vs average / light-load peak-hold
+
+At light/no-load the rectifier runs in peak-hold/DCM and the cap rides the **peak**
+of the rectified secondary, climbing toward the open-load ceiling `Voc = Vin*M/n-Vf`.
+The 300us bench shots are this charging transient, reproduced by
+`MODEL_H_CHARGE` (directive H/I), not a steady resistive FHA point.
+
+## 6. Convention audit (directive E, G)
+
+| quantity | correct | code (b484999 OLD) | V1_1 |
 |---|---|---|---|
-| primary fundamental `V1_rms` | `(2√2/π)·Vin` (full bridge) | `(2√2/π)·Vin` | OK |
-| DC form coefficient on `Vin·M/n` | `1/(2n) = 0.5` | `8/π² = 0.8106` | **MISMATCH** |
-| `n` | `Np/Ns_half = 1.25` | `1.25` | OK |
+| `n` | `Np/Ns_half = 1.25` | 1.25 (OK) | 1.25 (OK) |
+| full-bridge DC factor on `Vin*M/n` | `1.0` | `0.5` (half-bridge form) | `1.0` |
+| `V1_rms` | `(2sqrt2/pi)*Vin` | OK | OK |
+| VOUT calibration | `0.008089325` / `-0.063715` (board_calibration.h) | typo `0.0084896` | parsed from board_calibration.h |
 
-The code drives the tank with the **full-bridge** fundamental (`2√2/π`) but converts to
-DC with the **half-bridge** `/(2n)` form. The consistent full-bridge DC form is
-`/( (2√2/π)² ) = 0.8106`. The code is therefore **low by `0.5/0.8106 = 0.617`**
-(≈1.62×) in the steady full-bridge FHA.
-
-## 9. Conclusion (directive D, E)
-
-- `n = Np/Ns_half = 1.25` is the correct turns ratio; using `Ns_total` is wrong.
-- The consistent full-bridge DC gain is `Vout = (8/π²)·Vin·M/n - Vf`; **no extra /2**.
-- The code's `Vout = Vin·M/(2n)` mixes a full-bridge `V1` with a half-bridge DC form →
-  a **factor-2-of-the-full-bridge factor convention error** that LOW-predicts steady
-  Vout (~1.63×).
-- At light/no-load the benchmark must be `MODEL_H_CHARGE` (peak/charge), not the
-  steady resistive FHA; that additional gap explains the ~20-30% real-vs-MODEL_A
-  deviation together with the convention factor.
+The `0.5` factor (half-bridge DC form on a full-bridge tank) and the `8/pi^2` factor
+are both **superseded**; the correct full-bridge DC factor is `1.0`.
 
 > Keep firmware untouched. `LLC_HARDWARE_PI_VALIDATED=0`, `NO_REAL_POWER_EXECUTED`.
-> PI SIL frozen until `MODEL_HARDWARE_CONSISTENCY_PASS`.
+> PI SIL frozen until `MODEL_HARDWARE_CONSISTENCY_PASS_V1_1`.
