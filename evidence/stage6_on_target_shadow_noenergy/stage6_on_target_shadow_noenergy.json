@@ -1,13 +1,15 @@
 {
-  "stage": "STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST_V1",
-  "baseline_commit": "c1abaf3",
+  "stage": "STAGE6_FLASH_STARTUP_PATH_REPAIR_V1",
+  "baseline_commit": "0343a23",
+  "previous_diagnosis_superseded_by_build_audit": true,
   "frozen_binary": {
     "build_config": "Stage6_FLASH_NOENERGY",
     "base_config": "Stage6_FLASH",
     "compiler": "ti-cgt-c2000_25.11.1.LTS",
     "abi": "coffabi",
-    "flags": "--abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --gen_func_subsections",
+    "flags": "--abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --gen_func_subsections --entry_point=code_start",
     "build_macros": {
+      "STAGE6_FLASH_BUILD": 1,
       "STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST": 1,
       "STAGE6_OFFLINE_SELFTEST": 1,
       "LLC_HARDWARE_PI_VALIDATED": 0,
@@ -20,11 +22,77 @@
       "kp_hz_per_v": 6657.43331,
       "ki_step_hz_per_v_20us": 44.3828888
     },
-    "out_sha256": "DDC6E8C75A7D70F5876FB015DB67977B9DE5F4CB99A075FE4B5E1FC434BE17A3",
-    "map_sha256": "BEB9DF9F59510CAA470E8E3BA3DDA2FB78A24E64D04789B7E90D253338EF7A4E",
-    "flash_used_words": 10132,
+    "out_sha256": "34C6E84F6B7D88D1029895BB7763A672CB046B15E757F4B25214567CEBDBF391",
+    "map_sha256": "C39F4ED527937B461651AB66C87E0654184014E2CC4DFEB766DD1C4612C0BAB5",
+    "flash_used_words": 10187,
     "flash_capacity_words": 65408,
-    "flash_used_pct": 15.5
+    "flash_used_pct": 15.6
+  },
+  "superseded_flash_startup_image": {
+    "note": "Previous frozen image (OLD OUT SHA DDC6E8C75A7D70F5876FB015DB67977B9DE5F4CB99A075FE4B5E1FC434BE17A3) lacked codestart in image and did not define STAGE6_FLASH_BUILD; kept as historical evidence, SUPERSEDED_FLASH_STARTUP_IMAGE. Not loaded on target.",
+    "old_out_sha256": "DDC6E8C75A7D70F5876FB015DB67977B9DE5F4CB99A075FE4B5E1FC434BE17A3",
+    "old_map_sha256": "BEB9DF9F59510CAA470E8E3BA3DDA2FB78A24E64D04789B7E90D253338EF7A4E"
+  },
+  "flash_startup_repair": {
+    "root_cause_1_codestart_not_linked": "build_flash.bat / build_flash_noenergy.bat did not assemble 2803x_CodeStartBranch.asm nor add it to link; MAP showed BEGIN origin=0x3F7FF6 used=0",
+    "root_cause_2_flash_build_macro_not_defined": "System_Init() flash-init (ramfuncs copy + InitFlash) is #ifdef STAGE6_FLASH_BUILD, but neither FLASH build passed -DSTAGE6_FLASH_BUILD=1",
+    "fix_1_codestart": "assemble device/source/2803x_CodeStartBranch.asm -> 2803x_CodeStartBranch.obj, added to both FLASH links; asm standardized to `.global code_start; .sect \"codestart\"; code_start: LB _c_int00`",
+    "fix_2_entry_point": "--entry_point=code_start added to both FLASH links",
+    "fix_3_flash_build_macro": "-DSTAGE6_FLASH_BUILD=1 added to every C compile command in both FLASH builds (normal sources + soft_start.c special compile); RAM build unchanged (macro not defined)",
+    "ram_build_unaffected": true,
+    "production_config_untouched": true
+  },
+  "flash_startup_static_gates": {
+    "FLASH_CODESTART_IMAGE_PASS": true,
+    "FLASH_INIT_COMPILED_IN_PASS": true,
+    "FLASH_RAMFUNC_COPY_PATH_PASS": true,
+    "NO_CSM_PASSWORD_PROGRAMMED_BY_IMAGE": true,
+    "begin_origin": "0x3F7FF6",
+    "begin_used_words": 2,
+    "codestart_address": "0x3F7FF6",
+    "entry_point_symbol": "code_start",
+    "entry_point_address": "0x3F7FF6",
+    "code_start_branch": "LB _c_int00 (0x3e9b8a)",
+    "ramfuncs_load_addr": "0x3E8000 (FLASH)",
+    "ramfuncs_run_addr": "0x00008000 (RAML0)",
+    "ramfuncs_size_words": 29,
+    "initflash_run_addr": "0x00008000",
+    "system_obj_ramfunc_copy_loop": true,
+    "system_obj_call_initflash": true,
+    "csm_pwl_p0_used": 0,
+    "csm_pwl_file_note": "CsmPwlFile is the standard uninitialized F2803x header placeholder (volatile struct CSM_PWL CsmPwl; no initializer); image defines NO program section at CSM password area (CSM_PWL_P0 used=0). On-board flash read of 0x3F7FF8/0x3F7FF9 = 0xFFFF/0xFFFF (CSM password area erased) => CSM UNLOCKED. CSM/OTP/password untouched.",
+    "FLASH_STARTUP_MILESTONE_PASS": true,
+    "flash_startup_milestone_trace": [
+      "code_start @0x3F7FF6 HIT",
+      "_c_int00 @0x3E9BE9 HIT",
+      "_main @0x3EA41D HIT",
+      "_System_Init @0x3E99B0 HIT",
+      "_InitFlash (ramfunc copied to RAM 0x8000, verified flash[0x3E8000]==ram[0x8000]) executed & returned",
+      "_APP_Init @0x3EA37B HIT"
+    ],
+    "flash_startup_verified": "Repaired image boots from FLASH: boot-to-flash -> code_start -> _c_int00 -> main -> System_Init -> [ramfunc copy + InitFlash] -> APP_Init. Previous 'board only runs RAM' diagnosis SUPERSEDED (root causes were codestart-not-linked + STAGE6_FLASH_BUILD-not-defined)."
+  },
+  "on_target_full_test_blocker": {
+    "status": "BLOCKED_ITRAP_OR_ROM_TRAP",
+    "observation": "ITRAP_OR_ROM_TRAP_OBSERVED: under continuous (no-breakpoint) main/APP_Init execution the CPU vectors to 0x3FF8CD (illegal-instruction trap in boot ROM). Non-deterministic: sometimes System_Init PLL-lock wait is the stall point, sometimes an immediate ITRAP to 0x3FF8CD. PLL itself locks (PLLLOCKS=1, PLLSTS.all=385 read via expression).",
+    "trap_dump": {
+      "PC": "0x3FF8CD",
+      "SP": 34845,
+      "RPC": 4105052,
+      "ST0": 128,
+      "ST1": 35339,
+      "IER": 0,
+      "IFR": 0,
+      "stack_top": ["0x881D=0x01C4","0x881F=0x601F","0x8820=0x8002","0x8822=0x28A9","0x8823=0x018F"]
+    },
+    "flash_integrity": {
+      "codestart_0x3F7FF6": "0x007E (LB _c_int00)",
+      "TINT0_ISR_region": "0 words of 0xFFFF in 96-word scan (clean)",
+      "main_region": "1 word of 0xFFFF in 160-word scan (legitimate embedded data)",
+      "c_int00_region": "4 words of 0xFFFF in 64-word scan (legitimate embedded data)",
+      "csm_password_area": "0x3F7FF8/0x3F7FF9 = 0xFFFF/0xFFFF (CSM unlocked)"
+    },
+    "conclusion": "FLASH startup chain repair CONFIRMED (milestone PASS). The no-energy runtime measurements (8-case/first-step/ADC-stale/PWM-register-isolation/20us-budget/final-safe-state) require the firmware main loop + Timer0 to run; under continuous FLASH execution the CPU hits ITRAP to 0x3FF8CD. Per task N this is recorded as ITRAP_OR_ROM_TRAP_OBSERVED and on-target full test is STOPPED (no further boot-pin guessing). Board on-target stability under continuous FLASH execution is the remaining blocker."
   },
   "static_gates": {
     "LLC_HARDWARE_PI_VALIDATED_0": true,
@@ -82,7 +150,7 @@
     "profile_id_after_run": "uninitialized garbage (CTRL_Init not executed)",
     "flash_load_errors": "reported 'Power Failure on Target CPU' / 'target is not connected' / flash loader errors during a prior load attempt",
     "memory_0xC00_read": "error 0x20000 (likely CSM/security-gated region)",
-    "conclusion": "Board connects and loads flash, but CPU does NOT execute the FLASH-resident image in this boot configuration (boot ROM stall). RAM-resident execution worked in prior sessions. FLASH-resident measurement (incl. flash wait-states) is blocked until board boot-to-flash / CSM state is resolved by the operator."
+    "conclusion": "Historical (PRE-build-audit) finding. SUPERSEDED BY BUILD AUDIT: root causes were (1) codestart not linked (BEGIN used=0) and (2) STAGE6_FLASH_BUILD not defined (InitFlash compiled out). Repaired image now has codestart at BEGIN, entry point code_start, and a compiled-in flash-init path. On-target re-execution with the repaired frozen binary is the follow-up."
   },
   "gates_pending_real_board": [
     "ON_TARGET_BALANCED_8CASE_PASS",

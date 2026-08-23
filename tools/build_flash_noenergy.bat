@@ -16,6 +16,7 @@ mkdir "%BUILD%"
 
 echo === CGT 25.11.1.LTS clean Stage6_FLASH_NOENERGY compile (COFF, NOENERGY) ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
+  -DSTAGE6_FLASH_BUILD=1 ^
   -DSTAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1 ^
   -I"%PROJ%" -I"%PROJ%\app" -I"%PROJ%\driver" -I"%PROJ%\device" -I"%PROJ%\device\include" -I"%PROJ%\IQmath\c28\include" ^
   -c ^
@@ -47,15 +48,20 @@ echo === assemble usDelay ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -c "%PROJ%\device\source\DSP2803x_usDelay.asm" --obj_directory="%BUILD%"
 if errorlevel 1 exit /b 1
 
+echo === assemble codestart (boot-to-flash branch) ===
+"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -c "%PROJ%\device\source\2803x_CodeStartBranch.asm" --obj_directory="%BUILD%"
+if errorlevel 1 exit /b 1
+
 echo === compile soft_start.c (-O2, size) ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O2 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
+  -DSTAGE6_FLASH_BUILD=1 ^
   -DSTAGE6_ON_TARGET_SHADOW_NOENERGY_TEST=1 ^
   -I"%PROJ%" -I"%PROJ%\app" -I"%PROJ%\driver" -I"%PROJ%\device" -I"%PROJ%\device\include" -I"%PROJ%\IQmath\c28\include" ^
   -c "%PROJ%\app\soft_start.c" --obj_directory="%BUILD%" || exit /b 1
 
 echo === link (FLASH) ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
-  -z -m"%BUILD%\LLC_100W_F28034_BRINGUP_DSH.map" --stack_size=0xBF --warn_sections ^
+  -z -m"%BUILD%\LLC_100W_F28034_BRINGUP_DSH.map" --stack_size=0xBF --warn_sections --entry_point=code_start ^
   -i"%CGT%\lib" -i"%CGT%\include" --reread_libs --diag_wrap=off --display_error_number ^
   --xml_link_info="%BUILD%\LLC_100W_F28034_BRINGUP_DSH_linkInfo.xml" --rom_model ^
   -o"%BUILD%\LLC_100W_F28034_BRINGUP_DSH.out" ^
@@ -84,6 +90,7 @@ echo === link (FLASH) ===
   "%BUILD%\DSP2803x_PieVect.obj" ^
   "%BUILD%\DSP2803x_SysCtrl.obj" ^
   "%BUILD%\DSP2803x_usDelay.obj" ^
+  "%BUILD%\2803x_CodeStartBranch.obj" ^
   -llibc.a
 if errorlevel 1 exit /b 1
 
