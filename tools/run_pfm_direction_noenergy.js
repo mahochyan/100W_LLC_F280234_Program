@@ -7,7 +7,7 @@ importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
 var env = ScriptingEnvironment.instance();
 var server = env.getServer("DebugServer.1");
-server.setConfig("D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\F28034.ccxml");
+server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session = server.openSession();
 function addr(n){return session.expression.evaluate("&"+n);}
 function rv(n){try{return ""+session.memory.readWord(1,addr(n));}catch(e){return "<f>";}}
@@ -18,7 +18,7 @@ function reg(e){try{return ""+session.expression.evaluate(e);}catch(err){return 
 // 从 board_calibration.h 解析标定系数
 var CAL = {gain:0.008089325, offset:-0.063715};
 try {
-  var p = "D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\app\\board_calibration.h";
+  var p = "D:\\CCS21_workspace\\Codex_Project\\app\\board_calibration.h";
   var txt = new java.lang.String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(p)), "UTF-8");
   var mg = txt.match(/GAIN\s+([0-9.eE+-]+f?)/);
   var mo = txt.match(/OFFSET\s+([-0-9.eE+-]+f?)/);
@@ -28,7 +28,7 @@ try {
 function vout(raw){ return (CAL.gain*raw + CAL.offset).toFixed(3); }
 session.target.connect();
 try{session.target.halt();}catch(e){}
-session.memory.loadProgram("D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\Debug\\LLC_100W_F28034_BRINGUP_DSH.out");
+session.memory.loadProgram("D:\\CCS21_workspace\\Codex_Project\\Debug\\LLC_100W_F28034_BRINGUP_DSH.out");
 session.target.runAsynch();
 java.lang.Thread.sleep(200);
 session.target.halt();
@@ -37,7 +37,7 @@ function phase(name, mode, runid, ceiling) {
   print("===== PHASE "+name+" (mode="+mode+" run_id=0x"+runid.toString(16)+" ceiling="+ceiling+") =====");
   // Full restart per phase: clean state (RAM-loaded .ebss is not zeroed by
   // loadProgram, so in-session repeats carry residue).
-  session.memory.loadProgram("D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\Debug\\LLC_100W_F28034_BRINGUP_DSH.out");
+  session.memory.loadProgram("D:\\CCS21_workspace\\Codex_Project\\Debug\\LLC_100W_F28034_BRINGUP_DSH.out");
   session.target.runAsynch();
   java.lang.Thread.sleep(200);
   session.target.halt();

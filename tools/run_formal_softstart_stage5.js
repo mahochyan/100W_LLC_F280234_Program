@@ -6,7 +6,7 @@ importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
 var env = ScriptingEnvironment.instance();
 var server = env.getServer("DebugServer.1");
-server.setConfig("D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\F28034.ccxml");
+server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session = server.openSession();
 function addr(n){return session.expression.evaluate("&"+n);}
 function rv(n){try{return ""+session.memory.readWord(1,addr(n));}catch(e){return "<f>";}}
@@ -16,7 +16,7 @@ function wv32(n,v){var a=addr(n);session.memory.writeWord(1,a,v&0xFFFF);session.
 function reg(e){try{return ""+session.expression.evaluate(e);}catch(err){return "<f>";}}
 session.target.connect();
 try{session.target.halt();}catch(e){}
-session.memory.loadProgram("D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\Debug\\LLC_100W_F28034_BRINGUP_DSH.out");
+session.memory.loadProgram("D:\\CCS21_workspace\\Codex_Project\\Debug\\LLC_100W_F28034_BRINGUP_DSH.out");
 session.target.runAsynch();
 java.lang.Thread.sleep(200);
 session.target.halt();

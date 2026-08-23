@@ -1,0 +1,83 @@
+{
+  "shot": "1-cycle",
+  "CYCLES": 1,
+  "RUN_ID": "0x20014001",
+  "REAL_POWER": 1,
+  "OUT_SHA256": "4A993FFAF6CA2397AE5057DDA36715567BA444429939C1A735122C6096AE7EDF",
+  "status": "REQUALIFY_STOPPED_AT_1_CYCLE",
+  "hard_gate": "FAIL",
+  "result": 0,
+  "expected_result": 1,
+  "stop_reason": 0,
+  "completed_cycles": 0,
+  "requested_cycles": 1,
+  "run_id_at_arm": "0x20014001",
+  "run_id_at_stop": "0x20014001",
+  "run_id_at_tz_isr": "0x0",
+  "pre_gate": {
+    "fault": 0,
+    "system_state": "IDLE(1)",
+    "pwm": 0,
+    "pwm_enable_request": 0,
+    "ost": 1,
+    "tz_osht1": 1,
+    "tza": 2,
+    "tzb": 2,
+    "comp_loopback": 1,
+    "tbprd_pre": 399,
+    "vout_raw_pre": 9,
+    "pre_gate_ok": true
+  },
+  "pwm_config_during": {
+    "TBPRD": 299,
+    "CMPA": 150,
+    "CMPB": 75,
+    "DBRED": 140,
+    "DBFED": 140,
+    "actual_freq_hz": 200000,
+    "comp1_dac_code": 300,
+    "comp_prestart_reject": 0,
+    "comp_inject_armed": 1
+  },
+  "window": {
+    "theoretical_us": 5.0,
+    "timer2_elapsed_inconsistent": true
+  },
+  "adc": {
+    "soca": 0,
+    "eoc": 0,
+    "miss": 0,
+    "consecutive_miss": 0,
+    "stale_abort": 0,
+    "probe_adc_samples": 0,
+    "vout_first": 0,
+    "vout_last": 0,
+    "vout_min": 65535,
+    "vout_max": 0,
+    "vout_before": 8,
+    "vout_after": 10092
+  },
+  "trip": {
+    "pre_stop_ost": 0,
+    "pre_stop_hardware_trip_seen": 0,
+    "completed_cycles_at_trip": 0,
+    "tz_event_phase": 0,
+    "active_delta": 0,
+    "hw_delta": 0,
+    "sw_delta": 0,
+    "post_delta": 0
+  },
+  "final": {
+    "fault": 0,
+    "system_state": "IDLE(1)",
+    "final_pwm": 0,
+    "final_pwm_result": 0,
+    "final_ost": 1,
+    "scheduled_ost_occurred": 1,
+    "power_window_state": 2,
+    "compsts": 1,
+    "gpio15": 1,
+    "TZFLG": 4
+  },
+  "verdict": "REQUALIFY_STOPPED_AT_1_CYCLE - probe did not reach PASS_COMPLETED (result=0, completed_cycles=0); stopped per Section J, no fault cleared, no retry, no next shot. Board end-state safe (PWM=0, OST=1)."
+}

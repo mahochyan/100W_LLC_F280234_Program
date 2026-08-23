@@ -8,4 +8,4 @@ if command -v unix2dos >/dev/null 2>&1; then
   unix2dos -q tools/build_debug.bat
 fi
 cd /mnt/c
-cmd.exe /c "D:\\1POWERlearning\\program_LLC\\LLC_100W_F28034_BRINGUP_DSH\\tools\\build_debug.bat" < /dev/null
+cmd.exe /c "D:\\CCS21_workspace\\Codex_Project\\tools\\build_debug.bat" < /dev/null

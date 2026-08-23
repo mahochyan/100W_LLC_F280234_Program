@@ -33,7 +33,7 @@
 CCS 7.2 的 Scripting Console 会提供当前调试会话对象 `activeDS`。直接加载：
 
 ```javascript
-loadJSFile("D:/1POWERlearning/program_LLC/LLC_100W_F28034_BRINGUP_DSH/tools/dump_f28034_state.js");
+loadJSFile("D:/CCS21_workspace/Codex_Project/tools/dump_f28034_state.js");
 ```
 
 脚本优先使用已有 `activeDS`，其次兼容 `debugSession`，不建立新的会话。
@@ -51,7 +51,7 @@ C:\ti\ccs720\ccsv7\ccs_base\scripting\bin\dss.bat tools\dump_f28034_state.js
 脚本固定使用：
 
 ```text
-D:/1POWERlearning/program_LLC/LLC_100W_F28034_BRINGUP_DSH/targetConfigs/TMS320F28034.ccxml
+D:/CCS21_workspace/Codex_Project/targetConfigs/TMS320F28034.ccxml
 ```
 
 它不会调用 `loadProgram()`、`target.run()`、`target.halt()`、`target.restart()`、`target.reset()` 或断点API。

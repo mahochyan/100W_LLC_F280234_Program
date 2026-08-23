@@ -13,7 +13,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.lang);
 importPackage(Packages.java.util);
 
-var PROJECT_ROOT = "D:/1POWERlearning/program_LLC/LLC_100W_F28034_BRINGUP_DSH";
+var PROJECT_ROOT = "D:/CCS21_workspace/Codex_Project";
 var TARGET_CONFIG = PROJECT_ROOT + "/targetConfigs/TMS320F28034.ccxml";
 var OUTPUT_DIR = PROJECT_ROOT + "/debug_capture";
 var OUTPUT_FILE = OUTPUT_DIR + "/f28034_state.txt";
