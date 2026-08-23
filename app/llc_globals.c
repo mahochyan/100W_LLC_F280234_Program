@@ -213,6 +213,11 @@ volatile Uint32 g_single_cycle_probe_start_fast_tick ;
 volatile Uint16 g_comp_trip_dac_code ;
 volatile Uint16 g_comp_trip_tbctr ;
 volatile Uint16 g_comp_trip_vout_raw ;
+volatile Uint32 g_comp_trip_timer2 ;
+volatile Uint16 g_comp_trip_cmpsts ;
+volatile Uint16 g_comp_trip_gpio15 ;
+volatile Uint16 g_comp_trip_tzflg ;
+volatile Uint16 g_comp_trip_dac ;
 volatile Uint16 g_single_cycle_completed ;
 volatile Uint16 g_single_cycle_result ;
 

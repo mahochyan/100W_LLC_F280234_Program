@@ -215,6 +215,11 @@ extern volatile Uint32 g_single_cycle_probe_start_fast_tick;
 extern volatile Uint16 g_comp_trip_dac_code;
 extern volatile Uint16 g_comp_trip_tbctr;
 extern volatile Uint16 g_comp_trip_vout_raw;
+extern volatile Uint32 g_comp_trip_timer2;
+extern volatile Uint16 g_comp_trip_cmpsts;
+extern volatile Uint16 g_comp_trip_gpio15;
+extern volatile Uint16 g_comp_trip_tzflg;
+extern volatile Uint16 g_comp_trip_dac;
 extern volatile Uint16 g_single_cycle_completed;
 extern volatile Uint16 g_single_cycle_result;
 
@@ -304,7 +309,7 @@ extern volatile Uint32 g_accel_stop_miss_count;
 
 /* PROFILE_C_CAL_HOLD_BURST_V1 (2026-08-17)
  * Low-energy hold platform near 1400 raw for ADC<->DMM calibration.
- * New controller — the legacy CALHOLD_SlowTask / VOUTPROBE packet logic is
+ * New controller 鈥?the legacy CALHOLD_SlowTask / VOUTPROBE packet logic is
  * NOT reused (5ms granularity is too coarse for the output decay).
  * Hard limits are compile-time macros; no CCS-writable variable can enlarge
  * them. */
@@ -424,7 +429,7 @@ extern volatile Uint16 g_pfm_cmpb;
 extern volatile Uint16 g_ipri_raw_before;
 extern volatile Uint16 g_ipri_raw_max;
 extern volatile Uint16 g_ipri_raw_at_stop;
-/* COMP 武装状态 RAM 快照（DSS 读受 EALLOW 保护寄存器受限，故拷入 RAM 供验证） */
+/* COMP 姝﹁鐘舵€?RAM 蹇収锛圖SS 璇诲彈 EALLOW 淇濇姢瀵勫瓨鍣ㄥ彈闄愶紝鏁呮嫹鍏?RAM 渚涢獙璇侊級 */
 extern volatile Uint16 g_comp_arm_dacval;
 extern volatile Uint16 g_comp_arm_compdacen;
 extern volatile Uint16 g_comp_arm_tzsel_osht1;

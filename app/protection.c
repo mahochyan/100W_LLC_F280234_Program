@@ -113,6 +113,13 @@ __interrupt void EPWM1_TZINT_ISR(void)
     g_tz_isr_gpio15 = GpioDataRegs.GPADAT.bit.GPIO15;
     g_tz_isr_compsts = Comp1Regs.COMPSTS.bit.COMPSTS;
     g_tz_isr_tzflg = EPwm1Regs.TZFLG.all;
+    /* Consolidated g_comp_trip_* entry snapshot (DIAGNOSTIC-ONLY, no behavior change). */
+    g_comp_trip_timer2 = CpuTimer2Regs.TIM.all;
+    g_comp_trip_tbctr = EPwm1Regs.TBCTR;
+    g_comp_trip_cmpsts = Comp1Regs.COMPSTS.bit.COMPSTS;
+    g_comp_trip_gpio15 = GpioDataRegs.GPADAT.bit.GPIO15;
+    g_comp_trip_tzflg = EPwm1Regs.TZFLG.all;
+    g_comp_trip_dac = Comp1Regs.DACVAL.bit.DACVAL;
 
     /* Freeze the completed-cycle counter at the first TZ ISR entry.
      * This records how far a multi-cycle probe got before a real trip. */
