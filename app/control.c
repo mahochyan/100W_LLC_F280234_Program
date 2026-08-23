@@ -30,6 +30,7 @@
 #include "control.h"
 #include "control_profile.h"
 #include "board_calibration.h"
+#include "shot.h"
 
 /* Cross-gate compile-time consistency (I): a profile that claims hardware
  * validation is incompatible with LLC_HARDWARE_PI_VALIDATED==0. A validated
@@ -328,13 +329,49 @@ void CTRL_ApplyFrequencyCommand(void)
     if (g_stage6_actuator_direct_cmd_hz != 0UL)
         target = g_stage6_actuator_direct_cmd_hz;
 #endif
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* STAGE6_FIRST_BOUNDED_REAL_PI_SHOT (first bounded real PI shot):
+     *  - D: write ONLY under full shot authorization (g_first_real_pi_shot_arm
+     *        AND Stage6 AND Profile C handoff AND Vref valid AND board VOUT
+     *        calibration valid AND Comparator/TZ armed AND fault_flags==0).
+     *  - B: the command is clamped into the 145..170 kHz envelope (never 200k
+     *        / 250k, even if a diagnostic override were present).
+     *  - C: g_control_frequency_hz = target is committed ONLY after
+     *        LLC_SetFrequencyHz(target) succeeds. A write failure -> full on-chip
+     *        stop: OST + PWM disable + SYS_STATE_FAULT + shot permission revoke
+     *        (NOT merely g_fast_fault_count++). */
+    if (SHOT_WriteAllowed() != 0U)
+    {
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+        if (g_first_shot_debug_freq_hz != 0UL)
+            target = g_first_shot_debug_freq_hz;   /* test-only: exercise the envelope clamp */
+#endif
+        SHOT_ClampFreq(&target);
+        if (LLC_SetFrequencyHz(target) == 1U)
+        {
+            g_control_frequency_hz = target;   /* commit only on success */
+            g_first_real_pi_shot_power_writes++;
+            if (g_first_real_pi_shot_state != SHOT_STATE_ACTIVE)
+            {
+                /* First successful PI write -> shot ACTIVE, start the on-chip
+                 * 200 us shot timer (IDLE/ARMED both advance here). */
+                g_first_real_pi_shot_state = SHOT_STATE_ACTIVE;
+                g_first_real_pi_shot_tick  = 0U;
+            }
+        }
+        else
+        {
+            SHOT_Revoke(SHOT_ABORT_ACTUATOR);   /* C: full stop + revoke */
+        }
+    }
+#elif LLC_HARDWARE_PI_VALIDATED
     g_control_frequency_hz = target;
-#if LLC_HARDWARE_PI_VALIDATED
     if (LLC_SetFrequencyHz(target) != 1U)
     {
         g_fast_fault_count++;
     }
 #elif STAGE6_REAL_ACTUATOR_OST_TEST
+    g_control_frequency_hz = target;
     /* STAGE6_REAL_ACTUATOR_OST_TEST: first real PWM actuator validation under
      * an OST lock. The PI/shadow command is written to the REAL ePWM time-base
      * (LLC_SetFrequencyHz -> TBPRD/CMPA/CMPB) ONLY while all of:
@@ -610,6 +647,7 @@ void CTRL_OfflineSelfTest(void)
     g_offline_test_status = pass;
 }
 #endif /* STAGE6_OFFLINE_SELFTEST */
+
 
 
 

@@ -16,6 +16,7 @@
 #include "power_probe.h"
 #include "cal_hold_burst.h"
 #include "soft_start.h"
+#include "shot.h"
 #include "protection.h"
 
 static Uint32 s_last_adc_counter = 0UL;
@@ -199,6 +200,11 @@ __interrupt void EPWM1_TZINT_ISR(void)
     g_stage6_actuator_revoked = 1U;
 #endif
 
+    /* G: a real Comparator/TZ trip immediately revokes the first-shot permission. */
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    SHOT_OnTrip();   /* G: real TZ -> revoke shot (first-shot build only) */
+#endif
+
     /* Single/multi-cycle probe abort hooks */
     SINGLECYCLE_AbortByFault();
     MULTICYCLE_AbortByFault();
@@ -250,6 +256,9 @@ __interrupt void TINT0_ISR(void)
     CALHOLD_FastTask();
     PROT_FastTask();
     CTRL_FastTask();
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    SHOT_FastTask();   /* first-shot timer / 11V abort / ring record (shot build only) */
+#endif
     SoftStart_ApplyLimits();
 
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
@@ -504,7 +513,12 @@ void PROT_SlowTask(void)
     else if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP)
     {
         Uint32 max_h = LLC_HARD_MAX_HZ;
-#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+        /* First bounded real PI shot build: the shot envelope is 145..170 kHz
+         * and MUST NOT reach 200k/250k. The slow-task frequency gate therefore
+         * allows exactly the shot max. Production keeps LLC_HARD_MAX_HZ (150k). */
+        max_h = FIRST_REAL_PI_MAX_HZ;
+#elif STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
         /* No-energy test build: the real-actuator cadence tests sweep the
          * 120-180 kHz diagnostic envelope. The diagnostic frequency override
          * already lets LLC_SetFrequencyHz reach LLC_DIAG_MAX_HZ, so the slow
@@ -565,5 +579,9 @@ void PROT_SlowTask(void)
     }
     }
 }
+
+
+
+
 
 

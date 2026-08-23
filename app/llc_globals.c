@@ -5,6 +5,7 @@
  */
 #include "llc_config.h"
 #include "llc_globals.h"
+#include "board_calibration.h"
 
 /* Stage / PWM */
 volatile Uint16 g_bringup_stage ;
@@ -434,6 +435,7 @@ volatile Uint32 g_softstart_miss_count;
 volatile Uint16 g_softstart_consecutive_miss;
 volatile Uint16 g_softstart_stale_abort;
 volatile Uint16 g_softstart_no_energy = 0U;
+volatile Uint16 g_board_vout_cal_valid = BOARD_VOUT_CAL_VALID;
 volatile Uint16 g_softstart_ramp_active;
 
 /* STAGE5A PFM direction test window */
@@ -594,6 +596,8 @@ volatile Uint32 g_adc_ovf_count ;
 volatile Uint16 g_adc_ovf_first_tbctr ;
 volatile Uint16 g_adc_ovf_first_flag_was_set ;
 volatile Uint16 g_adc_isr_last_tbctr ;
+
+
 
 
 

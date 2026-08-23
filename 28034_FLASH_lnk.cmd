@@ -61,6 +61,7 @@ SECTIONS
    .stack              : > RAML1,       PAGE = 1
    .ebss               : > RAML2,       PAGE = 1
    .esysmem            : > RAML3,       PAGE = 1
+   shot_ram            : > RAML3,       PAGE = 1
    csmpasswds          : > CSM_PWL_P0,  PAGE = 0
    csm_rsvd            : > CSM_RSVD,    PAGE = 0
 }

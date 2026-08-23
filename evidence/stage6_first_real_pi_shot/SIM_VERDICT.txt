@@ -1,0 +1,10 @@
+﻿=== SHOT SIM VERDICT ===
+S1 auto-OST COMPLETE(200us): true
+S2 freq UP(>150k): true
+S3 freq DOWN(<150k): true
+S4 11V abort: true
+S5 clamp 170k(<=170k,!=250k): true
+S6 clamp 145k(>=145k): true
+S7 forced TZ -> FAULT: true
+DONE
+

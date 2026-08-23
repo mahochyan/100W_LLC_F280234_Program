@@ -1,0 +1,2 @@
+﻿fast_isr_max=1078 overrun=0 entry_interval_max=1483 min=732 count=97806
+GATE_J: max=1078 -> MARGIN_LOW

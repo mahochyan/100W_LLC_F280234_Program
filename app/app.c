@@ -1,4 +1,4 @@
-/*
+﻿/*
  * app.c
  *
  * Top-level application bring-up.  main.c only calls APP_Init/APP_Run.
@@ -18,6 +18,7 @@
 #include "soft_start.h"
 #include "cal_hold_burst.h"
 #include "app.h"
+#include "shot.h"
 
 static void APP_InitInterrupts(void)
 {
@@ -81,6 +82,9 @@ void APP_Init(void)
     SM_Init();
     SoftStart_Init();
     CALHOLD_Init();
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    SHOT_Init();   /* first bounded shot state (shot build only) */
+#endif
     APP_InitInterrupts();
 
     /* Stay in Stage 0 SAFE.  First board power-up must start here. */
@@ -96,3 +100,6 @@ void APP_Run(void)
         SM_Run();
     }
 }
+
+
+

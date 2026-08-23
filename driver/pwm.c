@@ -14,6 +14,7 @@
 #include "llc_globals.h"
 #include "pwm.h"
 #include "adc.h"
+#include "shot.h"
 
 /*
  * PWM_Init
@@ -185,6 +186,12 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
 
     if (hz == 0UL) return 0U;
     if (hz < LLC_HARD_MIN_HZ) return 0U;
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* First bounded real PI shot build: the actuator accepts only the shot
+     * envelope (145..170 kHz). Anything above FIRST_REAL_PI_MAX_HZ is rejected
+     * (never 200k / 250k), even if a diagnostic override were present. */
+    if (hz > FIRST_REAL_PI_MAX_HZ) return 0U;
+#else
     if (hz > LLC_HARD_MAX_HZ)
     {
         /* Diagnostic override: allow only up to LLC_DIAG_MAX_HZ and only when
@@ -192,6 +199,7 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
          * the formal working-frequency envelope. */
         if (g_diag_frequency_override == 0U || hz > LLC_DIAG_MAX_HZ) return 0U;
     }
+#endif
 
     /* Correction #3: never auto-adapt to a changed PWM mode. The topology
      * (count mode, clock div, dead-band, AQ, TZ) is validated at enable /
@@ -511,3 +519,5 @@ Uint16 LLC_ProtectionResetExplicit(void)
     g_pwm_enable_result = 0U;
     return 1U;
 }
+
+

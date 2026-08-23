@@ -488,7 +488,8 @@ extern volatile Uint32 g_softstart_eoc_count;
 extern volatile Uint32 g_softstart_miss_count;
 extern volatile Uint16 g_softstart_consecutive_miss;
 extern volatile Uint16 g_softstart_stale_abort;
-extern volatile Uint16 g_softstart_no_energy;   /* 1 = software VOUT simulation */
+extern volatile Uint16 g_softstart_no_energy;
+extern volatile Uint16 g_board_vout_cal_valid;   /* 1 = software VOUT simulation */
 extern volatile Uint16 g_softstart_ramp_active; /* 1 = formal ramp window (ISR OVF guard) */
 
 /* STAGE5A PFM direction test window (see soft_start.h) */
@@ -656,6 +657,7 @@ extern volatile Uint16 g_adc_ovf_first_flag_was_set;
 extern volatile Uint16 g_adc_isr_last_tbctr;
 
 #endif /* APP_LLC_GLOBALS_H */
+
 
 
 

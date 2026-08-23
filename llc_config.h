@@ -76,6 +76,7 @@ typedef enum
 #define FAULT_STAGE_GATE                0x00002000UL
 #define FAULT_COMP_TZ_LOOPBACK          0x00004000UL
 #define FAULT_COMP_PRESTART_REJECT     0x00008000UL
+#define FAULT_FIRST_SHOT_ABORT         0x00010000UL   /* bounded first real PI shot aborted (VOUT/actuator/TZ) */
 
 /* ------------------------------------------------------------------ */
 /* ADC / control timing and thresholds (placeholders pending cal)     */
