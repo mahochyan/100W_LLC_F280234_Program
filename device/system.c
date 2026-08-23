@@ -21,6 +21,26 @@
 Uint16 System_Init(void)
 {
     Uint32 lock_wait;
+#ifdef STAGE6_FLASH_BUILD
+    /*
+     * FLASH build only. Running from flash requires flash wait-states to be
+     * configured, and the flash-init helper (InitFlash, in the "ramfuncs"
+     * section) must first be copied from Flash to RAM. Copy it, then call
+     * InitFlash() (60 MHz -> PAGEWAIT=2, RANDWAIT=2, OTPWAIT=3). This is
+     * compiled out of the RAM build, so power behavior is unchanged.
+     */
+    {
+        extern Uint16 RamfuncsLoadStart, RamfuncsLoadEnd, RamfuncsRunStart;
+        Uint32 n;
+        n = (Uint32)&RamfuncsLoadEnd - (Uint32)&RamfuncsLoadStart;
+        while (n--)
+        {
+            ((volatile Uint16 *)&RamfuncsRunStart)[n] =
+                ((volatile Uint16 *)&RamfuncsLoadStart)[n];
+        }
+        InitFlash();
+    }
+#endif
 
     /* 1. 先关闭看门狗，避免 PLL 锁定等待期间复位。 */
     DisableDog();

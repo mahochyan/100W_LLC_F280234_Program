@@ -104,7 +104,7 @@ typedef enum
 /* Feature gates that must be confirmed manually in CCS before use     */
 /* ------------------------------------------------------------------ */
 #define LLC_POWER_RUN_ALLOWED           0U
-#define LLC_CONTROL_DIRECTION           0   /* 0 = unconfirmed; set to +1 or -1 for Stage 6 */
+#define LLC_CONTROL_DIRECTION           0   /* REAL-POWER GATE. Kept 0 (baseline) so protection.c / state_machine.c keep FAULT_CONTROL_DIRECTION blocking stage-6 closed-loop / power-run until a future authorized stage validates real-power direction. Stage6 offline software uses LLC_CONTROL_SIGN (=-1) via the write-gated controller; it never reaches PWM. */
 #define BOARD_MAPPING_PENDING_PHYSICAL_VERIFY 1U
 
 /* OFFBENCH_LLC_VIRTUAL_BOARD_CHARACTERIZATION_V1: PI/PFM 仅虚拟环境验证。
@@ -113,6 +113,26 @@ typedef enum
 #define LLC_VIRTUAL_PI_VALIDATED        1U
 #define LLC_HARDWARE_PI_VALIDATED       0U
 
+
+
+/* ------------------------------------------------------------------ */
+/* STAGE6 offline control integration                                  */
+/* ------------------------------------------------------------------ */
+/* Hardware-confirmed PFM control direction (Stage5A strict same-binary
+ * evidence). NEVER written as "direction pending hardware confirmation".
+ *   LLC_CONTROL_SIGN = -1
+ *     error = Vref - Vout
+ *       error > 0 (Vout < Vref) -> frequency command DECREASES
+ *       error < 0 (Vout > Vref) -> frequency command INCREASES */
+#define LLC_CONTROL_SIGN            (-1)
+
+/* Offline / SIL-only control window (NOT_PRODUCTION_LIMIT). Production
+ * limits to be characterized later; these exist only for control-logic
+ * and SIL acceptance. */
+#define OFFLINE_CONTROL_MIN_HZ      120000UL
+#define OFFLINE_CONTROL_MAX_HZ      180000UL
+#define CTRL_ADC_STALE_LIMIT        3U   /* consecutive stale samples -> control inhibit */
+#define STAGE6_OFFLINE_SELFTEST       1U   /* 1 = include on-target 8-case offline self-test */
 #endif /* LLC_CONFIG_H */
 
 /* Calibration Hold Probe */

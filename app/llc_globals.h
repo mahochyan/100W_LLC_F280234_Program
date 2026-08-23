@@ -58,6 +58,25 @@ extern volatile Uint16 g_softstart_autoramp_allowed;
 extern volatile float   g_pi_integral;
 extern volatile float   g_pi_bias_frequency_hz;
 extern volatile Uint16 g_control_running;
+/* STAGE6 offline control teaching/observation variables */
+extern volatile Uint32  g_control_shadow_frequency_hz;
+extern volatile float   g_control_vref_volts;
+extern volatile float   g_control_vout_volts;
+extern volatile float   g_control_error_volts;
+extern volatile float   g_control_p_term_hz;
+extern volatile float   g_control_i_term_hz;
+extern volatile float   g_control_frequency_unsat_hz;
+extern volatile float   g_control_frequency_clamped_hz;
+extern volatile Uint16  g_control_saturated_high;
+extern volatile Uint16  g_control_saturated_low;
+extern volatile Uint16  g_control_integrator_frozen;
+extern volatile Uint16  g_control_adc_stale_inhibit;
+extern volatile Uint16  g_control_sample_valid;
+extern volatile Uint16  g_offline_test_request;
+extern volatile Uint16  g_offline_test_status;
+extern volatile Uint16  g_offline_pwm_pre[5];
+extern volatile Uint16  g_offline_pwm_post[5];
+extern volatile Uint16  g_offline_pwm_isolated;
 
 /* Tutorial SoftStart Engine */
 extern volatile Uint16 g_softstart_state;

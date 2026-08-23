@@ -1,18 +1,30 @@
 /*
  * control.h
  *
- * Minimal LLC frequency control.  Formal PI runs in the 20 us fast task;
- * 5 ms slow task is used only for state machine / soft-start ramp / slow
- * protection.
+ * STAGE6 offline control integration (control/actuator split).
+ *
+ *  - CTRL_ComputeFrequencyCommand()  : Vref -> error -> P/I -> unsaturated ->
+ *                                      clamped -> slew-limited -> shadow.
+ *                                      NEVER writes ePWM registers.
+ *  - CTRL_ApplyFrequencyCommand()    : commits shadow -> g_control_frequency_hz
+ *                                      and ONLY if LLC_HARDWARE_PI_VALIDATED calls
+ *                                      LLC_SetFrequencyHz() to write real PWM.
+ *                                      Otherwise shadow-only (Stage6 offline).
+ *  - CTRL_OfflineSelfTest()          : 8-case no-energy control-logic +
+ *                                      PWM-register isolation check.
  */
 #ifndef APP_CONTROL_H
 #define APP_CONTROL_H
 
 #include "DSP2803x_Device.h"
 
-void CTRL_Init(void);
-void CTRL_FastTask(void);
-void CTRL_SlowTask(void);
-void CTRL_Reset(void);
+void   CTRL_Init(void);
+void   CTRL_FastTask(void);
+void   CTRL_SlowTask(void);
+void   CTRL_Reset(void);
+
+Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, float vout_v);
+void   CTRL_ApplyFrequencyCommand(void);
+void   CTRL_OfflineSelfTest(void);
 
 #endif /* APP_CONTROL_H */
