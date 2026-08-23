@@ -17,8 +17,10 @@
  *     and calls LLC_SetFrequencyHz() ONLY under #if LLC_HARDWARE_PI_VALIDATED.
  *     In Stage6 offline that macro is 0, so real PWM is never touched.
  *
- * Controller coefficients are PLACEHOLDER_NOT_HARDWARE_TUNED (Stage5A
- * confirmed only the direction; PFM_DIRECTION_GAIN_CHARACTERIZED = 0).
+ * Controller coefficients are now the validated SIL shadow candidate
+ * (STAGE6_PI_SIL_TUNING_V2_1 BALANCED) supplied by control_profile.h. They are
+ * VIRTUAL_ONLY (CTRL_PI_PROFILE_VIRTUAL_ONLY=1); real PWM is still write-gated
+ * by LLC_HARDWARE_PI_VALIDATED (kept 0).
  */
 
 #include "DSP2803x_Device.h"
@@ -26,10 +28,18 @@
 #include "llc_globals.h"
 #include "pwm.h"
 #include "control.h"
+#include "control_profile.h"
 
-/* --- Controller coefficients: PLACEHOLDER_NOT_HARDWARE_TUNED --- */
-#define CTRL_KP                  0.0005f   /* NOT hardware-tuned */
-#define CTRL_KI                  0.0001f   /* NOT hardware-tuned */
+/* Cross-gate compile-time consistency (I): a profile that claims hardware
+ * validation is incompatible with LLC_HARDWARE_PI_VALIDATED==0. A validated
+ * candidate must NEVER auto-unlock hardware; the two gates are independent. */
+#if CTRL_PI_PROFILE_HARDWARE_VALIDATED && !LLC_HARDWARE_PI_VALIDATED
+#error "inconsistent PI validation gates: profile claims HW validation but LLC_HARDWARE_PI_VALIDATED=0"
+#endif
+
+/* --- Controller coefficients: from control_profile.h (BALANCED, VIRTUAL_ONLY) --- */
+#define CTRL_KP                  CTRL_PI_KP_HZ_PER_V
+#define CTRL_KI                  CTRL_PI_KI_STEP_HZ_PER_V_STEP
 #define CTRL_INTEGRAL_MAX        60000.0f  /* hard backstop; primary AW = conditional integration */
 
 /* Slew limit: max frequency change per 20 us fast task (offline-validated). */
@@ -74,6 +84,13 @@ void CTRL_Init(void)
     g_offline_test_request = 0U;
     g_offline_test_status = 0U;
     g_offline_pwm_isolated = 0U;
+
+    /* Teaching / observation: which PI profile is loaded (G). CCS Expressions
+     * shows these directly. Values mirror control_profile.h. */
+    g_control_pi_profile_id           = CTRL_PI_PROFILE_ID;            /* 0x060201 */
+    g_control_kp_hz_per_v             = CTRL_PI_KP_HZ_PER_V;           /* 6657.43331 */
+    g_control_ki_step_hz_per_v_step   = CTRL_PI_KI_STEP_HZ_PER_V_STEP; /* 44.3828888 */
+    g_control_pi_virtual_only         = CTRL_PI_PROFILE_VIRTUAL_ONLY;  /* 1 */
 }
 
 void CTRL_Reset(void)

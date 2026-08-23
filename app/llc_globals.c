@@ -75,6 +75,11 @@ volatile Uint16  g_offline_test_status ;
 volatile Uint16  g_offline_pwm_pre[5] ;
 volatile Uint16  g_offline_pwm_post[5] ;
 volatile Uint16  g_offline_pwm_isolated ;
+/* Stage1 PI firmware profile teaching variables */
+volatile Uint32  g_control_pi_profile_id ;
+volatile float   g_control_kp_hz_per_v ;
+volatile float   g_control_ki_step_hz_per_v_step ;
+volatile Uint16  g_control_pi_virtual_only ;
 
 /* Tutorial SoftStart Engine */
 volatile Uint16 g_softstart_state;
