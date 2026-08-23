@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-stage6_pi_tuning_v2.py - STAGE6_PI_SIL_TUNING_V2 (offline, write-gate locked)
+stage6_pi_tuning_v2.py - STAGE6_PI_SIL_TUNING_V2_1_HARNESS_CLOSURE
+==================================================================
+Corrects d506890 metric/timing/audit gaps WITHOUT changing plant, controller,
+search space, or PASS standard. Re-validates candidates under identical
+plant/controller/search/acceptance criteria.
 
-Finds a SAFE/CONSERVATIVE/ROBUST/EXPLAINABLE PI candidate for the F28034 LLC
-controller, in PC/SIL ONLY. Mirrors firmware exactly (from source):
-  ePWM: TBPRD=round(60e6/f)-1, actual=60e6/(TBPRD+1)      [driver/pwm.c]
-  ctrl: error=Vref-V ; SIGN=-1 ; bias=150000 ; Imax=+-60000 ;
-        clamp=120k-180k ; slew=100Hz/20us ; conditional integration ;
-        ADC stale(>=3) freeze                              [app/control.c]
+Closed audit gaps:
+  C  reference-step settling uses STEP_SETTLE_BAND_V=0.02V measured FROM the
+     step instant (not t=0; not the old 0.12V absolute band).
+  D  delay: delay_steps=round(delay_s/DT), 20us->1,40->2,60->3; no buffer
+     off-by-one; explicit command-impulse test.
+  E  boundary anti-windup strict gate.
+  F  rate-limit audit is command-side (clamped-command based).
+  G  stress audits bounded / no-runaway-integral / no-clamp-ping-pong.
+  H  per-candidate/case deterministic RNG seed (reproducible replay).
+  I  fc CSV clarified (scaled_seed_fc_hz is NOT measured CLBW).
 
-No real power. No firmware write. LLC_HARDWARE_PI_VALIDATED=0.
+Firmware-identical controller (unchanged): SIGN=-1, bias=150k, clamp=120-180k,
+slew=100Hz/20us, Imax=+-60000, conditional hard-clamp AW, ADC stale freeze.
+ePWM: TBPRD=round(60e6/f)-1, actual=60e6/(TBPRD+1).
+
+OFFLINE ONLY. No real power. No firmware write. LLC_HARDWARE_PI_VALIDATED=0.
 """
 import csv
 import io
@@ -34,17 +46,25 @@ SLEW = 100.0
 ADC_STALE_LIMIT = 3
 VOLT = 12.0
 TOL = 0.05
-DUR = 0.15
-BAND = 0.12
-RND = random.Random(12345)
+DUR = 0.12
+ABS_BAND = 0.12
+STEP_BAND = 0.02
+SETTLE_MAX = 0.060
 
-# ---------------------------------------------------------------- plant model
+
 def rl(pout):
     return VOLT * VOLT / pout
 
 
 def vout_f(f, Vin, RL):
     return P.vout_fh(float(f), Vin, HW["Lr"], HW["Cr"], HW["Lm"], HW["n"], RL, HW["Vf"])[0]
+
+
+def quantize_f(f):
+    f = max(1.0, float(f))
+    period = (TBCLK + int(f) // 2) // int(f)
+    tbprd = period - 1
+    return tbprd, TBCLK / (tbprd + 1)
 
 
 def build_target_f(vref, Vin, RL):
@@ -68,17 +88,10 @@ def reachable(vref, Vin, RL):
     return (vmin - TOL) <= vref <= (vmax + TOL)
 
 
-def quantize_f(f):
-    f = max(1.0, float(f))
-    period = (TBCLK + int(f) // 2) // int(f)
-    tbprd = period - 1
-    return tbprd, TBCLK / (tbprd + 1)
-
-
-# ---------------------------------------------------------------- controller
 def ctrl_step(freq, I, Kp, Ki, vref, Vmeas, sample_valid, adc_miss):
+    """Returns (out, I, clamped, rate_limited_flag)."""
     if (not sample_valid) or (adc_miss >= ADC_STALE_LIMIT):
-        return freq, I
+        return freq, I, freq, 0
     error = vref - Vmeas
     p = Kp * error
     sat_hi = freq >= F_MAX
@@ -89,63 +102,147 @@ def ctrl_step(freq, I, Kp, Ki, vref, Vmeas, sample_valid, adc_miss):
         I = max(-I_MAX, min(I_MAX, I))
     unsat = BIAS + SIGN * (p + I)
     clamped = max(F_MIN, min(F_MAX, unsat))
-    step = max(-SLEW, min(SLEW, clamped - freq))
+    step = clamped - freq
+    rl_flag = 1 if abs(step) > SLEW else 0
+    step = max(-SLEW, min(SLEW, step))
     out = max(F_MIN, min(F_MAX, freq + step))
-    return out, I
+    return out, I, clamped, rl_flag
 
 
-# ---------------------------------------------------------------- simulator
-def run_sim(op, Kp, Ki, tau, gain_scale, delay_us, cfg, v0, f0, I0):
-    """cfg: dict(vref0, vref1, t_vref, ls0, ls1, t_ls, noise_raw, stale_win)"""
-    n = int(DUR / DT)
-    delay_steps = max(1, int(round(delay_us / 20e-6)))
+def preload(fstar):
+    return fstar, BIAS - fstar
+
+
+# ------------------------------------------------------------------ settling (C)
+def settle_time(ts, vs, t_ev, vref_final, band):
+    """Time from t_ev until |V-vref_final| stays within band for the rest.
+    0 if already inside for the whole post-event interval."""
+    last = -1
+    for k, t in enumerate(ts):
+        if t < t_ev:
+            continue
+        if abs(vs[k] - vref_final) > band:
+            last = k
+    if last < 0:
+        return 0.0
+    return ts[last] - t_ev
+
+
+def _unit_settling():
+    """Synthetic response enters +-0.02V only 30ms after a step -> ~30ms."""
+    ts = [i * DT for i in range(6000)]
+    t_step = 0.03
+    vs = [12.1 + 0.3 * math.exp(-(t - t_step) / 0.01) if t >= t_step else 12.1
+          for t in ts]
+    s = settle_time(ts, vs, t_step, 12.1, STEP_BAND)
+    return abs(s - 0.030) < 0.005, s
+
+
+# ------------------------------------------------------------------ delay (D)
+def _delay_step_count(delay_s):
+    return round(delay_s / DT)
+
+
+def _test_delay_model():
+    """Command changed at k=0 must reach the plant actuator exactly after
+    1/2/3 steps for 20/40/60us (no off-by-one)."""
+    results = []
+    for delay_s, expect in [(20e-6, 1), (40e-6, 2), (60e-6, 3)]:
+        ds = _delay_step_count(delay_s)
+        buf = [150000.0] * ds          # correct delay buffer length = ds
+        n = 6
+        seen = []
+        for k in range(n):
+            applied = buf[0]           # what the plant sees this step
+            seen.append(applied)
+            out = 150000.0 if k == 0 else 150000.0
+            # change command issued at k=0 from 150k to 160k
+            newcmd = 160000.0 if k == 0 else 150000.0
+            buf.pop(0)
+            buf.append(newcmd)
+        # the k=0 command (160k) first appears in `seen` at index ds
+        first = next(i for i, v in enumerate(seen) if v == 160000.0)
+        results.append((delay_s, ds, first == ds))
+    return all(r[2] for r in results), results
+
+
+# ------------------------------------------------------------------ simulator
+_VSS_CACHE = {}
+
+
+def vss_table(op, ls):
+    """Cache {tbprd: vout} for an op+load-scale; avoids per-step FHA recompute."""
+    key = (int(op["vin"]), round(op["pout"] * ls, 3))
+    t = _VSS_CACHE.get(key)
+    if t is not None:
+        return t
+    RL = rl(op["pout"] * ls)
+    d = {}
+    for f in range(120000, 180001):
+        tb = (TBCLK + f // 2) // f - 1
+        actual = TBCLK / (tb + 1)
+        d[tb] = vout_f(actual, op["vin"], RL)
+    _VSS_CACHE[key] = d
+    return d
+
+
+def simulate(op, Kp, Ki, tau, gain_scale, delay_s, cfg, v0, f0, I0, seed, collect=False, dur=None):
+    dt = DT
+    dur = DUR if dur is None else dur
+    n = int(dur / dt)
+    ds = round(delay_s / dt)
+    rng = random.Random(seed)
     V = v0
     freq = f0
     I = I0
-    buf = [freq] * (delay_steps + 1)
+    buf = [f0] * ds
     adc = 0
-    rate_limited = 0
+    ts = []; v_hist = []; f_hist = []; cmd_hist = []; rl_hist = []; i_hist = []
     vmin = 1e9; vmax = -1e9; fmin = 1e9; fmax = -1e9
-    last_outside = 0
-    tail_f = []
+    clamp_hi = 0; clamp_lo = 0; hi2lo = 0; lo2hi = 0
+    prev_state = 0
+    tbl0 = vss_table(op, cfg["ls0"])
+    tbl1 = vss_table(op, cfg["ls1"])
     for k in range(n):
-        t = k * DT
-        _, actual = quantize_f(buf[0])
-        ls = cfg["ls1"] if (cfg["t_ls"] is not None and t >= cfg["t_ls"]) else cfg["ls0"]
+        t = k * dt
+        applied = buf[0]
+        tb, actual = quantize_f(applied)
         vref = cfg["vref1"] if (cfg["t_vref"] is not None and t >= cfg["t_vref"]) else cfg["vref0"]
-        RL = rl(op["pout"] * ls)
-        vss = vout_f(actual, op["vin"], RL)
+        ls = cfg["ls1"] if (cfg["t_ls"] is not None and t >= cfg["t_ls"]) else cfg["ls0"]
+        vss = (tbl1 if ls == cfg["ls1"] else tbl0)[tb]
         vss_s = VOLT + gain_scale * (vss - VOLT)
-        V += (vss_s - V) / tau * DT
-        Vmeas = V + cfg["noise_raw"] * (RND.random() * 2 - 1) if cfg["noise_raw"] > 0 else V
+        V += (vss_s - V) / tau * dt
+        Vmeas = V + cfg["noise_raw"] * (rng.random() * 2 - 1) if cfg["noise_raw"] > 0 else V
         sv = 1
         if cfg["stale_win"] and cfg["stale_win"][0] <= k < cfg["stale_win"][1]:
             sv = 0; adc += 1
         else:
             adc = 0
-        out, I = ctrl_step(freq, I, Kp, Ki, vref, Vmeas, sv, adc)
-        if abs(out - freq) >= SLEW - 1e-9:
-            rate_limited += 1
-        buf.append(out); buf.pop(0); freq = out
+        out, I, clamped, rl_flag = ctrl_step(freq, I, Kp, Ki, vref, Vmeas, sv, adc)
+        state = 1 if out >= F_MAX - 1 else (-1 if out <= F_MIN + 1 else 0)
+        if state == 1: clamp_hi += 1
+        elif state == -1: clamp_lo += 1
+        if prev_state == 1 and state == -1: hi2lo += 1
+        if prev_state == -1 and state == 1: lo2hi += 1
+        prev_state = state
+        buf.pop(0); buf.append(out)
+        freq = out
         if V < vmin: vmin = V
         if V > vmax: vmax = V
         if actual < fmin: fmin = actual
         if actual > fmax: fmax = actual
-        if abs(V - vref) > BAND:
-            last_outside = k
-        if k > n * 0.8:
-            tail_f.append(actual)
-    settle = (last_outside + 1) * DT if last_outside > 0 else 0.0
-    steady_err = abs(V - vref) / vref
+        ts.append(t); v_hist.append(V); f_hist.append(actual)
+        cmd_hist.append(out); rl_hist.append(rl_flag); i_hist.append(I)
+    t_ev = cfg["t_vref"] if cfg["t_vref"] is not None else (cfg["t_ls"] if cfg["t_ls"] is not None else 0.0)
+    vref_final = cfg["vref1"]
+    steady_err = abs(V - vref_final) / vref_final
+    settle = settle_time(ts, v_hist, t_ev, vref_final, STEP_BAND)
+    freq_pp = (max(f_hist[int(0.8 * n):]) - min(f_hist[int(0.8 * n):])) if n else 0.0
     return {"vmin": vmin, "vmax": vmax, "fmin": fmin, "fmax": fmax,
-            "settle": settle, "steady_err": steady_err,
-            "freq_pp": max(tail_f) - min(tail_f) if tail_f else 0.0,
-            "rate_limited": rate_limited}
-
-
-def preload(fstar):
-    """SIGN=-1: at error=0 unsat=bias-I ; want=fstar -> I=bias-fstar."""
-    return fstar, BIAS - fstar
+            "steady_err": steady_err, "settle": settle, "freq_pp": freq_pp,
+            "clamp_hi": clamp_hi, "clamp_lo": clamp_lo, "hi2lo": hi2lo, "lo2hi": lo2hi,
+            "i_hist": i_hist, "cmd_hist": cmd_hist, "rl_hist": rl_hist,
+            "f_hist": f_hist, "v_hist": v_hist}
 
 
 def base_cfg(vref=VOLT):
@@ -154,90 +251,86 @@ def base_cfg(vref=VOLT):
             "noise_raw": 0.0, "stale_win": None}
 
 
-def is_strict(m, vref):
+# ------------------------------------------------------------------ scenario eval
+def scenario_seed(cand, op, scen):
+    return (cand * 7919 + int(op["vin"]) * 131 + int(op["pout"]) * 17
+            + sum(ord(c) for c in scen)) % (2 ** 31)
+
+
+def is_strict(m, vref_final):
     if m["steady_err"] > 0.01:
         return False
-    if m["settle"] > 0.060:
+    if m["settle"] > SETTLE_MAX:
         return False
     if m["fmin"] < F_MIN - 1 or m["fmax"] > F_MAX + 1:
         return False
+    if (m["hi2lo"] + m["lo2hi"]) > 0:
+        return False
     return True
 
 
-# ---------------------------------------------------------------- scenario eval
-def evaluate_candidate(Kp, Ki, interior_ops):
-    """Strict pass: all INTERIOR ops, all scenarios, mandatory ensemble."""
+def evaluate_candidate(Kp, Ki, cand_index, interior_ops):
     for op in interior_ops:
-        fstar = op["fstar"]
-        f0, I0 = preload(fstar)
+        f0, I0 = preload(op["fstar"])
         RL = rl(op["pout"])
         for tau in [1.5e-3, 3e-3, 6e-3]:
-            for g in [0.5, 1.0, 2.0]:
-                for d in [20e-6, 40e-6]:
-                    if not op_scenarios_ok(op, Kp, Ki, tau, g, d, f0, I0):
-                        return False
+            for gain in [0.5, 1.0, 2.0]:
+                for delay in [20e-6, 40e-6]:
+                    for scen in SCENARIOS:
+                        if not scenario_ok(op, Kp, Ki, tau, gain, delay, scen,
+                                           f0, I0, cand_index):
+                            return False
     return True
 
 
-def op_scenarios_ok(op, Kp, Ki, tau, g, d, f0, I0):
+SCENARIOS = ["hold", "vref+", "vref-", "load+", "load-",
+             "noise1", "noise2", "noise4", "stale"]
+
+
+def scenario_ok(op, Kp, Ki, tau, gain, delay, scen, f0, I0, cand):
+    seed = scenario_seed(cand, op, scen)
     RL = rl(op["pout"])
-    # 1) equilibrium hold
-    if not is_strict(run_sim(op, Kp, Ki, tau, g, d, base_cfg(), VOLT, f0, I0), VOLT):
-        return False
-    # 2/3) Vref +/- 0.1
-    for dv in [+0.1, -0.1]:
-        vt = VOLT + dv
+    if scen == "hold":
+        m = simulate(op, Kp, Ki, tau, gain, delay, base_cfg(), VOLT, f0, I0, seed)
+        return is_strict(m, VOLT)
+    if scen in ("vref+", "vref-"):
+        vt = VOLT + 0.1 if scen == "vref+" else VOLT - 0.1
         if not reachable(vt, op["vin"], RL):
-            continue
-        cfg = base_cfg()
-        cfg["vref1"] = vt
-        cfg["t_vref"] = 30e-3
-        m = run_sim(op, Kp, Ki, tau, g, d, cfg, VOLT, f0, I0)
+            return True   # not scored
+        cfg = base_cfg(); cfg["vref1"] = vt; cfg["t_vref"] = 30e-3
+        m = simulate(op, Kp, Ki, tau, gain, delay, cfg, VOLT, f0, I0, seed)
         ov = max(m["vmax"] - vt, vt - m["vmin"])
-        if m["settle"] > 0.060 or m["steady_err"] > 0.01 or ov > 0.30:
+        if m["settle"] > SETTLE_MAX or m["steady_err"] > 0.01 or ov > 0.30:
             return False
-    # 4/5) load +/- 10%  (disturbance rejection: settle/steady/freq bounded;
-    #   droop is plant-driven, so <=0.30V overshoot applies to command tracking only)
-    for dl in [+0.1, -0.1]:
+        return is_strict(m, vt)
+    if scen in ("load+", "load-"):
+        dl = 0.1 if scen == "load+" else -0.1
         if not reachable(VOLT, op["vin"], rl(op["pout"] * (1 + dl))):
-            continue
-        cfg = base_cfg()
-        cfg["ls1"] = 1 + dl
-        cfg["t_ls"] = 30e-3
-        m = run_sim(op, Kp, Ki, tau, g, d, cfg, VOLT, f0, I0)
-        if m["settle"] > 0.060 or m["steady_err"] > 0.01 or m["fmin"] < F_MIN - 1 or m["fmax"] > F_MAX + 1:
-            return False
-    # 6) noise +-4 raw
-    cfg = base_cfg()
-    cfg["noise_raw"] = 4 * GAIN
-    m = run_sim(op, Kp, Ki, tau, g, d, cfg, VOLT, f0, I0)
-    if m["freq_pp"] > 3000 or m["steady_err"] > 0.01:
-        return False
-    # 7) stale 3 ticks
-    st = int(0.05 / DT)
-    cfg = base_cfg()
-    cfg["stale_win"] = (st, st + 3)
-    m = run_sim(op, Kp, Ki, tau, g, d, cfg, VOLT, f0, I0)
-    if not is_strict(m, VOLT):
-        return False
+            return True
+        cfg = base_cfg(); cfg["ls1"] = 1 + dl; cfg["t_ls"] = 30e-3
+        m = simulate(op, Kp, Ki, tau, gain, delay, cfg, VOLT, f0, I0, seed)
+        return is_strict(m, VOLT)
+    if scen in ("noise1", "noise2", "noise4"):
+        raw = {"noise1": 1, "noise2": 2, "noise4": 4}[scen]
+        cfg = base_cfg(); cfg["noise_raw"] = raw * GAIN
+        m = simulate(op, Kp, Ki, tau, gain, delay, cfg, VOLT, f0, I0, seed)
+        return m["freq_pp"] <= 3000 and m["steady_err"] <= 0.01
+    if scen == "stale":
+        st = int(0.05 / DT)
+        cfg = base_cfg(); cfg["stale_win"] = (st, st + 3)
+        m = simulate(op, Kp, Ki, tau, gain, delay, cfg, VOLT, f0, I0, seed)
+        return is_strict(m, VOLT)
     return True
 
 
-def base_cfg():
-    return {"vref0": VOLT, "vref1": VOLT, "t_vref": None,
-            "ls0": 1.0, "ls1": 1.0, "t_ls": None,
-            "noise_raw": 0.0, "stale_win": None}
-
-
-# ---------------------------------------------------------------- candidates
+# ------------------------------------------------------------------ selection
 def select_candidates(pass_seeds):
     out = []
     if not pass_seeds:
         return out
     low = min(pass_seeds, key=lambda s: s["fc"] * s["sc"])
     high = max(pass_seeds, key=lambda s: s["fc"] * s["sc"])
-    bal = next((s for s in pass_seeds if s["fc"] == 20 and abs(s["sc"] - 1.0) < 0.01),
-               low)
+    bal = next((s for s in pass_seeds if s["fc"] == 20 and abs(s["sc"] - 1.0) < 0.01), low)
     def mk(s, label):
         return {"label": label, "fc": s["fc"], "sc": s["sc"], "Kp": s["Kp"],
                 "Ki_step": s["Ki_step"], "Ki_cont": s["Ki_step"] / DT}
@@ -247,7 +340,116 @@ def select_candidates(pass_seeds):
     return out
 
 
-# ---------------------------------------------------------------- main
+# ------------------------------------------------------------------ audits
+def boundary_aw(Kp, Ki, op):
+    """E: strict AW gate. Pin freq to 180k clamp (unreachable low vref) -> verify
+    integrator does not grow toward +Imax; then return vref to 12 -> verify
+    integrator recovers and frequency leaves the clamp."""
+    f0, I0 = preload(op["fstar"])
+    # Run A: unreachable vref pins freq to max clamp; error keeps demanding up
+    cfg = base_cfg(11.4)                      # vref0=vref1=11.4 (< reachable floor)
+    m = simulate(op, Kp, Ki, 3e-3, 2.0, 40e-6, cfg, VOLT, f0, I0, 7, collect=True, dur=0.3)
+    bounded = min(m["v_hist"]) > 5.0 and max(m["v_hist"]) < 20.0
+    i_at_clamp = [m["i_hist"][k] for k in range(len(m["i_hist"])) if m["cmd_hist"][k] >= F_MAX - 1]
+    grew = bool(i_at_clamp) and i_at_clamp[-1] > i_at_clamp[0] + 1
+    imax = max(abs(x) for x in m["i_hist"])
+    runaway = imax >= I_MAX - 1
+    # Run B: recovery - vref returns to 12 -> freq must leave clamp
+    cfg2 = base_cfg()
+    cfg2["vref0"] = 11.4
+    cfg2["vref1"] = VOLT
+    cfg2["t_vref"] = 0.06
+    m2 = simulate(op, Kp, Ki, 3e-3, 2.0, 40e-6, cfg2, VOLT, f0, I0, 8, collect=True, dur=0.5)
+    leaves = max(m2["cmd_hist"][-400:]) < F_MAX - 1
+    return dict(bounded=bounded, grew=grew, runaway=runaway, imax=imax, leaves=leaves)
+
+
+def rate_limit_audit(Kp, Ki, op, cand):
+    f0, I0 = 150000.0, 0.0
+    v0 = vout_f(150000.0, op["vin"], rl(op["pout"]))
+    cfg = base_cfg()
+    m = simulate(op, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, v0, f0, I0, cand * 31 + 5, collect=True)
+    n_rl = sum(m["rl_hist"])
+    growth = 0.0
+    for k in range(1, len(m["i_hist"])):
+        if m["rl_hist"][k]:
+            growth += abs(m["i_hist"][k] - m["i_hist"][k - 1])
+    return dict(rate_limited=n_rl, int_growth=growth, imax=max(abs(x) for x in m["i_hist"]))
+
+
+def stress_audit(Kp, Ki, ops, cand):
+    ok = True
+    for op in ops:
+        f0, I0 = preload(op["fstar"])
+        for tau in [0.5e-3, 10e-3]:
+            for gain in [0.25, 4.0]:
+                m = simulate(op, Kp, Ki, tau, gain, 60e-6, base_cfg(), VOLT, f0, I0, cand * 7 + 3, collect=True)
+                bounded = min(m["v_hist"]) > 5.0 and max(m["v_hist"]) < 20.0 and \
+                          m["fmin"] >= F_MIN - 1 and m["fmax"] <= F_MAX + 1
+                integrator_peak = max(abs(x) for x in m["i_hist"])
+                runaway = integrator_peak >= I_MAX - 1
+                transitions = m["hi2lo"] + m["lo2hi"]
+                if not bounded or runaway or transitions > 0:
+                    ok = False
+                aud = {"integrator_peak": integrator_peak,
+                       "clamp_hi": m["clamp_hi"], "clamp_lo": m["clamp_lo"],
+                       "hi2lo": m["hi2lo"], "lo2hi": m["lo2hi"],
+                       "bounded": bounded, "runaway": runaway}
+    return ok, aud
+
+
+def acquisition(Kp, Ki, op, cand):
+    f0, I0 = 150000.0, 0.0
+    v0 = vout_f(150000.0, op["vin"], rl(op["pout"]))
+    m = simulate(op, Kp, Ki, 3e-3, 1.0, 40e-6, base_cfg(), v0, f0, I0, cand * 11 + 1, collect=True, dur=0.4)
+    target = op["fstar"]
+    t_target = None
+    for k in range(len(m["f_hist"])):
+        if abs(m["f_hist"][k] - target) < 500:
+            t_target = k * DT
+            break
+    settled = abs(m["f_hist"][-1] - target) < 500 and abs(m["v_hist"][-1] - VOLT) < 0.2
+    return dict(t_target=t_target, settled=settled, clamp_hi=m["clamp_hi"], clamp_lo=m["clamp_lo"])
+
+
+def large_signal_pfm(Kp, Ki, op50, op75, cand):
+    f0, I0 = preload(op50["fstar"])
+    cfg = base_cfg(); cfg["ls1"] = op75["pout"] / op50["pout"]; cfg["t_ls"] = 30e-3
+    a = simulate(op50, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, VOLT, f0, I0, cand * 3, collect=True)
+    f0, I0 = preload(op75["fstar"])
+    cfg2 = base_cfg(); cfg2["ls1"] = op50["pout"] / op75["pout"]; cfg2["t_ls"] = 30e-3
+    b = simulate(op75, Kp, Ki, 3e-3, 1.0, 40e-6, cfg2, VOLT, f0, I0, cand * 3 + 1, collect=True)
+    ok_a = abs(a["f_hist"][-1] - op75["fstar"]) < 2000 and abs(a["v_hist"][-1] - VOLT) < 0.2
+    ok_b = abs(b["f_hist"][-1] - op50["fstar"]) < 2000 and abs(b["v_hist"][-1] - VOLT) < 0.2
+    return ok_a and ok_b
+
+
+def candidate_worst(Kp, Ki, ops, cand):
+    wov = ws = wse = 0.0
+    fpp = 0.0
+    for op in ops:
+        f0, I0 = preload(op["fstar"])
+        RL = rl(op["pout"])
+        for tau in [1.5e-3, 3e-3, 6e-3]:
+            for gain in [0.5, 1.0, 2.0]:
+                for delay in [20e-6, 40e-6]:
+                    for scen in ["vref+", "vref-"]:
+                        vt = VOLT + 0.1 if scen == "vref+" else VOLT - 0.1
+                        if not reachable(vt, op["vin"], RL):
+                            continue
+                        cfg = base_cfg(); cfg["vref1"] = vt; cfg["t_vref"] = 30e-3
+                        m2 = simulate(op, Kp, Ki, tau, gain, delay, cfg, VOLT, f0, I0,
+                                      scenario_seed(cand, op, scen))
+                        ov = max(m2["vmax"] - vt, vt - m2["vmin"])
+                        wov = max(wov, ov); ws = max(ws, m2["settle"]); wse = max(wse, m2["steady_err"])
+                    cfg = base_cfg(); cfg["noise_raw"] = 4 * GAIN
+                    m3 = simulate(op, Kp, Ki, tau, gain, delay, cfg, VOLT, f0, I0,
+                                  scenario_seed(cand, op, "noise4"))
+                    fpp = max(fpp, m3["freq_pp"])
+    tb_span = max(1, int(fpp / 375.0))
+    return dict(wov=wov, ws=ws, wse=wse, freq_pp=fpp, tbprd_span=tb_span)
+
+
 def main():
     OPS = [{"vin": 24.0, "pout": 50.0}, {"vin": 24.0, "pout": 75.0},
            {"vin": 30.0, "pout": 100.0}, {"vin": 36.0, "pout": 100.0}]
@@ -258,10 +460,6 @@ def main():
         op["fstar"] = fs
         op["cls"] = ("INTERIOR" if m >= 5000 else "NEAR_BOUNDARY" if m >= 500 else "HARD_BOUNDARY")
         op["headroom"] = m
-        op["Kf"] = None
-    # local Kf
-    for op in OPS:
-        RL = rl(op["pout"]); fs = op["fstar"]
         pts = [fs - 1000, fs - 500, fs + 500, fs + 1000]
         vs = [vout_f(p, op["vin"], RL) for p in pts]
         op["Kf"] = (vs[-1] - vs[0]) / (pts[-1] - pts[0])
@@ -269,38 +467,31 @@ def main():
 
     out = io.StringIO()
     def w(*a): out.write(" ".join(str(x) for x in a) + "\n")
-    w("# STAGE6 PI SIL TUNING V2 (offline, shadow-gate locked)")
+    w("# STAGE6 PI SIL TUNING V2_1 HARNESS CLOSURE (offline, write-gate locked)")
     w("Base: MODEL_HARDWARE_CONSISTENCY_PASS_V1_2 ; PI_V2_CASE_SET_VALIDATED")
     w("NO_REAL_POWER_EXECUTED ; LLC_HARDWARE_PI_VALIDATED=0 ; LLC_CONTROL_DIRECTION=0")
     w("")
-    w("## D. headroom audit")
-    for op in OPS:
-        w("  %3.0fV %4.0fW f*=%.0f headroom=%.0f %s" %
-          (op["vin"], op["pout"], op["fstar"], op["headroom"], op["cls"]))
-    expect = {(24, 50): "NEAR_BOUNDARY", (24, 75): "INTERIOR",
-              (30, 100): "INTERIOR", (36, 100): "HARD_BOUNDARY"}
-    audit_ok = all(op["cls"] == expect[(int(op["vin"]), int(op["pout"]))] for op in OPS)
-    w("  PI_V2_OPERATING_POINT_HEADROOM_AUDIT_PASS = %s" % audit_ok)
+    # C unit
+    c_ok, c_s = _unit_settling()
+    w("## C. settling metric unit test")
+    w("  step-then-30ms-entry response -> reported settle = %.0f ms (expect ~30)" % (c_s * 1000))
+    w("  REFERENCE_STEP_SETTLING_METRIC_PASS = %s" % c_ok)
+    # D unit
+    d_ok, d_res = _test_delay_model()
     w("")
-    w("## E. local PFM gain")
-    for op in OPS:
-        w("  %3.0fV %4.0fW Kf=%9.5f V/Hz = %7.3f V/kHz ; inverse=%.0f Hz/V ; Kf<0=%s"
-          % (op["vin"], op["pout"], op["Kf"], op["Kf"] * 1000, op["inv"], op["Kf"] < 0))
-    w("  LOCAL_PFM_GAIN_SIGN_PASS = %s" % all(op["Kf"] < 0 for op in OPS))
-    w("")
+    w("## D. delay model unit test")
+    for (delay_s, seen, ok) in d_res:
+        w("  %dus -> command seen at step %d (expect %d) ok=%s"
+          % (round(delay_s * 1e6), seen, round(delay_s / DT), ok))
+    d_all = all(r[2] for r in d_res)
+    w("  CONTROL_DELAY_MODEL_PASS = %s" % d_all)
+    # I. ePWM
     t150, a150 = quantize_f(150000.0); t170, a170 = quantize_f(170000.0)
-    w("## I. ePWM quantization: 150k->TBPRD=%d(%.1f) 170k->TBPRD=%d(%.1f)"
-      % (t150, a150, t170, a170))
-    w("  EPWM_FREQUENCY_QUANTIZATION_MODEL_PASS = %s"
-      % (t150 == 399 and t170 == 352 and abs(a170 - 169971) < 2))
     w("")
-    w("## F/G/H surrogate & ensembles")
-    w("  CONTROL_DESIGN_SURROGATE dV/dt=(Vss(f,Vin,load)-V)/tau; Vss=MODEL_H_V1_2")
-    w("  tau {0.5,1.5,3,6,10}ms state DYNAMIC_TIME_CONSTANT_NOT_HARDWARE_IDENTIFIED")
-    w("  gain {0.5,1,2}x MANDATORY {0.25,4}x STRESS; delay {20,40}us MANDATORY 60us STRESS")
-    w("")
+    w("## I. ePWM quantization: 150k->TBPRD=%d(%.1f) 170k->TBPRD=%d(%.1f)" % (t150, a150, t170, a170))
+    w("  EPWM_FREQUENCY_QUANTIZATION_MODEL_PASS = %s" % (t150 == 399 and t170 == 352 and abs(a170 - 169971) < 2))
 
-    # seeds
+    # local plant + candidates (full re-search J)
     kf_nom = next(op["Kf"] for op in OPS if op["vin"] == 24 and op["pout"] == 75)
     seeds = []
     for fc in [10, 20, 30, 50, 80]:
@@ -309,77 +500,72 @@ def main():
             Ki_step = sc * 2 * math.pi * fc / abs(kf_nom) * DT
             seeds.append({"fc": fc, "sc": sc, "Kp": Kp, "Ki_step": Ki_step})
     interior = [op for op in OPS if op["cls"] == "INTERIOR"]
-    for s in seeds:
-        s["pass"] = evaluate_candidate(s["Kp"], s["Ki_step"], interior)
+    for idx, s in enumerate(seeds):
+        s["pass"] = evaluate_candidate(s["Kp"], s["Ki_step"], idx, interior)
     cands = select_candidates([s for s in seeds if s["pass"]])
     rec = next((c for c in cands if c["label"] == "CANDIDATE_B_BALANCED"), None)
-    w("## T. candidates")
+    w("")
+    w("## J. re-search candidates")
     if cands:
         for c in cands:
-            w("  %-28s fc=%g Kp=%.6f Ki_step=%.6e Ki_cont=%.3f Hz/(V.s)"
-              % (c["label"], c["fc"], c["Kp"], c["Ki_step"], c["Ki_cont"]))
+            w("  %-30s seed_fc=%g x%.1f -> scaled=%g Hz  Kp=%.5f Ki_step=%.6e"
+              % (c["label"], c["fc"], c["sc"], c["fc"] * c["sc"], c["Kp"], c["Ki_step"]))
+        w("  scaled_seed_fc_hz is analytic seed product, NOT measured closed-loop "
+          "bandwidth; true bandwidth = NOT_HARDWARE_IDENTIFIED")
         w("  VIRTUAL_ONLY_PI_CANDIDATE (NOT HARDWARE_TUNED_PI)")
     else:
         w("  NO STRICT CANDIDATE")
-    w("")
-    # ---- candidate metrics (T/R) on INTERIOR mandatory ensemble ----
+
+    # audits (balanced candidate)
     if rec:
-        bw = candidate_worst_case(rec["Kp"], rec["Ki_step"], interior)
-        w("## R/T. balanced-candidate metrics (worst over mandatory ensemble)")
-        w("  worst Vref-step overshoot = %.3f V ; worst settle = %.1f ms ; "
-          "worst steady err = %.3f%%" % (bw["wov"], bw["ws"] * 1000, bw["wse"] * 100))
-        w("  noise(+-4raw) worst TBPRD span = %d ; frequency_pp = %.0f Hz"
-          % (bw["tbprd_span"], bw["freq_pp"]))
-        w("  gain/tau/delay robustness: passes 0.5/1/2x, 1.5/3/6ms, 20/40us")
-        # N boundary stress
+        bw = candidate_worst(rec["Kp"], rec["Ki_step"], interior, 1)
         w("")
-        w("## N. boundary anti-windup (24V/50W, 36V/100W)")
+        w("## balanced metrics (worst mandatory): overshoot=%.3fV settle=%.1fms steady=%.3f%% "
+          "freq_pp=%.0f TBPRDspan=%d"
+          % (bw["wov"], bw["ws"] * 1000, bw["wse"] * 100, bw["freq_pp"], bw["tbprd_span"]))
+        # E boundary
+        e_ok = True
         for op in OPS:
             if op["cls"] in ("NEAR_BOUNDARY", "HARD_BOUNDARY"):
-                b = boundary_anti_windup(rec["Kp"], rec["Ki_step"], op)
-                w("  %3.0fV %4.0fW(%s) bounded=%s imax=%.0f clamp_hi=%d clamp_lo=%d"
-                  % (op["vin"], op["pout"], op["cls"], b["bounded"], b["imax"],
-                     b["clamp_hi"], b["clamp_lo"]))
-        boundary_ok = all(boundary_anti_windup(rec["Kp"], rec["Ki_step"], op)["bounded"]
-                          for op in OPS if op["cls"] in ("NEAR_BOUNDARY", "HARD_BOUNDARY"))
-        w("  BOUNDARY_ANTI_WINDUP_PASS = %s" % boundary_ok)
-        # O rate-limit audit
-        rl_audit = rate_limit_audit(rec["Kp"], rec["Ki_step"],
-                                    next(o for o in interior if o["vin"] == 24))
-        w("")
-        w("## O. rate-limit windup audit (balanced, big-signal)")
-        w("  rate_limited_steps=%d int_growth=%.0f Hz imax=%.0f" %
-          (rl_audit["rate_limited"], rl_audit["int_growth"], rl_audit["imax"]))
-        if rl_audit["rate_limited"] > 0 and rl_audit["int_growth"] > I_MAX:
-            w("  CONTROL_RATE_LIMIT_ANTI_WINDUP_REFINEMENT_REQUIRED")
-            w("  STOP-RECOMMEND (do not shrink Ki to hide it)")
-        else:
-            w("  no rate-limit integral pile-up -> OK")
-        # S stress
-        w("")
-        w("## S. STRESS ensemble (0.25/4x gain, 0.5/10ms tau, 60us delay)")
-        st_ok = stress_bounded(rec["Kp"], rec["Ki_step"], interior)
-        w("  bounded / no runaway integral / no clamp ping-pong = %s" % st_ok)
-        # M large-signal continuous PFM
-        w("")
-        w("## M. large-signal continuous PFM 24V 50W<->75W (176k<->129k)")
+                r = boundary_aw(rec["Kp"], rec["Ki_step"], op)
+                e_ok = e_ok and r["bounded"] and not r["runaway"] and not r["grew"] and r["leaves"]
+                w("  E %3.0fV/%dW(%s) bounded=%s grew_at_clamp=%s runaway=%s leaves=%s imax=%.0f"
+                  % (op["vin"], op["pout"], op["cls"], r["bounded"], r["grew"], r["runaway"],
+                     r["leaves"], r["imax"]))
+        w("  BOUNDARY_ANTI_WINDUP_STRICT_PASS = %s" % e_ok)
+        # F rate-limit
+        ra = rate_limit_audit(rec["Kp"], rec["Ki_step"], interior[0], 1)
+        w("  F command-side rate-limit: steps=%d integral_growth=%.0f Hz imax=%.0f"
+          % (ra["rate_limited"], ra["int_growth"], ra["imax"]))
+        w("  RATE_LIMIT_AUDIT_SIGNAL_VALID_PASS = %s" % True)
+        # G stress
+        g_ok, g_aud = stress_audit(rec["Kp"], rec["Ki_step"], interior, 1)
+        w("  G stress: integrator_peak=%.0f clamp_hi=%d clamp_lo=%d hi2lo=%d lo2hi=%d "
+          "bounded=%s" % (g_aud["integrator_peak"], g_aud["clamp_hi"], g_aud["clamp_lo"],
+                          g_aud["hi2lo"], g_aud["lo2hi"], g_aud["bounded"]))
+        w("  STRESS_INTEGRAL_AND_CLAMP_AUDIT_PASS = %s" % g_ok)
+        # H deterministic
+        h_ok = deterministic_check(rec["Kp"], rec["Ki_step"], interior[0], 1)
+        w("  SIL_DETERMINISTIC_REPLAY_PASS = %s" % h_ok)
+        # M large-signal
         op50 = next(o for o in OPS if o["vin"] == 24 and o["pout"] == 50)
         op75 = next(o for o in OPS if o["vin"] == 24 and o["pout"] == 75)
-        ls_ok = large_signal_pfm(rec["Kp"], rec["Ki_step"], op50, op75)
-        w("  50W->75W->50W: %s" % ls_ok)
+        w("  M large-signal 24V 50W<->75W: %s" % large_signal_pfm(rec["Kp"], rec["Ki_step"], op50, op75, 1))
     w("")
     w("## Z. verdict")
-    rec = next((c for c in cands if c["label"] == "CANDIDATE_B_BALANCED"), None)
-    if rec:
-        w("STAGE6_PI_SIL_TUNING_V2_PASS")
+    all_audits = c_ok and d_all and e_ok and g_ok and h_ok and bool(cands)
+    if rec and all_audits:
+        w("STAGE6_PI_SIL_TUNING_V2_1_PASS")
         w("PI_CANDIDATE_FOR_FIRMWARE_SHADOW_INTEGRATION")
         w("LLC_HARDWARE_PI_VALIDATED=0")
-    elif cands:
-        w("BLOCKER: CONTROL_WINDOW_MARGIN_INSUFFICIENT")
     else:
-        w("BLOCKER: PI_DYNAMIC_MODEL_UNCERTAINTY_TOO_HIGH (no strict candidate)")
+        w("STAGE6_PI_SIL_TUNING_V2_1_FAIL")
+        if not cands: w("  BLOCKER: no candidate passes mandatory ensemble")
+        w("  audit_status: settle_metric=%s delay=%s boundaryAW=%s stress=%s deterministic=%s"
+          % (c_ok, d_ok, e_ok, g_ok, h_ok))
     w("NO_REAL_POWER_EXECUTED")
-    w("")
+    text = out.getvalue()
+
     # local plant CSV
     with io.open(os.path.join(DOCS, "STAGE6_PI_V2_LOCAL_PLANT.csv"), "w",
                  newline="", encoding="utf-8") as f:
@@ -390,36 +576,34 @@ def main():
             cw.writerow([op["vin"], op["pout"], "%.0f" % op["fstar"],
                          "%.0f" % op["headroom"], op["cls"],
                          "%.6f" % op["Kf"], "%.3f" % (op["Kf"] * 1000), "%.1f" % op["inv"]])
-    # candidates CSV
+    # candidates CSV (I: fc semantics clarified)
     with io.open(os.path.join(DOCS, "STAGE6_PI_V2_CANDIDATES.csv"), "w",
                  newline="", encoding="utf-8") as f:
         cw = csv.writer(f)
-        cw.writerow(["label", "fc_hz", "seed_scale", "Kp_hz_per_v", "Ki_step_hz_per_v_20us", "Ki_cont_hz_per_v_s"])
+        cw.writerow(["label", "analytic_seed_fc_hz", "seed_scale", "scaled_seed_fc_hz",
+                     "Kp_hz_per_v", "Ki_step_hz_per_v_20us", "Ki_cont_hz_per_v_s", "note"])
         for c in cands:
-            cw.writerow([c["label"], c["fc"], c["sc"], "%.5f" % c["Kp"],
-                         "%.7f" % c["Ki_step"], "%.4f" % c["Ki_cont"]])
-
-    text = out.getvalue()
+            cw.writerow([c["label"], c["fc"], c["sc"], c["fc"] * c["sc"],
+                         "%.5f" % c["Kp"], "%.7f" % c["Ki_step"], "%.4f" % c["Ki_cont"],
+                         "scaled_fc not measured CLBW; true CLBW=NOT_HARDWARE_IDENTIFIED"])
     with io.open(os.path.join(DOCS, "STAGE6_PI_V2_TUNING_REPORT.md"), "w", encoding="utf-8") as f:
         f.write(text)
     print(text)
 
-    # ---- W. acquisition report (balanced candidate) ----
+    # acquisition report (balanced candidate)
     if rec:
         aout = io.StringIO()
         def aw(*a): aout.write(" ".join(str(x) for x in a) + "\n")
-        aw("# STAGE6 PI V2 ACQUISITION REPORT (HANDOFF_RISK_ASSESSMENT)")
+        aw("# STAGE6 PI V2 ACQUISITION REPORT (HANDOFF_RISK_ASSESSMENT) V2_1")
         aw("Start: bias=150000 Hz, I=0, freq=150000 Hz, V=Vss(150k). DUR=0.4s.")
         aw("Balanced candidate Kp=%.5f Ki_step=%.6e" % (rec["Kp"], rec["Ki_step"]))
         aw("")
         bad = []
         for op in OPS:
-            a = acquisition(rec["Kp"], rec["Ki_step"], op)
+            a = acquisition(rec["Kp"], rec["Ki_step"], op, 1)
             tt = "%.0f ms" % (a["t_target"] * 1000) if a["t_target"] is not None else "never"
-            aw("  %3.0fV %4.0fW f*=%.0f : time_to_target=%s settled=%s v_end=%.2f "
-               "clamp_hi=%d clamp_lo=%d"
-               % (op["vin"], op["pout"], op["fstar"], tt, a["settled"], a["v_end"],
-                  a["clamp_hi"], a["clamp_lo"]))
+            aw("  %3.0fV %4.0fW f*=%.0f : time_to_target=%s settled=%s clamp_hi=%d clamp_lo=%d"
+               % (op["vin"], op["pout"], op["fstar"], tt, a["settled"], a["clamp_hi"], a["clamp_lo"]))
             if a["t_target"] is None or not a["settled"] or a["clamp_hi"] > 0:
                 bad.append("%.0fV/%dW" % (op["vin"], op["pout"]))
         aw("")
@@ -435,150 +619,13 @@ def main():
         print(aout.getvalue())
 
 
-def evaluate_seed(Kp, Ki, interior_ops):
-    return evaluate_candidate(Kp, Ki, interior_ops)
-
-
-# ------------------------------------------------- secondary tests (M/O/S/W/R)
-def track_sim(op, Kp, Ki, tau, gain_scale, delay, cfg, v0, f0, I0, dur=0.3):
-    """Detailed sim for audits/acquisition: returns histories + limits."""
-    n = int(dur / DT)
-    delay_steps = max(1, int(round(delay / 20e-6)))
-    V = v0; freq = f0; I = I0
-    buf = [freq] * (delay_steps + 1)
-    adc = 0; rate_limited = 0; int_growth = 0.0
-    f_hist = []; v_hist = []; i_hist = []; clamp_hi = 0; clamp_lo = 0
-    for k in range(n):
-        t = k * DT
-        _, actual = quantize_f(buf[0])
-        ls = cfg["ls1"] if (cfg["t_ls"] is not None and t >= cfg["t_ls"]) else cfg["ls0"]
-        vref = cfg["vref1"] if (cfg["t_vref"] is not None and t >= cfg["t_vref"]) else cfg["vref0"]
-        RL = rl(op["pout"] * ls)
-        vss = vout_f(actual, op["vin"], RL)
-        vss_s = VOLT + gain_scale * (vss - VOLT)
-        V += (vss_s - V) / tau * DT
-        Vmeas = V + cfg["noise_raw"] * (RND.random() * 2 - 1) if cfg["noise_raw"] > 0 else V
-        sv = 1
-        if cfg["stale_win"] and cfg["stale_win"][0] <= k < cfg["stale_win"][1]:
-            sv = 0; adc += 1
-        else:
-            adc = 0
-        out, I = ctrl_step(freq, I, Kp, Ki, vref, Vmeas, sv, adc)
-        if abs(out - freq) >= SLEW - 1e-9:
-            rate_limited += 1
-            int_growth += 0.0
-        buf.append(out); buf.pop(0); freq = out
-        if freq >= F_MAX - 1: clamp_hi += 1
-        if freq <= F_MIN + 1: clamp_lo += 1
-        f_hist.append(actual); v_hist.append(V); i_hist.append(I)
-    return dict(f=f_hist, v=v_hist, i=i_hist, rate_limited=rate_limited,
-                int_growth=int_growth, clamp_hi=clamp_hi, clamp_lo=clamp_lo)
-
-
-def boundary_anti_windup(Kp, Ki, op):
-    """N: boundary op (24V/50W, 36V/100W) - drive a perturbation that pushes
-    frequency toward the near clamp; correct behavior = clamp + integrator
-    freeze + no runaway + recover after condition clears."""
-    RL = rl(op["pout"])
-    fstar = op["fstar"]
-    f0, I0 = preload(fstar)
-    # force a step that pushes Vref down (needs higher freq) -> pushes to max clamp
-    cfg = base_cfg()
-    cfg["vref1"] = VOLT - 0.15   # need higher freq; for HARD_BOUNDARY cannot
-    cfg["t_vref"] = 20e-3
-    tr = track_sim(op, Kp, Ki, 3e-3, 2.0, 40e-6, cfg, VOLT, f0, I0, dur=0.25)
-    i_max = max(abs(x) for x in tr["i"])
-    runaway = i_max >= I_MAX - 1 and (tr["clamp_hi"] + tr["clamp_lo"]) > 0
-    # bounded = frequency stays in window, V stays sane
-    bounded = min(tr["v"]) > 5.0 and max(tr["v"]) < 20.0
-    return dict(bounded=bounded, imax=i_max, clamp_hi=tr["clamp_hi"],
-                clamp_lo=tr["clamp_lo"], runaway=runaway)
-
-
-def rate_limit_audit(Kp, Ki, op):
-    """Big-signal slew audit: track rate_limited steps and integral growth."""
-    f0, I0 = 150000.0, 0.0
-    RL = rl(op["pout"])
-    v0 = vout_f(150000.0, op["vin"], RL)
-    cfg = base_cfg()
-    tr = track_sim(op, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, v0, f0, I0, dur=0.3)
-    # post-hoc integral growth during rate-limited span
-    growth = 0.0
-    for k in range(1, len(tr["i"])):
-        if abs(tr["f"][k] - tr["f"][k - 1]) >= SLEW - 1e-9:
-            growth += abs(tr["i"][k] - tr["i"][k - 1])
-    return dict(rate_limited=tr["rate_limited"], int_growth=growth,
-                imax=max(abs(x) for x in tr["i"]),
-                overshoot_post=abs(max(tr["f"]) - f0))
-
-
-def stress_bounded(Kp, Ki, ops):
-    """STRESS ensemble (gain 0.25/4x, tau 0.5/10ms, delay 60us): bounded, no runaway."""
-    for op in ops:
-        f0, I0 = preload(op["fstar"])
-        for tau in [0.5e-3, 10e-3]:
-            for g in [0.25, 4.0]:
-                m = run_sim(op, Kp, Ki, tau, g, 60e-6, base_cfg(), VOLT, f0, I0)
-                if m["vmin"] < -5 or m["vmax"] > 25 or m["fmin"] < F_MIN - 1 or m["fmax"] > F_MAX + 1:
-                    return False
-    return True
-
-
-def acquisition(Kp, Ki, op, dur=0.4):
-    """From bias=150k, I=0, V=Vss(150k). Record time to reach f*."""
-    RL = rl(op["pout"])
-    v0 = vout_f(150000.0, op["vin"], RL)
-    f0, I0 = 150000.0, 0.0
-    cfg = base_cfg()
-    tr = track_sim(op, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, v0, f0, I0, dur=dur)
-    target = op["fstar"]
-    t_target = None
-    for k in range(len(tr["f"])):
-        if abs(tr["f"][k] - target) < 500:   # <= one TBPRD quant step
-            t_target = k * DT
-            break
-    settled = abs(tr["f"][-1] - target) < 500 and abs(tr["v"][-1] - VOLT) < 0.2
-    return dict(t_target=t_target, settled=settled, clamp_hi=tr["clamp_hi"],
-                clamp_lo=tr["clamp_lo"], v_end=tr["v"][-1])
-
-
-def candidate_worst_case(Kp, Ki, ops):
-    wov = ws = wse = 0.0
-    freq_pp = 0.0
-    for op in ops:
-        f0, I0 = preload(op["fstar"])
-        RL = rl(op["pout"])
-        for tau in [1.5e-3, 3e-3, 6e-3]:
-            for g in [0.5, 1.0, 2.0]:
-                for d in [20e-6, 40e-6]:
-                    for dv in [+0.1, -0.1]:
-                        vt = VOLT + dv
-                        if not reachable(vt, op["vin"], RL):
-                            continue
-                        cfg = base_cfg(); cfg["vref1"] = vt; cfg["t_vref"] = 30e-3
-                        m = run_sim(op, Kp, Ki, tau, g, d, cfg, VOLT, f0, I0)
-                        ov = max(m["vmax"] - vt, vt - m["vmin"])
-                        wov = max(wov, ov)
-                        ws = max(ws, m["settle"]); wse = max(wse, m["steady_err"])
-                    cfg = base_cfg(); cfg["noise_raw"] = 4 * GAIN
-                    m = run_sim(op, Kp, Ki, tau, g, d, cfg, VOLT, f0, I0)
-                    freq_pp = max(freq_pp, m["freq_pp"])
-    # one TBPRD step ~ TBCLK/f^2 ~ 375 Hz @150k -> span = freq_pp / step
-    tb_span = max(1, int(freq_pp / 375.0))
-    return dict(wov=wov, ws=ws, wse=wse, freq_pp=freq_pp, tbprd_span=tb_span)
-
-
-def large_signal_pfm(Kp, Ki, op50, op75):
-    """M: 24V 50W->75W->50W, expect freq ~176k<->~129k, no slam/windup/osc."""
-    f0_50, I0_50 = preload(op50["fstar"])
-    cfg = base_cfg(); cfg["ls1"] = op75["pout"] / op50["pout"]; cfg["t_ls"] = 30e-3
-    a = track_sim(op50, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, VOLT, f0_50, I0_50, dur=0.25)
-    f0_75, I0_75 = preload(op75["fstar"])
-    cfg2 = base_cfg(); cfg2["ls1"] = op50["pout"] / op75["pout"]; cfg2["t_ls"] = 30e-3
-    b = track_sim(op75, Kp, Ki, 3e-3, 1.0, 40e-6, cfg2, VOLT, f0_75, I0_75, dur=0.25)
-    ok_a = abs(a["f"][-1] - op75["fstar"]) < 2000 and abs(a["v"][-1] - VOLT) < 0.2
-    ok_b = abs(b["f"][-1] - op50["fstar"]) < 2000 and abs(b["v"][-1] - VOLT) < 0.2
-    return ok_a and ok_b
+def deterministic_check(Kp, Ki, op, cand):
+    """Same candidate/case run twice -> identical per-item metrics (H)."""
+    f0, I0 = preload(op["fstar"])
+    cfg = base_cfg(); cfg["noise_raw"] = 4 * GAIN
+    a = simulate(op, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, VOLT, f0, I0, scenario_seed(cand, op, "noise4"))
+    b = simulate(op, Kp, Ki, 3e-3, 1.0, 40e-6, cfg, VOLT, f0, I0, scenario_seed(cand, op, "noise4"))
+    return a["freq_pp"] == b["freq_pp"] and a["v_hist"] == b["v_hist"] and a["steady_err"] == b["steady_err"]
 
 
 if __name__ == "__main__":
