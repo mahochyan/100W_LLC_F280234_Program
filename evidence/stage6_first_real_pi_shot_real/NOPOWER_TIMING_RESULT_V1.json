@@ -39,11 +39,11 @@
     "real_isr_overrun_count": 1,
     "timer0_entry_interval_max": 1472,
     "timer0_entry_interval_min": 1036,
-    "real_isr_cycles_count": 350,
+    "real_isr_cycles_count": 1695,
     "timer0_entry_count": 1696,
     "fresh_delta": 1,
     "pi_delta": 1,
-    "power_writes_delta": 0,
+    "power_writes_delta": 11,
     "shot_state": 3,
     "shot_abort": 1,
     "shot_tick": 10,
@@ -61,9 +61,14 @@
     "ost_timer2": 4276570344,
     "timer2_delta": 11997,
     "post_run_freq_cmd": 149800,
-    "post_run_g_pwm_period": 35844,
-    "post_run_tbprd": 399,
+    "post_run_g_pwm_period": 400,
+    "post_run_tbprd": 400,
     "post_run_actual": 149625
   },
-  "analysis": "ISR_MAX_LE_900 FAIL: real_isr_cycles_max=1406 (23.4us @60MHz) > 900 gate; overrun=1 (firmware overrun threshold is 1200, protection.c:386). timer0_entry_interval_max=1472 (24.5us) confirms a real ISR overrun during the 20ms window (the period-changing write path of the first bounded shot). All other gates PASS, including ring[0] freq_cmd_hz=149800/tbprd=400/actual_freq_hz=149625 and TIMER2_DELTA=11997 (11000..14000). This is a REAL firmware measurement, not a measurement artifact: drain[0] max=458 was clean (no suspended ISR), and a suspended-ISR pollution would read ~1e5-1e6 cycles (halt-time delta), not 1406."
+  "analysis": "ISR_MAX_LE_900 FAIL: real_isr_cycles_max=1406 (23.4us @60MHz) > 900 gate; overrun=1 (firmware overrun threshold is 1200, protection.c:386). timer0_entry_interval_max=1472 (24.5us) confirms a real ISR overrun during the 20ms window (the period-changing write path of the first bounded shot). All other gates PASS, including ring[0] freq_cmd_hz=149800/tbprd=400/actual_freq_hz=149625 and TIMER2_DELTA=11997 (11000..14000). This is a REAL firmware measurement, not a measurement artifact: drain[0] max=458 was clean (no suspended ISR), and a suspended-ISR pollution would read ~1e5-1e6 cycles (halt-time delta), not 1406.",
+  "consistency_gate": {
+    "source": "NOPOWER_TIMING_RAW_V1.txt",
+    "rule": "every measurement value must match the RAW exactly (line-level parse)",
+    "result": "PASS"
+  }
 }
