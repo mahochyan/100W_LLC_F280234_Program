@@ -230,12 +230,6 @@ __interrupt void TINT0_ISR(void)
         g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
         if (g_control_exec_cycles_last > g_control_exec_cycles_max)
             g_control_exec_cycles_max = g_control_exec_cycles_last;
-        t_isr_exit = CpuTimer2Regs.TIM.all;
-        g_fast_isr_cycles_last = (Uint32)((Uint32)(t_isr_entry - t_isr_exit) & 0xFFFFFFFFUL);
-        if (g_fast_isr_cycles_last > g_fast_isr_cycles_max)
-            g_fast_isr_cycles_max = g_fast_isr_cycles_last;
-        if (g_fast_isr_cycles_last >= 1200UL)
-            g_fast_isr_overrun_count++;
     }
 #endif
 
@@ -247,6 +241,21 @@ __interrupt void TINT0_ISR(void)
 
     CpuTimer0Regs.TCR.bit.TIF = 1U;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* Whole-ISR budget snapshot: taken at the very end of the ISR body (after
+     * the 5 ms flag, TIF clear and PIEACK) so g_fast_isr_cycles_* reflects the
+     * complete fast ISR, not just the Stage6 PI hook. Timing value only. */
+    if (g_stage6_noenergy_test_enable != 0U)
+    {
+        t_isr_exit = CpuTimer2Regs.TIM.all;
+        g_fast_isr_cycles_last = (Uint32)((Uint32)(t_isr_entry - t_isr_exit) & 0xFFFFFFFFUL);
+        if (g_fast_isr_cycles_last > g_fast_isr_cycles_max)
+            g_fast_isr_cycles_max = g_fast_isr_cycles_last;
+        if (g_fast_isr_cycles_last >= 1200UL)
+            g_fast_isr_overrun_count++;
+    }
+#endif
 }
 
 void PROT_FastTask(void)

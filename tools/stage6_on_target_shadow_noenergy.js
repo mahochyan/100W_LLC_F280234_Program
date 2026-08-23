@@ -65,6 +65,8 @@ wv("g_fault_flags",0);
 wv("g_system_state",2);
 wv("g_pwm_enabled",0);
 wv("g_bringup_stage",6);
+wv("g_adc_pwm_sync_consecutive_miss",0);
+wv("g_adc_pwm_sync_valid",1);
 wv("g_offline_test_request",1);
 run(500);
 var st=rw("g_offline_test_status");
@@ -85,6 +87,8 @@ function resetCtrlBase(){
   wv32("g_voltage_reference",0x41400000);      // 12.0f
   wv("g_stage6_noenergy_test_enable",0);
   wv("g_control_running",1);
+  wv("g_adc_pwm_sync_consecutive_miss",0);     // clear ADC-stale counter (no-power env)
+  wv("g_adc_pwm_sync_valid",1);
 }
 // TEST1: Vout=11
 resetCtrlBase();
@@ -159,6 +163,6 @@ wv("g_system_state",0);
 run(50);
 snap("POST");
 print("ON_TARGET_BINARY_LOADED="+OUT);
-print("ON_TARGET_BINARY_SHA=34C6E84F6B7D88D1029895BB7763A672CB046B15E757F4B25214567CEBDBF391");
+print("ON_TARGET_BINARY_SHA=9F8751318479DCBF456E8F29E5DC6D7B98E837857E380AFE1320765A6380DDF0");
 print("DONE");
 try{ session.terminate(); }catch(e){}

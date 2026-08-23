@@ -38,6 +38,24 @@ Uint16 System_Init(void)
             ((volatile Uint16 *)&RamfuncsRunStart)[n] =
                 ((volatile Uint16 *)&RamfuncsLoadStart)[n];
         }
+        /*
+         * Also copy the .TI.ramfunc section (DSP2803x_usDelay, RUN right after
+         * InitFlash at RAML0 0x801D). DELAY_US() calls usDelay during
+         * peripheral init (InitADC etc.); without this copy it would execute
+         * uninitialized RAM and ITRAP to 0x3FF8CD. This is the minimal fix -
+         * same copy pattern as legacy ramfuncs above. C names for the .TI
+         * symbols are TIRamfuncsLoadStart/End/RunStart (COFF, no leading '_').
+         */
+        {
+            extern Uint16 TIRamfuncsLoadStart, TIRamfuncsLoadEnd, TIRamfuncsRunStart;
+            Uint32 m;
+            m = (Uint32)&TIRamfuncsLoadEnd - (Uint32)&TIRamfuncsLoadStart;
+            while (m--)
+            {
+                ((volatile Uint16 *)&TIRamfuncsRunStart)[m] =
+                    ((volatile Uint16 *)&TIRamfuncsLoadStart)[m];
+            }
+        }
         InitFlash();
     }
 #endif

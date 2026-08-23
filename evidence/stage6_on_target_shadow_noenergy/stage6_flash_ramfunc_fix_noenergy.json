@@ -1,0 +1,78 @@
+{
+  "task": "STAGE6_FLASH_RAMFUNC_COPY_REPAIR_AND_NOENERGY_RESUME_V1",
+  "baseline_commit": "d282173",
+  "source_commit": "d282173",
+  "out_sha256": "9F8751318479DCBF456E8F29E5DC6D7B98E837857E380AFE1320765A6380DDF0",
+  "map_sha256": "87B505EFD50E9CB38CD99687E8D99E2482419D307A41BE58B3CD3EA99B041D9A",
+  "superseded_binary": "OUT 34C6E84F6B7D88D1029895BB7763A672CB046B15E757F4B25214567CEBDBF391 marked SUPERSEDED_BY_TI_RAMFUNC_COPY_FIX (git history retained)",
+  "compiler": "ti-cgt-c2000_25.11.1.LTS --abi=coffabi -v28 -ml -mt -O4 -DSTAGE6_FLASH_BUILD=1",
+  "profile": { "id": "0x060201", "kp": 6657.43331, "ki_step": 44.3828888 },
+  "power_gates": { "LLC_HARDWARE_PI_VALIDATED": 0, "LLC_CONTROL_DIRECTION": 0, "PWM": 0, "OST": 1, "NO_REAL_POWER_EXECUTED": true },
+  "flash_ramfunc_run_layout": {
+    "ramfuncs_InitFlash": {"load": "0x3E8000", "run": "0x8000", "size": "0x1D"},
+    "TI.ramfunc_usDelay": {"load": "0x3EA5C6", "run": "0x801D", "size": "0x4"},
+    "no_overlap": true,
+    "FLASH_RAMFUNC_RUN_REGION_LAYOUT_PASS": true
+  },
+  "static_proof": {
+    "LEGACY_RAMFUNCS_COPY_PRESENT": true,
+    "TI_RAMFUNCS_COPY_PRESENT": true,
+    "system_obj_two_copy_loops": "dis2000 shows copy loop 0x3E8000->0x8000 then 0x3EA5C6->0x801D then LCR 0x008000(InitFlash)"
+  },
+  "on_target_flash_runtime": {
+    "ON_TARGET_TI_RAMFUNC_COPY_PASS": true,
+    "on_target_ti_ram_0x801D": 0x1901,
+    "on_target_ti_flash_0x3EA5C6": 0x1901,
+    "ti_ram_4words_matched": true,
+    "USDELAY_RAM_EXECUTION_PASS": true,
+    "usdelay_entry_pc": "0x801D (RAML0)",
+    "usdelay_return_pc": "0x3EA378 (InitAdc LRETR)",
+    "CONTINUOUS_FLASH_RUNTIME_PASS": true,
+    "continuous_runs": [{"n": 1, "tick_delta": 99964, "trap": false}, {"n": 2, "trap": false}, {"n": 3, "trap": false}, {"n": 4, "trap": false}, {"n": 5, "trap": false}],
+    "note": "no 0x3FF8CD, no ITRAP; g_fast_tick monotonically grew ~100k/2s = 50kHz 20us ISR"
+  },
+  "noenergy_on_target": {
+    "fast_isr_budget_boundary_fixed": true,
+    "FAST_ISR_BUDGET_MEASUREMENT_BOUNDARY_PASS": true,
+    "ADC_STALE_COUNTER_RESET_REQUIRED": true,
+    "note": "no-energy env has no ADC sync -> g_adc_pwm_sync_consecutive_miss >= CTRL_ADC_STALE_LIMIT(3) freezes PI; harness must clear counter + set valid=1 before PI tests",
+    "ON_TARGET_PRELOAD_SAFE_PASS": true,
+    "PRE_profile_id": "0x060201", "PRE_pwm": 0, "PRE_ost": 1,
+    "ON_TARGET_8CASE_PASS": true,
+    "g_offline_test_status": 0xFF,
+    "ON_TARGET_BALANCED_FIRST_STEP_PASS": true,
+    "firststep_11V_shadow_hz": 149900,
+    "firststep_13V_shadow_hz": 150100,
+    "ON_TARGET_ADC_STALE_RECOVERY_PASS": true,
+    "stale_shadow_frozen": true, "stale_integrator_frozen": true, "stale_recover_delta_hz": 0,
+    "ON_TARGET_PWM_REGISTER_ISOLATION_PASS": true,
+    "pwm_pre_post_identical": true,
+    "ON_TARGET_FINAL_SAFE_STATE_PASS": true,
+    "final_sw": 0, "final_pwm_enabled": 0, "final_ost": 1,
+    "ON_TARGET_BINARY_IDENTITY_PASS": true,
+    "ON_loaded_out_sha": "9F8751318479DCBF456E8F29E5DC6D7B98E837857E380AFE1320765A6380DDF0"
+  },
+  "20us_budget": {
+    "verdict": "FAIL",
+    "measurement": "whole-ISR (post task-J boundary move), PI actively running",
+    "isr_cycles_typical": 834,
+    "isr_cycles_max": 2772,
+    "isr_max_us": 46.2,
+    "ctrl_pi_step_max_cycles": 2426,
+    "ticks": 57236,
+    "overrun_count": 41928,
+    "threshold": "<=900 PASS, 901-1080 MARGIN_LOW, >1080 FAIL, >=1200 absolute FAIL, overrun must be 0",
+    "finding": "Typical active-PI ISR is ~834-858 cycles (14us, PASS). Worst case under required saturation coverage (lower/upper clamp) reaches ~2770 cycles (46us), exceeding the 1200-cycle absolute-fail threshold with overrun>0. This is a real-time performance finding of the soft-float C28x PI step (up to ~2426 cycles) against a 20us ISR, independent of the flash fix."
+  },
+  "final_verdicts": {
+    "FLASH_RAMFUNC_COPY_FIX": "COMPLETE",
+    "ON_TARGET_TI_RAMFUNC_COPY_PASS": true,
+    "USDELAY_RAM_EXECUTION_PASS": true,
+    "CONTINUOUS_FLASH_RUNTIME_PASS": true,
+    "20US_FAST_ISR_BUDGET_PASS": false,
+    "STAGE6_ON_TARGET_SHADOW_NOENERGY_PASS": false,
+    "F28034_BALANCED_PI_EXECUTION_VALIDATED": false,
+    "READY_FOR_STAGE6_REAL_POWER_PI_ENTRY_REVIEW": false,
+    "reason": "Flash runtime fix fully validated (no ITRAP, continuous run). No-energy functional gates pass (8-case/first-step/stale/PWM isolation/safe/identity) once the no-power ADC-stale counter is cleared. The 20us whole-ISR budget FAILs at the saturation extremes (max ~2770 cycles / 46us, overrun>0), so the full no-energy verdict and real-power PI entry review are NOT granted."
+  }
+}
