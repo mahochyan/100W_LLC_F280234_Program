@@ -1,15 +1,24 @@
-﻿STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
-==================================================
-source_baseline_commit=517a28112cce123975d4b8b54593b432bed519bf
-source_branch=stage6/first-real-pi-shot-real-binary-hardening-v1
-source_commit=517a28112cce123975d4b8b54593b432bed519bf
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1
+====================================================
+source_baseline_commit=8201315428e14f288a9a427d29e63c15f8b97b2f
+source_branch=stage6/first-real-pi-shot-real-binary-hardening-v1-1
+SOURCE_COMMIT=842c28eaf3313329ba5f02a5f4257a840e02e057 (stage6: fix real-shot execution gates before no-power timing)
+EVIDENCE_COMMIT=evidence: freeze corrected Stage6 real-shot binary after review fixes (see git log)
 compiler_version=TI CGT C2000 25.11.1.LTS
 abi=coffabi
 cpu=-v28 -ml -mt
 opt=-O4 --opt_for_speed=0 -ms
 compiler_macros=STAGE6_FLASH_BUILD=1,STAGE6_FIRST_BOUNDED_REAL_PI_SHOT=1,STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD=1
 excluded_macros=STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST,STAGE6_REAL_ACTUATOR_OST_TEST
-REAL_OUT_SHA256=9CE0EFBAC3133B444DCD3A5F81E22B5F1B54AB141FA80619BFA7D83920D9CF7A
-REAL_MAP_SHA256=C34B69320377409B8F7D74D359FD4D8B33337930BCA87CA0E8855B00E08EF798
-build_timestamp=2026-08-23 22:31:00
-physical_safety=CNT3_OPEN,CNT4_OPEN,NO_REAL_POWER_EXECUTED,FIRST_REAL_PI_POWER_SHOT_NOT_EXECUTED
+REAL_OUT_SHA256=CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72
+REAL_MAP_SHA256=4B167EFCC854BC81684F6B248E2CB02F636373CD4DFC84543C1B244B9A4851B6
+NOENERGY_OUT_SHA256=496BCED52D3E1168D492228AEDA2B6B2CC2560D66A686A53EB0FE08CD1CDD30A
+REVOKED_OUT_9CE0EFBA_SHA256=9CE0EFBAC3133B444DCD3A5F81E22B5F1B54AB141FA80619BFA7D83920D9CF7A
+build_timestamp=2026-08-23 23:25:07
+non_deterministic=TI CGT embeds a build timestamp in the COFF header (bytes 4-7) and in the
+  debug-info block; two consecutive builds of identical source produce different
+  SHA256. Metadata only, no code difference. No __DATE__/__TIME__ macros used.
+map_newline_policy=frozen MAP stored as-is (CRLF); .gitattributes marks
+  evidence/stage6_first_real_pi_shot_real/*.map -text so git never normalizes
+  EOL; REAL_MAP_SHA256 is computed on the raw committed bytes.
+physical_safety=CNT3_OPEN,CNT4_OPEN,NO_REAL_POWER_EXECUTED,FIRST_REAL_PI_POWER_SHOT_NOT_EXECUTED,TIMING_NOT_EXECUTED

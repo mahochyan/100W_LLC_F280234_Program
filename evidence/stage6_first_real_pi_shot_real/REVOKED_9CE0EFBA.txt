@@ -1,0 +1,9 @@
+REVOKED_BY_REVIEW
+DO_NOT_EXECUTE
+
+This OUT (SHA256 9CE0EFBAC3133B444DCD3A5F81E22B5F1B54AB141FA80619BFA7D83920D9CF7A)
+was the V1 freeze of the Stage6 first-real-PI-shot REAL binary. Review found
+blocker B (REAL build rejected the formal Profile C 250 kHz / TBPRD239 / DB110
+trajectory) and related execution-gate issues, fixed in V1-1. This binary must
+NOT be loaded or executed. Use the current LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out
+in this directory (see REAL_SHA256SUMS.txt).

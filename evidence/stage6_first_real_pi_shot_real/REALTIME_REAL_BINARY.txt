@@ -1,4 +1,4 @@
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1
 REALTIME REAL BINARY (TIMING) RESULT
 ==================================================
 
@@ -8,12 +8,16 @@ overrun_count == 0.
 Instrumentation present in REAL binary (passive observation):
   g_real_isr_cycles_last / max / sum / count
   g_real_isr_overrun_count
-  g_real_timer0_entry_count / last_entry / interval_min / interval_max
+  g_real_timer0_entry_count / last_entry / entry_interval_min / entry_interval_max
   g_first_real_pi_shot_first_write_timer2
   g_first_real_pi_shot_ost_timer2
 
-Timing script: tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js
+Timing script: tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js (V1-1)
   - no-power, CNT3/CNT4 OPEN, OST=1, PWM hardware-clamped low
+  - host SHA256 hard gate + DSH_CNT34_OPEN_CONFIRMED=1 before connect
+  - hard gates fault=0, OST=1, PWM=0, AQCSFRC force-low BEFORE any test-state write
+  - uses real symbols g_voltage_reference / g_control_vref_raw /
+    g_real_timer0_entry_interval_min / g_real_timer0_entry_interval_max
   - clears g_real_* accumulators together, discards first sample as warm-up
   - runs 2 ms, reads max/overrun/interval, grades max<=900 PASS
 

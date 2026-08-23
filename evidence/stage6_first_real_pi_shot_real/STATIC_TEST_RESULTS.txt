@@ -1,58 +1,148 @@
-STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1
-STATIC TEST RESULTS
+STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1
+STATIC TEST RESULTS (clean-checkout capable)
 ==================================================
 
-L1 BUILD RESULTS (all PASS):
-  NOENERGY SHOT build (Stage6_FLASH_SHOT_NOENERGY) = PASS
-  REAL SHOT build (Stage6_FLASH_SHOT_REAL) = PASS
-  Production/Stage6 build (Stage6_FLASH) = PASS
+artifact source: LOCAL build dirs
+PASS: REAL OUT artifact present
+PASS: REAL MAP artifact present
+PASS: REAL OUT SHA256 matches REAL_SHA256SUMS.txt
+PASS: REAL MAP SHA256 matches REAL_SHA256SUMS.txt
+PASS: old 9ce0efba OUT revocation marker present
+PASS: revocation marker contains REVOKED_BY_REVIEW + DO_NOT_EXECUTE
+PASS: old 9ce0efba OUT preserved under REVOKED name
+PASS: REAL_BUILD && NOENERGY_TEST mutual-exclusion #error present
+PASS: REAL_BUILD && OST_TEST mutual-exclusion #error present
+PASS: REAL MAP absent forbidden symbol g_stage6_synthetic_vout_raw
+PASS: REAL MAP absent forbidden symbol g_stage6_closeloop_vout_inject
+PASS: REAL MAP absent forbidden symbol g_stage6_noenergy_test_enable
+PASS: REAL MAP absent forbidden symbol g_stage6_noenergy_test_mode
+PASS: REAL MAP absent forbidden symbol g_stage6_synthetic_sequence
+PASS: REAL MAP absent forbidden symbol g_stage6_actuator_direct_cmd_hz
+PASS: REAL MAP absent forbidden symbol g_first_shot_debug_freq_hz
+PASS: REAL MAP absent forbidden symbol g_first_shot_debug_ticks
+PASS: REAL MAP absent forbidden symbol g_diag_frequency_override
+PASS: g_softstart_no_energy has <=4 symbol-table entries (definition only), got 3
+PASS: REAL script does not write g_fault_flags
+PASS: REAL script does not write g_fault_history
+PASS: REAL script does not write g_system_state
+PASS: REAL script does not write g_bringup_stage
+PASS: REAL script does not write g_active_bringup_stage
+PASS: REAL script does not write g_comp_tz_loopback_verified
+PASS: REAL script does not write g_board_vout_cal_valid
+PASS: REAL script does not write g_softstart_result
+PASS: REAL script does not write g_softstart_state
+PASS: REAL script does not write g_softstart_handoff_result
+PASS: REAL script does not write g_control_reference_valid
+PASS: REAL script does not write g_pwm_enabled
+PASS: REAL script does not write g_adc_vout_raw
+PASS: REAL script does not write g_adc_vout_filtered_raw
+PASS: REAL script does not write g_adc_sample_sequence
+PASS: REAL script does not write g_diag_frequency_override
+PASS: REAL script does not write g_softstart_no_energy
+PASS: REAL script uses request interface g_loopback_diag_request
+PASS: REAL script uses request interface g_stage_confirm_request
+PASS: REAL script uses request interface g_pwm_enable_request
+PASS: REAL script uses request interface g_first_real_pi_shot_arm
+PASS: REAL script uses request interface g_test_run_id
+PASS: REAL script does not write register TZSEL
+PASS: REAL script does not write register TZCLR
+PASS: REAL script does not write register TBPRD
+PASS: REAL script does not write register CMPA
+PASS: REAL script does not write register CMPB
+PASS: REAL script does not write register DBRED
+PASS: REAL script does not write register DBFED
+PASS: REAL script does not write register COMPCTL
+PASS: REAL script does not write register DACVAL
+PASS: REAL script does not write register COMPSTS
+PASS: REAL script host SHA256 hard gate present
+PASS: REAL script computes host SHA256 and compares to manifest
+PASS: REAL script has no runtime polling between runAsynch and halt
+PASS: REAL script runs APP_Init to completion (run 300 ms)
+PASS: REAL script preflight hard gate INIT_SYS_IDLE present
+PASS: REAL script preflight hard gate INIT_PWM_OFF present
+PASS: REAL script preflight hard gate INIT_FAULT_ZERO present
+PASS: REAL script preflight hard gate INIT_OST_LATCHED present
+PASS: REAL script preflight hard gate INIT_VOUT_CAL_VALID present
+PASS: REAL script preflight hard gate PREFLIGHT_SYS_IDLE present
+PASS: REAL script preflight hard gate PREFLIGHT_PWM_OFF present
+PASS: REAL script preflight hard gate PREFLIGHT_FAULT_ZERO present
+PASS: REAL script preflight hard gate PREFLIGHT_OST_LATCHED present
+PASS: REAL script preflight hard gate PREFLIGHT_VOUT_CAL present
+PASS: REAL script preflight hard gate PREFLIGHT_COMP_VERIFIED present
+PASS: REAL script preflight hard gate PREFLIGHT_STAGE6 present
+PASS: REAL script preflight hard gate PREFLIGHT_ARM_CLEAR present
+PASS: REAL script requests Comparator loopback and verifies PASS
+PASS: REAL script confirms stages sequentially 1->2->3->4->5->6 (requests 1..7), each verified
+PASS: REAL script strict PASS/FAIL after black-box read
+PASS: REAL script reads power_writes as Uint16 (rw)
+PASS: REAL script does NOT read power_writes as rv32
+PASS: shot envelope min 145 kHz
+PASS: shot envelope max 170 kHz
+PASS: SHOT_ClampFreq clamps into 145..170 kHz
+PASS: 200 us cage = 10 x 20 us ticks (FIRST_REAL_PI_DURATION_TICKS == 10)
+PASS: on-chip 200 us auto-OST uses FIRST_REAL_PI_DURATION_TICKS
+PASS: debug override declarations guarded out of REAL build (shot.h)
+PASS: debug override definitions guarded out of REAL build (shot.c)
+PASS: no-energy TZ bypass guarded by NOENERGY_TEST (protection.c)
+PASS: no-energy synthetic VOUT guarded by NOENERGY_TEST (soft_start.c)
+PASS: shot code guarded by STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+PASS: production build does not define shot macro
+PASS: LLC_POWER_RUN_ALLOWED remains 0 (Stage7 blocked)
+PASS: LLC_HARDWARE_PI_VALIDATED remains 0
+PASS: LLC_CONTROL_DIRECTION remains 0
+PASS: LLC_CONTROL_SIGN = -1 (Stage5A confirmed direction)
+PASS: REAL OUT != NOENERGY OUT (NOT BIT IDENTICAL)
+PASS: PWM_RuntimeValuesValid gates Profile C on SoftStart limited auth
+PASS: PWM_RuntimeValuesValid allows TBPRD 239..399 / DB 36..110 under SoftStart auth
+PASS: PWM_RuntimeValuesValid keeps production range outside SoftStart auth
+PASS: PROT_SlowTask SoftStart frequency gate allows up to 250 kHz (Profile C)
+PASS: PROT_SlowTask bounded-PI frequency gate caps at 170 kHz (250k rejected)
+PASS: PROT_SlowTask keeps production 150 kHz ceiling for other paths
+PASS: PROT_FastTask raw OVP check recognizes limited auth (REAL build)
+PASS: PROT_SlowTask computes limited_auth from SoftStart/PI auth
+PASS: CAL_MISSING gate bypassed only while limited auth holds
+PASS: CONTROL_DIRECTION gate still present (bypassed only under limited auth)
+PASS: shot.c implements both limited-auth functions
+PASS: shot.h declares both limited-auth functions
+PASS: auth functions check system state (SOFT_START / RUN)
+PASS: SoftStart FINAL max window ends NOT_REACHED + ABORTED (REAL build)
+PASS: no-handoff path revokes shot arm with SHOT_ABORT_NO_HANDOFF
+PASS: SS_End revokes shot arm on every other abort path (REAL build)
+PASS: shot.h defines SHOT_ABORT_NO_HANDOFF / SHOT_ABORT_CEILING
+PASS: timing script symbol g_voltage_reference exists in REAL MAP
+PASS: timing script symbol g_control_vref_raw exists in REAL MAP
+PASS: timing script symbol g_real_timer0_entry_interval_min exists in REAL MAP
+PASS: timing script symbol g_real_timer0_entry_interval_max exists in REAL MAP
+PASS: timing script symbol g_real_timer0_last_entry exists in REAL MAP
+PASS: timing script symbol g_real_timer0_entry_count exists in REAL MAP
+PASS: timing script symbol g_real_isr_cycles_max exists in REAL MAP
+PASS: timing script symbol g_real_isr_cycles_sum exists in REAL MAP
+PASS: timing script symbol g_real_isr_cycles_count exists in REAL MAP
+PASS: timing script symbol g_real_isr_overrun_count exists in REAL MAP
+PASS: timing script symbol g_switching_frequency_hz exists in REAL MAP
+PASS: timing script symbol g_power_run_min_frequency_hz exists in REAL MAP
+PASS: timing script symbol g_softstart_handoff_result exists in REAL MAP
+PASS: timing script symbol g_board_vout_cal_valid exists in REAL MAP
+PASS: timing script symbol g_comp_tz_loopback_verified exists in REAL MAP
+PASS: timing script symbol g_first_real_pi_shot_arm exists in REAL MAP
+PASS: timing script symbol g_control_reference_valid exists in REAL MAP
+PASS: timing script symbol g_system_state exists in REAL MAP
+PASS: timing script symbol g_pwm_enabled exists in REAL MAP
+PASS: timing script symbol g_bringup_stage exists in REAL MAP
+PASS: timing script uses real symbol names (no g_control_reference_volts / g_real_timer0_interval_*)
+PASS: timing script gates on DSH_CNT34_OPEN_CONFIRMED=1
+PASS: timing script host SHA256 hard gate present
+PASS: timing script hard gate FAULT_ZERO present
+PASS: timing script hard gate OST_LATCHED present
+PASS: timing script hard gate PWM_OFF present
+PASS: timing script hard gate AQCSFRC_FORCE_LOW present
+PASS: timing script gates run BEFORE any test-state write
+PASS: timing script does not clear fault flags
+PASS: timing script has no TZCLR.OST write
+PASS: timing script has no real enable request
+PASS: timing script uses BRINGUP_STAGE_6_CLOSED_LOOP (7)
+PASS: manifest records SOURCE_COMMIT and EVIDENCE_COMMIT separately
+PASS: manifest documents non-deterministic build (timestamp)
+PASS: .gitattributes marks frozen MAP as -text (no EOL normalization)
 
-L2 STATIC TESTS (tools/stage6_real_binary_hardening_static_test.py):
-  build macro mutual-exclusion #error (REAL_BUILD && NOENERGY_TEST) = PASS
-  build macro mutual-exclusion #error (REAL_BUILD && OST_TEST) = PASS
-  REAL forbidden-symbol absence (9 symbols) = PASS
-  g_softstart_no_energy definition-only (0 code refs) = PASS
-  REAL script forbidden-write audit (17 vars) = PASS
-  REAL script request interfaces present = PASS
-  REAL script forbidden register writes (10 regs) = PASS
-  REAL script host SHA256 hard gate = PASS
-  REAL script no runtime polling during shot = PASS
-  shot frequency envelope 145..170 kHz = PASS
-  200 us on-chip cage (FIRST_REAL_PI_DURATION_TICKS == 10) = PASS
-  debug override absent from REAL build = PASS
-  no-energy protection bypass absent from REAL build = PASS
-  production build shot code compiled-out = PASS
-  Stage7 remains blocked (LLC_POWER_RUN_ALLOWED == 0) = PASS
-  LLC_HARDWARE_PI_VALIDATED remains 0 = PASS
-  LLC_CONTROL_DIRECTION remains 0 = PASS
-  LLC_CONTROL_SIGN = -1 (Stage5A confirmed) = PASS
-  REAL OUT != NOENERGY OUT (NOT BIT IDENTICAL) = PASS
-
-L3 REAL SCRIPT AUDIT (machine-readable):
-  writes_fault_flags = 0
-  writes_system_state = 0
-  writes_bringup_stage = 0
-  writes_comp_verified = 0
-  writes_cal_valid = 0
-  writes_synthetic_vout = 0
-  writes_diag_override = 0
-  writes_pwm_registers = 0
-  uses_runtime_poll_during_shot = 0
-  host_sha256_hard_gate = 1
-
-L4 BINARY DIFFERENCE:
-  NOENERGY OUT != REAL OUT (NOT BIT IDENTICAL)
-  Difference from: synthetic/test instrumentation removal, debug override
-  removal, REAL limited authorization, passive realtime observation,
-  necessary performance optimization. No Kp/Ki, deadtime, DAC, formal
-  SoftStart trajectory, or TZ policy change.
-
-EXISTING TEST SUITE (tools/test_static.py):
-  4 pre-existing failures unrelated to hardening:
-    - launch file renamed (.launches/LLC_100W_F28034_BRINGUP_DSH.launch missing)
-    - forbidden string absent: CAN (legacy string check)
-    - forbidden string absent: SCI (legacy string check)
-    - fresh .out exists (Debug RAM build .out missing, legacy build)
-  These are pre-existing and not caused by the hardening work.
-
-RESULT: ALL STAGE6 REAL BINARY HARDENING STATIC CHECKS PASSED
+ALL STAGE6 REAL BINARY HARDENING STATIC CHECKS PASSED
