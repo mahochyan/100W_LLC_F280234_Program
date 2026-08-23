@@ -1,16 +1,5 @@
 # STAGE6 PHYSICAL PLANT RECONCILIATION V1_1 (SIL) - auto run
 
-> **STAGE6_PHYSICAL_PLANT_MODEL_RECONCILIATION_V1_1.** Model audit / repair / SIL only.
-> No firmware, no PWM, no real power. `LLC_HARDWARE_PI_VALIDATED=0`. PI SIL frozen
-> until `MODEL_HARDWARE_CONSISTENCY_PASS_V1_1`.
->
-> **Supersedes b484999's `MODEL_HARDWARE_CONSISTENCY_PASS`**
-> (`SUPERSEDED_PENDING_V1_1_REVIEW`): b484999 used a `8/pi^2` DC conversion and a
-> hard-coded `0.0084896` calibration. V1_1 corrects both:
-> full-bridge DC factor = **1.0** (`Vout = Vin*M/n - Vf`) and calibration parsed
-> from `app/board_calibration.h` (`0.008089325` / `-0.063715`). Historical report kept.
-
-
 ## A. Hardware parameters (evidence-graded, KEPT)
 - Cr = 3.004 uF  [HARDWARE_MEASURED] (330nFx2+470nFx5=3.01uF; LCR 2.989-3.014)
 - Lr = 3.385 uH  [HARDWARE_MEASURED/DERIVED] (ext+leakage->3.35-3.42)
@@ -64,7 +53,7 @@
    R_eff = LOCALLY_IDENTIFIED_EFFECTIVE_PARAMETER (NOT HARDWARE_MEASURED).
 
 ## I. R_eff cross-validation
-   TEST1 (fit 150k): R_eff=0.610ohm ; pred 170k dv=1.054V (real 0.995V, err=5.9%)
+   TEST1 (fit 150k): R_eff=0.610ohm ; pred 170k dv=1.051V (real 0.995V, err=5.6%)
    TEST2 (fit 170k): R_eff=0.650ohm ; pred 150k dv=1.007V (real 1.068V, err=5.7%)
    TEST3 joint-fit summary: R_eff=0.630ohm worst err=3.0%
    R150~R170 close=True ; cross ok=True  ->  LOCAL_CHARGE_MODEL_CROSS_VALIDATED
@@ -79,6 +68,9 @@
 ## VERDICT
    (1) Cr/Lr/Lm not re-fit: yes ; (2) fr~50k kept: yes
    (3) resonance sanity: True ; (4) Rac/M/DC-gain self-consistent: yes
-   (5) calibration source: correct (6) 150>170 direction: yes (7) charge cross-val: LOCAL_CHARGE_MODEL_CROSS_VALIDATED
+   (5) calibration source: correct ; (6) 150>170 direction: yes
+   (7) R_eff id consistency (close): True ; (8) charge cross-val: LOCAL_CHARGE_MODEL_CROSS_VALIDATED
+   shot starts: V0_150=9.9994V (raw 1244), V0_170=10.0156V (raw 1246) [directive K]
 MODEL_B_NONPHYSICAL_FIT_RETIRED=1
-MODEL_HARDWARE_CONSISTENCY_PASS_V1_1
+R_EFF_IDENTIFICATION_CONSISTENCY_PASS = True
+MODEL_HARDWARE_CONSISTENCY_PASS_V1_2

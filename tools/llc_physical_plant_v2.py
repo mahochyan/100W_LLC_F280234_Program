@@ -38,6 +38,11 @@ def parse_board_calibration():
 
 GAIN, OFFSET = parse_board_calibration()
 
+# Directive K: shot-specific charge start from real calibration (start_raw).
+#   Vstart = GAIN*start_raw + OFFSET  (NOT a hard-coded 10.0V)
+START_RAW = {150: 1244, 170: 1246}
+V0_SHOT = {f: GAIN * r + OFFSET for f, r in START_RAW.items()}
+
 
 def rac(n, RL):
     return 8.0 * n * n * RL / (math.pi * math.pi)
@@ -139,15 +144,15 @@ def main():
     print("## I. R_eff cross-validation")
     dv150_real = 132 * GAIN
     dv170_real = 123 * GAIN
-    _, r150, _ = identify_Reff(150e3, 10.0, 300e-6, dv150_real, HW, K_FULL)
-    _, r170, _ = identify_Reff(170e3, 10.0, 300e-6, dv170_real, HW, K_FULL)
-    pred170 = charge_dv(170e3, 24.0, 10.0, 300e-6, HW, K_FULL, r150)["dv"]
-    pred150 = charge_dv(150e3, 24.0, 10.0, 300e-6, HW, K_FULL, r170)["dv"]
+    _, r150, _ = identify_Reff(150e3, V0_SHOT[150], 300e-6, dv150_real, HW, K_FULL)
+    _, r170, _ = identify_Reff(170e3, V0_SHOT[170], 300e-6, dv170_real, HW, K_FULL)
+    pred170 = charge_dv(170e3, 24.0, V0_SHOT[170], 300e-6, HW, K_FULL, r150)["dv"]
+    pred150 = charge_dv(150e3, 24.0, V0_SHOT[150], 300e-6, HW, K_FULL, r170)["dv"]
     best = None
     for i in range(1, 4000):
         Reff = i * 0.005
-        dvA = charge_dv(150e3, 24.0, 10.0, 300e-6, HW, K_FULL, Reff)["dv"]
-        dvB = charge_dv(170e3, 24.0, 10.0, 300e-6, HW, K_FULL, Reff)["dv"]
+        dvA = charge_dv(150e3, 24.0, V0_SHOT[150], 300e-6, HW, K_FULL, Reff)["dv"]
+        dvB = charge_dv(170e3, 24.0, V0_SHOT[170], 300e-6, HW, K_FULL, Reff)["dv"]
         e = max(abs(dvA - dv150_real) / dv150_real, abs(dvB - dv170_real) / dv170_real)
         if best is None or e < best[0]:
             best = (e, Reff, dvA, dvB)
@@ -176,9 +181,13 @@ def main():
     print("## VERDICT")
     print("   (1) Cr/Lr/Lm not re-fit: yes ; (2) fr~50k kept: yes")
     print(f"   (3) resonance sanity: {sane} ; (4) Rac/M/DC-gain self-consistent: yes")
-    print(f"   (5) calibration source: correct (6) 150>170 direction: yes (7) charge cross-val: {cv}")
+    print(f"   (5) calibration source: correct ; (6) 150>170 direction: yes")
+    print(f"   (7) R_eff id consistency (close): {close} ; (8) charge cross-val: {cv}")
+    print(f"   shot starts: V0_150={V0_SHOT[150]:.4f}V (raw 1244), V0_170={V0_SHOT[170]:.4f}V (raw 1246) [directive K]")
     print("MODEL_B_NONPHYSICAL_FIT_RETIRED=1")
-    final = "MODEL_HARDWARE_CONSISTENCY_PASS_V1_1" if (sane and cross_ok) else \
+    print(f"R_EFF_IDENTIFICATION_CONSISTENCY_PASS = {close}")
+    # Directive J: final criterion is sane AND close AND cross_ok (close must gate).
+    final = "MODEL_HARDWARE_CONSISTENCY_PASS_V1_2" if (sane and close and cross_ok) else \
         "PLANT_MODEL_STRUCTURE_UNRESOLVED"
     print(final)
 
