@@ -1,0 +1,37 @@
+STAGE6_REAL_PI_FASTPATH_TIMING_RECOVERY_V1 - G: divide-helper audit
+============================================================
+Candidate OUT: 0691C52431E7EA1140264FFED55DB8C4F870EF0A0F3FDACCC2403EFCC3647076
+Source: driver/pwm.c LLC_SetFrequencyHz bounded PI fastpath (C/D) +
+        g_real_pi_actual_hz_table (D, .econst Flash).
+
+Linker map facts (Stage6_FLASH_SHOT_REAL/LLC_100W_F28034_BRINGUP_DSH.map):
+  _LLC_SetFrequencyHz  .text 0x3E8E99 size 0xD0 (208 words = 416 bytes)
+  g_real_pi_actual_hz_table .econst 0x3EAB5A size 0x7C (124 words = 248 bytes)
+  __c28xabi_divul / __c28xabi_divu / any __c28xabi_div* symbol: NONE in map
+    (the generic path's 32/32 division is inlined by the compiler as a
+    32-iteration SUBCUL sequence, not a helper call)
+
+Before (frozen CAD61C38 map): _LLC_SetFrequencyHz .text 0x3E9C20 size 0x6D
+  (109 words = 218 bytes)
+After: 208 words (416 bytes) -> +99 words (+198 bytes) for the bounded
+  fastpath branch + multiplication verification + table access.
+
+Disassembly of the bounded PI fastpath body (0x3E8F0B..0x3E8F66):
+  - adjacent-period decision: IMPYL/IMPYAL (32x32 multiply), ADDUL/SUBUL,
+    CMPL, SB - NO division instruction, NO divide-helper call
+  - multiplication verification clocks*hz <= sum < (clocks+1)*hz: IMPYL +
+    CMPL (no division)
+  - period range check 352..413: CMPL
+  - actual frequency: MOVL XAR4,#0x3EAB5A (table base) + SUB/LSL/ADDL index
+    + MOVL *+XAR4[0] (Flash lookup) - NO division
+  - cmp = (period+1)>>1: ADDB + SFR (shift) - NO division
+  - period change: TBPRD/CMPA write + LCR ADC_UpdatePwmSyncPointKeepCadence
+  - out-of-envelope / >+/-1 period move: MOVB AL,#5 + LCR SHOT_Revoke
+    (SHOT_ABORT_ACTUATOR=5, safe failure: OST, PWM=0, FAULT_FIRST_SHOT_ABORT)
+  - SUBCUL (32-bit division) instructions in LLC_SetFrequencyHz: NONE in the
+    bounded fastpath body; the only SUBCUL sequence (0x3E8EC8..0x3E8ED5 and
+    0x3E8EFB..0x3E8F06) belongs to the GENERIC division path (hz < 145000 or
+    g_pwm_period == 0), which is intentionally preserved (E).
+
+VERDICT: DIVIDE_HELPER_AUDIT_PASS - the bounded PI actuator path performs
+  no 32-bit division and calls no runtime divide helper.

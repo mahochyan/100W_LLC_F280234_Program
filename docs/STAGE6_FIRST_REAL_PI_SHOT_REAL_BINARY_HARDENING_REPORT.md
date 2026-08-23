@@ -431,3 +431,93 @@ Per the task rule "any gate failure -> NOPOWER_TIMING_FAIL, stop
 immediately", no retry was performed. CNT3/CNT4 remain OPEN. No real
 power was executed. The first REAL 200 us PI shot authorization is NOT
 requested — the ISR budget failure must be resolved first.
+
+
+## 18. RECOVERY V1 — REAL PI fastpath timing recovery
+
+Task: `STAGE6_REAL_PI_FASTPATH_TIMING_RECOVERY_V1`.
+
+### 18.1 A: V1 evidence JSON corrected
+
+`NOPOWER_TIMING_RESULT_V1.json` was corrected from the authoritative RAW
+(`NOPOWER_TIMING_RAW_V1.txt`, line-level parse): real_isr_cycles_count=1695,
+timer0_entry_count=1696, power_writes_delta=11, post_run_g_pwm_period=400,
+post_run_tbprd=400, post_run_actual=149625. An automatic consistency gate
+(re-parse RAW vs JSON, every measurement must match exactly) is embedded in
+the JSON (`consistency_gate.result=PASS`). The original RAW was not touched.
+
+### 18.2 B: formal-handoff fastpath reproduction (same frozen CAD61C38 OUT)
+
+The V1 timing constructed RUN without `g_pwm_fastpath_ready`, so every write
+tick re-ran `PWM_ConfigMatchesFrozenBaseline()` (pwm.c:228) — the dominant
+actuator cost. The harness now read-only verifies the full handoff state
+(topology CTRMODE/HSPCLKDIV/CLKDIV/PRDLD, CMPCTL shadow/load, AQCTLA
+ZRO=SET/CAU=CLEAR, AQCTLB=0, DBCTL FULL/HIC/DBA_ALL, TZSEL OSHT1, TZCTL
+TZA/TZB=FORCE_LO, TBPRD=399, CMPA=200, DBRED=DBFED=36, OST=1, AQCSFRC
+force-low, fault=0, PWM=0), then writes `g_pwm_fastpath_ready=1` and the
+closed-loop ADC cadence (SOCASEL=ET_CTRU_CMPB, SOCAEN=1, SOCAPRD=ET_3RD).
+All FASTPATH_* gates PASSED. Result (clean measurement, attempt 3 after two
+suspended-ISR pollution retries):
+
+  FASTPATH_READY_REAL_ISR_MAX = 1256 cycles (was 1406 without fastpath_ready)
+  FASTPATH_READY_OVERRUN = 1 (firmware threshold 1200)
+  FASTPATH_READY_ENTRY_INTERVAL_MAX = 1322 cycles
+  TIMER2_DELTA = 11874 (11000..14000 PASS)
+  ring[0] fresh=1 freq_cmd_hz=149800 tbprd=400 actual_freq_hz=149625
+  power_writes delta=11, rb_count=11, state=COMPLETE, abort=TIMEOUT,
+  tick=10, ok=1, PWM=0, OST=1, fault=0
+
+Verdict: RECOVERY_V1_NEEDS_FIRMWARE_OPTIMIZATION (1256 > 900, overrun=1) —
+proceeded to C/D per the task rule (no re-ask).
+
+### 18.3 C: bounded PI period computation without division
+
+`LLC_SetFrequencyHz` bounded fastpath (145000..170000 Hz, g_pwm_period!=0):
+  sum = 60000000 + hz/2; clocks = g_pwm_period + 1;
+  if ((clocks+1)*hz <= sum) clocks++; else if (clocks*hz > sum) clocks--;
+  period = clocks - 1;
+The result is verified by multiplication (clocks*hz <= sum < (clocks+1)*hz,
+i.e. clocks == floor(sum/hz)). If one adjustment is not enough (period would
+move by more than +/-1, or state/command mismatch), the actuator refuses to
+write a wrong period: SHOT_Revoke(SHOT_ABORT_ACTUATOR) -> OST, PWM=0,
+FAULT_FIRST_SHOT_ABORT, safe failure. cmp = (period+1)>>1 (shift).
+
+### 18.4 D: actual-frequency Flash lookup
+
+Read-only `.econst` table `g_real_pi_actual_hz_table[62]` (TBPRD 352..413,
+248 bytes Flash): actual_hz[period-352] = 60000000/(period+1), integer
+division, identical to the reference formula. The bounded PI fastpath never
+runs a runtime division; it never writes actual = command (e.g. command
+149800 -> TBPRD 400 -> actual 149625).
+
+### 18.5 E: generic path preserved
+
+hz < 145000 (init / open loop / diagnostics) and g_pwm_period==0 keep the
+original division algorithm. Formal Profile C SoftStart behavior unchanged
+(250k->150k, DB110->DB36, 10V handoff, 11V abort, 12V ceiling,
+Comparator/TZ, 200us cage).
+
+### 18.6 F: equivalence exhaustive test
+
+`tools/stage6_real_pi_fastpath_equivalence_test.py`: 10,180,275 checks —
+every integer frequency 145000..170000 from every adjacent period state, and
+every legal adjacent transition (current +/- 0..100 Hz). fastpath period ==
+reference division period 100%; period delta always 0 or +/-1; actual lookup
+== 60000000/(period+1). Key points: 150000->399, 149900->399, 149800->400,
+170000->352, 145000->413. EQUIVALENCE_TEST_PASS.
+
+### 18.7 G: divide-helper audit
+
+See `FASTPATH_DIVIDE_HELPER_AUDIT.txt`. DIVIDE_HELPER_AUDIT_PASS: the bounded
+PI actuator path performs no 32-bit division and calls no runtime divide
+helper (no __c28xabi_div* in the map; disassembly of the bounded body shows
+only IMPYL/IMPYAL/ADDUL/SUBUL/CMPL/shift/table-lookup + SHOT_Revoke).
+LLC_SetFrequencyHz grew 109 -> 208 words (+198 bytes); table 124 words
+(248 bytes) Flash.
+
+### 18.8 H: candidate OUT
+
+New REAL candidate OUT SHA256 = `{new_sha}` (Stage6_FLASH_SHOT_REAL,
+CGT 25.11.1.LTS, COFF). Old CAD61C38 OUT is preserved as
+TIMING_FAILED_1406_CYCLES / DO_NOT_EXECUTE_REAL_POWER; old RAW evidence
+untouched. NOENERGY and REAL builds remain isolated.

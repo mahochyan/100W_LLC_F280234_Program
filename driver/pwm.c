@@ -17,6 +17,24 @@
 #include "shot.h"
 
 /*
+ * D (RECOVERY V1): read-only Flash table of actual switching frequencies for
+ * the bounded PI envelope. actual_hz[period - 352] = 60000000 / (period + 1),
+ * integer division, identical to the reference formula used by the generic
+ * path. The bounded PI fastpath must not run a runtime 32-bit division.
+ * Covers TBPRD 352..413 (145000..170000 Hz envelope).
+ */
+static const Uint32 g_real_pi_actual_hz_table[62] = {
+    169971UL, 169491UL, 169014UL, 168539UL, 168067UL, 167597UL, 167130UL, 166666UL,
+    166204UL, 165745UL, 165289UL, 164835UL, 164383UL, 163934UL, 163487UL, 163043UL,
+    162601UL, 162162UL, 161725UL, 161290UL, 160857UL, 160427UL, 160000UL, 159574UL,
+    159151UL, 158730UL, 158311UL, 157894UL, 157480UL, 157068UL, 156657UL, 156250UL,
+    155844UL, 155440UL, 155038UL, 154639UL, 154241UL, 153846UL, 153452UL, 153061UL,
+    152671UL, 152284UL, 151898UL, 151515UL, 151133UL, 150753UL, 150375UL, 150000UL,
+    149625UL, 149253UL, 148883UL, 148514UL, 148148UL, 147783UL, 147420UL, 147058UL,
+    146699UL, 146341UL, 145985UL, 145631UL, 145278UL, 144927UL,
+};
+
+/*
  * PWM_Init
  *
  * Safe bring-up order:
@@ -245,6 +263,69 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
         g_switching_frequency_hz = hz;
         return 1U;
     }
+
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /*
+     * C (RECOVERY V1): bounded PI fastpath - no 32-bit division.
+     * Valid only inside the bounded envelope (145..170 kHz) with the period
+     * already matching the previous command (g_pwm_period != 0). The Q12 PI
+     * steps by at most 100 Hz/tick, so the period can only change by 0 or
+     * +/-1. Adjacent-period decision with the exact same rounding as the
+     * reference division:
+     *   sum    = 60000000 + hz/2
+     *   clocks = g_pwm_period + 1
+     *   if ((clocks+1)*hz <= sum) clocks++
+     *   else if (clocks*hz > sum)  clocks--
+     *   period = clocks - 1
+     * The result is verified by multiplication (no division): clocks must
+     * satisfy clocks*hz <= sum < (clocks+1)*hz, i.e. clocks == floor(sum/hz).
+     * If one adjustment is not enough (the period would move by more than
+     * +/-1, or the state does not match the command), the actuator refuses
+     * to write a wrong period: SHOT_Revoke(SHOT_ABORT_ACTUATOR) -> OST,
+     * PWM=0, FAULT_FIRST_SHOT_ABORT, safe failure.
+     */
+    if (hz >= FIRST_REAL_PI_MIN_HZ && hz <= FIRST_REAL_PI_MAX_HZ &&
+        g_pwm_period != 0U)
+    {
+        Uint32 sum = LLC_TBCLK_HZ + (hz / 2UL);
+        Uint32 clocks = (Uint32)g_pwm_period + 1UL;
+        if ((clocks + 1UL) * hz <= sum) clocks++;
+        else if (clocks * hz > sum) clocks--;
+        if (clocks * hz > sum || (clocks + 1UL) * hz <= sum)
+        {
+            /* one adjustment was not enough -> period would move by more
+             * than +/-1 (or state/command mismatch): refuse, safe failure */
+            SHOT_Revoke(SHOT_ABORT_ACTUATOR);
+            return 0U;
+        }
+        period = clocks - 1UL;
+        if (period < 352UL || period > 413UL)
+        {
+            SHOT_Revoke(SHOT_ABORT_ACTUATOR);
+            return 0U;
+        }
+        g_actual_switching_frequency_hz = g_real_pi_actual_hz_table[period - 352UL];
+        cmp = (period + 1UL) >> 1;   /* 50% duty, shift not division */
+        if (cmp <= LLC_DEADBAND_TICKS + LLC_MIN_PULSE_TICKS) return 0U;
+        if ((period - cmp) <= LLC_DEADBAND_TICKS + LLC_MIN_PULSE_TICKS) return 0U;
+        if (period != (Uint32)g_pwm_period)
+        {
+            DINT;
+
+            EPwm1Regs.TBPRD = (Uint16)period;
+            EPwm1Regs.CMPA.half.CMPA = (Uint16)cmp;
+
+            EINT;
+
+            /* Keep the ADC VOUT sampling phase correct as the switching
+             * period moves (preserves the ET_3RD closed-loop cadence). */
+            ADC_UpdatePwmSyncPointKeepCadence((Uint16)period);
+        }
+        g_pwm_period = (Uint16)period;
+        g_switching_frequency_hz = hz;
+        return 1U;
+    }
+#endif
 
     /*
      * Strict UP-count formula:

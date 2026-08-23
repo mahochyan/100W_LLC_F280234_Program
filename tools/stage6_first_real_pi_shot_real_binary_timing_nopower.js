@@ -58,6 +58,19 @@
 //     resets all state; every safety hard gate is re-checked on each
 //     attempt). This is a measurement-artifact retry, NOT a gate-failure
 //     retry: any gate failure aborts immediately with TIMING_NOPOWER_FAIL.
+// RECOVERY V1 (STAGE6_REAL_PI_FASTPATH_TIMING_RECOVERY_V1, part B):
+//   - reproduces the formal SoftStart handoff fastpath: read-only verifies
+//     PWM topology (CTRMODE/HSPCLKDIV/CLKDIV/PRDLD, CMPCTL shadow/load,
+//     AQCTLA ZRO=SET/CAU=CLEAR, AQCTLB=0, DBCTL FULL/HIC/DBA_ALL, TZSEL
+//     OSHT1, TZCTL TZA/TZB=FORCE_LO), TBPRD=399, CMPA=200, DBRED=DBFED=36,
+//     TZ1 one-shot, OST=1, AQCSFRC force-low, fault=0, PWM=0; then writes
+//     g_pwm_fastpath_ready=1 and the closed-loop ADC cadence
+//     (SOCASEL=ET_CTRU_CMPB, SOCAEN=1, SOCAPRD=ET_3RD) - all with CNT3/CNT4
+//     OPEN and the hardware clamped low. Same frozen CAD61C38 OUT.
+//   - verdict: FASTPATH_READY_REAL_ISR_MAX / _OVERRUN / _ENTRY_INTERVAL_MAX
+//     printed; if ISR max <= 900 and overrun == 0 -> CURRENT_BINARY_TIMING_PASS
+//     (keep CAD61C38, stop, wait for real-power authorization); otherwise ->
+//     RECOVERY_V1_NEEDS_FIRMWARE_OPTIMIZATION (proceed to part C/D).
 // These RAM writes exist ONLY in this no-power timing script (CNT3/CNT4 OPEN,
 // OST latched, AQCSFRC force-low). NO synthetic injection in REAL firmware.
 // Forbidden: auto-clear fault, clear OST, any TZCLR.OST, any real enable
@@ -189,6 +202,61 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   // period change through the full actuator path.
   gate("PRE_RUN_PERIOD_ZERO", pper0===0);
 
+  // ---- B (RECOVERY V1): reproduce the formal SoftStart handoff fastpath ----
+  // The formal handoff sets g_pwm_fastpath_ready=1 only after a full
+  // validation. V1 timing constructed RUN without it, so every write tick
+  // re-ran PWM_ConfigMatchesFrozenBaseline() (pwm.c:228) - the dominant
+  // actuator cost (ISR max 1406). Reproduce the handoff: read-only verify
+  // every item, then write fastpath_ready=1 + the closed-loop ADC cadence
+  // (SOCASEL=ET_CTRU_CMPB(6), SOCAEN=1, SOCAPRD=ET_3RD(3), adc.c:94-96).
+  var tp = reg("EPwm1Regs.TBCTL.bit.CTRMODE")==="0" &&
+           reg("EPwm1Regs.TBCTL.bit.HSPCLKDIV")==="0" &&
+           reg("EPwm1Regs.TBCTL.bit.CLKDIV")==="0" &&
+           reg("EPwm1Regs.TBCTL.bit.PRDLD")==="0";
+  var cp = reg("EPwm1Regs.CMPCTL.bit.SHDWAMODE")==="0" &&
+           reg("EPwm1Regs.CMPCTL.bit.LOADAMODE")==="0";
+  var aq = reg("EPwm1Regs.AQCTLA.bit.ZRO")==="2" &&
+           reg("EPwm1Regs.AQCTLA.bit.CAU")==="1" &&
+           reg("EPwm1Regs.AQCTLB.all")==="0";
+  var db = reg("EPwm1Regs.DBCTL.bit.OUT_MODE")==="3" &&
+           reg("EPwm1Regs.DBCTL.bit.POLSEL")==="2" &&
+           reg("EPwm1Regs.DBCTL.bit.IN_MODE")==="0";
+  var tz = reg("EPwm1Regs.TZSEL.bit.OSHT1")==="1" &&
+           reg("EPwm1Regs.TZCTL.bit.TZA")==="2" &&
+           reg("EPwm1Regs.TZCTL.bit.TZB")==="2";
+  var tbprd_fp = reg("EPwm1Regs.TBPRD")==="399";
+  var cmpa_fp = reg("EPwm1Regs.CMPA.half.CMPA")==="200";
+  var dbred_fp = reg("EPwm1Regs.DBRED")==="36" && reg("EPwm1Regs.DBFED")==="36";
+  var ost_fp = reg("EPwm1Regs.TZFLG.bit.OST")==="1";
+  var aqcsfrc_fp = cfa==="1" && cfb==="1";
+  var fault_fp = fault===0;
+  var pwm_fp = pwm===0;
+  print("fastpath verify topology="+tp+" cmp="+cp+" aq="+aq+" db="+db+" tz="+tz+
+        " tbprd="+tbprd_fp+" cmpa="+cmpa_fp+" dbred/dbfed="+dbred_fp+
+        " ost="+ost_fp+" aqcsfrc="+aqcsfrc_fp+" fault="+fault_fp+" pwm="+pwm_fp);
+  gate("FASTPATH_TOPOLOGY", tp && cp && aq && db && tz);
+  gate("FASTPATH_TBPRD_399", tbprd_fp);
+  gate("FASTPATH_CMPA_200", cmpa_fp);
+  gate("FASTPATH_DBRED_DBFED_36", dbred_fp);
+  gate("FASTPATH_TZ1_ONESHOT", tz);
+  gate("FASTPATH_TZA_TZB_FORCE_LOW", reg("EPwm1Regs.TZCTL.bit.TZA")==="2" &&
+                                     reg("EPwm1Regs.TZCTL.bit.TZB")==="2");
+  gate("FASTPATH_OST_1", ost_fp);
+  gate("FASTPATH_AQCSFRC_FORCE_LOW", aqcsfrc_fp);
+  gate("FASTPATH_FAULT_ZERO", fault_fp);
+  gate("FASTPATH_PWM_ZERO", pwm_fp);
+  // write the formal-handoff state (CNT3/CNT4 OPEN, hardware clamped low)
+  wv("g_pwm_fastpath_ready",1);
+  session.expression.evaluate("EPwm1Regs.ETSEL.bit.SOCASEL = 6");  // ET_CTRU_CMPB
+  session.expression.evaluate("EPwm1Regs.ETSEL.bit.SOCAEN = 1");
+  session.expression.evaluate("EPwm1Regs.ETPS.bit.SOCAPRD = 3");   // ET_3RD
+  var soca_ok = reg("EPwm1Regs.ETSEL.bit.SOCASEL")==="6" &&
+                reg("EPwm1Regs.ETSEL.bit.SOCAEN")==="1" &&
+                reg("EPwm1Regs.ETPS.bit.SOCAPRD")==="3";
+  print("fastpath_ready="+rw("g_pwm_fastpath_ready")+" adc_cadence="+soca_ok);
+  gate("FASTPATH_READY_WRITTEN", rw("g_pwm_fastpath_ready")===1);
+  gate("ADC_CADENCE_ET3RD_CMPB", soca_ok);
+
   // ---- suspended-ISR drain: run 1 ms windows until max <= 900 ----
   // A halt can suspend a TINT0 ISR mid-execution; on the next run it completes
   // and its Timer2 delta (including the halt time) pollutes
@@ -306,6 +374,16 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   if (max > 10000) {
     print("MEASUREMENT_POLLUTION max="+max+" (suspended ISR from drain halt) - retrying full flow");
     continue;
+  }
+
+  // ---- B verdict (independent of gate evaluation) ----
+  print("FASTPATH_READY_REAL_ISR_MAX="+max);
+  print("FASTPATH_READY_OVERRUN="+ovf);
+  print("FASTPATH_READY_ENTRY_INTERVAL_MAX="+tmax);
+  if (max<=900 && ovf===0) {
+    print("CURRENT_BINARY_TIMING_PASS");
+  } else {
+    print("RECOVERY_V1_NEEDS_FIRMWARE_OPTIMIZATION");
   }
 
   try{

@@ -352,6 +352,21 @@ check('149800' in timing and '149625' in timing,
 # C: pre-run read-only period baseline + post-run strict period-change gates
 check('gate("PRE_RUN_TBPRD_399"' in timing and 'gate("PRE_RUN_PERIOD_ZERO"' in timing,
       "timing script read-only confirms EPwm1Regs.TBPRD==399 and g_pwm_period==0 (APP_Init Stage-0-SAFE clear, app.c:93) before any write")
+# RECOVERY V1 B: formal-handoff fastpath reproduction gates
+for g in ["FASTPATH_TOPOLOGY", "FASTPATH_TBPRD_399", "FASTPATH_CMPA_200",
+          "FASTPATH_DBRED_DBFED_36", "FASTPATH_TZ1_ONESHOT",
+          "FASTPATH_TZA_TZB_FORCE_LOW", "FASTPATH_OST_1",
+          "FASTPATH_AQCSFRC_FORCE_LOW", "FASTPATH_FAULT_ZERO",
+          "FASTPATH_PWM_ZERO", "FASTPATH_READY_WRITTEN",
+          "ADC_CADENCE_ET3RD_CMPB"]:
+    check(f"gate(\"{g}\"" in timing, f"RECOVERY V1 B fastpath gate {g} present")
+check('wv("g_pwm_fastpath_ready",1)' in timing,
+      "timing script writes g_pwm_fastpath_ready=1 only after read-only verification")
+check('SOCASEL = 6' in timing and 'SOCAPRD = 3' in timing and 'SOCAEN = 1' in timing,
+      "timing script sets closed-loop ADC cadence ET_CTRU_CMPB / ET_3RD / SOCAEN")
+check("FASTPATH_READY_REAL_ISR_MAX" in timing and "CURRENT_BINARY_TIMING_PASS" in timing and
+      "RECOVERY_V1_NEEDS_FIRMWARE_OPTIMIZATION" in timing,
+      "timing script prints fastpath-ready ISR max + B verdict (PASS or proceed to C)")
 for g in ["RING_FIRST_FRESH", "RING_FIRST_FREQ_149800", "RING_FIRST_TBPRD_400",
           "RING_FIRST_ACTUAL_149625"]:
     check(f"gate(\"{g}\"" in timing, f"timing result hard gate {g} present")
