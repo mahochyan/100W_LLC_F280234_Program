@@ -23,8 +23,13 @@ void   CTRL_FastTask(void);
 void   CTRL_SlowTask(void);
 void   CTRL_Reset(void);
 
-Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, float vout_v);
+/* Fixed-point Q12 fast controller (raw-domain). No float in this path. */
+Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw);
+/* Float reference core (STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1): parity /
+ * SIL reference only, NOT called from the fast ISR. */
+Uint32 CTRL_ComputeFrequencyCommandFloat(Uint16 sample_valid, float vout_v);
 void   CTRL_ApplyFrequencyCommand(void);
 void   CTRL_OfflineSelfTest(void);
+void   CTRL_UpdateTelemetrySlow(void);
 
 #endif /* APP_CONTROL_H */

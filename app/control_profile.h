@@ -38,6 +38,19 @@
 #define CTRL_PI_KP_HZ_PER_V                  6657.43331f
 #define CTRL_PI_KI_STEP_HZ_PER_V_STEP        44.3828888f
 
+/* ---- Q12 fixed-point derived coefficients (STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1)
+ * Source of truth is the float Kp/Ki_step above plus the real-board VOUT ADC
+ * gain (app/board_calibration.h BOARD_VOUT_GAIN_V_PER_RAW). These Q12 ints
+ * are the RAW-domain coefficients used by the fixed-point fast controller:
+ *     raw_scale = BOARD_VOUT_GAIN_V_PER_RAW (V/raw)
+ *     KP_RAW_Q12 = round(Kp * raw_scale * (1<<12))
+ *     KI_RAW_Q12 = round(Ki_step * raw_scale * (1<<12))
+ * Consistency with the header source of truth is enforced by
+ *   tools/check_control_fixed_profile_sync.py (FIXED_POINT_PROFILE_SOURCE_SYNC_PASS).
+ * Do not hand-edit these; re-run the sync tool after any Kp/Ki/GAIN change. */
+#define CTRL_PI_KP_RAW_Q12                   220587
+#define CTRL_PI_KI_RAW_Q12                   1471
+
 /* ---- Gate flags ------------------------------------------------------ */
 /* This candidate is a SIL / virtual-only candidate, NOT hardware-tuned. */
 #define CTRL_PI_PROFILE_VIRTUAL_ONLY         1U

@@ -80,6 +80,14 @@ volatile Uint32  g_control_pi_profile_id ;
 volatile float   g_control_kp_hz_per_v ;
 volatile float   g_control_ki_step_hz_per_v_step ;
 volatile Uint16  g_control_pi_virtual_only ;
+/* Fixed-point Q12 fast-controller runtime state (STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1). */
+volatile int32   g_pi_integral_q12      ;
+volatile Uint16  g_control_vref_raw     ;
+volatile Uint16  g_control_vout_raw     ;
+volatile int16   g_control_error_raw    ;
+volatile int32   g_control_p_term_q12   ;
+volatile int32   g_control_i_term_q12   ;
+volatile int32   g_control_unsat_q12    ;
 
 /* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation (test build only). */
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
@@ -91,6 +99,7 @@ volatile Uint32 g_fast_isr_overrun_count    = 0UL;
 volatile Uint32 g_stage6_noenergy_test_ticks= 0UL;
 volatile Uint16 g_stage6_noenergy_test_enable = 0U;
 volatile float  g_stage6_synthetic_vout     = 12.0f;
+volatile Uint16  g_stage6_synthetic_vout_raw = 1491U;  /* raw mirror (12V); harness writes both */
 volatile Uint16 g_stage6_noenergy_test_mode = 0U;
 volatile Uint16 g_stage6_noenergy_step_req  = 0U;
 volatile Uint32 g_stage6_noenergy_step_shadow_hz  = 0UL;
@@ -542,3 +551,4 @@ volatile Uint32 g_adc_ovf_count ;
 volatile Uint16 g_adc_ovf_first_tbctr ;
 volatile Uint16 g_adc_ovf_first_flag_was_set ;
 volatile Uint16 g_adc_isr_last_tbctr ;
+

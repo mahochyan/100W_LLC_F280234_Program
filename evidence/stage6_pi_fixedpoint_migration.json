@@ -1,0 +1,54 @@
+{
+  "task": "STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1",
+  "goal": "Migrate Stage6 BALANCED PI fast path from C28x software-float to 32-bit signed Q12 fixed point; eliminate 20us overrun. No real power.",
+  "no_real_power": true,
+  "power_gates": { "LLC_HARDWARE_PI_VALIDATED": 0, "LLC_CONTROL_DIRECTION": 0, "g_pwm_enabled": 0, "OST": 1, "NO_REAL_POWER_EXECUTED": true },
+  "frozen_binary": {
+    "config": "Stage6_FLASH_NOENERGY",
+    "out_sha256": "20777C423FDDAFF6197F8D3DA5817B02B58B8176B01A6BC43ED73EDFE4A9F434",
+    "fixed_core_words": 183,
+    "fixed_core_ffc": 0,
+    "fixed_core_softfloat_refs": 0
+  },
+  "coefficients": { "Q_SHIFT": 12, "Q_ONE": 4096, "KP_RAW_Q12": 220587, "KI_RAW_Q12": 1471,
+                    "BIAS_Q12": 614400000, "INTEGRAL_MAX_Q12": 245760000,
+                    "CLAMP_MIN_Q12": 491520000, "CLAMP_MAX_Q12": 737280000, "STEP_Q12": 409600 },
+  "gates": {
+    "A_BASELINE_2545e74": "PASS",
+    "B_SOFTFLOAT_FAST_PATH_CONFIRMED": "PASS",
+    "C_Q12_SCALE": "PASS",
+    "D_KP_KI_Q12_DERIVED": "PASS",
+    "E_FIXED_POINT_PROFILE_SOURCE_SYNC_PASS": true,
+    "F_FIXED_POINT_INT32_RANGE_PROOF_PASS": true,
+    "G_VREF_RAW_CONVERSION": "PASS",
+    "H_CONTROL_SAMPLE_SOURCE_AUDIT_PASS": true,
+    "J_FAST_PI_FORMULA_NO_FLOAT": "PASS",
+    "K_CTRL_UpdateTelemetrySlow": "PASS",
+    "L_ANTI_WINDUP": "PASS",
+    "M_STALE_LOGIC": "PASS",
+    "N_FIXED_POINT_PI_SIL_PARITY_PASS": true,
+    "O_FIXED_POINT_FIRST_STEP_PASS": true,
+    "P_ON_TARGET_8CASE_PASS": true,
+    "Q_FAST_PI_SOFTFLOAT_FREE_PASS": true,
+    "R_FLASH_CLEAN_BUILD_0_UNRESOLVED_0_OVERFLOW": true,
+    "S_ON_TARGET_NOENERGY_RE_RUN_ALL_PASS": true,
+    "T_20US_BUDGET_PASS": true,
+    "U_HARD_GATE_ISR_MAX_LE_900": true,
+    "W_KEEP_20US_PERIOD": true
+  },
+  "on_target_budget": {
+    "whole_isr_typical_cyc": [495, 506],
+    "whole_isr_max_cyc": 506,
+    "whole_isr_max_us": 8.433,
+    "whole_isr_pct_of_20us": 42.2,
+    "fixed_pi_step_cyc": [96, 165],
+    "overrun_count": 0,
+    "ticks_per_mode_min": 12672,
+    "ticks_total": 121111
+  },
+  "verdict": {
+    "STAGE6_ON_TARGET_SHADOW_NOENERGY_PASS": true,
+    "F28034_BALANCED_PI_EXECUTION_VALIDATED": true,
+    "READY_FOR_STAGE6_REAL_POWER_PI_ENTRY_REVIEW": true
+  }
+}

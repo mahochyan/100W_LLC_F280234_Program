@@ -29,6 +29,7 @@
 #include "pwm.h"
 #include "control.h"
 #include "control_profile.h"
+#include "board_calibration.h"
 
 /* Cross-gate compile-time consistency (I): a profile that claims hardware
  * validation is incompatible with LLC_HARDWARE_PI_VALIDATED==0. A validated
@@ -49,7 +50,27 @@
 #define OFFLINE_MIN_HZ           ((float)OFFLINE_CONTROL_MIN_HZ)
 #define OFFLINE_MAX_HZ           ((float)OFFLINE_CONTROL_MAX_HZ)
 
+/* ---- Q12 fixed-point fast controller (STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1)
+ * Fast-ISR controller = 32-bit signed fixed-point Q12. No float/double/int64
+ * in the fast path. KP/KI_RAW_Q12 derived in control_profile.h from the float
+ * SIL profile times the board VOUT gain; enforced by
+ * tools/check_control_fixed_profile_sync.py. */
+#define CTRL_Q_SHIFT             12
+#define CTRL_Q_ONE               ((int32)1 << CTRL_Q_SHIFT)               /* 4096      */
+#define CTRL_KP_RAW_Q12          ((int32)CTRL_PI_KP_RAW_Q12)              /* 220587    */
+#define CTRL_KI_RAW_Q12          ((int32)CTRL_PI_KI_RAW_Q12)              /* 1471      */
+#define CTRL_BIAS_Q12            ((int32)150000 * CTRL_Q_ONE)             /* 614400000 */
+#define CTRL_INTEGRAL_MAX_Q12    ((int32)60000  * CTRL_Q_ONE)             /* 245760000 */
+#define CTRL_CLAMP_MIN_Q12       ((int32)OFFLINE_CONTROL_MIN_HZ * CTRL_Q_ONE)
+#define CTRL_CLAMP_MAX_Q12       ((int32)OFFLINE_CONTROL_MAX_HZ * CTRL_Q_ONE)
+#define CTRL_MAX_STEP_Q12        ((int32)100 * CTRL_Q_ONE)                /* 409600    */
+#define CTRL_RAW_MIN             0U
+#define CTRL_RAW_MAX             4095U
+
 #define CTRL_OFFLINE_SELFTEST_ITERS  10000U  /* Case 8 register-isolation iterations */
+
+/* Slow-path reference Volts->raw conversion (defined later; forward decl for Init). */
+static Uint16 CTRL_VoltsToRaw(float v);
 
 static void CTRL_ResetRunState(void)
 {
@@ -57,6 +78,7 @@ static void CTRL_ResetRunState(void)
     g_control_frequency_hz = LLC_DEFAULT_FREQUENCY_HZ;
     g_control_shadow_frequency_hz = LLC_DEFAULT_FREQUENCY_HZ;
     g_pi_integral = 0.0f;
+    g_pi_integral_q12 = 0;
 }
 
 static Uint16 CTRL_SnapshotPwm(volatile Uint16 *buf)
@@ -72,6 +94,13 @@ static Uint16 CTRL_SnapshotPwm(volatile Uint16 *buf)
 void CTRL_Init(void)
 {
     g_pi_integral = 0.0f;
+    g_pi_integral_q12 = 0;
+    g_control_vref_raw = CTRL_VoltsToRaw(g_voltage_reference);
+    g_control_vout_raw = 0U;
+    g_control_error_raw = 0;
+    g_control_p_term_q12 = 0;
+    g_control_i_term_q12 = 0;
+    g_control_unsat_q12 = CTRL_BIAS_Q12;
     g_pi_bias_frequency_hz = (float)LLC_DEFAULT_FREQUENCY_HZ;
     g_control_frequency_hz = LLC_DEFAULT_FREQUENCY_HZ;
     g_control_shadow_frequency_hz = LLC_DEFAULT_FREQUENCY_HZ;
@@ -106,7 +135,7 @@ void CTRL_Reset(void)
  *                  the command are frozen (CONTROL_ADC_STALE_INHIBIT).
  * Returns the new slewed command (also in g_control_shadow_frequency_hz).
  */
-Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, float vout_v)
+Uint32 CTRL_ComputeFrequencyCommandFloat(Uint16 sample_valid, float vout_v)
 {
     float error, p_term, i_term, unsat, clamped, step, out;
     Uint16 stale, sat_high, sat_low, freeze;
@@ -189,6 +218,93 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, float vout_v)
 }
 
 /*
+ * Slow-path only: reference Volts -> raw ADC sample. Uses float (never in
+ * the fast ISR). ref_raw = round((v - BOARD_VOUT_OFFSET_V)/BOARD_VOUT_GAIN).*/
+static Uint16 CTRL_VoltsToRaw(float v)
+{
+    float r = (v - BOARD_VOUT_OFFSET_V) / BOARD_VOUT_GAIN_V_PER_RAW;
+    if (r < (float)CTRL_RAW_MIN) r = (float)CTRL_RAW_MIN;
+    if (r > (float)CTRL_RAW_MAX) r = (float)CTRL_RAW_MAX;
+    return (Uint16)(r + 0.5f);
+}
+
+/*
+ * Q12 fixed-point fast controller (STAGE6_PI_FIXED_POINT_REALTIME_MIGRATION_V1).
+ * Same logic as the validated float BALANCED PI, but 32-bit signed int Q12
+ * and NO float/double/int64 anywhere in this function. Controller-only:
+ * writes shadow command + integer telemetry; never ePWM registers. Teaching
+ * floats are updated by CTRL_UpdateTelemetrySlow() (5 ms), not here.
+ */
+Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
+{
+    int32 error, p_q12, i_q12, unsat_q12, step_q12, out_q12, base_q12;
+    Uint16 stale, sat_high, sat_low, freeze;
+    Uint32 new_hz;
+
+    stale = (Uint16)((sample_valid == 0U) ||
+                     (g_adc_pwm_sync_consecutive_miss >= (Uint16)CTRL_ADC_STALE_LIMIT));
+    g_control_sample_valid = sample_valid;
+    g_control_adc_stale_inhibit = stale;
+    g_control_vout_raw = vout_raw;
+
+    if ((g_control_running == 0U) || (stale != 0U))
+{
+        g_control_error_raw = 0;
+        g_control_p_term_q12 = 0;
+        g_control_i_term_q12 = g_pi_integral_q12;
+        g_control_unsat_q12 = CTRL_BIAS_Q12;
+        g_control_shadow_frequency_hz = g_control_frequency_hz;
+        g_control_integrator_frozen = 1U;
+        g_control_saturated_high = (g_control_frequency_hz >= (Uint32)OFFLINE_CONTROL_MAX_HZ);
+        g_control_saturated_low  = (g_control_frequency_hz <= (Uint32)OFFLINE_CONTROL_MIN_HZ);
+        return g_control_frequency_hz;
+}
+
+    error = (int32)g_control_vref_raw - (int32)vout_raw;   /* [-4095,4095] */
+    g_control_error_raw = (int16)error;
+
+    p_q12 = CTRL_KP_RAW_Q12 * error;                       /* [-903303765,903303765] */
+    g_control_p_term_q12 = p_q12;
+
+    sat_high = (g_control_frequency_hz >= (Uint32)OFFLINE_CONTROL_MAX_HZ);
+    sat_low  = (g_control_frequency_hz <= (Uint32)OFFLINE_CONTROL_MIN_HZ);
+    g_control_saturated_high = sat_high;
+    g_control_saturated_low  = sat_low;
+
+    freeze = 0U;
+    if (sat_high && (error < 0)) freeze = 1U;
+    if (sat_low  && (error > 0)) freeze = 1U;
+    g_control_integrator_frozen = freeze;
+
+    if (freeze == 0U)
+{
+        g_pi_integral_q12 += CTRL_KI_RAW_Q12 * error;
+        if (g_pi_integral_q12 >  CTRL_INTEGRAL_MAX_Q12) g_pi_integral_q12 =  CTRL_INTEGRAL_MAX_Q12;
+        if (g_pi_integral_q12 < -CTRL_INTEGRAL_MAX_Q12) g_pi_integral_q12 = -CTRL_INTEGRAL_MAX_Q12;
+    }
+    i_q12 = g_pi_integral_q12;
+    g_control_i_term_q12 = i_q12;
+
+    unsat_q12 = CTRL_BIAS_Q12 + (int32)LLC_CONTROL_SIGN * (p_q12 + i_q12);
+    g_control_unsat_q12 = unsat_q12;
+
+    if (unsat_q12 < CTRL_CLAMP_MIN_Q12) unsat_q12 = CTRL_CLAMP_MIN_Q12;
+    if (unsat_q12 > CTRL_CLAMP_MAX_Q12) unsat_q12 = CTRL_CLAMP_MAX_Q12;
+
+    base_q12 = (int32)g_control_frequency_hz << CTRL_Q_SHIFT;
+    step_q12 = unsat_q12 - base_q12;
+    if (step_q12 >  CTRL_MAX_STEP_Q12) step_q12 =  CTRL_MAX_STEP_Q12;
+    if (step_q12 < -CTRL_MAX_STEP_Q12) step_q12 = -CTRL_MAX_STEP_Q12;
+    out_q12 = base_q12 + step_q12;
+    if (out_q12 < CTRL_CLAMP_MIN_Q12) out_q12 = CTRL_CLAMP_MIN_Q12;
+    if (out_q12 > CTRL_CLAMP_MAX_Q12) out_q12 = CTRL_CLAMP_MAX_Q12;
+
+    new_hz = (Uint32)(out_q12 >> CTRL_Q_SHIFT);
+    g_control_shadow_frequency_hz = new_hz;
+    return new_hz;
+}
+
+/*
  * Actuator. Commits the shadow command. Writes real PWM ONLY under
  * LLC_HARDWARE_PI_VALIDATED; otherwise shadow-only (Stage6 offline).
  */
@@ -229,12 +345,29 @@ void CTRL_FastTask(void)
     }
 
     g_control_running = 1U;
-    CTRL_ComputeFrequencyCommand(g_adc_pwm_sync_valid, g_vout_volts);
+    CTRL_ComputeFrequencyCommand(g_adc_pwm_sync_valid, g_control_vout_raw);
     CTRL_ApplyFrequencyCommand();
+}
+
+void CTRL_UpdateTelemetrySlow(void)
+{
+    /* Slow-task (5 ms) conversion of raw/Q12 state to float Volts/Hz for CCS.
+     * Never called from the fast ISR. */
+    g_control_vref_volts = BOARD_VOUT_GAIN_V_PER_RAW * (float)g_control_vref_raw + BOARD_VOUT_OFFSET_V;
+    g_control_vout_volts = BOARD_VOUT_GAIN_V_PER_RAW * (float)g_control_vout_raw + BOARD_VOUT_OFFSET_V;
+    g_control_error_volts = g_control_vref_volts - g_control_vout_volts;
+    g_control_p_term_hz = (float)g_control_p_term_q12 / (float)CTRL_Q_ONE;
+    g_control_i_term_hz = (float)g_control_i_term_q12 / (float)CTRL_Q_ONE;
+    g_control_frequency_unsat_hz = (float)g_control_unsat_q12 / (float)CTRL_Q_ONE;
+    g_control_frequency_clamped_hz = (float)g_control_shadow_frequency_hz;
+    g_pi_integral = (float)g_pi_integral_q12 / (float)CTRL_Q_ONE;
+    g_pi_bias_frequency_hz = (float)LLC_DEFAULT_FREQUENCY_HZ;
 }
 
 void CTRL_SlowTask(void)
 {
+    CTRL_UpdateTelemetrySlow();
+    g_control_vout_raw = g_adc_vout_filtered_raw;
 #if STAGE6_OFFLINE_SELFTEST
     /* Offline self-test trigger (no-energy, no PWM writes). */
     if (g_offline_test_request != 0U)
@@ -254,103 +387,92 @@ void CTRL_SlowTask(void)
         g_stage6_noenergy_step_req = 0U;
         valid = (g_stage6_noenergy_test_mode == 3U) ? 0U : 1U;
         g_control_running = 1U;
-        hz = CTRL_ComputeFrequencyCommand(valid, g_stage6_synthetic_vout);
+        g_control_vref_raw = CTRL_VoltsToRaw(g_voltage_reference);
+        hz = CTRL_ComputeFrequencyCommand(valid, g_stage6_synthetic_vout_raw);
         CTRL_ApplyFrequencyCommand();
         g_stage6_noenergy_step_shadow_hz = hz;
-        g_stage6_noenergy_step_integral_hz = g_pi_integral;
+        g_stage6_noenergy_step_integral_hz = (float)g_pi_integral_q12 / (float)CTRL_Q_ONE;
     }
 #endif
 }
 
 #if STAGE6_OFFLINE_SELFTEST
-static void CTRL_RunSteps(float vout_v, Uint16 valid, Uint16 n)
+static void CTRL_RunSteps(Uint16 vout_raw, Uint16 valid, Uint16 n)
 {
     Uint16 k;
     for (k = 0U; k < n; k++)
     {
-        CTRL_ComputeFrequencyCommand(valid, vout_v);
+        CTRL_ComputeFrequencyCommand(valid, vout_raw);
         CTRL_ApplyFrequencyCommand();
     }
 }
 
 /*
- * 8-case no-energy offline control self-test. Runs synchronously on the
- * controller core (Compute + Apply). Apply is shadow-only in Stage6 offline,
- * so ePWM registers must remain unchanged (Case 8 proves this). Result is a
- * bitmask in g_offline_test_status:
- *   0x01 Case1 PFM_SIGN_LOW_VOUT
- *   0x02 Case2 PFM_SIGN_HIGH_VOUT
- *   0x04 Case3 EQUAL_HOLDS
- *   0x08 Case4 LOWER_CLAMP + anti-windup
- *   0x10 Case5 UPPER_CLAMP + anti-windup
- *   0x20 Case6 ADC_STALE_FREEZE
- *   0x40 Case7 ADC_RECOVERY_NO_JUMP
- *   0x80 Case8 PWM_REGISTER_ISOLATION
+ * 8-case no-energy offline control self-test, now driven by the fixed-point
+ * Q12 controller core (CTRL_ComputeFrequencyCommand raw). Raw VOUT samples are
+ * derived from the real-board calibration (CTRL_VoltsToRaw), never hard-coded.
+ * Result bitmask in g_offline_test_status (0x01..0x80).
  */
 void CTRL_OfflineSelfTest(void)
 {
     Uint16 pass = 0U;
     Uint32 init_freq, freq_before, single_step;
 
-    /* Case 8 (register isolation) snapshot BEFORE. */
     CTRL_SnapshotPwm(g_offline_pwm_pre);
 
-    /* Case 1: Vout < Vref -> error > 0 -> freq DOWN (SIGN=-1). */
+    /* Case 1: Vout(11V) < Vref(12V) -> error>0 -> freq DOWN (SIGN=-1). */
     CTRL_ResetRunState();
-    g_voltage_reference = 12.0f; g_vout_volts = 11.0f;
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
     init_freq = g_control_frequency_hz;
-    CTRL_RunSteps(11.0f, 1U, 200);
-    if ((g_control_error_volts > 0.0f) && (g_control_frequency_hz < init_freq)) pass |= 0x01U;
+    CTRL_RunSteps(CTRL_VoltsToRaw(11.0f), 1U, 200);
+    if ((g_control_error_raw > 0) && (g_control_frequency_hz < init_freq)) pass |= 0x01U;
 
-    /* Case 2: Vout > Vref -> error < 0 -> freq UP. */
+    /* Case 2: Vout(13V) > Vref -> error<0 -> freq UP. */
     CTRL_ResetRunState();
-    g_voltage_reference = 12.0f; g_vout_volts = 13.0f;
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
     init_freq = g_control_frequency_hz;
-    CTRL_RunSteps(13.0f, 1U, 150);
-    if ((g_control_error_volts < 0.0f) && (g_control_frequency_hz > init_freq)) pass |= 0x02U;
+    CTRL_RunSteps(CTRL_VoltsToRaw(13.0f), 1U, 150);
+    if ((g_control_error_raw < 0) && (g_control_frequency_hz > init_freq)) pass |= 0x02U;
 
-    /* Case 3: equal -> freq basically holds. */
+    /* Case 3: equal -> freq holds. */
     CTRL_ResetRunState();
-    g_voltage_reference = 12.0f; g_vout_volts = 12.0f;
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
     init_freq = g_control_frequency_hz;
-    CTRL_RunSteps(12.0f, 1U, 150);
+    CTRL_RunSteps(CTRL_VoltsToRaw(12.0f), 1U, 150);
     single_step = (init_freq > g_control_frequency_hz)
                   ? (init_freq - g_control_frequency_hz)
                   : (g_control_frequency_hz - init_freq);
-    if (single_step < 500U) pass |= 0x04U;   /* EQUAL_HOLDS */
+    if (single_step < 500U) pass |= 0x04U;
 
-    /* Case 4: unsaturated command forced below floor via seeded integral ->
-       command must hold at OFFLINE_CONTROL_MIN_HZ and the integrator must
-       freeze (conditional-integration anti-windup). */
+    /* Case 4: seeded integral -> below floor, hold min + anti-windup freeze. */
     CTRL_ResetRunState();
-    g_voltage_reference = 12.0f; g_vout_volts = 8.0f;
-    g_pi_integral = 50000.0f;   /* SIGN=-1: unsat = 150k - 50k = 100k < 120k */
-    CTRL_RunSteps(8.0f, 1U, 400);
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
+    g_pi_integral_q12 = (int32)(50000 * CTRL_Q_ONE);
+    CTRL_RunSteps(CTRL_VoltsToRaw(8.0f), 1U, 400);
     if ((g_control_frequency_hz == (Uint32)OFFLINE_CONTROL_MIN_HZ) &&
         (g_control_saturated_low == 1U) && (g_control_integrator_frozen == 1U)) pass |= 0x08U;
 
-    /* Case 5: unsaturated command forced above ceiling -> clamp at
-       OFFLINE_CONTROL_MAX_HZ, integrator freezes. */
+    /* Case 5: seeded integral -> above ceiling, clamp max + freeze. */
     CTRL_ResetRunState();
-    g_voltage_reference = 12.0f; g_vout_volts = 16.0f;
-    g_pi_integral = -50000.0f;  /* unsat = 150k + 50k = 200k > 180k */
-    CTRL_RunSteps(16.0f, 1U, 400);
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
+    g_pi_integral_q12 = (int32)(-50000 * CTRL_Q_ONE);
+    CTRL_RunSteps(CTRL_VoltsToRaw(16.0f), 1U, 400);
     if ((g_control_frequency_hz == (Uint32)OFFLINE_CONTROL_MAX_HZ) &&
         (g_control_saturated_high == 1U) && (g_control_integrator_frozen == 1U)) pass |= 0x10U;
 
-    /* Case 6: ADC stale (sample invalid) -> freeze command + integrator. */
+    /* Case 6: ADC stale -> freeze command + integrator. */
     CTRL_ResetRunState();
-    g_voltage_reference = 12.0f; g_vout_volts = 11.0f;
-    CTRL_RunSteps(11.0f, 1U, 5);
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
+    CTRL_RunSteps(CTRL_VoltsToRaw(11.0f), 1U, 5);
     freq_before = g_control_frequency_hz;
-    CTRL_RunSteps(11.0f, 0U, 5);   /* sample invalid (stale) */
+    CTRL_RunSteps(CTRL_VoltsToRaw(11.0f), 0U, 5);
     if ((g_control_adc_stale_inhibit == 1U) && (g_control_integrator_frozen == 1U) &&
         (g_control_frequency_hz == freq_before)) pass |= 0x20U;
 
-    /* Case 7: ADC recovers -> one step, no jump (slew-limited). */
+    /* Case 7: ADC recovers -> one step, slew-limited. */
     {
         Uint32 before = g_control_frequency_hz;
-        CTRL_ComputeFrequencyCommand(1U, 11.0f);   /* sample valid again */
+        CTRL_ComputeFrequencyCommand(1U, CTRL_VoltsToRaw(11.0f));
         CTRL_ApplyFrequencyCommand();
         single_step = (before > g_control_frequency_hz)
                       ? (before - g_control_frequency_hz)
@@ -359,9 +481,9 @@ void CTRL_OfflineSelfTest(void)
             pass |= 0x40U;
     }
 
-    /* Case 8: 10000 Compute+Apply; PWM registers must remain unchanged. */
-    g_voltage_reference = 12.0f; g_vout_volts = 11.0f;
-    CTRL_RunSteps(11.0f, 1U, CTRL_OFFLINE_SELFTEST_ITERS);
+    /* Case 8: 10000 Compute+Apply; PWM registers unchanged. */
+    g_control_vref_raw = CTRL_VoltsToRaw(12.0f);
+    CTRL_RunSteps(CTRL_VoltsToRaw(11.0f), 1U, CTRL_OFFLINE_SELFTEST_ITERS);
     CTRL_SnapshotPwm(g_offline_pwm_post);
     g_offline_pwm_isolated = 1U;
     {
@@ -380,3 +502,9 @@ void CTRL_OfflineSelfTest(void)
     g_offline_test_status = pass;
 }
 #endif /* STAGE6_OFFLINE_SELFTEST */
+
+
+
+
+
+

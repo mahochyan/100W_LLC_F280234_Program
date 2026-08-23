@@ -223,7 +223,7 @@ __interrupt void TINT0_ISR(void)
         g_control_running = 1U;
         g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
         CTRL_ComputeFrequencyCommand((g_stage6_noenergy_test_mode == 3U) ? 0U : 1U,
-                                     g_stage6_synthetic_vout);
+                                     g_stage6_synthetic_vout_raw);
         CTRL_ApplyFrequencyCommand();
         tx = CpuTimer2Regs.TIM.all;
         /* region B: one Compute+Apply (down counter -> entry-exit diff) */
@@ -466,3 +466,4 @@ void PROT_SlowTask(void)
     }
     }
 }
+

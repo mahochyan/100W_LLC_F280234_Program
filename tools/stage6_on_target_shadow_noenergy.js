@@ -83,47 +83,49 @@ print("ON_TARGET_8CASE_PASS="+(all8?"TRUE":"FALSE"));
 function resetCtrlBase(){
   wv32("g_control_frequency_hz",150000);
   wv32("g_control_shadow_frequency_hz",150000);
-  wv32("g_pi_integral",0x00000000);            // 0.0f
+  wv32("g_pi_integral",0x00000000);            // float mirror (telemetry)
+  wv32("g_pi_integral_q12",0);                 // Q12 integral state
+  wv("g_control_vref_raw",1491);               // 12V raw ref (Q12 controller)
   wv32("g_voltage_reference",0x41400000);      // 12.0f
   wv("g_stage6_noenergy_test_enable",0);
   wv("g_control_running",1);
   wv("g_adc_pwm_sync_consecutive_miss",0);     // clear ADC-stale counter (no-power env)
   wv("g_adc_pwm_sync_valid",1);
 }
-// TEST1: Vout=11
+// TEST1: Vout=11 (raw 1368)
 resetCtrlBase();
 wv("g_stage6_noenergy_test_mode",1);
-wv32("g_stage6_synthetic_vout",0x41300000);    // 11.0f
+wv("g_stage6_synthetic_vout_raw",1368);        // 11.0V
 wv("g_stage6_noenergy_step_req",1);
 run(300);
 print("FIRSTSTEP11_shadow="+rv32u("g_stage6_noenergy_step_shadow_hz"));
-print("FIRSTSTEP11_I_bits="+hex32(rv32u("g_stage6_noenergy_step_integral_hz")));
+print("FIRSTSTEP11_I_q12="+hex32(rv32u("g_pi_integral_q12")));
 print("FIRSTSTEP11_error_bits="+hex32(rv32u("g_control_error_volts")));
 print("FIRSTSTEP11_P_bits="+hex32(rv32u("g_control_p_term_hz")));
 print("FIRSTSTEP11_unsat_bits="+hex32(rv32u("g_control_frequency_unsat_hz")));
-// TEST2: Vout=13
+// TEST2: Vout=13 (raw 1615)
 resetCtrlBase();
 wv("g_stage6_noenergy_test_mode",2);
-wv32("g_stage6_synthetic_vout",0x41500000);    // 13.0f
+wv("g_stage6_synthetic_vout_raw",1615);       // 13.0V
 wv("g_stage6_noenergy_step_req",1);
 run(300);
 print("FIRSTSTEP13_shadow="+rv32u("g_stage6_noenergy_step_shadow_hz"));
-print("FIRSTSTEP13_I_bits="+hex32(rv32u("g_stage6_noenergy_step_integral_hz")));
+print("FIRSTSTEP13_I_q12="+hex32(rv32u("g_pi_integral_q12")));
 
 // ---- K: ADC stale freeze/recovery (synthetic) ----
 resetCtrlBase();
 wv("g_stage6_noenergy_test_mode",1);            // valid
-wv32("g_stage6_synthetic_vout",0x41300000);    // 11.0f (error +1, builds I)
+wv("g_stage6_synthetic_vout_raw",1368);        // 11.0V (error +1, builds I)
 wv("g_stage6_noenergy_test_enable",1);
 run(600);                                    // build ~30 valid ticks
 var f_shadow=rv32u("g_control_shadow_frequency_hz");
-var f_I=rv32u("g_pi_integral");
-print("STALE_PRE shadow="+f_shadow+" I_bits="+hex32(f_I));
+var f_I=rv32u("g_pi_integral_q12");
+print("STALE_PRE shadow="+f_shadow+" I_q12="+hex32(f_I));
 wv("g_stage6_noenergy_test_mode",3);             // stale (sample_valid=0)
 run(200);                                         // >=3 stale ticks
 var s_shadow=rv32u("g_control_shadow_frequency_hz");
-var s_I=rv32u("g_pi_integral");
-print("STALE_MID shadow="+s_shadow+" I_bits="+hex32(s_I));
+var s_I=rv32u("g_pi_integral_q12");
+print("STALE_MID shadow="+s_shadow+" I_q12="+hex32(s_I));
 var frozen_ok=(s_shadow==f_shadow);
 wv("g_stage6_noenergy_test_mode",1);             // recover valid
 run(60);                                          // ~1 tick
@@ -133,14 +135,14 @@ print("STALE_RECOVER shadow="+r_shadow+" delta="+d);
 print("ONTC_STALE_FROZEN_PASS="+(frozen_ok?"TRUE":"FALSE"));
 print("ONTC_STALE_RECOVER_PASS="+(d<=100?"TRUE":"FALSE"));
 
-// ---- N/O/P/Q: 20us budget ticks across coverage ----
+// ---- N/O/P/Q: 20us budget ticks across coverage (raw-domain) ----
 wv("g_stage6_noenergy_test_enable",1);
-wv("g_stage6_noenergy_test_mode",1); wv32("g_stage6_synthetic_vout",0x41400000); run(250);  // 12V err0
-wv32("g_stage6_synthetic_vout",0x41300000); run(250);                                        // 11V
-wv32("g_stage6_synthetic_vout",0x41500000); run(250);                                        // 13V
-wv32("g_stage6_synthetic_vout",0x40A00000); run(250);                                        // 5V low sat
-wv32("g_stage6_synthetic_vout",0x41600000); run(250);                                        // 14V high sat
-wv("g_stage6_noenergy_test_mode",3); run(250);                                               // stale
+wv("g_stage6_noenergy_test_mode",1); wv("g_stage6_synthetic_vout_raw",1491); run(250);  // 12V err0
+wv("g_stage6_synthetic_vout_raw",1368); run(250);                                        // 11V
+wv("g_stage6_synthetic_vout_raw",1615); run(250);                                        // 13V
+wv("g_stage6_synthetic_vout_raw",626); run(250);                                         // 5V low sat
+wv("g_stage6_synthetic_vout_raw",1739); run(250);                                        // 14V high sat
+wv("g_stage6_noenergy_test_mode",3); run(250);                                           // stale
 session.target.halt();
 var ticks=rv32u("g_stage6_noenergy_test_ticks");
 var cb=rv32u("g_control_exec_cycles_max");
@@ -163,6 +165,6 @@ wv("g_system_state",0);
 run(50);
 snap("POST");
 print("ON_TARGET_BINARY_LOADED="+OUT);
-print("ON_TARGET_BINARY_SHA=9F8751318479DCBF456E8F29E5DC6D7B98E837857E380AFE1320765A6380DDF0");
+print("ON_TARGET_BINARY_SHA=20777C423FDDAFF6197F8D3DA5817B02B58B8176B01A6BC43ED73EDFE4A9F434");
 print("DONE");
 try{ session.terminate(); }catch(e){}

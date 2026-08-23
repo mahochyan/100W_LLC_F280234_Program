@@ -1,0 +1,884 @@
+{
+  "cases": [
+    {
+      "refV": 11.0,
+      "voutV": 8.0,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 8.0,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 8.0,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 8.0,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 9.5,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 9.5,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 9.5,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 9.5,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.0,
+      "steps": 1,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.0,
+      "steps": 10,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.0,
+      "steps": 100,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.0,
+      "steps": 400,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.5,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.5,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.5,
+      "steps": 100,
+      "fixedHz": 155565,
+      "floatHz": 155564.928,
+      "devHz": 0.072
+    },
+    {
+      "refV": 11.0,
+      "voutV": 11.5,
+      "steps": 400,
+      "fixedHz": 162245,
+      "floatHz": 162242.842,
+      "devHz": 2.158
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.0,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.0,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.0,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.0,
+      "steps": 400,
+      "fixedHz": 174293,
+      "floatHz": 174288.218,
+      "devHz": 4.782
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.5,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.5,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.5,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 12.5,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 13.0,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 13.0,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 13.0,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 13.0,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 14.5,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 14.5,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 14.5,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 14.5,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 16.0,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 16.0,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 16.0,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 11.0,
+      "voutV": 16.0,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 8.0,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 8.0,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 8.0,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 8.0,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 9.5,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 9.5,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 9.5,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 9.5,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.0,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.0,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.0,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.0,
+      "steps": 400,
+      "fixedHz": 125706,
+      "floatHz": 125711.782,
+      "devHz": 5.782
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.5,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.5,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.5,
+      "steps": 100,
+      "fixedHz": 144524,
+      "floatHz": 144524.829,
+      "devHz": 0.829
+    },
+    {
+      "refV": 12.0,
+      "voutV": 11.5,
+      "steps": 400,
+      "fixedHz": 137952,
+      "floatHz": 137954.624,
+      "devHz": 2.624
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.0,
+      "steps": 1,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.0,
+      "steps": 10,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.0,
+      "steps": 100,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.0,
+      "steps": 400,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.5,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.5,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.5,
+      "steps": 100,
+      "fixedHz": 155565,
+      "floatHz": 155564.928,
+      "devHz": 0.072
+    },
+    {
+      "refV": 12.0,
+      "voutV": 12.5,
+      "steps": 400,
+      "fixedHz": 162245,
+      "floatHz": 162242.842,
+      "devHz": 2.158
+    },
+    {
+      "refV": 12.0,
+      "voutV": 13.0,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 13.0,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 13.0,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 13.0,
+      "steps": 400,
+      "fixedHz": 174490,
+      "floatHz": 174485.683,
+      "devHz": 4.317
+    },
+    {
+      "refV": 12.0,
+      "voutV": 14.5,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 14.5,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 14.5,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 14.5,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 16.0,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 16.0,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 16.0,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 12.0,
+      "voutV": 16.0,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 8.0,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 8.0,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 8.0,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 8.0,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 9.5,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 9.5,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 9.5,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 9.5,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.0,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.0,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.0,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.0,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.5,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.5,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.5,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 11.5,
+      "steps": 400,
+      "fixedHz": 120000,
+      "floatHz": 120000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.0,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.0,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.0,
+      "steps": 100,
+      "fixedHz": 140000,
+      "floatHz": 140000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.0,
+      "steps": 400,
+      "fixedHz": 125509,
+      "floatHz": 125514.317,
+      "devHz": 5.317
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.5,
+      "steps": 1,
+      "fixedHz": 149900,
+      "floatHz": 149900.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.5,
+      "steps": 10,
+      "fixedHz": 149000,
+      "floatHz": 149000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.5,
+      "steps": 100,
+      "fixedHz": 144434,
+      "floatHz": 144435.072,
+      "devHz": 1.072
+    },
+    {
+      "refV": 13.0,
+      "voutV": 12.5,
+      "steps": 400,
+      "fixedHz": 137754,
+      "floatHz": 137757.158,
+      "devHz": 3.158
+    },
+    {
+      "refV": 13.0,
+      "voutV": 13.0,
+      "steps": 1,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 13.0,
+      "steps": 10,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 13.0,
+      "steps": 100,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 13.0,
+      "steps": 400,
+      "fixedHz": 150000,
+      "floatHz": 150000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 14.5,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 14.5,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 14.5,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 14.5,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 16.0,
+      "steps": 1,
+      "fixedHz": 150100,
+      "floatHz": 150100.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 16.0,
+      "steps": 10,
+      "fixedHz": 151000,
+      "floatHz": 151000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 16.0,
+      "steps": 100,
+      "fixedHz": 160000,
+      "floatHz": 160000.0,
+      "devHz": 0.0
+    },
+    {
+      "refV": 13.0,
+      "voutV": 16.0,
+      "steps": 400,
+      "fixedHz": 180000,
+      "floatHz": 180000.0,
+      "devHz": 0.0
+    }
+  ],
+  "pass": true,
+  "max_dev_hz": 5.782062069512904,
+  "worst": {
+    "refV": 12.0,
+    "voutV": 11.0,
+    "steps": 400,
+    "fixedHz": 125706,
+    "floatHz": 125711.782,
+    "devHz": 5.782
+  },
+  "first_step_pass": true,
+  "first_step": {
+    "11V": 149900,
+    "13V": 150100
+  },
+  "slew_ok": true
+}

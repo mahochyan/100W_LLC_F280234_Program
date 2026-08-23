@@ -22,6 +22,8 @@ session.memory.loadProgram(OUT);
 wv32("g_control_frequency_hz",150000);
 wv32("g_control_shadow_frequency_hz",150000);
 wv32("g_pi_integral",0x00000000);
+wv32("g_pi_integral_q12",0);
+wv("g_control_vref_raw",1491);          // 12V raw ref (Q12 controller)
 wv32("g_voltage_reference",0x41400000);
 wv("g_control_running",1);
 wv("g_adc_pwm_sync_consecutive_miss",0);
@@ -30,12 +32,12 @@ wv("g_stage6_noenergy_test_enable",1);
 wv("g_stage6_noenergy_test_ticks",0);
 wv("g_fast_isr_cycles_max",0);
 wv("g_fast_isr_overrun_count",0);
-// coverage: 12V,11V,13V, low sat, high sat, stale
-wv("g_stage6_noenergy_test_mode",1); wv32("g_stage6_synthetic_vout",0x41400000); run(300);
-wv32("g_stage6_synthetic_vout",0x41300000); run(300);
-wv32("g_stage6_synthetic_vout",0x41500000); run(300);
-wv32("g_stage6_synthetic_vout",0x40A00000); run(300);
-wv32("g_stage6_synthetic_vout",0x41600000); run(300);
+// coverage: 12V,11V,13V, low sat, high sat, stale (raw-domain samples)
+wv("g_stage6_noenergy_test_mode",1); wv("g_stage6_synthetic_vout_raw",1491); run(300);
+wv("g_stage6_synthetic_vout_raw",1368); run(300);
+wv("g_stage6_synthetic_vout_raw",1615); run(300);
+wv("g_stage6_synthetic_vout_raw",626); run(300);
+wv("g_stage6_synthetic_vout_raw",1739); run(300);
 wv("g_stage6_noenergy_test_mode",3); run(300);
 try{ session.target.halt(); }catch(e){}
 out("BC ticks="+rv32u("g_stage6_noenergy_test_ticks"));
