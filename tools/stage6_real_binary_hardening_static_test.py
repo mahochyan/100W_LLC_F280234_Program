@@ -350,8 +350,8 @@ check(llc_period(149900) != llc_period(149800),
 check('149800' in timing and '149625' in timing,
       "timing script expects first command 149800 and actual 60000000/401=149625")
 # C: pre-run read-only period baseline + post-run strict period-change gates
-check('gate("PRE_RUN_TBPRD_399"' in timing and 'gate("PRE_RUN_PERIOD_399"' in timing,
-      "timing script read-only confirms EPwm1Regs.TBPRD==399 and g_pwm_period==399 before any write")
+check('gate("PRE_RUN_TBPRD_399"' in timing and 'gate("PRE_RUN_PERIOD_ZERO"' in timing,
+      "timing script read-only confirms EPwm1Regs.TBPRD==399 and g_pwm_period==0 (APP_Init Stage-0-SAFE clear, app.c:93) before any write")
 for g in ["RING_FIRST_FRESH", "RING_FIRST_FREQ_149800", "RING_FIRST_TBPRD_400",
           "RING_FIRST_ACTUAL_149625"]:
     check(f"gate(\"{g}\"" in timing, f"timing result hard gate {g} present")

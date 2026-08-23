@@ -367,3 +367,67 @@ Only `tools/`, static tests, docs/evidence text and the delivery ZIP changed.
 Firmware source unchanged -> REAL OUT **not rebuilt**, SHA stays
 `CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72`.
 Commit: `tools: force period-changing actuator path in Stage6 no-power timing gate`.
+
+
+## 17. EXEC V1 — No-power timing execution (real target, CNT3/CNT4 OPEN)
+
+Task: `STAGE6_REAL_BINARY_NOPOWER_TIMING_EXECUTION_V1`.
+
+### 17.1 Execution
+
+CNT3/CNT4 were physically confirmed OPEN by the field operator;
+`DSH_CNT34_OPEN_CONFIRMED=1` was set. The frozen REAL OUT
+(`CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72`) was
+SHA-256 verified on the host before connect. `tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js`
+was executed once (run(20), single stop, black-box read). RAW log:
+`evidence/stage6_first_real_pi_shot_real/NOPOWER_TIMING_RAW_V1.txt`;
+structured result: `NOPOWER_TIMING_RESULT_V1.json`.
+
+### 17.2 Result: NOPOWER_TIMING_FAIL
+
+Gate `ISR_MAX_LE_900` FAIL: `g_real_isr_cycles_max = 1406` cycles
+(23.4 us @ 60 MHz) > 900-cycle gate; `g_real_isr_overrun_count = 1`
+(firmware overrun threshold 1200, protection.c:386);
+`timer0_entry_interval_max = 1472` cycles (24.5 us) confirms a real ISR
+overrun during the 20 ms window — the period-changing write path of the
+first bounded shot (LLC_SetFrequencyHz full path: period division,
+TBPRD/CMPA write, ADC sync) exceeds the 20 us TINT0 budget.
+
+All other gates PASS: host SHA256, CNT34 open, fault=0, OST=1, PWM=0,
+AQCSFRC force-low (all=5, CSFA=CSFB=1), PRE TBPRD=399, PRE g_pwm_period=0
+(APP_Init Stage-0-SAFE clear, app.c:93), fresh_delta=1, pi_delta=1,
+power_writes delta=11, ring[0] fresh=1 freq_cmd_hz=149800 tbprd=400
+actual_freq_hz=149625, state=COMPLETE abort=TIMEOUT tick=10 ok=1
+rb_count=11, PWM=0 OST=1 fault=0, ISR count=1695>0, Timer0 entry=1696>0,
+TIMER2_DELTA=11997 (11000..14000, ~200 us).
+
+### 17.3 Measurement integrity
+
+The suspended-ISR drain ran clean (drain[0] max=458); a suspended-ISR
+pollution would read ~1e5-1e6 cycles (halt-time delta), not 1406. The
+1406-cycle reading is a REAL firmware measurement.
+
+### 17.4 Script fixes made during execution
+
+- `String.format` (Rhino has no static JS String.format) -> pure JS hex.
+- Java String `!==` compares by identity in Rhino -> `.equals()`.
+- AQCSFRC `.all = 0x11` write did not take effect on the target ->
+  bit-field writes `AQCSFRC.bit.CSFA/CSFB = 1` (firmware idiom), verified
+  by read-back (all=5).
+- PRE `g_pwm_period==399` assumption contradicted by the frozen firmware
+  (APP_Init app.c:93 clears it to 0 for Stage 0 SAFE) -> gate
+  `PRE_RUN_PERIOD_ZERO` (g_pwm_period==0) with TBPRD==399; the test-state
+  write sets g_pwm_period=399 and ring[0].tbprd==400 proves the 399->400
+  change.
+- Suspended-ISR measurement pollution (a halt can suspend a TINT0 ISR; on
+  the next run it completes with a halt-time Timer2 delta) -> 1 ms drain
+  windows until max<=900, plus a whole-flow measurement-pollution retry
+  (max>10000) that re-loads the program and re-checks every safety gate.
+  This is a measurement-artifact retry, NOT a gate-failure retry.
+
+### 17.5 Stop condition
+
+Per the task rule "any gate failure -> NOPOWER_TIMING_FAIL, stop
+immediately", no retry was performed. CNT3/CNT4 remain OPEN. No real
+power was executed. The first REAL 200 us PI shot authorization is NOT
+requested — the ISR budget failure must be resolved first.

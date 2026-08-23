@@ -1,0 +1,46 @@
+REAL OUT host SHA256: CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72
+REAL OUT manifest   : CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72
+TIMING_HOST_SHA256_HARD_GATE_PASS
+CNT3/CNT4 open confirmed: true
+=== ATTEMPT 1 ===
+pre-test fault=0 ost=1 pwm=0
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+AQCSFRC.all=5 CSFA=1 CSFB=1
+GATE AQCSFRC_FORCE_LOW: PASS
+addr g_pwm_period=35844 g_pwm_enabled=35845 g_fault_flags=36186
+diag sys=1 stage=0 pwm_enable_result=0 tzclr_count=350
+pre-run EPwm1Regs.TBPRD=399 g_pwm_period=0
+GATE PRE_RUN_TBPRD_399: PASS
+GATE PRE_RUN_PERIOD_ZERO: PASS
+drain[0] max=458
+pre-run fresh_count=0 pi_update_count=0 power_writes=0
+real_isr_max=1406 overrun=1 entry_interval_max=1472 min=1036 count=1695 entry_count=1696
+fresh_delta=1 pi_delta=1 power_writes=11 (delta 11)
+shot state=3 abort=1 tick=10 ok=1
+post-run pwm=0 ost=1 fault=0 rb_index=11 rb_count=11
+ring[0] fresh=1 freq_cmd_hz=149800 tbprd=400 actual_freq_hz=149625
+FIRST_WRITE_TIMER2=4276582341
+OST_TIMER2=4276570344
+TIMER2_DELTA=11997
+post-run freq_cmd=149800 g_pwm_period=400 EPwm1Regs.TBPRD=400 actual=149625
+GATE FRESH_SAMPLE_DELTA: PASS
+GATE PI_UPDATE_DELTA: PASS
+GATE POWER_WRITES_DELTA_11: PASS
+GATE RING_FIRST_FRESH: PASS
+GATE RING_FIRST_FREQ_149800: PASS
+GATE RING_FIRST_TBPRD_400: PASS
+GATE RING_FIRST_ACTUAL_149625: PASS
+GATE SHOT_STATE_COMPLETE: PASS
+GATE SHOT_ABORT_TIMEOUT: PASS
+GATE SHOT_TICK_10: PASS
+GATE SHOT_OK_1: PASS
+GATE RB_COUNT_11: PASS
+GATE PWM_ZERO: PASS
+GATE OST_LATCHED_END: PASS
+GATE FAULT_ZERO_END: PASS
+GATE ISR_MAX_LE_900: FAIL
+ABORT: gate ISR_MAX_LE_900 failed. Exiting WITHOUT writing run state.
+TIMING_NOPOWER_FAIL
+js: "tools/stage6_first_real_pi_shot_real_binary_timing_nopower.js", line 334: exception from uncaught JavaScript throw: gate-ISR_MAX_LE_900
