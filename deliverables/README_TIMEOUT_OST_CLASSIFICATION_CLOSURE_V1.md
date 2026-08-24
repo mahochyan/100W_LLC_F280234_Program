@@ -188,6 +188,27 @@ Evidence:
 | PI direction | `PI_DIRECTION_CONDITIONAL_PASS=true` |
 | verdict | `STAGE_G_1MS_NOLOAD_REAL_SHOT_FAIL` |
 
+
+### Retry #1 (explicit re-authorization)
+
+User explicitly authorized a second no-load 1 ms shot on the same REAL `80E4647A`.
+Result: **FAIL** again, same `VOUT_11V` abort.
+
+| field | value |
+|---|---|
+| state | ABORTED (4) |
+| abort | VOUT_11V (2) |
+| tick | 28 |
+| ok | 0 |
+| power_writes | 15 |
+| max_vout_raw | 1367 >= abort_vout_raw 1367 |
+| ISR max / compute / apply | 877 / 807 / 877 <= 900 |
+| fault | 0x10000 (65536) |
+| PI direction | `PI_DIRECTION_CONDITIONAL_PASS=true` |
+| verdict | `STAGE_G_1MS_NOLOAD_REAL_SHOT_FAIL` |
+
+Evidence: `G8_1MS_NOLOAD_REAL_80E4647A_RETRY1_RAW.txt` / `..._RESULT.json`
+
 ## Final tokens (updated for 1 ms attempt)
 
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED`, `NOPOWER_TIMEOUT_END_PASS`,
