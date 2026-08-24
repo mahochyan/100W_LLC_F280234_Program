@@ -1,0 +1,31 @@
+{
+  "milestone": "STAGE6_300US_NOPOWER_TIMING_V1",
+  "real_out_sha256": "324AF09EFB6F277D94AA8036D1994771733F9ABA310668C717C56B37A7108731",
+  "cn34": "OPEN",
+  "verdict": "PASS",
+  "values": {
+    "isr_max": 755,
+    "compute_max": 754,
+    "apply_max": 755,
+    "overrun": 0,
+    "global_entry_interval_max": 1205,
+    "shot_entry_interval_max": 1201,
+    "timer2_delta": 18880,
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "fast_ticks": 16,
+    "pi_compute_count": 9,
+    "pwm_apply_count": 8,
+    "pending_valid": 1,
+    "power_writes": 8,
+    "pwm_enabled": 0,
+    "pwm_enable_result": 0,
+    "power_window_state": 2,
+    "ost": 1,
+    "fault": 0,
+    "first_cmd": 149800,
+    "first_tbprd": 400,
+    "first_actual": 149625
+  }
+}

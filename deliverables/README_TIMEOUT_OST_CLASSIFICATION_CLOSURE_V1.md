@@ -93,7 +93,38 @@ After reconciliation the G6 run is a **functional 200 µs PASS**; the two remain
 harness gates were invalid measurement-semantics gates and are replaced by shot-local
 telemetry gates.
 
-## Final tokens
+## 300 µs real-power run (authorized once; no external load)
+
+Authorized by explicit user selection. New REAL binary `324AF09E` with
+`FIRST_REAL_PI_DURATION_CYCLES=18000` (300 µs @ 60 MHz) was built and frozen.
+No-power timing first passed on the same binary, then one real no-load 300 µs
+shot was executed with `DSH_CNT34_CONNECTED_CONFIRMED=1`.
+
+Evidence:
+- `G6_300US_324AF09E_NOPOWER_TIMING_RAW.txt` / `..._RESULT.json`
+- `G7_300US_NOLOAD_REAL_324AF09E_RAW.txt` / `..._RESULT.json`
+
+| field | value |
+|---|---|
+| REAL OUT SHA256 | `324AF09EFB6F277D94AA8036D1994771733F9ABA310668C717C56B37A7108731` |
+| state | COMPLETE (3) |
+| abort | TIMEOUT (1) |
+| tick | 16 |
+| ok | 1 |
+| power_writes | 8 |
+| Timer2 delta | 18925 (17500..20500) |
+| ISR max / compute / apply | 800 / 800 / 757 ≤ 900 |
+| overrun | 0 |
+| shot-local entry max | 1206 ≤ 1230 |
+| fault | 0 |
+| pwm_enabled / pwm_enable_result | 0 / 0 |
+| power_window_state | POST_OST (2) |
+| OST | 1 |
+| softstart / handoff | COMPLETE / OK |
+| shot_error first/last/min/max | 0 / -46 / -46 / 0 |
+| verdict | `STAGE_G_300US_NOLOAD_REAL_SHOT_PASS` |
+
+## Final tokens (updated for 300 µs)
 
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED`, `NOPOWER_TIMEOUT_END_PASS`,
 `ADC_STALE_PROTECTION_UNCHANGED`, `COMPARATOR_TZ_PROTECTION_UNCHANGED`,
@@ -103,11 +134,12 @@ telemetry gates.
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_REAL_POWER_PASS`,
 `ISR_EXECUTION_BUDGET_PASS`, `ACTIVE_WINDOW_FAULT_ZERO_PASS`,
 `PI_DIRECTION_PREVIOUS_G3_EVIDENCE_VALID`, `ENTRY_INTERVAL_GATE_SCOPE_INVALID`,
-`POSTSHOT_ERROR_SIGN_GATE_INVALID`, `NO_MORE_200US_RETRY`.
+`POSTSHOT_ERROR_SIGN_GATE_INVALID`, `NO_MORE_200US_RETRY`,
+`AUTHORIZED_REAL_300US_SHOT_PASS`, `REAL_300US_324AF09E_FROZEN`,
+`NOPOWER_300US_TIMING_PASS_324AF09E`.
 
 ## Stop point
 
-All no-power gates passed on the new REAL `725BB3BE`. The offline reconciliation is
-complete: the two G6 harness failures are reclassified as measurement-semantics
-issues, and new shot-local telemetry is frozen. **No further real-power run is
-authorized.** Stop here and await explicit authorization for a 300 µs real-power shot.
+The 300 µs real-power no-load shot has been executed once on `324AF09E` and passed.
+No further real-power run is authorized automatically. Stop here and await explicit
+authorization for the next step.

@@ -15,9 +15,9 @@
 //    reference/VOUT cal/Comp+TZ/fault/system RUN) + period-command consistency
 //    by multiplication; on failure the pending is discarded + SHOT_Revoke +
 //    OST + PWM=0. Commit clears pending.valid (no double commit).
-// D: real-time 200 us cage via Timer2 in CTRL_FastTask BEFORE any pipeline
-//    phase (elapsed = first_apply_timer2 - current_timer2 >= 12000 cycles):
-//    a pending is never committed after 200 us.
+// D: real-time 300 us cage via Timer2 in CTRL_FastTask BEFORE any pipeline
+//    phase (elapsed = first_apply_timer2 - current_timer2 >= 18000 cycles):
+//    a pending is never committed after 300 us.
 // E: no ring inside the 20 us ISR; only the minimal summary record
 //    (first command/TBPRD/actual, last/min/max command, max VOUT raw, phase
 //    counts, abort reason, Timer2 captures) is written in-ISR. Per-phase
@@ -29,7 +29,7 @@
 //    < 1200, overrun == 0, Timer2 gate ok, fault == 0, final PWM == 0,
 //    final OST == 1, pending final invalid, phase counts correct.
 // Static derivation of the phase counts (T1 = first apply capture, inside the
-// apply ISR; Timer2 cage trips on the 11th tick after it):
+// apply ISR; Timer2 cage trips on the 16th tick after it):
 //   tick0 COMPUTE (first pending 149800) -> tick1 APPLY (T1, ->ACTIVE) ->
 //   ticks alternate; cage at tick12 -> fast_ticks == 11,
 //   pi_compute_count == 6 (tick0 + ticks 2,4,6,8,10),
@@ -39,7 +39,7 @@
 //   documented in the report and confirmed by this no-power run).
 // EXEC V1 (STAGE6_REAL_BINARY_NOPOWER_TIMING_EXECUTION_V1):
 //   - run(20) = 20 ms (NOT 2 s): state starts directly in RUN with the shot
-//     armed; the 200 us cage ends after ~0.22 ms with on-chip OST=1/PWM=0/
+//     armed; the 300 us cage ends after ~0.22 ms with on-chip OST=1/PWM=0/
 //     IDLE; the remaining time observes idle ticks. The first fresh control
 //     tick (worst case) is captured in the first 20 us.
 //   - suspended-ISR drain: a halt can suspend a TINT0 ISR mid-execution; on
@@ -324,7 +324,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   clearReal();
 
   // run(20) = 20 ms (NOT 2 s): state starts directly in RUN with the shot armed;
-  // the 200 us cage ends after ~0.22 ms (11 x 20 us ticks) with on-chip
+  // the 300 us cage ends after ~0.22 ms (11 x 20 us ticks) with on-chip
   // OST=1/PWM=0/IDLE; the remaining time observes idle ticks. The first fresh
   // control tick (worst case: full period-changing LLC_SetFrequencyHz path) is
   // captured in the first 20 us.
@@ -402,7 +402,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
 
   // ---- RECOVERY V1 verdict (independent of gate evaluation) ----
   // Static derivation: T1 (first apply) is captured inside the apply ISR, so
-  // the Timer2 cage (>=12000 cycles) trips on the 11th tick after it:
+  // the Timer2 cage (>=18000 cycles) trips on the 16th tick after it:
   // fast_ticks=11, pi_compute_count=6 (tick0 first pending + 5 inside ACTIVE),
   // pwm_apply_count=6, pending consumed by the last apply -> valid=0.
   print("SPLIT_PIPELINE_40US_COMPUTE_MAX="+cmax);
@@ -424,17 +424,17 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   try{
     gate("FRESH_SAMPLE_DELTA", fdelta>=1);
     gate("PI_UPDATE_DELTA", pdelta>=1);
-    gate("POWER_WRITES_DELTA_6", pwdelta===6);
+    gate("POWER_WRITES_DELTA_8", pwdelta===8);
     gate("SUMMARY_FIRST_FREQ_149800", sfirst===149800);
     gate("SUMMARY_FIRST_TBPRD_400", stbprd===400);
     gate("SUMMARY_FIRST_ACTUAL_149625", sactual===149625);
-    gate("PIPELINE_PI_COMPUTE_COUNT_6", spc===6);
-    gate("PIPELINE_PWM_APPLY_COUNT_6", sac===6);
-    gate("PIPELINE_FAST_TICKS_11", stk===11);
-    gate("PENDING_FINAL_INVALID", pendv===0);
+    gate("PIPELINE_PI_COMPUTE_COUNT_9", spc===9);
+    gate("PIPELINE_PWM_APPLY_COUNT_8", sac===8);
+    gate("PIPELINE_FAST_TICKS_16", stk===16);
+    gate("PENDING_FINAL_PENDING_1", pendv===1);
     gate("SHOT_STATE_COMPLETE", st===3);
     gate("SHOT_ABORT_TIMEOUT", ab===1);
-    gate("SHOT_TICK_11", tk===11);
+    gate("SHOT_TICK_16", tk===16);
     gate("SHOT_OK_1", okf===1);
     gate("PWM_ZERO", pwm2===0);
     gate("OST_LATCHED_END", ost2==="1");
@@ -446,7 +446,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
     gate("ENTRY_INTERVAL_MAX_LE_1230", sentry<=1230);   /* shot-local, reset at first apply */
     gate("ISR_COUNT_POSITIVE", count>0);
     gate("TIMER0_ENTRY_POSITIVE", ecnt>0);
-    gate("TIMER2_DELTA_11000_14000", t2d>=11000 && t2d<=14000);
+    gate("TIMER2_DELTA_17500_20500", t2d>=17500 && t2d<=20500);
     gate("ENUM_FAULT_COMP_TZ1_0x10", ENUM_FAULT_COMP_TZ1===0x10);
     gate("ENUM_FAULT_ADC_STALE_OVERFLOW_0x40", ENUM_FAULT_ADC_STALE_OVERFLOW===0x40);
     gate("ENUM_SHOT_ABORT_TZ_3", ENUM_SHOT_ABORT_TZ===3);

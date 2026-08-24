@@ -166,7 +166,7 @@ Uint16 SHOT_RealSoftStartAuthOk(void)
 
 /* ------------------------------------------------------------------ */
 /* C: bounded PI limited authorization (REAL build only).              */
-/* True only during the bounded 200us PI window after the 10V handoff: */
+/* True only during the bounded 300us PI window after the 10V handoff: */
 /* Stage6, shot pre-armed, handoff OK, reference valid, VOUT cal,      */
 /* Comp/TZ loopback verified, no fault, system in RUN. This is the     */
 /* context that lets PROT_SlowTask cap the frequency at                */
@@ -194,7 +194,7 @@ Uint16 SHOT_RealBoundedPiAuthOk(void)
 /* ------------------------------------------------------------------ */
 /* D per-tick write gate. The full permission set is checked on the very
  * first shot write (IDLE/ARMED -> ACTIVE); once ACTIVE, only the dynamic
- * conditions that can change during the 200 us window are re-checked per
+ * conditions that can change during the 300 us window are re-checked per
  * tick (a fault appearing, or an explicit revoke) to keep the 20 us budget.
  * The static conditions (stage, handoff, reference valid, VOUT cal, Comp/TZ
  * armed) are fixed at handoff and cannot change during the bounded shot. */
@@ -310,10 +310,10 @@ void SHOT_Revoke(Uint16 reason)
 
     if (reason == SHOT_ABORT_TIMEOUT)
     {
-        /* E: auto-OST at 200 us. Capture Timer2 BEFORE the planned OST, then
+        /* E: auto-OST at 300 us. Capture Timer2 BEFORE the planned OST, then
          * use LLC_PWM_DisableSafe() to perform the planned block. That routine
          * disables the TZ OST interrupt before forcing OST and immediately
-         * classifies the window as POST_OST, so a normal 200 us timeout cannot
+         * classifies the window as POST_OST, so a normal 300 us timeout cannot
          * be mistaken for an ACTIVE-window TZ fault. */
         g_first_real_pi_shot_ost_timer2 = CpuTimer2Regs.TIM.all;   /* H */
         g_shot_summary.ost_timer2       = g_first_real_pi_shot_ost_timer2;
@@ -432,7 +432,7 @@ void SHOT_FastTask(void)
     }
 
     /* D: elapsed-fine 20 us tick count from the first apply (ACTIVE entry) to
-     * the cage. Expected 10 for the 200 us cage. The cage itself is Timer2
+     * the cage. Expected 10 for the 300 us cage. The cage itself is Timer2
      * based (see CTRL_FastTask); this counter is the independent tick proof. */
     g_shot_summary.fast_ticks++;
     g_first_real_pi_shot_tick++;

@@ -185,13 +185,13 @@ check("FIRST_REAL_PI_MAX_HZ            170000UL" in shot_h, "shot envelope max 1
 check("SHOT_ClampFreq" in shot_c and "FIRST_REAL_PI_MIN_HZ" in shot_c and "FIRST_REAL_PI_MAX_HZ" in shot_c,
       "SHOT_ClampFreq clamps into 145..170 kHz")
 
-# 5. 200 us real-time cage (RECOVERY V1 D: Timer2 cycles, not tick count)
-check(re.search(r"FIRST_REAL_PI_DURATION_CYCLES\s+12000UL", shot_h),
-      "200 us real-time cage = 12000 Timer2 cycles at 60 MHz")
+# 5. 300 us real-time cage (G6 300us step: Timer2 cycles, not tick count)
+check(re.search(r"FIRST_REAL_PI_DURATION_CYCLES\s+18000UL", shot_h),
+      "300 us real-time cage = 18000 Timer2 cycles at 60 MHz")
 check("FIRST_REAL_PI_DURATION_CYCLES" in read_text(ROOT / "app" / "control.c") and
       "SHOT_Revoke(SHOT_ABORT_TIMEOUT)" in read_text(ROOT / "app" / "control.c") and
       "g_first_real_pi_shot_first_write_timer2" in read_text(ROOT / "app" / "control.c"),
-      "on-chip 200 us auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)")
+      "on-chip 300 us auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)")
 
 # 6. Debug override absent from REAL build
 check("#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD" in shot_h,
@@ -304,9 +304,9 @@ check(re.search(r"#define\s+SHOT_ABORT_PERMISSION\s+6U", shot_h),
       "enum SHOT_ABORT_PERMISSION == 6")
 
 # 17d. Harness signed control_error_raw and enum-aware post-shot gates.
-noload_script = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_200us_noload.js")
+noload_script = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_300us_noload.js")
 chain_script = read_text(ROOT / "tools" / "stage6_g_nopower_chaincheck.js")
-for label, script in [("real 200us noload", noload_script), ("no-power chaincheck", chain_script)]:
+for label, script in [("real 300us noload", noload_script), ("no-power chaincheck", chain_script)]:
     check("function r16(n){var v=rw(n); return (v>=32768)?v-65536:v;}" in script,
           f"{label} harness defines signed int16 r16()")
     check('var errRaw=r16("g_control_error_raw");' in script,
@@ -362,7 +362,7 @@ check("void PROT_RequestFault(Uint32 cause, Uint16 countTrip)" in read_text(ROOT
       "void PROT_RequestFault(Uint32 cause, Uint16 countTrip);" in read_text(ROOT / "app" / "protection.h"),
       "PROT_RequestFault cause widened to Uint32")
 # Harness must use shot-local entry max and NOT post-IDLE global error direction.
-for label, script in [("real 200us noload", noload_script), ("no-power chaincheck", chain_script)]:
+for label, script in [("real 300us noload", noload_script), ("no-power chaincheck", chain_script)]:
     check('sEntryMax=rv32("g_shot_summary.entry_interval_max_shot")' in script,
           f"{label} reads shot-local entry max from summary")
     check("ENTRY_INTERVAL_LE_1230" in script and "sEntryMax" in script,
@@ -500,17 +500,17 @@ check('gate("SUMMARY_FIRST_TBPRD_400"' in timing and 'gate("SUMMARY_FIRST_ACTUAL
 check('gate("FREQ_CMD_CHANGED"' not in timing,
       "timing script does NOT rely on freq_cmd != 150000 as the actuator-path proof")
 # D: Timer2 no-power hard gate
-check('gate("TIMER2_DELTA_11000_14000"' in timing and
+check('gate("TIMER2_DELTA_17500_20500"' in timing and
       "FIRST_WRITE_TIMER2" in timing and "OST_TIMER2" in timing and "TIMER2_DELTA" in timing,
-      "timing script Timer2 delta gate 11000..14000 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output")
+      "timing script Timer2 delta gate 17500..20500 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output")
 # E: result consistency gates (40 us split pipeline: phase maxima, phase
 # counts derived statically, pending finally invalid, no ring gates)
-for g in ["FRESH_SAMPLE_DELTA", "PI_UPDATE_DELTA", "POWER_WRITES_DELTA_6",
+for g in ["FRESH_SAMPLE_DELTA", "PI_UPDATE_DELTA", "POWER_WRITES_DELTA_8",
           "SUMMARY_FIRST_FREQ_149800", "SUMMARY_FIRST_TBPRD_400",
-          "SUMMARY_FIRST_ACTUAL_149625", "PIPELINE_PI_COMPUTE_COUNT_6",
-          "PIPELINE_PWM_APPLY_COUNT_6", "PIPELINE_FAST_TICKS_11",
-          "PENDING_FINAL_INVALID", "SHOT_STATE_COMPLETE", "SHOT_ABORT_TIMEOUT",
-          "SHOT_TICK_11", "SHOT_OK_1", "PWM_ZERO", "OST_LATCHED_END",
+          "SUMMARY_FIRST_ACTUAL_149625", "PIPELINE_PI_COMPUTE_COUNT_9",
+          "PIPELINE_PWM_APPLY_COUNT_8", "PIPELINE_FAST_TICKS_16",
+          "PENDING_FINAL_PENDING_1", "SHOT_STATE_COMPLETE", "SHOT_ABORT_TIMEOUT",
+          "SHOT_TICK_16", "SHOT_OK_1", "PWM_ZERO", "OST_LATCHED_END",
           "FAULT_ZERO_END", "COMPUTE_PHASE_MAX_LE_900", "APPLY_PHASE_MAX_LE_900",
           "ISR_MAX_LE_900", "OVERRUN_ZERO", "ENTRY_INTERVAL_MAX_LE_1230",
           "ISR_COUNT_POSITIVE", "TIMER0_ENTRY_POSITIVE"]:
