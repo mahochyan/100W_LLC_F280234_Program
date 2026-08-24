@@ -1,0 +1,49 @@
+{
+ "run": "SPLIT_PIPELINE_G_206DA60C",
+ "out_sha256": "206DA60C16BEC5F8C998B00616F0F8AAF55971A96FC8AD24FD5779BE672FC436",
+ "build_delta": "explicit .bss init for g_pfm_direction_test_mode/g_softstart_request/g_softstart_ramp_active (G fix); F harness now clears g_adc_pwm_sync_consecutive_miss for deterministic fresh sample",
+ "real_isr_max": 747,
+ "compute_phase_max": 709,
+ "apply_phase_max": 747,
+ "overrun": 0,
+ "entry_interval_max": 1207,
+ "entry_count": 1634,
+ "count": 1633,
+ "first_cmd": 149800,
+ "first_tbprd": 400,
+ "first_actual": 149625,
+ "max_cmd": 149800,
+ "min_cmd": 149800,
+ "max_vout_raw": 1200,
+ "fast_ticks": 11,
+ "pi_compute_count": 6,
+ "pwm_apply_count": 6,
+ "abort": 1,
+ "pending_valid": 0,
+ "first_apply_t2": 4277098155,
+ "ost_t2": 4277085298,
+ "verdict": "SPLIT_PIPELINE_40US_TIMING_PASS",
+ "gates": [
+  "TIMING PASS",
+  "SUMMARY_FIRST_FREQ_149800 PASS",
+  "POWER_WRITES_DELTA_6 PASS",
+  "FAST_TICKS_11 PASS",
+  "PI_COMPUTE_6 PASS",
+  "APPLY_6 PASS",
+  "ENTRY_LE_1230 PASS",
+  "OVERRUN_0 PASS"
+ ],
+ "attempts": [
+  {
+   "attempt": 1,
+   "drain": "residue",
+   "real_isr_max": 18116641,
+   "overrun": 1,
+   "retried": true
+  },
+  {
+   "attempt": 2,
+   "result": "PASS"
+  }
+ ]
+}

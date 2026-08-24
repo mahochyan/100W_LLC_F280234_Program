@@ -24,12 +24,19 @@ EVID_REAL_MAP = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.map"
 EVID_REAL_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out"
 EVID_NOENERGY_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_NOENERGY.out"
 # RECOVERY V1: the newest frozen split-pipeline artifacts take precedence over
-# the earlier frozen REAL candidate when auditing a clean checkout.
+# the earlier frozen REAL candidate when auditing a clean checkout. The G build
+# (explicit .bss init fix, 206da60c) is the current formal REAL binary.
+EVID_SPLIT_G_MAP = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_SPLIT_PIPELINE_G_206DA60C.map"
+EVID_SPLIT_G_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_SPLIT_PIPELINE_G_206DA60C.out"
 EVID_SPLIT_MAP = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_SPLIT_PIPELINE_932337AA.map"
 EVID_SPLIT_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_SPLIT_PIPELINE_932337AA.out"
 
-REAL_MAP = LOCAL_REAL_MAP if LOCAL_REAL_MAP.exists() else (EVID_SPLIT_MAP if EVID_SPLIT_MAP.exists() else EVID_REAL_MAP)
-REAL_OUT = LOCAL_REAL_OUT if LOCAL_REAL_OUT.exists() else (EVID_SPLIT_OUT if EVID_SPLIT_OUT.exists() else EVID_REAL_OUT)
+REAL_MAP = LOCAL_REAL_MAP if LOCAL_REAL_MAP.exists() else (
+    EVID_SPLIT_G_MAP if EVID_SPLIT_G_MAP.exists() else (
+        EVID_SPLIT_MAP if EVID_SPLIT_MAP.exists() else EVID_REAL_MAP))
+REAL_OUT = LOCAL_REAL_OUT if LOCAL_REAL_OUT.exists() else (
+    EVID_SPLIT_G_OUT if EVID_SPLIT_G_OUT.exists() else (
+        EVID_SPLIT_OUT if EVID_SPLIT_OUT.exists() else EVID_REAL_OUT))
 NOENERGY_OUT = LOCAL_NOENERGY_OUT if LOCAL_NOENERGY_OUT.exists() else EVID_NOENERGY_OUT
 
 failures = []
@@ -271,6 +278,60 @@ check("SHOT_Revoke(SHOT_ABORT_CEILING)" in ss and "SHOT_Revoke(SHOT_ABORT_TZ)" i
       "SS_End revokes shot arm on every other abort path (REAL build)")
 check("SHOT_ABORT_NO_HANDOFF" in shot_h and "SHOT_ABORT_CEILING" in shot_h,
       "shot.h defines SHOT_ABORT_NO_HANDOFF / SHOT_ABORT_CEILING")
+
+# 17b. STAGE6_TIMEOUT_OST_CLASSIFICATION_CLOSURE_V1: normal 200 us end must be
+#      a planned POST_OST block, never an ACTIVE-window TZ fault.
+check("LLC_PWM_DisableSafe();" in shot_c and "LLC_PWM_DisableSafe();          /* planned block: TZ OST latch + POST_OST */" in shot_c,
+      "SHOT_Revoke(SHOT_ABORT_TIMEOUT) routes through LLC_PWM_DisableSafe()")
+timeout_block = shot_c[shot_c.find("if (reason == SHOT_ABORT_TIMEOUT)"):shot_c.find("/* Abort paths -> FAULT")]
+check("EPwm1Regs.TZFRC.bit.OST" not in timeout_block,
+      "SHOT_Revoke timeout branch has NO raw TZFRC.OST write")
+check("g_power_window_state       = POWER_WINDOW_POST_OST;" in timeout_block,
+      "SHOT_Revoke timeout branch explicitly closes power window to POST_OST")
+check("g_pwm_enable_result        = 0U;" in timeout_block and "g_pwm_enabled              = 0U;" in timeout_block,
+      "SHOT_Revoke timeout branch clears PWM enable and result")
+
+# 17c. Enum static gates (must match C header values).
+cfg = read_text(ROOT / "llc_config.h")
+shot_h = read_text(ROOT / "app" / "shot.h")
+check(re.search(r"#define\s+FAULT_COMP_TZ1\s+0x00000010UL", cfg),
+      "enum FAULT_COMP_TZ1 == 0x10")
+check(re.search(r"#define\s+FAULT_ADC_STALE_OVERFLOW\s+0x00000040UL", cfg),
+      "enum FAULT_ADC_STALE_OVERFLOW == 0x40")
+check(re.search(r"#define\s+SHOT_ABORT_TZ\s+3U", shot_h),
+      "enum SHOT_ABORT_TZ == 3")
+check(re.search(r"#define\s+SHOT_ABORT_PERMISSION\s+6U", shot_h),
+      "enum SHOT_ABORT_PERMISSION == 6")
+
+# 17d. Harness signed control_error_raw and enum-aware post-shot gates.
+noload_script = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_200us_noload.js")
+chain_script = read_text(ROOT / "tools" / "stage6_g_nopower_chaincheck.js")
+for label, script in [("real 200us noload", noload_script), ("no-power chaincheck", chain_script)]:
+    check("function r16(n){var v=rw(n); return (v>=32768)?v-65536:v;}" in script,
+          f"{label} harness defines signed int16 r16()")
+    check('var errRaw=r16("g_control_error_raw");' in script,
+          f"{label} harness reads control_error_raw as signed int16")
+    check("ENUM_FAULT_COMP_TZ1=0x10" in script and "ENUM_FAULT_ADC_STALE_OVERFLOW=0x40" in script and
+          "ENUM_SHOT_ABORT_TZ=3" in script and "ENUM_SHOT_ABORT_PERMISSION=6" in script,
+          f"{label} harness defines enum static gates")
+    check("PWM_ENABLE_RESULT_ZERO" in script and "POWER_WINDOW_POST_OST" in script and
+          "SUMMARY_ABORT_REASON_TIMEOUT" in script and "NO_ABORT_TZ" in script and
+          "NO_ABORT_PERMISSION" in script and "FAULT_COMP_TZ1_BIT_CLEAR" in script and
+          "FAULT_ADC_STALE_BIT_CLEAR" in script,
+          f"{label} harness gates timeout closure + enum bits")
+
+# 17e. Forbidden changes are still forbidden (no ADC-stale exemption, no
+#      comparator/DAC threshold, no auto fault clear, no ISR gate relaxation).
+adc_text = read_text(ROOT / "app" / "adc.c")
+check("FAULT_ADC_STALE_OVERFLOW" in adc_text,
+      "ADC stale overflow protection remains present")
+check("LLC_OVP_RAW_THRESHOLD" in prot and "LLC_UVP_RAW_THRESHOLD" in prot and "LLC_OCP_RAW_THRESHOLD" in prot,
+      "Comparator/DAC/protection thresholds remain unchanged in protection.c")
+check("g_fault_flags |= FAULT_ADC_STALE_OVERFLOW" in adc_text,
+      "ADC stale overflow still latches fault (no exemption)")
+check("ISR_MAX_LE_900" in read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_binary_timing_nopower.js"),
+      "ISR <=900 gate is not lowered/removed in no-power timing harness")
+
 
 # 18. F: timing script symbol audit against REAL MAP
 timing = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_binary_timing_nopower.js")

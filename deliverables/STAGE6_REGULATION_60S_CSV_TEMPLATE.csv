@@ -1,0 +1,2 @@
+stage,run_id,timestamp_utc,vin_v,iin_a,vout_v,iout_a,pin_w,pout_w,efficiency,load_w,frequency_min_hz,frequency_max_hz,frequency_avg_hz,fault_flags,tz_ost,adc_stale,isr_max_cycles,overrun_count,temperature_c,notes
+10V_60S,TPLATE,2026-08-24T00:00:00Z,,,,,,,,,,,,,,,,,,

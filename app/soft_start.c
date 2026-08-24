@@ -648,6 +648,8 @@ void SoftStart_SelectProfile(Uint16 profile)
 void SoftStart_Init(void)
 {
     SoftStart_SelectProfile(SOFTSTART_PROFILE_DEFAULT);
+    g_softstart_request = 0U;   /* defensive: DSS loadProgram does not zero .bss */
+    g_softstart_ramp_active = 0U;
     g_softstart_state = SOFTSTART_INIT;
     g_softstart_result = SS_RESULT_NONE;
     g_softstart_acceptance_mode = 0U;

@@ -1,0 +1,7 @@
+REVOKED_BY_REVIEW
+DO_NOT_EXECUTE
+
+This OUT (SHA256 206DA60C16BEC5F8C998B00616F0F8AAF55971A96FC8AD24FD5779BE672FC436)
+was the split-pipeline G REAL binary used in the G3 real no-load shot; software-OST timeout misclassification caused STAGE_G_200US_NOLOAD_REAL_SHOT_FAIL.
+Use the current LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out in this
+directory (see REAL_SHA256SUMS.txt).

@@ -1,0 +1,7 @@
+REVOKED_BY_REVIEW
+DO_NOT_EXECUTE
+
+This OUT (SHA256 CAD61C38213535A1A923ADB66A53FB93688EE8AB8A98691F55C0DCC0A3070B72)
+was the pre-timeout-fix canonical REAL binary; normal 200us end could be misclassified as ACTIVE-window TZ fault.
+Use the current LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out in this
+directory (see REAL_SHA256SUMS.txt).

@@ -430,7 +430,7 @@ volatile Uint16 g_cal_measure_request;
 volatile Uint16 g_cal_measure_done;
 volatile Uint16 g_cal_measure_ready;
 volatile Uint16 g_cal_measure_active;
-volatile Uint16 g_softstart_request;
+volatile Uint16 g_softstart_request = 0U;  /* explicit init (.bss not zeroed by DSS loadProgram) */
 volatile Uint16 g_softstart_acceptance_mode;
 volatile Uint16 g_softstart_accept_target_raw;
 volatile Uint16 g_softstart_hard_ceiling_raw;
@@ -455,10 +455,10 @@ volatile Uint16 g_softstart_consecutive_miss;
 volatile Uint16 g_softstart_stale_abort;
 volatile Uint16 g_softstart_no_energy = 0U;
 volatile Uint16 g_board_vout_cal_valid = BOARD_VOUT_CAL_VALID;
-volatile Uint16 g_softstart_ramp_active;
+volatile Uint16 g_softstart_ramp_active = 0U;  /* explicit init */
 
 /* STAGE5A PFM direction test window */
-volatile Uint16 g_pfm_direction_test_mode;
+volatile Uint16 g_pfm_direction_test_mode = 0U;  /* 0=OFF; explicit init: DSS loadProgram does not zero .bss */
 volatile Uint16 g_pfm_start_raw;
 volatile Uint16 g_pfm_end_raw;
 volatile Uint16 g_pfm_max_raw;

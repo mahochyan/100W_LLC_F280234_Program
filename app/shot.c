@@ -301,18 +301,20 @@ void SHOT_Revoke(Uint16 reason)
 
     if (reason == SHOT_ABORT_TIMEOUT)
     {
-        /* E: auto-OST at 200 us. Force the one-shot trip (outputs to TZ safe
-         * state), disable PWM, exit RUN, normal bounded end (not a FAULT). */
+        /* E: auto-OST at 200 us. Capture Timer2 BEFORE the planned OST, then
+         * use LLC_PWM_DisableSafe() to perform the planned block. That routine
+         * disables the TZ OST interrupt before forcing OST and immediately
+         * classifies the window as POST_OST, so a normal 200 us timeout cannot
+         * be mistaken for an ACTIVE-window TZ fault. */
         g_first_real_pi_shot_ost_timer2 = CpuTimer2Regs.TIM.all;   /* H */
         g_shot_summary.ost_timer2       = g_first_real_pi_shot_ost_timer2;
-        EALLOW;
-        EPwm1Regs.TZFRC.bit.OST = 1U;   /* latch the TZ one-shot */
-        EDIS;
+        LLC_PWM_DisableSafe();          /* planned block: TZ OST latch + POST_OST */
         g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
         g_first_real_pi_shot_ok    = 1U;
         g_pwm_enabled              = 0U;
         g_pwm_enable_result        = 0U;
         g_system_state             = SYS_STATE_IDLE;   /* exit RUN */
+        g_power_window_state       = POWER_WINDOW_POST_OST; /* explicit closure */
         return;
     }
 

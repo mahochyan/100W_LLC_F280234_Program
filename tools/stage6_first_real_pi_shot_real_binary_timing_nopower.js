@@ -136,6 +136,7 @@ function addr(n){
   return parseInt(s,10);
 }
 function rw(n){try{return session.memory.readWord(1,addr(n));}catch(e){return -1;}}
+function r16(n){var v=rw(n); return (v>=32768)?v-65536:v;}
 function rv32(n){try{var a=addr(n);return(session.memory.readWord(1,a)|(session.memory.readWord(1,a+1)<<16))>>>0;}catch(e){return -1;}}
 function wv(n,v){session.memory.writeWord(1,addr(n),v);}
 function wv32(n,v){var a=addr(n);session.memory.writeWord(1,a,v&0xFFFF);session.memory.writeWord(1,a+1,(v>>>16)&0xFFFF);}
@@ -145,6 +146,10 @@ function gate(name,cond){
   print("GATE "+name+": "+(cond?"PASS":"FAIL"));
   if(!cond){ print("ABORT: gate "+name+" failed. Exiting WITHOUT writing run state."); throw "gate-"+name; }
 }
+var ENUM_FAULT_COMP_TZ1=0x10;
+var ENUM_FAULT_ADC_STALE_OVERFLOW=0x40;
+var ENUM_SHOT_ABORT_TZ=3;
+var ENUM_SHOT_ABORT_PERMISSION=6;
 function clearReal(){
   wv32("g_real_isr_cycles_max",0);
   wv32("g_real_isr_cycles_sum",0);
@@ -296,6 +301,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   //  AQCSFRC force-low; no synthetic injection in REAL firmware)
   wv32("g_control_adc_sequence_last",0);        // force first control tick FRESH
   wv32("g_adc_sample_sequence",1);              // new sample sequence (ADC ISR advances it)
+  wv("g_adc_pwm_sync_consecutive_miss",0);      // deterministic fresh input: .bss residue must not freeze PI
   wv("g_adc_vout_raw",1200);                    // VOUT raw != Vref raw -> error_raw = +44
   wv("g_adc_vout_filtered_raw",1200);
   wv("g_control_vref_raw",1244);                // 10 V board-calibrated raw
@@ -346,6 +352,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   var pwm2=rw("g_pwm_enabled");
   var ost2=reg("EPwm1Regs.TZFLG.bit.OST");
   var fault2=rv32("g_fault_flags");
+    var pres2=rw("g_pwm_enable_result"); var pws2=rw("g_power_window_state");
   // E: ISR-side summary record (the only in-ISR record; no ring).
   var sfirst=rv32("g_shot_summary.first_command_hz");
   var stbprd=rw("g_shot_summary.first_tbprd");
@@ -372,7 +379,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
         " overrun="+ovf+" entry_interval_max="+tmax+" min="+tmin+" count="+count+" entry_count="+ecnt);
   print("fresh_delta="+fdelta+" pi_delta="+pdelta+" power_writes="+pw1+" (delta "+pwdelta+")");
   print("shot state="+st+" abort="+ab+" tick="+tk+" ok="+okf);
-  print("post-run pwm="+pwm2+" ost="+ost2+" fault="+fault2);
+  print("post-run pwm="+pwm2+" pwm_enable_result="+pres2+" power_window_state="+pws2+" ost="+ost2+" fault="+fault2);
   print("summary first_cmd="+sfirst+" first_tbprd="+stbprd+" first_actual="+sactual+
         " last_cmd="+slast+" max_cmd="+smaxc+" min_cmd="+sminc+" max_vout_raw="+svmax);
   print("summary fast_ticks="+stk+" pi_compute_count="+spc+" pwm_apply_count="+sac+
@@ -438,6 +445,17 @@ for (attempt=0; attempt<5 && !done; attempt++) {
     gate("ISR_COUNT_POSITIVE", count>0);
     gate("TIMER0_ENTRY_POSITIVE", ecnt>0);
     gate("TIMER2_DELTA_11000_14000", t2d>=11000 && t2d<=14000);
+    gate("ENUM_FAULT_COMP_TZ1_0x10", ENUM_FAULT_COMP_TZ1===0x10);
+    gate("ENUM_FAULT_ADC_STALE_OVERFLOW_0x40", ENUM_FAULT_ADC_STALE_OVERFLOW===0x40);
+    gate("ENUM_SHOT_ABORT_TZ_3", ENUM_SHOT_ABORT_TZ===3);
+    gate("ENUM_SHOT_ABORT_PERMISSION_6", ENUM_SHOT_ABORT_PERMISSION===6);
+    gate("SUMMARY_ABORT_REASON_TIMEOUT", sab===1);
+    gate("PWM_ENABLE_RESULT_ZERO", pres2===0);
+    gate("POWER_WINDOW_POST_OST", pws2===2);
+    gate("NO_ABORT_TZ", ab!==ENUM_SHOT_ABORT_TZ);
+    gate("NO_ABORT_PERMISSION", ab!==ENUM_SHOT_ABORT_PERMISSION);
+    gate("FAULT_COMP_TZ1_BIT_CLEAR", (fault2 & ENUM_FAULT_COMP_TZ1)===0);
+    gate("FAULT_ADC_STALE_BIT_CLEAR", (fault2 & ENUM_FAULT_ADC_STALE_OVERFLOW)===0);
   }catch(e){
     print("TIMING_NOPOWER_FAIL");
     throw e;

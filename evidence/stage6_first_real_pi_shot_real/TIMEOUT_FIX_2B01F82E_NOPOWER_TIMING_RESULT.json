@@ -1,0 +1,40 @@
+{
+  "run": "TIMEOUT_FIX_2B01F82E_NOPOWER_TIMING",
+  "out_sha256": "2B01F82E8616A94CF939AC2C4D99702D2BFB6A3DECFCF67FA5DE1876EF30292C",
+  "archive_time_utc": "2026-08-24T15:14:19.124174+00:00",
+  "markers": {
+    "TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED": true,
+    "NOPOWER_TIMEOUT_END_PASS": true,
+    "ADC_STALE_PROTECTION_UNCHANGED": true,
+    "COMPARATOR_TZ_PROTECTION_UNCHANGED": true,
+    "ISR_LE_900_PASS": true,
+    "CNT34_REMAIN_OPEN": true,
+    "NO_REAL_POWER_EXECUTED": true,
+    "READY_FOR_SINGLE_G_RETRY_REVIEW": true
+  },
+  "measured": {
+    "timer2_delta": 12855,
+    "state": 3,
+    "state_name": "COMPLETE",
+    "ok": 1,
+    "abort": 1,
+    "abort_name": "TIMEOUT",
+    "summary_abort_reason": 1,
+    "summary_abort_reason_name": "TIMEOUT",
+    "fault": 0,
+    "pwm_enabled": 0,
+    "pwm_enable_result": 0,
+    "power_window_state": 2,
+    "power_window_state_name": "POST_OST",
+    "ost": 1,
+    "isr_max": 746,
+    "compute_max": 707,
+    "apply_max": 746,
+    "overrun": 0,
+    "entry_interval_max": 1204,
+    "no_abort_tz": true,
+    "no_abort_permission": true
+  },
+  "verdict": "NOPOWER_TIMEOUT_END_PASS",
+  "physical_safety": "CNT3_OPEN,CNT4_OPEN,NO_REAL_POWER_EXECUTED"
+}
