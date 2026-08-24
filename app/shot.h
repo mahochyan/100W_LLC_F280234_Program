@@ -9,7 +9,7 @@
  *   - Independent authorization g_first_real_pi_shot_arm (D).
  *   - 40 us split pipeline: PHASE_COMPUTE (PI + pending) and PHASE_APPLY
  *     (re-verify + commit) alternate on the 20 us TINT0 ticks (A/B).
- *   - Real-time 300 us cage from Timer2, not from control-update counts (D).
+ *   - Real-time 500 us cage from Timer2, not from control-update counts (D).
  *   - 11 V fast VOUT abort computed from board_calibration.h (F).
  *   - ISR-side summary record only; no full ring inside the 20 us ISR (E).
  * The production build does not define STAGE6_FIRST_BOUNDED_REAL_PI_SHOT, so
@@ -25,10 +25,10 @@
 #define FIRST_REAL_PI_MIN_HZ            145000UL
 #define FIRST_REAL_PI_MAX_HZ            170000UL
 
-/* Real-time 300 us cage: 300e-6 s * 60 MHz = 18000 Timer2 cycles. The cage is
+/* Real-time 500 us cage: 500e-6 s * 60 MHz = 30000 Timer2 cycles. The cage is
  * checked from the first successful PHASE_APPLY (first_apply_timer2), so a
- * pending is never committed after the window has elapsed (G6 300us step). */
-#define FIRST_REAL_PI_DURATION_CYCLES   18000UL
+ * pending is never committed after the window has elapsed (500us step). */
+#define FIRST_REAL_PI_DURATION_CYCLES   30000UL
 
 /* Pipeline phase ids. PHASE_COMPUTE runs PI + writes the pending structure
  * only; PHASE_APPLY re-verifies and commits (PWM registers) - never both in
@@ -40,12 +40,12 @@
 #define SHOT_STATE_IDLE     0U
 #define SHOT_STATE_ARMED    1U   /* authorized, waiting for first PI write */
 #define SHOT_STATE_ACTIVE   2U   /* PI writing; shot timer running */
-#define SHOT_STATE_COMPLETE 3U   /* 300 us reached, normal bounded end */
+#define SHOT_STATE_COMPLETE 3U   /* 500 us reached, normal bounded end */
 #define SHOT_STATE_ABORTED  4U
 
 /* Abort / completion reason codes. */
 #define SHOT_ABORT_NONE       0U
-#define SHOT_ABORT_TIMEOUT    1U   /* 300 us elapsed (normal end) */
+#define SHOT_ABORT_TIMEOUT    1U   /* 500 us elapsed (normal end) */
 #define SHOT_ABORT_VOUT_11V   2U   /* Vout >= 11 V fast abort */
 #define SHOT_ABORT_TZ         3U   /* real Comparator/TZ trip */
 #define SHOT_ABORT_FAULT      4U   /* some other fault latched */

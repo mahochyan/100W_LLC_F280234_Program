@@ -427,7 +427,7 @@ void PROT_FastTask(void)
      * guarded in PROT_SlowTask. In the REAL bounded-shot build the raw OVP
      * ceiling is enforced whenever the limited authorization holds (the
      * volts-domain calibration is pending, so the g_vout_volts gate would
-     * otherwise skip the check during the formal ramp / 300us shot).
+     * otherwise skip the check during the formal ramp / 500us shot).
      * RECOVERY V1: g_vout_volts is never assigned (stays -1.0f), so the
      * original software-float comparison was a fixed cost on every tick;
      * the 16-bit g_board_vout_cal_valid flag is the same "volts domain is
@@ -647,7 +647,7 @@ void PROT_SlowTask(void)
     {
     /* C: REAL bounded-shot build — the limited authorization (runtime
      * SoftStart or bounded PI) substitutes for the global calibration and
-     * control-direction gates ONLY for the formal SoftStart -> 300us PI
+     * control-direction gates ONLY for the formal SoftStart -> 500us PI
      * window. IOUT absolute calibration is pending (never faked) and
      * LLC_CONTROL_DIRECTION stays 0 (Stage5A confirmed the direction via
      * LLC_CONTROL_SIGN=-1); fast OCP remains Comparator->TZ1->OST. */

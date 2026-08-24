@@ -124,7 +124,39 @@ Evidence:
 | shot_error first/last/min/max | 0 / -46 / -46 / 0 |
 | verdict | `STAGE_G_300US_NOLOAD_REAL_SHOT_PASS` |
 
-## Final tokens (updated for 300 µs)
+## 500 µs real-power run (authorized once; no external load)
+
+Task `STAGE6_500US_NOLOAD_BOUNDED_REAL_PI_SHOT_V1`. New REAL binary `4627440F`
+with `FIRST_REAL_PI_DURATION_CYCLES=30000` (500 µs @ 60 MHz) was built and frozen.
+No-power timing passed first, then one real no-load 500 µs shot was executed with
+`DSH_CNT34_CONNECTED_CONFIRMED=1`.
+
+Evidence:
+- `G6_500US_4627440F_NOPOWER_TIMING_RAW.txt` / `..._RESULT.json`
+- `G7_500US_NOLOAD_REAL_4627440F_RAW.txt` / `..._RESULT.json`
+
+| field | value |
+|---|---|
+| REAL OUT SHA256 | `4627440FCCCA3CB618E0AFD08FCF156D03FA9C6FA73A25B43597198EEB77B64F` |
+| state | COMPLETE (3) |
+| abort | TIMEOUT (1) |
+| tick | 26 |
+| ok | 1 |
+| power_writes | 13 |
+| Timer2 delta | 30887 (29500..32500) |
+| ISR max / compute / apply | 800 / 800 / 757 ≤ 900 |
+| overrun | 0 |
+| shot-local entry max | 1224 ≤ 1230 |
+| fault | 0 |
+| pwm_enabled / pwm_enable_result | 0 / 0 |
+| power_window_state | POST_OST (2) |
+| OST | 1 |
+| softstart / handoff | COMPLETE / OK |
+| shot_error first/last/min/max | 0 / -108 / -108 / 0 |
+| PI direction | `PI_DIRECTION_CONDITIONAL_PASS=true` |
+| verdict | `STAGE_G_500US_NOLOAD_REAL_SHOT_PASS` |
+
+## Final tokens (updated for 500 µs)
 
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED`, `NOPOWER_TIMEOUT_END_PASS`,
 `ADC_STALE_PROTECTION_UNCHANGED`, `COMPARATOR_TZ_PROTECTION_UNCHANGED`,
@@ -136,10 +168,15 @@ Evidence:
 `PI_DIRECTION_PREVIOUS_G3_EVIDENCE_VALID`, `ENTRY_INTERVAL_GATE_SCOPE_INVALID`,
 `POSTSHOT_ERROR_SIGN_GATE_INVALID`, `NO_MORE_200US_RETRY`,
 `AUTHORIZED_REAL_300US_SHOT_PASS`, `REAL_300US_324AF09E_FROZEN`,
-`NOPOWER_300US_TIMING_PASS_324AF09E`.
+`NOPOWER_300US_TIMING_PASS_324AF09E`,
+`AUTHORIZED_REAL_500US_SHOT_PASS`, `REAL_500US_4627440F_FROZEN`,
+`NOPOWER_500US_TIMING_PASS_4627440F`,
+`STAGE6_500US_NOLOAD_REAL_SHOT_PASS`, `REALTIME_BUDGET_PASS`,
+`PI_DIRECTION_CONDITIONAL_PASS`, `FAULT_ZERO_ACTIVE_TZ_ZERO`,
+`FINAL_PWM0_OST1`, `STOPPED_BEFORE_1MS`.
 
 ## Stop point
 
-The 300 µs real-power no-load shot has been executed once on `324AF09E` and passed.
+The 500 µs real-power no-load shot has been executed once on `4627440F` and passed.
 No further real-power run is authorized automatically. Stop here and await explicit
 authorization for the next step.

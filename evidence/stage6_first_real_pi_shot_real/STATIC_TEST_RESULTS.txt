@@ -75,8 +75,8 @@ PASS: REAL script does NOT read power_writes as rv32
 PASS: shot envelope min 145 kHz
 PASS: shot envelope max 170 kHz
 PASS: SHOT_ClampFreq clamps into 145..170 kHz
-PASS: 300 us real-time cage = 18000 Timer2 cycles at 60 MHz
-PASS: on-chip 300 us auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)
+PASS: 500 us real-time cage = 30000 Timer2 cycles at 60 MHz
+PASS: on-chip 500 us auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)
 PASS: debug override declarations guarded out of REAL build (shot.h)
 PASS: debug override definitions guarded out of REAL build (shot.c)
 PASS: no-energy TZ bypass guarded by NOENERGY_TEST (protection.c)
@@ -113,10 +113,10 @@ PASS: enum FAULT_COMP_TZ1 == 0x10
 PASS: enum FAULT_ADC_STALE_OVERFLOW == 0x40
 PASS: enum SHOT_ABORT_TZ == 3
 PASS: enum SHOT_ABORT_PERMISSION == 6
-PASS: real 300us noload harness defines signed int16 r16()
-PASS: real 300us noload harness reads control_error_raw as signed int16
-PASS: real 300us noload harness defines enum static gates
-PASS: real 300us noload harness gates timeout closure + enum bits
+PASS: real 500us noload harness defines signed int16 r16()
+PASS: real 500us noload harness reads control_error_raw as signed int16
+PASS: real 500us noload harness defines enum static gates
+PASS: real 500us noload harness gates timeout closure + enum bits
 PASS: no-power chaincheck harness defines signed int16 r16()
 PASS: no-power chaincheck harness reads control_error_raw as signed int16
 PASS: no-power chaincheck harness defines enum static gates
@@ -133,9 +133,9 @@ PASS: SHOT_ABORT_NO_HANDOFF routes through LLC_PWM_DisableSafe() to POST_OST
 PASS: SHOT_ABORT_NO_HANDOFF does not latch a fault
 PASS: PWM_Trip cause widened to Uint32
 PASS: PROT_RequestFault cause widened to Uint32
-PASS: real 300us noload reads shot-local entry max from summary
-PASS: real 300us noload entry gate uses shot-local max
-PASS: real 300us noload no longer gates on post-IDLE global error direction
+PASS: real 500us noload reads shot-local entry max from summary
+PASS: real 500us noload entry gate uses shot-local max
+PASS: real 500us noload no longer gates on post-IDLE global error direction
 PASS: no-power chaincheck reads shot-local entry max from summary
 PASS: no-power chaincheck entry gate uses shot-local max
 PASS: no-power chaincheck no longer gates on post-IDLE global error direction
@@ -229,20 +229,20 @@ PASS: timing result hard gate SUMMARY_FIRST_TBPRD_400 present
 PASS: timing result hard gate SUMMARY_FIRST_ACTUAL_149625 present
 PASS: timing PASS requires TBPRD change + actual-frequency update (prevents FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED)
 PASS: timing script does NOT rely on freq_cmd != 150000 as the actuator-path proof
-PASS: timing script Timer2 delta gate 17500..20500 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output
+PASS: timing script Timer2 delta gate 29500..32500 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output
 PASS: timing result hard gate FRESH_SAMPLE_DELTA present
 PASS: timing result hard gate PI_UPDATE_DELTA present
-PASS: timing result hard gate POWER_WRITES_DELTA_8 present
+PASS: timing result hard gate POWER_WRITES_DELTA_13 present
 PASS: timing result hard gate SUMMARY_FIRST_FREQ_149800 present
 PASS: timing result hard gate SUMMARY_FIRST_TBPRD_400 present
 PASS: timing result hard gate SUMMARY_FIRST_ACTUAL_149625 present
-PASS: timing result hard gate PIPELINE_PI_COMPUTE_COUNT_9 present
-PASS: timing result hard gate PIPELINE_PWM_APPLY_COUNT_8 present
-PASS: timing result hard gate PIPELINE_FAST_TICKS_16 present
+PASS: timing result hard gate PIPELINE_PI_COMPUTE_COUNT_14 present
+PASS: timing result hard gate PIPELINE_PWM_APPLY_COUNT_13 present
+PASS: timing result hard gate PIPELINE_FAST_TICKS_26 present
 PASS: timing result hard gate PENDING_FINAL_PENDING_1 present
 PASS: timing result hard gate SHOT_STATE_COMPLETE present
 PASS: timing result hard gate SHOT_ABORT_TIMEOUT present
-PASS: timing result hard gate SHOT_TICK_16 present
+PASS: timing result hard gate SHOT_TICK_26 present
 PASS: timing result hard gate SHOT_OK_1 present
 PASS: timing result hard gate PWM_ZERO present
 PASS: timing result hard gate OST_LATCHED_END present

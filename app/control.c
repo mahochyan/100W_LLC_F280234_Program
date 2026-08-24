@@ -390,7 +390,7 @@ void CTRL_ApplyFrequencyCommand(void)
             if (g_first_real_pi_shot_state != SHOT_STATE_ACTIVE)
             {
                 /* First successful PI write -> shot ACTIVE, start the on-chip
-                 * 300 us shot timer (IDLE/ARMED both advance here). */
+                 * 500 us shot timer (IDLE/ARMED both advance here). */
                 g_first_real_pi_shot_state = SHOT_STATE_ACTIVE;
                 g_first_real_pi_shot_tick  = 0U;
                 g_first_real_pi_shot_first_write_timer2 = CpuTimer2Regs.TIM.all; /* H */
@@ -614,7 +614,7 @@ static void CTRL_PipelineApply(void)
 
     if (g_first_real_pi_shot_state != SHOT_STATE_ACTIVE)
     {
-        /* First successful apply -> shot ACTIVE; D: the real-time 300 us cage
+        /* First successful apply -> shot ACTIVE; D: the real-time 500 us cage
          * starts from this first-apply Timer2 capture. */
         g_first_real_pi_shot_state = SHOT_STATE_ACTIVE;
         g_first_real_pi_shot_tick  = 0U;
@@ -669,9 +669,9 @@ void CTRL_FastTask(void)
         return;   /* no valid Vref yet -> no PI */
     }
 
-    /* D: real-time 300 us cage from Timer2, checked BEFORE any pipeline phase
+    /* D: real-time 500 us cage from Timer2, checked BEFORE any pipeline phase
      * so a pending is never committed after the cage elapsed: elapsed =
-     * first_apply_timer2 - current_timer2 (down counter), >= 18000 cycles ->
+     * first_apply_timer2 - current_timer2 (down counter), >= 30000 cycles ->
      * immediate OST/PWM=0/revoke/COMPLETE/IDLE on this protection tick. */
     if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
     {
