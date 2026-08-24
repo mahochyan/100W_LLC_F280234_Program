@@ -160,6 +160,8 @@ volatile Uint32 g_real_timer0_entry_count    = 0UL;
 volatile Uint32 g_real_timer0_last_entry     = 0UL;
 volatile Uint32 g_real_timer0_entry_interval_min = 0UL;
 volatile Uint32 g_real_timer0_entry_interval_max = 0UL;
+volatile Uint32 g_real_compute_phase_cycles_max = 0UL;
+volatile Uint32 g_real_apply_phase_cycles_max   = 0UL;
 #endif
 
 /* Tutorial SoftStart Engine */

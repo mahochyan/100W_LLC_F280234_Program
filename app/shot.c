@@ -24,8 +24,6 @@ volatile Uint16 g_first_real_pi_shot_abort       = SHOT_ABORT_NONE;
 volatile Uint16 g_first_real_pi_shot_power_writes= 0U;
 volatile Uint16 g_first_real_pi_shot_ok          = 0U;
 volatile Uint16 g_first_real_pi_shot_abort_vout_raw = 0U;
-volatile Uint16 g_first_real_pi_shot_rb_index    = 0U;
-volatile Uint16 g_first_real_pi_shot_rb_count    = 0U;
 /* H: Timer2 captures for the first-write -> OST elapsed proof. */
 volatile Uint32 g_first_real_pi_shot_first_write_timer2 = 0UL;
 volatile Uint32 g_first_real_pi_shot_ost_timer2          = 0UL;
@@ -34,8 +32,14 @@ volatile Uint32 g_first_real_pi_shot_ost_timer2          = 0UL;
 volatile Uint32 g_first_shot_debug_freq_hz       = 0UL;
 volatile Uint16 g_first_shot_debug_ticks         = 0U;
 #endif
-#pragma DATA_SECTION(g_first_real_pi_shot_rb, "shot_ram")
-SHOT_RbEntry g_first_real_pi_shot_rb[SHOT_RB_SIZE];
+/* 40 us split pipeline (RECOVERY V1 A/B/E): phase state + pending + summary.
+ * g_pipeline_executed_phase is set by the ISR control path this tick (0 =
+ * compute, 1 = apply, 0xFF = none) and used by the exit measurement to
+ * classify whole-ISR cost per phase. */
+volatile Uint16 g_pipeline_phase = PIPELINE_PHASE_COMPUTE;
+volatile Uint16 g_pipeline_executed_phase = 0xFFU;
+SHOT_PipelinePending g_pipeline_pending;
+SHOT_ShotSummary g_shot_summary;
 /* ------------------------------------------------------------------ */
 void SHOT_Init(void)
 {
@@ -45,8 +49,28 @@ void SHOT_Init(void)
     g_first_real_pi_shot_abort  = SHOT_ABORT_NONE;
     g_first_real_pi_shot_power_writes = 0U;
     g_first_real_pi_shot_ok     = 0U;
-    g_first_real_pi_shot_rb_index = 0U;
-    g_first_real_pi_shot_rb_count = 0U;
+    g_pipeline_phase            = PIPELINE_PHASE_COMPUTE;
+    g_pipeline_executed_phase   = 0xFFU;
+    g_pipeline_pending.valid    = 0U;
+    g_pipeline_pending.sequence = 0UL;
+    g_pipeline_pending.command_hz = 0UL;
+    g_pipeline_pending.period   = 0U;
+    g_pipeline_pending.cmpa     = 0U;
+    g_pipeline_pending.cmpb     = 0U;
+    g_pipeline_pending.actual_hz = 0UL;
+    g_shot_summary.first_command_hz  = 0UL;
+    g_shot_summary.first_tbprd       = 0U;
+    g_shot_summary.first_actual_hz   = 0UL;
+    g_shot_summary.last_command_hz   = 0UL;
+    g_shot_summary.max_command_hz    = 0UL;
+    g_shot_summary.min_command_hz    = 0UL;
+    g_shot_summary.max_vout_raw      = 0U;
+    g_shot_summary.fast_ticks        = 0UL;
+    g_shot_summary.pi_compute_count  = 0UL;
+    g_shot_summary.pwm_apply_count   = 0UL;
+    g_shot_summary.abort_reason      = SHOT_ABORT_NONE;
+    g_shot_summary.first_apply_timer2 = 0UL;
+    g_shot_summary.ost_timer2         = 0UL;
 #if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     g_first_shot_debug_freq_hz    = 0UL;
     g_first_shot_debug_ticks      = 0U;
@@ -193,6 +217,79 @@ Uint16 SHOT_ClampFreq(Uint32 *p_hz)
 }
 
 /* ------------------------------------------------------------------ */
+/* B: pending validation for PHASE_APPLY. All conditions are re-checked
+ * in the apply tick, right before the PWM registers are touched:
+ *   - pending.valid == 1 (a compute phase produced it, not yet committed)
+ *   - command inside 145..170 kHz and period inside 352..413
+ *   - period <-> command consistency verified by multiplication only
+ *     (same rounding as the reference divide: clocks*hz <= sum < (clocks+1)*hz)
+ * Any failure -> the apply phase discards the pending and stops the shot
+ * (SHOT_Revoke(SHOT_ABORT_ACTUATOR): OST, PWM=0, abort, no further run).
+ * The pending is never committed twice: commit clears valid. */
+/* ------------------------------------------------------------------ */
+Uint16 SHOT_PendingValid(void)
+{
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    const SHOT_PipelinePending *p = &g_pipeline_pending;
+    Uint32 sum, clocks;
+    if (p->valid == 0U) return 0U;
+    if (p->command_hz < FIRST_REAL_PI_MIN_HZ || p->command_hz > FIRST_REAL_PI_MAX_HZ) return 0U;
+    if (p->period < 352U || p->period > 413U) return 0U;
+    sum = LLC_TBCLK_HZ + (p->command_hz / 2UL);
+    clocks = (Uint32)p->period + 1UL;
+    if (clocks * p->command_hz > sum) return 0U;            /* period too large */
+    if ((clocks + 1UL) * p->command_hz <= sum) return 0U;  /* period too small */
+    return 1U;
+#else
+    return 0U;
+#endif
+}
+
+/* ------------------------------------------------------------------ */
+/* B: full apply-phase authorization (re-verified on every apply tick):
+ * the complete PermissionOk set (arm / Stage6 / handoff OK / reference
+ * valid / VOUT calibration valid / Comparator+TZ verified / no fault)
+ * plus system == RUN. The pending content itself is checked by
+ * SHOT_PendingValid. */
+/* ------------------------------------------------------------------ */
+Uint16 SHOT_PipelineApplyAuthorized(void)
+{
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    if (SHOT_PermissionOk() == 0U)      return 0U;
+    if (g_system_state != SYS_STATE_RUN) return 0U;
+    return 1U;
+#else
+    return 0U;
+#endif
+}
+
+/* ------------------------------------------------------------------ */
+/* B/A: commit a validated pending. Writes the PWM registers ONLY here
+ * (never in PHASE_COMPUTE): TBPRD/CMPA when the period actually moved,
+ * plus the ADC sampling-phase sync (CMPB/SOCA cadence) exactly like the
+ * single-phase actuator did. Software state (period, switching/actual
+ * frequency) is committed together; pending.valid is cleared so the same
+ * pending can never be committed twice. */
+/* ------------------------------------------------------------------ */
+void SHOT_PendingCommit(void)
+{
+    SHOT_PipelinePending *p = &g_pipeline_pending;
+    Uint16 period = p->period;
+    if (period != (Uint16)g_pwm_period)
+    {
+        DINT;
+        EPwm1Regs.TBPRD = period;
+        EPwm1Regs.CMPA.half.CMPA = p->cmpa;
+        EINT;
+        ADC_UpdatePwmSyncPointKeepCadence(period);
+    }
+    g_pwm_period = period;
+    g_switching_frequency_hz = p->command_hz;
+    g_actual_switching_frequency_hz = p->actual_hz;
+    p->valid = 0U;   /* consumed: no double commit */
+}
+
+/* ------------------------------------------------------------------ */
 /* On-chip termination. reason==SHOT_ABORT_TIMEOUT is the normal bounded
  * end (COMPLETE, exit RUN, no fault). Everything else aborts to FAULT. */
 /* ------------------------------------------------------------------ */
@@ -200,12 +297,14 @@ void SHOT_Revoke(Uint16 reason)
 {
     g_first_real_pi_shot_abort = reason;
     g_first_real_pi_shot_arm   = 0U;   /* revoke PI write permission */
+    g_shot_summary.abort_reason = reason;   /* E: ISR-side summary */
 
     if (reason == SHOT_ABORT_TIMEOUT)
     {
         /* E: auto-OST at 200 us. Force the one-shot trip (outputs to TZ safe
          * state), disable PWM, exit RUN, normal bounded end (not a FAULT). */
         g_first_real_pi_shot_ost_timer2 = CpuTimer2Regs.TIM.all;   /* H */
+        g_shot_summary.ost_timer2       = g_first_real_pi_shot_ost_timer2;
         EALLOW;
         EPwm1Regs.TZFRC.bit.OST = 1U;   /* latch the TZ one-shot */
         EDIS;
@@ -249,10 +348,20 @@ void SHOT_OnTrip(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* Per-20us shot housekeeping: timer (E), 11V abort (F), ring record(H).*/
+/* Per-20us shot housekeeping (RECOVERY V1 A/D/E): real-time cage is
+ * checked in CTRL_FastTask BEFORE any pipeline phase; this task keeps
+ * the ISR-side summary, the 11V fast abort and the phase advance. */
 /* ------------------------------------------------------------------ */
 void SHOT_FastTask(void)
 {
+    /* A: advance the pipeline phase for the next tick (compute -> apply ->
+     * compute ...) on EVERY tick where a phase executed, regardless of the
+     * shot state (the first compute runs while still ARMED). Ticks where
+     * neither phase executed leave the phase unchanged so the alternation
+     * cannot drift. */
+    if (g_pipeline_executed_phase != 0xFFU)
+        g_pipeline_phase = (Uint16)(1U - g_pipeline_executed_phase);
+
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     if (g_first_real_pi_shot_state != SHOT_STATE_ACTIVE)
     {
@@ -265,24 +374,14 @@ void SHOT_FastTask(void)
             g_first_real_pi_shot_arm   = 0U;
             g_first_real_pi_shot_state = SHOT_STATE_ABORTED;
             g_first_real_pi_shot_abort = SHOT_ABORT_PERMISSION;
+            g_shot_summary.abort_reason = SHOT_ABORT_PERMISSION;
         }
         return;
     }
 
-    /* H: record this control tick into the ring buffer. RECOVERY V1 candidate
-     * 2: only the first-write proof fields are stored (fresh flag, commanded
-     * frequency, TBPRD, actual frequency) to keep the 20 us ISR budget; the
-     * ring order/tick can be inferred from rb_index/rb_count + the control
-     * tick history. */
-    {
-        SHOT_RbEntry *e = &g_first_real_pi_shot_rb[g_first_real_pi_shot_rb_index];
-        e->freq_cmd_hz    = g_control_frequency_hz;
-        e->actual_freq_hz = g_actual_switching_frequency_hz;
-        e->tbprd          = g_pwm_period;
-        e->fresh_sample   = g_control_sample_valid;
-        g_first_real_pi_shot_rb_index = (Uint16)((g_first_real_pi_shot_rb_index + 1U) % SHOT_RB_SIZE);
-        g_first_real_pi_shot_rb_count++;
-    }
+    /* E: max VOUT raw (whole shot), cheap per-tick compare. */
+    if (g_adc_vout_filtered_raw > (Uint16)g_shot_summary.max_vout_raw)
+        g_shot_summary.max_vout_raw = g_adc_vout_filtered_raw;
 
     /* F: fast 11 V VOUT abort. */
     if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw)
@@ -292,26 +391,18 @@ void SHOT_FastTask(void)
     }
 
     /* D: a fault appearing mid-shot revokes immediately (the full permission
-     * gate D is re-evaluated in the write path every tick; here only the cheap
-     * dynamic fault flag needs watching to keep the 20 us budget). */
+     * gate D is re-evaluated in the apply path every apply tick; here only the
+     * cheap dynamic fault flag needs watching to keep the 20 us budget). */
     if (g_fault_flags != 0U)
     {
         SHOT_Revoke(SHOT_ABORT_PERMISSION);
         return;
     }
 
-    /* E: on-chip 200 us auto-OST. */
-#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
-    if (g_first_real_pi_shot_tick >= FIRST_REAL_PI_DURATION_TICKS)
-#else
-    if (g_first_real_pi_shot_tick >=
-        (g_first_shot_debug_ticks != 0U ? g_first_shot_debug_ticks
-                                        : FIRST_REAL_PI_DURATION_TICKS))
-#endif
-    {
-        SHOT_Revoke(SHOT_ABORT_TIMEOUT);
-        return;
-    }
+    /* D: elapsed-fine 20 us tick count from the first apply (ACTIVE entry) to
+     * the cage. Expected 10 for the 200 us cage. The cage itself is Timer2
+     * based (see CTRL_FastTask); this counter is the independent tick proof. */
+    g_shot_summary.fast_ticks++;
     g_first_real_pi_shot_tick++;
 #endif
 }

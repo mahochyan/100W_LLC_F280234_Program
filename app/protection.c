@@ -257,8 +257,6 @@ __interrupt void TINT0_ISR(void)
         else
         {
             Uint32 r_delta = (Uint32)((Uint32)(g_real_timer0_last_entry - r_entry) & 0xFFFFFFFFUL);
-            if (g_real_timer0_entry_interval_min == 0UL || r_delta < g_real_timer0_entry_interval_min)
-                g_real_timer0_entry_interval_min = r_delta;
             if (r_delta > g_real_timer0_entry_interval_max)
                 g_real_timer0_entry_interval_max = r_delta;
         }
@@ -384,16 +382,28 @@ __interrupt void TINT0_ISR(void)
 #endif
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     /* Whole-ISR budget snapshot (gate K1): taken at the very end of the ISR
-     * body so g_real_isr_cycles_* reflects the complete fast ISR. Passive. */
+     * body so g_real_isr_cycles_* reflects the complete fast ISR. Passive.
+     * RECOVERY V1 A/F: per-phase maxima are filled on ticks whose pipeline
+     * phase actually executed (g_pipeline_executed_phase set by the control
+     * path; 0xFF = no phase this tick, e.g. idle/terminated ticks). */
     {
         Uint32 r_exit = CpuTimer2Regs.TIM.all;
         g_real_isr_cycles_last = (Uint32)((Uint32)(g_real_timer0_last_entry - r_exit) & 0xFFFFFFFFUL);
         if (g_real_isr_cycles_last > g_real_isr_cycles_max)
             g_real_isr_cycles_max = g_real_isr_cycles_last;
-        g_real_isr_cycles_sum += g_real_isr_cycles_last;
         g_real_isr_cycles_count++;
         if (g_real_isr_cycles_last >= 1200UL)
             g_real_isr_overrun_count++;
+        if (g_pipeline_executed_phase == PIPELINE_PHASE_COMPUTE)
+        {
+            if (g_real_isr_cycles_last > g_real_compute_phase_cycles_max)
+                g_real_compute_phase_cycles_max = g_real_isr_cycles_last;
+        }
+        else if (g_pipeline_executed_phase == PIPELINE_PHASE_APPLY)
+        {
+            if (g_real_isr_cycles_last > g_real_apply_phase_cycles_max)
+                g_real_apply_phase_cycles_max = g_real_isr_cycles_last;
+        }
     }
 #endif
 }
@@ -407,14 +417,18 @@ void PROT_FastTask(void)
      * guarded in PROT_SlowTask. In the REAL bounded-shot build the raw OVP
      * ceiling is enforced whenever the limited authorization holds (the
      * volts-domain calibration is pending, so the g_vout_volts gate would
-     * otherwise skip the check during the formal ramp / 200us shot). */
+     * otherwise skip the check during the formal ramp / 200us shot).
+     * RECOVERY V1: g_vout_volts is never assigned (stays -1.0f), so the
+     * original software-float comparison was a fixed cost on every tick;
+     * the 16-bit g_board_vout_cal_valid flag is the same "volts domain is
+     * valid" signal (no FPU on F28034 -> keeps the 20 us ISR budget). */
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
-    if (g_vout_volts >= 0.0f ||
+    if (g_board_vout_cal_valid != 0U ||
         SHOT_RealSoftStartAuthOk() != 0U ||
         SHOT_RealBoundedPiAuthOk() != 0U)
     {
 #else
-    if (g_vout_volts >= 0.0f)
+    if (g_board_vout_cal_valid != 0U)
     {
 #endif
         if (g_adc_vout_raw > LLC_OVP_RAW_THRESHOLD)

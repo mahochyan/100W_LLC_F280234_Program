@@ -23,7 +23,7 @@
  * path. The bounded PI fastpath must not run a runtime 32-bit division.
  * Covers TBPRD 352..413 (145000..170000 Hz envelope).
  */
-static const Uint32 g_real_pi_actual_hz_table[62] = {
+const Uint32 g_real_pi_actual_hz_table[62] = {
     169971UL, 169491UL, 169014UL, 168539UL, 168067UL, 167597UL, 167130UL, 166666UL,
     166204UL, 165745UL, 165289UL, 164835UL, 164383UL, 163934UL, 163487UL, 163043UL,
     162601UL, 162162UL, 161725UL, 161290UL, 160857UL, 160427UL, 160000UL, 159574UL,

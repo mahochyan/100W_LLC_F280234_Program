@@ -150,6 +150,10 @@ extern volatile Uint32 g_real_timer0_entry_count;
 extern volatile Uint32 g_real_timer0_last_entry;
 extern volatile Uint32 g_real_timer0_entry_interval_min;
 extern volatile Uint32 g_real_timer0_entry_interval_max;
+/* 40 us split pipeline (RECOVERY V1 A/F): per-phase whole-ISR maxima, filled
+ * only on ticks whose pipeline phase actually executed. */
+extern volatile Uint32 g_real_compute_phase_cycles_max;
+extern volatile Uint32 g_real_apply_phase_cycles_max;
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;

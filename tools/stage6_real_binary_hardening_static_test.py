@@ -23,9 +23,13 @@ LOCAL_NOENERGY_OUT = ROOT / "Stage6_FLASH_SHOT_NOENERGY" / "LLC_100W_F28034_BRIN
 EVID_REAL_MAP = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.map"
 EVID_REAL_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT.out"
 EVID_NOENERGY_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_NOENERGY.out"
+# RECOVERY V1: the newest frozen split-pipeline artifacts take precedence over
+# the earlier frozen REAL candidate when auditing a clean checkout.
+EVID_SPLIT_MAP = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_SPLIT_PIPELINE_932337AA.map"
+EVID_SPLIT_OUT = EVID / "LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_SPLIT_PIPELINE_932337AA.out"
 
-REAL_MAP = LOCAL_REAL_MAP if LOCAL_REAL_MAP.exists() else EVID_REAL_MAP
-REAL_OUT = LOCAL_REAL_OUT if LOCAL_REAL_OUT.exists() else EVID_REAL_OUT
+REAL_MAP = LOCAL_REAL_MAP if LOCAL_REAL_MAP.exists() else (EVID_SPLIT_MAP if EVID_SPLIT_MAP.exists() else EVID_REAL_MAP)
+REAL_OUT = LOCAL_REAL_OUT if LOCAL_REAL_OUT.exists() else (EVID_SPLIT_OUT if EVID_SPLIT_OUT.exists() else EVID_REAL_OUT)
 NOENERGY_OUT = LOCAL_NOENERGY_OUT if LOCAL_NOENERGY_OUT.exists() else EVID_NOENERGY_OUT
 
 failures = []
@@ -58,8 +62,8 @@ check(REAL_MAP.exists(), "REAL MAP artifact present")
 # candidate OUT/MAP. Accept the local artifact when its SHA matches ANY
 # manifest-registered OUT/MAP (frozen REAL, candidate 1, candidate 2); the
 # frozen REAL identity itself is still verified in evidence below.
-registered_out = set(re.findall(r"(?:REAL_OUT|NOENERGY_OUT|REVOKED_OUT_9CE0EFBA|FASTPATH_OUT_0691C524|FASTPATH_OUT_CANDIDATE2_05BAA75C)_SHA256\s*=\s*([0-9A-Fa-f]{64})", manifest))
-registered_map = set(re.findall(r"(?:REAL_MAP|FASTPATH_MAP_0691C524|FASTPATH_MAP_CANDIDATE2_05BAA75C)_SHA256\s*=\s*([0-9A-Fa-f]{64})", manifest))
+registered_out = set(re.findall(r"(?:REAL_OUT|NOENERGY_OUT|REVOKED_OUT_9CE0EFBA|FASTPATH_OUT_0691C524|FASTPATH_OUT_CANDIDATE2_05BAA75C|SPLIT_PIPELINE_OUT)_SHA256\s*=\s*([0-9A-Fa-f]{64})", manifest))
+registered_map = set(re.findall(r"(?:REAL_MAP|FASTPATH_MAP_0691C524|FASTPATH_MAP_CANDIDATE2_05BAA75C|SPLIT_PIPELINE_MAP)_SHA256\s*=\s*([0-9A-Fa-f]{64})", manifest))
 if m_real:
     registered_out.add(m_real.group(1))
 if m_map:
@@ -174,11 +178,13 @@ check("FIRST_REAL_PI_MAX_HZ            170000UL" in shot_h, "shot envelope max 1
 check("SHOT_ClampFreq" in shot_c and "FIRST_REAL_PI_MIN_HZ" in shot_c and "FIRST_REAL_PI_MAX_HZ" in shot_c,
       "SHOT_ClampFreq clamps into 145..170 kHz")
 
-# 5. 200 us on-chip cage
-check("FIRST_REAL_PI_DURATION_TICKS    10U" in shot_h,
-      "200 us cage = 10 x 20 us ticks (FIRST_REAL_PI_DURATION_TICKS == 10)")
-check("g_first_real_pi_shot_tick >= FIRST_REAL_PI_DURATION_TICKS" in shot_c,
-      "on-chip 200 us auto-OST uses FIRST_REAL_PI_DURATION_TICKS")
+# 5. 200 us real-time cage (RECOVERY V1 D: Timer2 cycles, not tick count)
+check(re.search(r"FIRST_REAL_PI_DURATION_CYCLES\s+12000UL", shot_h),
+      "200 us real-time cage = 12000 Timer2 cycles at 60 MHz")
+check("FIRST_REAL_PI_DURATION_CYCLES" in read_text(ROOT / "app" / "control.c") and
+      "SHOT_Revoke(SHOT_ABORT_TIMEOUT)" in read_text(ROOT / "app" / "control.c") and
+      "g_first_real_pi_shot_first_write_timer2" in read_text(ROOT / "app" / "control.c"),
+      "on-chip 200 us auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)")
 
 # 6. Debug override absent from REAL build
 check("#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD" in shot_h,
@@ -285,9 +291,12 @@ timing_syms = [
     "g_pwm_period", "g_control_fresh_sample_count", "g_control_pi_update_count",
     "g_first_real_pi_shot_state", "g_first_real_pi_shot_abort",
     "g_first_real_pi_shot_tick", "g_first_real_pi_shot_power_writes",
-    "g_first_real_pi_shot_rb_index", "g_first_real_pi_shot_rb_count",
-    "g_first_real_pi_shot_rb", "g_first_real_pi_shot_first_write_timer2",
+    "g_first_real_pi_shot_first_write_timer2",
     "g_first_real_pi_shot_ost_timer2",
+    # RECOVERY V1 40 us split pipeline symbols (E: no ring in the 20 us ISR)
+    "g_pipeline_phase", "g_pipeline_executed_phase",
+    "g_pipeline_pending", "g_shot_summary",
+    "g_real_compute_phase_cycles_max", "g_real_apply_phase_cycles_max",
 ]
 if REAL_MAP.exists():
     for sym in timing_syms:
@@ -372,13 +381,14 @@ check('wv("g_pwm_fastpath_ready",1)' in timing,
       "timing script writes g_pwm_fastpath_ready=1 only after read-only verification")
 check('SOCASEL = 6' in timing and 'SOCAPRD = 3' in timing and 'SOCAEN = 1' in timing,
       "timing script sets closed-loop ADC cadence ET_CTRU_CMPB / ET_3RD / SOCAEN")
-check("FASTPATH_READY_REAL_ISR_MAX" in timing and "CURRENT_BINARY_TIMING_PASS" in timing and
-      "RECOVERY_V1_NEEDS_FIRMWARE_OPTIMIZATION" in timing,
-      "timing script prints fastpath-ready ISR max + B verdict (PASS or proceed to C)")
-for g in ["RING_FIRST_FRESH", "RING_FIRST_FREQ_149800", "RING_FIRST_TBPRD_400",
-          "RING_FIRST_ACTUAL_149625"]:
+check("SPLIT_PIPELINE_40US_COMPUTE_MAX" in timing and "SPLIT_PIPELINE_40US_APPLY_MAX" in timing and
+      "SPLIT_PIPELINE_40US_REAL_ISR_MAX" in timing and "SPLIT_PIPELINE_40US_TIMING_PASS" in timing and
+      "SPLIT_PIPELINE_40US_TIMING_FAIL" in timing,
+      "timing script prints split-pipeline phase maxima + RECOVERY V1 verdict (PASS or FAIL)")
+for g in ["SUMMARY_FIRST_FREQ_149800", "SUMMARY_FIRST_TBPRD_400",
+          "SUMMARY_FIRST_ACTUAL_149625"]:
     check(f"gate(\"{g}\"" in timing, f"timing result hard gate {g} present")
-check('gate("RING_FIRST_TBPRD_400"' in timing and 'gate("RING_FIRST_ACTUAL_149625"' in timing,
+check('gate("SUMMARY_FIRST_TBPRD_400"' in timing and 'gate("SUMMARY_FIRST_ACTUAL_149625"' in timing,
       "timing PASS requires TBPRD change + actual-frequency update (prevents FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED)")
 check('gate("FREQ_CMD_CHANGED"' not in timing,
       "timing script does NOT rely on freq_cmd != 150000 as the actuator-path proof")
@@ -386,13 +396,20 @@ check('gate("FREQ_CMD_CHANGED"' not in timing,
 check('gate("TIMER2_DELTA_11000_14000"' in timing and
       "FIRST_WRITE_TIMER2" in timing and "OST_TIMER2" in timing and "TIMER2_DELTA" in timing,
       "timing script Timer2 delta gate 11000..14000 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output")
-# E: result consistency gates
-for g in ["FRESH_SAMPLE_DELTA", "PI_UPDATE_DELTA", "POWER_WRITES_DELTA_11",
-          "SHOT_STATE_COMPLETE", "SHOT_ABORT_TIMEOUT", "SHOT_TICK_10",
-          "SHOT_OK_1", "RB_COUNT_11", "PWM_ZERO", "OST_LATCHED_END",
-          "FAULT_ZERO_END", "ISR_MAX_LE_900", "OVERRUN_ZERO",
+# E: result consistency gates (40 us split pipeline: phase maxima, phase
+# counts derived statically, pending finally invalid, no ring gates)
+for g in ["FRESH_SAMPLE_DELTA", "PI_UPDATE_DELTA", "POWER_WRITES_DELTA_6",
+          "SUMMARY_FIRST_FREQ_149800", "SUMMARY_FIRST_TBPRD_400",
+          "SUMMARY_FIRST_ACTUAL_149625", "PIPELINE_PI_COMPUTE_COUNT_6",
+          "PIPELINE_PWM_APPLY_COUNT_6", "PIPELINE_FAST_TICKS_11",
+          "PENDING_FINAL_INVALID", "SHOT_STATE_COMPLETE", "SHOT_ABORT_TIMEOUT",
+          "SHOT_TICK_11", "SHOT_OK_1", "PWM_ZERO", "OST_LATCHED_END",
+          "FAULT_ZERO_END", "COMPUTE_PHASE_MAX_LE_900", "APPLY_PHASE_MAX_LE_900",
+          "ISR_MAX_LE_900", "OVERRUN_ZERO", "ENTRY_INTERVAL_MAX_LE_1230",
           "ISR_COUNT_POSITIVE", "TIMER0_ENTRY_POSITIVE"]:
     check(f"gate(\"{g}\"" in timing, f"timing result hard gate {g} present")
+check('gate("RB_COUNT_11"' not in timing and 'gate("RING_FIRST_FRESH"' not in timing,
+      "RECOVERY V1 E: no 12-field/4-field ring gates inside the 20 us ISR")
 check("TIMING_NOPOWER_FAIL" in timing and "TIMING_NOPOWER_PASS" in timing,
       "timing script prints TIMING_NOPOWER_FAIL on any gate failure")
 check("run(20)" in timing and "20 ms" in timing,

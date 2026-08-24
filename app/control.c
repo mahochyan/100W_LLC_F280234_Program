@@ -419,17 +419,75 @@ void CTRL_ApplyFrequencyCommand(void)
 #endif
 }
 
-/*
- * STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - production fast control
- * body (integer-only): NEW-sample freshness selection, single consumption of
- * the LATEST ADC sample, and PI entry. Called by CTRL_FastTask after the
- * stage/PWM/reference gates, and by the no-energy production-binding hook.
- * Reads g_adc_sample_sequence for NEW-SAMPLE freshness and consumes
- * g_adc_vout_filtered_raw (latest) exactly once per fresh sequence.
- */
-void CTRL_RunFastControl(void)
+/* ------------------------------------------------------------------ */
+/* STAGE6_40US_SPLIT_PIPELINE_ACCELERATED_CLOSED_LOOP_V1 (RECOVERY V1):
+ * the closed loop is split into two phases alternating on the 20 us ticks:
+ *   PHASE_COMPUTE (tick N)   : fresh ADC selection + Q12 PI + envelope/slew
+ *                              clamps + target TBPRD/CMPA/CMPB/actual into
+ *                              the pending structure; NO PWM register write.
+ *   PHASE_APPLY  (tick N+1)  : full re-authorization (B) + pending
+ *                              validation + commit (TBPRD/CMPA/CMPB + ADC
+ *                              phase sync); NO PI computation.
+ * Real closed-loop update rate: 25 kHz / 40 us. A full PI computation and a
+ * period-change register write NEVER share the same 20 us ISR.
+ * CONSERVATIVE_40US_FIRST_REAL_PROFILE: Kp/Ki/max_step stay unchanged, so
+ * with the 40 us update the integral speed and frequency slew are halved -
+ * intentionally, stability and direction correctness first. */
+/* ------------------------------------------------------------------ */
+
+/* Build the pending structure for a clamped command. No PWM register write.
+ * The period comes from the adjacent no-division calculation anchored at the
+ * committed g_pwm_period (the same rounding as the reference divide), then
+ * the period-command consistency is re-proved by multiplication. Returns 1
+ * on success (pending.valid=1), 0 on any inconsistency. */
+static Uint16 CTRL_PipelineMakePending(Uint32 target)
 {
-    Uint32 fresh_seq;    Uint16 sample_valid, vout_raw;
+    SHOT_PipelinePending *p = &g_pipeline_pending;
+    Uint32 sum, clocks, period;
+
+    if (target < FIRST_REAL_PI_MIN_HZ || target > FIRST_REAL_PI_MAX_HZ) return 0U;
+    if (g_pwm_period == 0U)
+    {
+        /* No established period: the bounded pipeline cannot derive an
+         * adjacent period. A handoff always ends inside 145..170 kHz with a
+         * committed period, so this is an abnormal pre-handoff state. */
+        return 0U;
+    }
+    if (target == g_switching_frequency_hz)
+    {
+        period = (Uint32)g_pwm_period;   /* unchanged command -> same period */
+    }
+    else
+    {
+        sum    = LLC_TBCLK_HZ + (target / 2UL);
+        clocks = (Uint32)g_pwm_period + 1UL;
+        if ((clocks + 1UL) * target <= sum) clocks++;
+        else if (clocks * target > sum) clocks--;
+        if (clocks * target > sum || (clocks + 1UL) * target <= sum) return 0U;
+        period = clocks - 1UL;
+        if (period < 352UL || period > 413UL) return 0U;
+    }
+
+    /* The adjacent no-division calculation above already proves the
+     * period-command consistency (clocks*target <= sum < (clocks+1)*target,
+     * with clocks = period+1) and the +/-1 adjacency against g_pwm_period.
+     * The apply phase re-proves the same invariant (SHOT_PendingValid). */
+
+    p->valid      = 1U;
+    p->sequence   = g_adc_sample_sequence;
+    p->command_hz = target;
+    p->period     = (Uint16)period;
+    p->cmpa       = (Uint16)((period + 1UL) >> 1);
+    p->cmpb       = (Uint16)(p->cmpa >> 1);
+    p->actual_hz  = g_real_pi_actual_hz_table[period - 352UL];
+    return 1U;
+}
+
+/* PHASE_COMPUTE: fresh-sample selection + PI + pending build. */
+static void CTRL_PipelineCompute(void)
+{
+    Uint32 fresh_seq; Uint16 sample_valid, vout_raw;
+    Uint32 target;
 
     fresh_seq = g_adc_sample_sequence;
     if (fresh_seq == g_control_adc_sequence_last)
@@ -448,10 +506,8 @@ void CTRL_RunFastControl(void)
         sample_valid = 1U;
         vout_raw = g_adc_vout_filtered_raw;  /* latest, consumed once */
     }
-    g_control_sample_valid = sample_valid;
 
-    CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
-    CTRL_ApplyFrequencyCommand();
+    target = CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
 
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     /* STAGE6 handoff: capture the FIRST post-handoff fresh closed-loop sample
@@ -461,13 +517,112 @@ void CTRL_RunFastControl(void)
     {
         g_stage6_first_pi_observed = 1U;
         g_stage6_first_pi_sample_raw = vout_raw;
-        g_stage6_first_pi_freq_hz = g_control_shadow_frequency_hz;
+        g_stage6_first_pi_freq_hz = target;
     }
 #endif
+
+    /* Compute never touches PWM: it only needs the cheap dynamic gates (armed
+     * + no fault) to decide whether to keep producing pending structures. The
+     * FULL authorization (B) is re-verified by the apply phase before any
+     * commit, so a pending produced here can never be committed unless every
+     * formal gate still holds on the apply tick. */
+    if (g_first_real_pi_shot_arm == 0U || g_fault_flags != 0U)
+    {
+        return;
+    }
+    SHOT_ClampFreq(&target);
+    if (CTRL_PipelineMakePending(target) == 1U)
+    {
+        g_pipeline_executed_phase = PIPELINE_PHASE_COMPUTE;
+        g_shot_summary.pi_compute_count++;
+    }
+    else
+    {
+        /* Inconsistent state (no period, out-of-range, mismatch): stop.
+         * No PWM was written by this phase; the apply phase would also
+         * reject the pending. Safe failure per RECOVERY V1 B. */
+        SHOT_Revoke(SHOT_ABORT_ACTUATOR);
+    }
+}
+
+/* PHASE_APPLY: full re-validation + commit. */
+static void CTRL_PipelineApply(void)
+{
+    SHOT_PipelinePending *p = &g_pipeline_pending;
+    Uint32 cmd;
+
+    /* B: full apply authorization (arm / Stage6 / handoff / ref / VOUT cal /
+     * Comp+TZ verified / fault / system RUN) re-checked this tick. */
+    if (SHOT_PipelineApplyAuthorized() == 0U)
+    {
+        if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE || p->valid != 0U)
+        {
+            SHOT_Revoke(SHOT_ABORT_PERMISSION);   /* lost permission: stop */
+        }
+        return;
+    }
+
+    /* B: pending present + range/consistency-validated. */
+    if (SHOT_PendingValid() == 0U)
+    {
+        if (p->valid != 0U)
+        {
+            SHOT_Revoke(SHOT_ABORT_ACTUATOR);   /* invalid pending: discard + stop */
+        }
+        return;   /* no pending produced by the last compute: nothing to commit */
+    }
+
+    cmd = p->command_hz;
+    SHOT_PendingCommit();                /* B/A: PWM write + sw state, valid=0 */
+    g_control_frequency_hz = cmd;        /* commit the commanded base */
+    g_first_real_pi_shot_power_writes++;
+    g_shot_summary.pwm_apply_count++;
+
+    /* E: ISR-side summary (first/last/min/max command, first TBPRD/actual). */
+    if (g_shot_summary.first_command_hz == 0UL)
+    {
+        g_shot_summary.first_command_hz = cmd;
+        g_shot_summary.first_tbprd      = p->period;
+        g_shot_summary.first_actual_hz  = p->actual_hz;
+    }
+    g_shot_summary.last_command_hz = cmd;
+    if (cmd > g_shot_summary.max_command_hz) g_shot_summary.max_command_hz = cmd;
+    if (g_shot_summary.min_command_hz == 0UL || cmd < g_shot_summary.min_command_hz)
+        g_shot_summary.min_command_hz = cmd;
+
+    if (g_first_real_pi_shot_state != SHOT_STATE_ACTIVE)
+    {
+        /* First successful apply -> shot ACTIVE; D: the real-time 200 us cage
+         * starts from this first-apply Timer2 capture. */
+        g_first_real_pi_shot_state = SHOT_STATE_ACTIVE;
+        g_first_real_pi_shot_tick  = 0U;
+        g_first_real_pi_shot_first_write_timer2 = CpuTimer2Regs.TIM.all;
+        g_shot_summary.first_apply_timer2 = g_first_real_pi_shot_first_write_timer2;
+    }
+    g_pipeline_executed_phase = PIPELINE_PHASE_APPLY;
+}
+
+/*
+ * STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - production fast control
+ * body (integer-only) + STAGE6_40US_SPLIT_PIPELINE: alternates the two
+ * pipeline phases. Called by CTRL_FastTask after the stage/PWM/reference
+ * gates and the real-time cage.
+ */
+void CTRL_RunFastControl(void)
+{
+    if (g_pipeline_phase == PIPELINE_PHASE_COMPUTE)
+    {
+        CTRL_PipelineCompute();
+    }
+    else
+    {
+        CTRL_PipelineApply();
+    }
 }
 
 void CTRL_FastTask(void)
 {
+    g_pipeline_executed_phase = 0xFFU;   /* default: no phase executed this tick */
     if (g_system_state != SYS_STATE_RUN)
     {
         return;
@@ -484,6 +639,21 @@ void CTRL_FastTask(void)
     if (g_control_reference_valid == 0U)
     {
         return;   /* no valid Vref yet -> no PI */
+    }
+
+    /* D: real-time 200 us cage from Timer2, checked BEFORE any pipeline phase
+     * so a pending is never committed after the cage elapsed: elapsed =
+     * first_apply_timer2 - current_timer2 (down counter), >= 12000 cycles ->
+     * immediate OST/PWM=0/revoke/COMPLETE/IDLE on this protection tick. */
+    if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
+    {
+        Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
+        if (((g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL) >=
+            FIRST_REAL_PI_DURATION_CYCLES)
+        {
+            SHOT_Revoke(SHOT_ABORT_TIMEOUT);
+            return;
+        }
     }
 
     g_control_running = 1U;

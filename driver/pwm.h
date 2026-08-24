@@ -29,4 +29,9 @@ Uint16  PWM_ConfigMatchesFrozenBaseline(void);
 Uint16  PWM_ConfigTopologyValid(void);
 Uint16  PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime);
 
+/* RECOVERY V1 D: read-only actual-frequency lookup table, TBPRD 352..413
+ * (index period-352, 62 entries). Defined in pwm.c, read by the split
+ * pipeline compute phase (control.c) and by LLC_SetFrequencyHz. */
+extern const Uint32 g_real_pi_actual_hz_table[62];
+
 #endif /* DRIVER_PWM_H */

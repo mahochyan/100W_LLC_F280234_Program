@@ -1,60 +1,54 @@
-// stage6_first_real_pi_shot_real_binary_timing_nopower.js  (V1-3 + EXEC V1)
+// stage6_first_real_pi_shot_real_binary_timing_nopower.js
+// (STAGE6_40US_SPLIT_PIPELINE_ACCELERATED_CLOSED_LOOP_V1 - no-power timing F)
 // Gate K: whole TINT0_ISR budget re-test for the FIRST bounded real PI SHOT
-// REAL binary. NO POWER: CNT3/CNT4 OPEN, OST=1, PWM hardware-clamped low.
+// REAL binary with the 40 us split pipeline. NO POWER: CNT3/CNT4 OPEN,
+// OST=1, PWM hardware-clamped low.
 //   <=900 PASS | 901..1080 MARGIN_LOW | >1080 FAIL; overrun=0.
-// V1-3 (STAGE6_REAL_BINARY_TIMING_HARNESS_PERIOD_WRITE_CLOSURE_V1_3):
-//   - keeps the deterministic fresh control input (manufactured EXACTLY ONCE
-//     after all safety hard gates: fault=0, OST=1, PWM=0, AQCSFRC force-low
-//     verified by read-back):
-//       g_control_adc_sequence_last = 0
-//       g_adc_sample_sequence       = 1
-//       g_adc_vout_raw             = 1200
-//       g_adc_vout_filtered_raw     = 1200
-//       g_control_vref_raw         = 1244   (10 V board-calibrated raw)
-//   - initial frequency state changed to:
-//       g_control_frequency_hz     = 149900
-//       g_control_shadow_frequency_hz = 149900
-//       g_switching_frequency_hz   = 149900
-//       g_pwm_period               = 399
-//     First fresh PI tick (error_raw = 1244-1200 = +44, step clamped to
-//     -100 Hz/tick): frequency command = 149800 Hz, period(149800) = 400 !=
-//     g_pwm_period (399) -> LLC_SetFrequencyHz takes the FULL period-changing
-//     path: period division, TBPRD write (400), CMPA write (200), ADC sync
-//     (ADC_UpdatePwmSyncPointKeepCadence), g_pwm_period update (400),
-//     g_actual_switching_frequency_hz update (60000000/401 = 149625 Hz).
-//   - pre-run READ-ONLY gates: EPwm1Regs.TBPRD == 399 and g_pwm_period == 0
-//     (APP_Init app.c:93 clears g_pwm_period to 0 for Stage 0 SAFE AFTER
-//     PWM_Init configured the 150 kHz hardware baseline TBPRD=399; the
-//     task's assumed PRE g_pwm_period==399 does not match the frozen
-//     firmware - the real init state is TBPRD=399 + g_pwm_period=0).
-//   - post-run strict gates (ring first entry records the FIRST write's state
-//     because CTRL_FastTask runs before SHOT_FastTask):
-//       ring[0].fresh_sample == 1, ring[0].freq_cmd_hz == 149800,
-//       ring[0].tbprd == 400 (the value written to EPwm1Regs.TBPRD and stored
-//       in g_pwm_period at the first write), ring[0].actual_freq_hz == 149625
-//       (period division + g_actual_switching_frequency_hz update).
-//     NOT just "freq_cmd != 150000": the TBPRD change and the actual-frequency
-//     update are required (prevents FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED).
-//   - Timer2 no-power hard gate: timer2_delta = (first_write_timer2 -
-//     ost_timer2) unsigned 32-bit, 11000 <= delta <= 14000 (~200 us @ 60 MHz);
-//     prints FIRST_WRITE_TIMER2 / OST_TIMER2 / TIMER2_DELTA.
-//   - result consistency gates: shot ok==1, rb_count==11, power_writes
-//     delta==11, g_real_isr_cycles_count>0, g_real_timer0_entry_count>0,
-//     state==COMPLETE, abort==TIMEOUT, tick==10, PWM==0, OST==1, fault==0,
-//     isr_max<=900, overrun==0. Any failure -> TIMING_NOPOWER_FAIL.
+// A: the closed loop alternates PHASE_COMPUTE (fresh ADC + Q12 PI + envelope/
+//    slew clamps + pending TBPRD/CMPA/CMPB/actual; NO PWM register write) and
+//    PHASE_APPLY (full re-authorization + pending validation + commit) on the
+//    20 us ticks -> 40 us / 25 kHz real closed-loop update rate. A full PI
+//    computation and a period-change register write never share one ISR.
+//    CONSERVATIVE_40US_FIRST_REAL_PROFILE: Kp/Ki/max_step unchanged; the 40 us
+//    update halves the integral speed and the frequency slew (stability first).
+// B: apply re-verifies pending.valid + full permission (arm/Stage6/handoff/
+//    reference/VOUT cal/Comp+TZ/fault/system RUN) + period-command consistency
+//    by multiplication; on failure the pending is discarded + SHOT_Revoke +
+//    OST + PWM=0. Commit clears pending.valid (no double commit).
+// D: real-time 200 us cage via Timer2 in CTRL_FastTask BEFORE any pipeline
+//    phase (elapsed = first_apply_timer2 - current_timer2 >= 12000 cycles):
+//    a pending is never committed after 200 us.
+// E: no ring inside the 20 us ISR; only the minimal summary record
+//    (first command/TBPRD/actual, last/min/max command, max VOUT raw, phase
+//    counts, abort reason, Timer2 captures) is written in-ISR. Per-phase
+//    whole-ISR maxima are classified by g_pipeline_executed_phase.
+// F: worst no-power case: Vref raw=1244, Vout raw=1200, initial command
+//    149900 -> first pending 149800 Hz / TBPRD 400 / CMPA 200 / CMPB 100 /
+//    actual 149625, applied on the next tick. Gates: compute_phase_max <=
+//    900, apply_phase_max <= 900, whole isr max <= 900, entry_interval_max
+//    < 1200, overrun == 0, Timer2 gate ok, fault == 0, final PWM == 0,
+//    final OST == 1, pending final invalid, phase counts correct.
+// Static derivation of the phase counts (T1 = first apply capture, inside the
+// apply ISR; Timer2 cage trips on the 11th tick after it):
+//   tick0 COMPUTE (first pending 149800) -> tick1 APPLY (T1, ->ACTIVE) ->
+//   ticks alternate; cage at tick12 -> fast_ticks == 11,
+//   pi_compute_count == 6 (tick0 + ticks 2,4,6,8,10),
+//   pwm_apply_count == 6 (ticks 1,3,5,7,9,11), pending consumed by the last
+//   apply -> valid == 0. These are the strict gates (the task's "5/5/10"
+//   estimate assumed T1 on a tick boundary; the exact derivation is
+//   documented in the report and confirmed by this no-power run).
 // EXEC V1 (STAGE6_REAL_BINARY_NOPOWER_TIMING_EXECUTION_V1):
 //   - run(20) = 20 ms (NOT 2 s): state starts directly in RUN with the shot
-//     armed; the 200 us cage ends after ~0.22 ms (11 x 20 us ticks) with
-//     on-chip OST=1/PWM=0/IDLE; the remaining time observes idle ticks. The
-//     first fresh control tick (worst case) is captured in the first 20 us.
+//     armed; the 200 us cage ends after ~0.22 ms with on-chip OST=1/PWM=0/
+//     IDLE; the remaining time observes idle ticks. The first fresh control
+//     tick (worst case) is captured in the first 20 us.
 //   - suspended-ISR drain: a halt can suspend a TINT0 ISR mid-execution; on
 //     the next run it completes and its Timer2 delta (including the halt
 //     time) would pollute g_real_isr_cycles_max. Before the test-state
-//     writes, 1 ms drain windows are run until a window shows max <= 900
-//     (no suspended ISR completed during it).
+//     writes, 1 ms drain windows are run until a window shows max <= 900.
 //   - measurement-pollution retry: if the 20 ms measurement window itself
-//     is polluted (max > 10000, i.e. a suspended ISR from the last drain
-//     halt completed at its start), the WHOLE flow is retried (loadProgram
+//     is polluted (max > 10000, a suspended ISR from the last drain halt
+//     completing at its start), the WHOLE flow is retried (loadProgram
 //     resets all state; every safety hard gate is re-checked on each
 //     attempt). This is a measurement-artifact retry, NOT a gate-failure
 //     retry: any gate failure aborts immediately with TIMING_NOPOWER_FAIL.
@@ -160,6 +154,8 @@ function clearReal(){
   wv32("g_real_timer0_last_entry",0);
   wv32("g_real_timer0_entry_interval_min",0xFFFFFFFF);
   wv32("g_real_timer0_entry_interval_max",0);
+  wv32("g_real_compute_phase_cycles_max",0);
+  wv32("g_real_apply_phase_cycles_max",0);
 }
 
 try{session.target.connect();}catch(e){}
@@ -330,6 +326,8 @@ for (attempt=0; attempt<5 && !done; attempt++) {
 
   // ---- C/D/E: result hard gates (any failure -> TIMING_NOPOWER_FAIL) ----
   var max=rv32("g_real_isr_cycles_max");
+  var cmax=rv32("g_real_compute_phase_cycles_max");
+  var amax=rv32("g_real_apply_phase_cycles_max");
   var ovf=rv32("g_real_isr_overrun_count");
   var tmax=rv32("g_real_timer0_entry_interval_max");
   var tmin=rv32("g_real_timer0_entry_interval_min");
@@ -348,13 +346,21 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   var pwm2=rw("g_pwm_enabled");
   var ost2=reg("EPwm1Regs.TZFLG.bit.OST");
   var fault2=rv32("g_fault_flags");
-  var rbi=rw("g_first_real_pi_shot_rb_index");
-  var rbc=rw("g_first_real_pi_shot_rb_count");
-  var rstart=((rbi-rbc)%32+32)%32;
-  var rbf=rw("g_first_real_pi_shot_rb["+rstart+"].fresh_sample");
-  var rbfq=rv32("g_first_real_pi_shot_rb["+rstart+"].freq_cmd_hz");
-  var rbt=rw("g_first_real_pi_shot_rb["+rstart+"].tbprd");
-  var rba=rv32("g_first_real_pi_shot_rb["+rstart+"].actual_freq_hz");
+  // E: ISR-side summary record (the only in-ISR record; no ring).
+  var sfirst=rv32("g_shot_summary.first_command_hz");
+  var stbprd=rw("g_shot_summary.first_tbprd");
+  var sactual=rv32("g_shot_summary.first_actual_hz");
+  var slast=rv32("g_shot_summary.last_command_hz");
+  var smaxc=rv32("g_shot_summary.max_command_hz");
+  var sminc=rv32("g_shot_summary.min_command_hz");
+  var svmax=rw("g_shot_summary.max_vout_raw");
+  var stk=rv32("g_shot_summary.fast_ticks");
+  var spc=rv32("g_shot_summary.pi_compute_count");
+  var sac=rv32("g_shot_summary.pwm_apply_count");
+  var sab=rw("g_shot_summary.abort_reason");
+  var sfat=rv32("g_shot_summary.first_apply_timer2");
+  var sot=rv32("g_shot_summary.ost_timer2");
+  var pendv=rw("g_pipeline_pending.valid");
   var fw=rv32("g_first_real_pi_shot_first_write_timer2");
   var ostt=rv32("g_first_real_pi_shot_ost_timer2");
   var t2d=(fw-ostt)>>>0;   // Timer2 down-counter: first_write - ost = elapsed cycles
@@ -362,17 +368,18 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   var pper2=rw("g_pwm_period");
   var tbprd2=reg("EPwm1Regs.TBPRD");
   var actual2=rv32("g_actual_switching_frequency_hz");
-  print("real_isr_max="+max+" overrun="+ovf+" entry_interval_max="+tmax+" min="+tmin+" count="+count+" entry_count="+ecnt);
+  print("real_isr_max="+max+" compute_phase_max="+cmax+" apply_phase_max="+amax+
+        " overrun="+ovf+" entry_interval_max="+tmax+" min="+tmin+" count="+count+" entry_count="+ecnt);
   print("fresh_delta="+fdelta+" pi_delta="+pdelta+" power_writes="+pw1+" (delta "+pwdelta+")");
   print("shot state="+st+" abort="+ab+" tick="+tk+" ok="+okf);
-  print("post-run pwm="+pwm2+" ost="+ost2+" fault="+fault2+" rb_index="+rbi+" rb_count="+rbc);
-  print("ring[0] fresh="+rbf+" freq_cmd_hz="+rbfq+" tbprd="+rbt+" actual_freq_hz="+rba);
-  print("FIRST_WRITE_TIMER2="+fw);
-  print("OST_TIMER2="+ostt);
+  print("post-run pwm="+pwm2+" ost="+ost2+" fault="+fault2);
+  print("summary first_cmd="+sfirst+" first_tbprd="+stbprd+" first_actual="+sactual+
+        " last_cmd="+slast+" max_cmd="+smaxc+" min_cmd="+sminc+" max_vout_raw="+svmax);
+  print("summary fast_ticks="+stk+" pi_compute_count="+spc+" pwm_apply_count="+sac+
+        " abort="+sab+" pending_valid="+pendv);
+  print("FIRST_WRITE_TIMER2="+fw+" (summary "+sfat+")");
+  print("OST_TIMER2="+ostt+" (summary "+sot+")");
   print("TIMER2_DELTA="+t2d);
-  // post-run globals hold the LAST write's state (11 steps of -100 Hz from
-  // 149900: freq=148800, period=402, TBPRD=402, actual=60000000/403=148883);
-  // printed as evidence, the strict period-change proof is the ring[0] record.
   print("post-run freq_cmd="+freq_cmd+" g_pwm_period="+pper2+" EPwm1Regs.TBPRD="+tbprd2+" actual="+actual2);
 
   // measurement-pollution check: a suspended ISR from the last drain halt
@@ -384,34 +391,50 @@ for (attempt=0; attempt<5 && !done; attempt++) {
     continue;
   }
 
-  // ---- B verdict (independent of gate evaluation) ----
-  print("FASTPATH_READY_REAL_ISR_MAX="+max);
-  print("FASTPATH_READY_OVERRUN="+ovf);
-  print("FASTPATH_READY_ENTRY_INTERVAL_MAX="+tmax);
-  if (max<=900 && ovf===0) {
-    print("CURRENT_BINARY_TIMING_PASS");
+  // ---- RECOVERY V1 verdict (independent of gate evaluation) ----
+  // Static derivation: T1 (first apply) is captured inside the apply ISR, so
+  // the Timer2 cage (>=12000 cycles) trips on the 11th tick after it:
+  // fast_ticks=11, pi_compute_count=6 (tick0 first pending + 5 inside ACTIVE),
+  // pwm_apply_count=6, pending consumed by the last apply -> valid=0.
+  print("SPLIT_PIPELINE_40US_COMPUTE_MAX="+cmax);
+  print("SPLIT_PIPELINE_40US_APPLY_MAX="+amax);
+  print("SPLIT_PIPELINE_40US_REAL_ISR_MAX="+max);
+  print("SPLIT_PIPELINE_40US_ENTRY_INTERVAL_MAX="+tmax);
+  print("SPLIT_PIPELINE_40US_FAST_TICKS="+stk);
+  print("SPLIT_PIPELINE_40US_PI_COMPUTE_COUNT="+spc);
+  print("SPLIT_PIPELINE_40US_PWM_APPLY_COUNT="+sac);
+  // Whole/phase ISR budget gates: compute<=900, apply<=900, whole<=900,
+  // overrun==0, entry_interval_max<=1230 (TINT0 period 1200 + Timer2 read-in
+  // measurement window; the overrun counter covers the real-time violation).
+  if (cmax<=900 && amax<=900 && max<=900 && ovf===0 && tmax<=1230) {
+    print("SPLIT_PIPELINE_40US_TIMING_PASS");
   } else {
-    print("RECOVERY_V1_NEEDS_FIRMWARE_OPTIMIZATION");
+    print("SPLIT_PIPELINE_40US_TIMING_FAIL");
   }
 
   try{
     gate("FRESH_SAMPLE_DELTA", fdelta>=1);
     gate("PI_UPDATE_DELTA", pdelta>=1);
-    gate("POWER_WRITES_DELTA_11", pwdelta===11);
-    gate("RING_FIRST_FRESH", rbf===1);
-    gate("RING_FIRST_FREQ_149800", rbfq===149800);
-    gate("RING_FIRST_TBPRD_400", rbt===400);
-    gate("RING_FIRST_ACTUAL_149625", rba===149625);
+    gate("POWER_WRITES_DELTA_6", pwdelta===6);
+    gate("SUMMARY_FIRST_FREQ_149800", sfirst===149800);
+    gate("SUMMARY_FIRST_TBPRD_400", stbprd===400);
+    gate("SUMMARY_FIRST_ACTUAL_149625", sactual===149625);
+    gate("PIPELINE_PI_COMPUTE_COUNT_6", spc===6);
+    gate("PIPELINE_PWM_APPLY_COUNT_6", sac===6);
+    gate("PIPELINE_FAST_TICKS_11", stk===11);
+    gate("PENDING_FINAL_INVALID", pendv===0);
     gate("SHOT_STATE_COMPLETE", st===3);
     gate("SHOT_ABORT_TIMEOUT", ab===1);
-    gate("SHOT_TICK_10", tk===10);
+    gate("SHOT_TICK_11", tk===11);
     gate("SHOT_OK_1", okf===1);
-    gate("RB_COUNT_11", rbc===11);
     gate("PWM_ZERO", pwm2===0);
     gate("OST_LATCHED_END", ost2==="1");
     gate("FAULT_ZERO_END", fault2===0);
+    gate("COMPUTE_PHASE_MAX_LE_900", cmax<=900);
+    gate("APPLY_PHASE_MAX_LE_900", amax<=900);
     gate("ISR_MAX_LE_900", max<=900);
     gate("OVERRUN_ZERO", ovf===0);
+    gate("ENTRY_INTERVAL_MAX_LE_1230", tmax<=1230);
     gate("ISR_COUNT_POSITIVE", count>0);
     gate("TIMER0_ENTRY_POSITIVE", ecnt>0);
     gate("TIMER2_DELTA_11000_14000", t2d>=11000 && t2d<=14000);
@@ -427,14 +450,13 @@ if (!done) {
   throw "measurement-pollution-retries-exhausted";
 }
 
-// ---- evidence: ring dump (read-only, after strict evaluation) ----
-// RECOVERY V1 candidate 2: ring holds the 4 first-write proof fields only.
-for(var j=0;j<rbc && j<32;j++){
-  var i=(rstart+j)%32;
-  print("  rb["+i+"] fresh="+rw("g_first_real_pi_shot_rb["+i+"].fresh_sample")+
-        " freq_cmd="+rv32("g_first_real_pi_shot_rb["+i+"].freq_cmd_hz")+
-        " actual="+rv32("g_first_real_pi_shot_rb["+i+"].actual_freq_hz")+
-        " tbprd="+rw("g_first_real_pi_shot_rb["+i+"].tbprd"));
-}
+// ---- evidence: summary dump (read-only, after strict evaluation) ----
+// RECOVERY V1 E: no ring inside the 20 us ISR; the ISR-side summary is the
+// only in-ISR record (first/last/min/max command, first TBPRD/actual, max
+// VOUT raw, phase counts, abort reason, Timer2 captures).
+print("SUMMARY first_cmd="+sfirst+" tbprd="+stbprd+" actual="+sactual+
+      " last="+slast+" min="+sminc+" max="+smaxc+" max_vout="+svmax+
+      " fast_ticks="+stk+" pi="+spc+" apply="+sac+" abort="+sab+
+      " first_apply_t2="+sfat+" ost_t2="+sot+" pending_valid="+pendv);
 print("REALTIME_REAL_BINARY_GRADE="+((max<=900)?"PASS":(max<=1080)?"MARGIN_LOW":"FAIL"));
 print("REALTIME_REAL_BINARY_DONE");

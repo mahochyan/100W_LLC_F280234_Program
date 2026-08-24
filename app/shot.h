@@ -1,14 +1,17 @@
 /*
  * shot.h
  *
- * Bounded FIRST real PI shot (STAGE6_FIRST_BOUNDED_REAL_PI_SHOT_PREPARATION_V1).
+ * Bounded FIRST real PI shot (STAGE6_FIRST_BOUNDED_REAL_PI_SHOT_PREPARATION_V1)
+ * + STAGE6_40US_SPLIT_PIPELINE_ACCELERATED_CLOSED_LOOP_V1.
  * This module adds an independent, on-chip-gated, time-bounded real PI shot:
  *   - STAGE6_FIRST_BOUNDED_REAL_PI_SHOT compile-time mode only (test build).
  *   - Frequency envelope 145000 .. 170000 Hz (first-shot envelope).
  *   - Independent authorization g_first_real_pi_shot_arm (D).
- *   - On-chip 200 us auto-OST timer (E).
+ *   - 40 us split pipeline: PHASE_COMPUTE (PI + pending) and PHASE_APPLY
+ *     (re-verify + commit) alternate on the 20 us TINT0 ticks (A/B).
+ *   - Real-time 200 us cage from Timer2, not from control-update counts (D).
  *   - 11 V fast VOUT abort computed from board_calibration.h (F).
- *   - Small RAM ring buffer of the control ticks (H).
+ *   - ISR-side summary record only; no full ring inside the 20 us ISR (E).
  * The production build does not define STAGE6_FIRST_BOUNDED_REAL_PI_SHOT, so
  * every shot function compiles out (ASCII-only content, both-encoding safe).
  */
@@ -22,13 +25,16 @@
 #define FIRST_REAL_PI_MIN_HZ            145000UL
 #define FIRST_REAL_PI_MAX_HZ            170000UL
 
-/* 200 us max shot = 10 control ticks (each 20 us). */
-#define FIRST_REAL_PI_DURATION_TICKS    10U
+/* Real-time 200 us cage: 200e-6 s * 60 MHz = 12000 Timer2 cycles. The cage is
+ * checked from the first successful PHASE_APPLY (first_apply_timer2), so a
+ * pending is never committed after the cage has elapsed (RECOVERY V1 D). */
+#define FIRST_REAL_PI_DURATION_CYCLES   12000UL
 
-/* RAM ring buffer of recorded control ticks during the shot (32 entries, > the
- * 200 us shot). Placed in its own "shot_ram" section on RAML3 (.esysmem) so it
- * does not exhaust the 1 KB RAML2 .ebss. */
-#define SHOT_RB_SIZE                    32U
+/* Pipeline phase ids. PHASE_COMPUTE runs PI + writes the pending structure
+ * only; PHASE_APPLY re-verifies and commits (PWM registers) - never both in
+ * the same 20 us ISR (RECOVERY V1 A). */
+#define PIPELINE_PHASE_COMPUTE          0U
+#define PIPELINE_PHASE_APPLY            1U
 
 /* Shot state machine. */
 #define SHOT_STATE_IDLE     0U
@@ -43,24 +49,47 @@
 #define SHOT_ABORT_VOUT_11V   2U   /* Vout >= 11 V fast abort */
 #define SHOT_ABORT_TZ         3U   /* real Comparator/TZ trip */
 #define SHOT_ABORT_FAULT      4U   /* some other fault latched */
-#define SHOT_ABORT_ACTUATOR   5U   /* LLC_SetFrequencyHz failed */
+#define SHOT_ABORT_ACTUATOR   5U   /* pending commit validation failed */
 #define SHOT_ABORT_PERMISSION 6U   /* a permission condition disappeared */
 #define SHOT_ABORT_NO_HANDOFF 7U   /* SoftStart FINAL window expired without 10V handoff */
 #define SHOT_ABORT_CEILING    8U   /* SoftStart hard ceiling (12V) reached during ramp */
 
-/* One recorded control tick (H). RECOVERY V1 candidate 2: the ring keeps only
- * the task-required first-write proof fields (fresh sample flag, commanded
- * frequency, TBPRD period, actual frequency) so the per-tick ISR record cost is
- * minimal; the 12-field diagnostic record was moved out of the 20 us ISR path.
- * Fields are plain (written once by the ISR, read post-shot by CCS while
- * halted), so the compiler can batch the stores. */
+/* ------------------------------------------------------------------ */
+/* B: pending structure - produced by PHASE_COMPUTE, consumed (once) by
+ * PHASE_APPLY. Never written by the apply phase; apply only validates and
+ * commits, then clears valid (no double commit). */
 typedef struct
 {
-    Uint32 freq_cmd_hz;
-    Uint32 actual_freq_hz;
-    Uint16 tbprd;
-    Uint16 fresh_sample;
-} SHOT_RbEntry;
+    Uint16 valid;            /* 1 = produced, not yet committed */
+    Uint32 sequence;         /* ADC sample sequence the command was computed from */
+    Uint32 command_hz;       /* clamped command, 145000..170000 */
+    Uint16 period;           /* TBPRD (352..413) */
+    Uint16 cmpa;             /* (period+1)/2 */
+    Uint16 cmpb;             /* sample point = cmpa/2 */
+    Uint32 actual_hz;        /* 60000000/(period+1) */
+} SHOT_PipelinePending;
+
+/* ------------------------------------------------------------------ */
+/* E: ISR-side summary record (single instance, no ring). Updated only from
+ * the 20 us ISR; read post-shot by CCS while halted. Keeps the per-tick ISR
+ * record cost minimal while still proving first/last command, first TBPRD /
+ * actual frequency, min/max command, max VOUT raw, phase counts, the abort
+ * reason and the Timer2 first-apply/OST captures. */
+typedef struct {
+    Uint32 first_command_hz;
+    Uint16 first_tbprd;
+    Uint32 first_actual_hz;
+    Uint32 last_command_hz;
+    Uint32 max_command_hz;
+    Uint32 min_command_hz;
+    Uint16 max_vout_raw;
+    Uint32 fast_ticks;         /* 20 us ticks from first apply to cage (D) */
+    Uint32 pi_compute_count;   /* PHASE_COMPUTE successes (expected 5) */
+    Uint32 pwm_apply_count;    /* PHASE_APPLY commits (expected 5) */
+    Uint16 abort_reason;
+    Uint32 first_apply_timer2;
+    Uint32 ost_timer2;
+} SHOT_ShotSummary;
 
 void   SHOT_Init(void);
 Uint16 SHOT_PermissionOk(void);      /* D: all arm conditions */
@@ -69,8 +98,11 @@ Uint16 SHOT_RealStage6AuthOk(void);  /* F2: bounded-shot Stage6 startup auth (RE
 Uint16 SHOT_RealSoftStartAuthOk(void);  /* C: runtime formal-SoftStart auth (REAL build only) */
 Uint16 SHOT_RealBoundedPiAuthOk(void);  /* C: bounded-PI auth (REAL build only) */
 Uint16 SHOT_ClampFreq(Uint32 *p_hz); /* B: clamp into 145..170k, returns 1 if clamped applied */
+Uint16 SHOT_PendingValid(void);                 /* B: pending.valid == 1 and range-consistent */
+Uint16 SHOT_PipelineApplyAuthorized(void);      /* B: full apply re-authorization (incl. RUN) */
+void   SHOT_PendingCommit(void);                /* B: commit pending to PWM (apply phase only) */
 void   SHOT_Revoke(Uint16 reason);   /* on-chip termination (E/F/C/D) */
-void   SHOT_FastTask(void);          /* called from TINT0_ISR: timer + 11V abort + ring record */
+void   SHOT_FastTask(void);          /* called from TINT0_ISR: cage + 11V abort + summary (E/D/F) */
 void   SHOT_OnTrip(void);            /* called from real TZ ISR (G): revoke on real trip */
 
 /* Non-static shot globals (CCS-visible by name). */
@@ -82,10 +114,11 @@ extern volatile Uint16 g_first_real_pi_shot_abort;
 extern volatile Uint16 g_first_real_pi_shot_power_writes;
 extern volatile Uint16 g_first_real_pi_shot_ok;
 extern volatile Uint16 g_first_real_pi_shot_abort_vout_raw;
-extern volatile Uint16 g_first_real_pi_shot_rb_index;
-extern volatile Uint16 g_first_real_pi_shot_rb_count;
-extern SHOT_RbEntry g_first_real_pi_shot_rb[SHOT_RB_SIZE];
-/* H: Timer2 captures for the first-write -> OST elapsed proof. */
+extern volatile Uint16 g_pipeline_phase;        /* 0 = compute, 1 = apply */
+extern volatile Uint16 g_pipeline_executed_phase; /* this tick's phase (0/1/0xFF none) */
+extern SHOT_PipelinePending g_pipeline_pending;
+extern SHOT_ShotSummary g_shot_summary;
+/* H: Timer2 captures for the first-apply -> OST elapsed proof. */
 extern volatile Uint32 g_first_real_pi_shot_first_write_timer2;
 extern volatile Uint32 g_first_real_pi_shot_ost_timer2;
 #if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
