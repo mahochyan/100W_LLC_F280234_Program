@@ -156,7 +156,39 @@ Evidence:
 | PI direction | `PI_DIRECTION_CONDITIONAL_PASS=true` |
 | verdict | `STAGE_G_500US_NOLOAD_REAL_SHOT_PASS` |
 
-## Final tokens (updated for 500 µs)
+## 1 ms real-power attempt (authorized once; no external load)
+
+Task: STAGE6_1MS_NOLOAD_BOUNDED_REAL_PI_SHOT_V1. New REAL binary `80E4647A` with `FIRST_REAL_PI_DURATION_CYCLES=60000` (1 ms @ 60 MHz) was built and frozen.
+No-power timing passed first on the same binary (fast=51, pi=26, apply=26, power_writes=26, Timer2 delta=60908).
+Then one real no-load 1 ms shot was executed with `DSH_CNT34_CONNECTED_CONFIRMED=1`; result **FAIL**.
+
+Evidence:
+- `G6_1MS_80E4647A_NOPOWER_TIMING_RAW.txt` / `..._RESULT.json`
+- `G7_1MS_NOLOAD_REAL_80E4647A_RAW.txt` / `..._RESULT.json`
+
+| field | value |
+|---|---|
+| REAL OUT SHA256 | `80E4647ACE6C0820F1B5460B361085C18A800FD4FB4857FB8C32ED9C0C4C5849` |
+| state | ABORTED (4) |
+| abort | VOUT_11V (2) |
+| tick | 29 |
+| ok | 0 |
+| power_writes | 15 |
+| Timer2 delta | not reached (abort before 1 ms timeout) |
+| ISR max / compute / apply | 907 / 907 / 765 |
+| overrun | 0 |
+| shot-local entry max | 0 |
+| fault | 0x10000 (65536) |
+| pwm_enabled / pwm_enable_result | 0 / 0 |
+| power_window_state | not POST_OST (1) |
+| OST | 1 |
+| softstart / handoff | COMPLETE / OK |
+| max_vout_raw | 1369 >= abort_vout_raw 1367 |
+| shot_error first/last/min/max | 0 / -125 / -125 / 0 |
+| PI direction | `PI_DIRECTION_CONDITIONAL_PASS=true` |
+| verdict | `STAGE_G_1MS_NOLOAD_REAL_SHOT_FAIL` |
+
+## Final tokens (updated for 1 ms attempt)
 
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED`, `NOPOWER_TIMEOUT_END_PASS`,
 `ADC_STALE_PROTECTION_UNCHANGED`, `COMPARATOR_TZ_PROTECTION_UNCHANGED`,
@@ -169,14 +201,16 @@ Evidence:
 `POSTSHOT_ERROR_SIGN_GATE_INVALID`, `NO_MORE_200US_RETRY`,
 `AUTHORIZED_REAL_300US_SHOT_PASS`, `REAL_300US_324AF09E_FROZEN`,
 `NOPOWER_300US_TIMING_PASS_324AF09E`,
-`AUTHORIZED_REAL_500US_SHOT_PASS`, `REAL_500US_4627440F_FROZEN`,
+`AUTHORIZED_REAL_500US_SHOT_PASS`, `REAL_500US_4627440F_REVOKED`,
 `NOPOWER_500US_TIMING_PASS_4627440F`,
 `STAGE6_500US_NOLOAD_REAL_SHOT_PASS`, `REALTIME_BUDGET_PASS`,
 `PI_DIRECTION_CONDITIONAL_PASS`, `FAULT_ZERO_ACTIVE_TZ_ZERO`,
-`FINAL_PWM0_OST1`, `STOPPED_BEFORE_1MS`.
+`FINAL_PWM0_OST1`, `STOPPED_BEFORE_1MS`,
+`AUTHORIZED_REAL_1MS_ATTEMPT`, `REAL_1MS_80E4647A_FROZEN`,
+`NOPOWER_1MS_TIMING_PASS_80E4647A`, `STAGE6_1MS_NOLOAD_REAL_SHOT_FAIL`,
+`VOUT_11V_ABORT`, `STOPPED_AFTER_1MS_FAIL_NO_ADVANCE`.
 
 ## Stop point
 
-The 500 µs real-power no-load shot has been executed once on `4627440F` and passed.
-No further real-power run is authorized automatically. Stop here and await explicit
-authorization for the next step.
+The 1 ms real no-load shot was attempted once on `80E4647A` and **failed** at the 11 V abort (max_vout_raw 1369 >= abort 1367).
+No further real-power run is authorized automatically; no retry / 1.5 ms / continuous / 12 V / load / efficiency. Stop here and await explicit authorization.
