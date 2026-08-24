@@ -1,8 +1,8 @@
 # STAGE6_TIMEOUT_OST_CLASSIFICATION_CLOSURE_V1
 
-Status: **TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED** + **NOPOWER_TIMEOUT_END_PASS**
+Status: **TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED** + **NOPOWER_TIMEOUT_END_PASS** + **AUTHORIZED_REAL_G_ATTEMPTED_FAIL_NO_HANDOFF**
 Branch: `stage6/first-real-pi-shot-real-binary-hardening-v1-1` (new independent branch)
-Real power: **NOT executed this stage**. CNT3/CNT4 remain physically open.
+Real power: one authorized real 200 µs G attempt was executed on `2B01F82E`; it failed before handoff (`SHOT_ABORT_NO_HANDOFF`). CNT3/CNT4 were connected for that authorized run.
 
 ## What changed
 
@@ -50,14 +50,37 @@ Evidence: `TIMEOUT_FIX_2B01F82E_NOPOWER_TIMING_RAW.txt` / `..._RESULT.json`.
 | overrun | 0 |
 | abort=TZ | absent |
 
+## Authorized real G attempt (new REAL 2B01F82E)
+
+Evidence: `G4_200US_NOLOAD_REAL_2B01F82E_RAW.txt` / `..._RESULT.json`.
+
+| field | value |
+|---|---|
+| state | ABORTED (4) |
+| abort | SHOT_ABORT_NO_HANDOFF (7) |
+| tick | 0 |
+| power_writes | 0 |
+| fault | 0 |
+| abort=TZ | absent |
+| ISR max | 319 ≤ 900 |
+| overrun | 0 |
+| summary.abort_reason | 7 |
+
+The run did **not** reach the 200 µs timeout path, so the software-OST classification
+fix was not exercised in this real attempt. The previous `COMP_TZ1` misclassification
+was not observed (`fault=0`, no `abort=TZ`), but the shot aborted before any PI write
+with `SHOT_ABORT_NO_HANDOFF`.
+
 ## Final tokens
 
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED`, `NOPOWER_TIMEOUT_END_PASS`,
 `ADC_STALE_PROTECTION_UNCHANGED`, `COMPARATOR_TZ_PROTECTION_UNCHANGED`,
-`ISR_LE_900_PASS`, `CNT34_REMAIN_OPEN`, `NO_REAL_POWER_EXECUTED`,
-`READY_FOR_SINGLE_G_RETRY_REVIEW`.
+`ISR_LE_900_PASS`, `CNT34_CONNECTED_FOR_AUTHORIZED_REAL_G`,
+`AUTHORIZED_REAL_G_EXECUTED_FAIL_NO_HANDOFF`,
+`READY_FOR_NO_HANDOFF_REVIEW`.
 
 ## Stop point
 
-All no-power gates passed. **Stop and await one new real 200 µs G authorization.**
-Do NOT auto-run real power.
+All no-power gates passed, and one authorized real 200 µs G attempt was executed.
+The real attempt failed before handoff (`SHOT_ABORT_NO_HANDOFF`). **Stop and review the
+no-handoff failure before any further real-power run.** Do NOT auto-run another real G.

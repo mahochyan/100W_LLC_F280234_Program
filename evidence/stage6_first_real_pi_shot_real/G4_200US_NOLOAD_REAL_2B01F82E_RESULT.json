@@ -1,0 +1,36 @@
+{
+  "run": "G4_200US_NOLOAD_REAL_2B01F82E",
+  "out_sha256": "2B01F82E8616A94CF939AC2C4D99702D2BFB6A3DECFCF67FA5DE1876EF30292C",
+  "archive_time_utc": "2026-08-24T15:32:15.766873+00:00",
+  "authorized": true,
+  "markers": {
+    "REAL_G_2B01F82E_AUTHORIZED_EXECUTED": true,
+    "REAL_G_2B01F82E_FAILED_NO_HANDOFF": true,
+    "SOFTWARE_OST_CLASSIFICATION_FIX_NOT_EXERCISED": true,
+    "NO_ABORT_TZ_OBSERVED": true
+  },
+  "measured": {
+    "state": 4,
+    "state_name": "ABORTED",
+    "tick": 0,
+    "abort": 7,
+    "abort_name": "SHOT_ABORT_NO_HANDOFF",
+    "ok": 0,
+    "power_writes": 0,
+    "softstart_result": 6,
+    "handoff_result": 0,
+    "fault": 0,
+    "pwm_enabled": 0,
+    "pwm_enable_result": 0,
+    "power_window_state": 1,
+    "power_window_state_name": "ACTIVE",
+    "ost": 1,
+    "isr_max": 319,
+    "overrun": 0,
+    "entry_interval_max": 1820,
+    "summary_abort_reason": 7,
+    "timer2_delta": 0
+  },
+  "verdict": "STAGE_G_200US_NOLOAD_REAL_SHOT_FAIL",
+  "note": "The new binary eliminated the previous COMP_TZ1/OST misclassification behavior (fault=0, no abort=TZ), but this run aborted before any PI write with SHOT_ABORT_NO_HANDOFF; the 200us timeout path was not exercised."
+}
