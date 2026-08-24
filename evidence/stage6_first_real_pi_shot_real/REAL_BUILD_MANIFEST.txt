@@ -2,8 +2,8 @@ STAGE6_FIRST_REAL_PI_SHOT_REAL_BINARY_HARDENING_V1_1
 ====================================================
 source_baseline_commit=8201315428e14f288a9a427d29e63c15f8b97b2f
 source_branch=stage6/first-real-pi-shot-real-binary-hardening-v1-1
-SOURCE_COMMIT=PENDING_COMMIT_TIMEOUT_OST_CLASSIFICATION_FIX
-EVIDENCE_COMMIT=evidence: freeze timeout-fix REAL binary after STAGE6_TIMEOUT_OST_CLASSIFICATION_CLOSURE_V1 (see git log)
+SOURCE_COMMIT=a4afacf (stage6: fix software OST timeout classification via LLC_PWM_DisableSafe; freeze new REAL 2B01F82E and no-power PASS)
+EVIDENCE_COMMIT=a4afacf (same commit: freeze timeout-fix REAL binary + no-power evidence)
 TOOLS_COMMIT=tools: add enum/signed-r16 gates for timeout OST classification closure
 compiler_version=TI CGT C2000 25.11.1.LTS
 abi=coffabi
