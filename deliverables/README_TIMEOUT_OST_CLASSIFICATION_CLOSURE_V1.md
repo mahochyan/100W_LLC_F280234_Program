@@ -1,8 +1,8 @@
 # STAGE6_TIMEOUT_OST_CLASSIFICATION_CLOSURE_V1
 
-Status: **TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED** + **NOPOWER_TIMEOUT_END_PASS** + **AUTHORIZED_REAL_G_ATTEMPTED_FAIL_NO_HANDOFF**
+Status: **TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED** + **NOPOWER_TIMEOUT_END_PASS** + **AUTHORIZED_REAL_G_200US_TIMEOUT_CLASSIFICATION_PASS**
 Branch: `stage6/first-real-pi-shot-real-binary-hardening-v1-1` (new independent branch)
-Real power: one authorized real 200 µs G attempt was executed on `2B01F82E`; it failed before handoff (`SHOT_ABORT_NO_HANDOFF`). CNT3/CNT4 were connected for that authorized run.
+Real power: three authorized real 200 µs G attempts were executed on `2B01F82E`. The first two aborted before handoff (`SHOT_ABORT_NO_HANDOFF`). The third reached the normal 200 µs timeout and confirmed the classification fix: state=COMPLETE, abort=TIMEOUT, power_window_state=POST_OST, fault=0, no abort=TZ. The overall harness still reports FAIL only on `ENTRY_INTERVAL_LE_1230` and `PI_DIRECTION_NEGATIVE_ERROR`.
 
 ## What changed
 
@@ -50,9 +50,14 @@ Evidence: `TIMEOUT_FIX_2B01F82E_NOPOWER_TIMING_RAW.txt` / `..._RESULT.json`.
 | overrun | 0 |
 | abort=TZ | absent |
 
-## Authorized real G attempt (new REAL 2B01F82E)
+## Authorized real G attempts (new REAL 2B01F82E)
 
-Evidence: `G4_200US_NOLOAD_REAL_2B01F82E_RAW.txt` / `..._RESULT.json`.
+Evidence:
+- `G4_200US_NOLOAD_REAL_2B01F82E_RAW.txt` / `..._RESULT.json` — attempt #1, no-handoff
+- `G5_200US_NOLOAD_REAL_2B01F82E_RAW.txt` / `..._RESULT.json` — attempt #2, no-handoff
+- `G6_200US_NOLOAD_REAL_2B01F82E_RAW.txt` / `..._RESULT.json` — attempt #3, reached 200 µs timeout
+
+### G4 / G5 (no-handoff)
 
 | field | value |
 |---|---|
@@ -64,23 +69,46 @@ Evidence: `G4_200US_NOLOAD_REAL_2B01F82E_RAW.txt` / `..._RESULT.json`.
 | abort=TZ | absent |
 | ISR max | 319 ≤ 900 |
 | overrun | 0 |
-| summary.abort_reason | 7 |
 
-The run did **not** reach the 200 µs timeout path, so the software-OST classification
-fix was not exercised in this real attempt. The previous `COMP_TZ1` misclassification
-was not observed (`fault=0`, no `abort=TZ`), but the shot aborted before any PI write
-with `SHOT_ABORT_NO_HANDOFF`.
+These runs did **not** reach the 200 µs timeout path; the software-OST classification
+fix was not exercised. No `COMP_TZ1` fault or `abort=TZ` was observed.
+
+### G6 (normal 200 µs timeout reached)
+
+| field | value |
+|---|---|
+| state | COMPLETE (3) |
+| abort | TIMEOUT (1) |
+| summary.abort_reason | TIMEOUT (1) |
+| tick | 11 |
+| power_writes | 6 |
+| fault | 0 |
+| pwm_enabled / pwm_enable_result | 0 / 0 |
+| power_window_state | POST_OST (2) |
+| OST | 1 |
+| Timer2 delta | 12916 (11000..14000) |
+| ISR max / compute / apply | 688 / 569 / 688 ≤ 900 |
+| overrun | 0 |
+| abort=TZ | absent |
+
+This run confirms the core `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED` behavior.
+The overall harness still prints `STAGE_G_200US_NOLOAD_REAL_SHOT_FAIL` because two
+non-classification gates remain FAIL:
+- `ENTRY_INTERVAL_LE_1230` (entry_max=1821)
+- `PI_DIRECTION_NEGATIVE_ERROR` (control_error_raw=0 under this no-load condition)
 
 ## Final tokens
 
 `TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED`, `NOPOWER_TIMEOUT_END_PASS`,
 `ADC_STALE_PROTECTION_UNCHANGED`, `COMPARATOR_TZ_PROTECTION_UNCHANGED`,
 `ISR_LE_900_PASS`, `CNT34_CONNECTED_FOR_AUTHORIZED_REAL_G`,
-`AUTHORIZED_REAL_G_EXECUTED_FAIL_NO_HANDOFF`,
-`READY_FOR_NO_HANDOFF_REVIEW`.
+`AUTHORIZED_REAL_G_200US_TIMEOUT_CLASSIFICATION_PASS`,
+`REAL_G_OVERALL_STILL_FAIL_ENTRY_INTERVAL_AND_PI_DIRECTION`.
 
 ## Stop point
 
-All no-power gates passed, and one authorized real 200 µs G attempt was executed.
-The real attempt failed before handoff (`SHOT_ABORT_NO_HANDOFF`). **Stop and review the
-no-handoff failure before any further real-power run.** Do NOT auto-run another real G.
+All no-power gates passed. Three authorized real G attempts were executed; the third
+reached the 200 µs timeout and confirmed the software-OST classification fix. The
+overall G harness still has two failing gates (`ENTRY_INTERVAL_LE_1230`,
+`PI_DIRECTION_NEGATIVE_ERROR`). **Stop and review those two gates before any further
+real-power run.** Do NOT auto-run another real G.

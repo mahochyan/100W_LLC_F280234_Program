@@ -1,0 +1,46 @@
+{
+  "run": "G6_200US_NOLOAD_REAL_2B01F82E_RETRY",
+  "out_sha256": "2B01F82E8616A94CF939AC2C4D99702D2BFB6A3DECFCF67FA5DE1876EF30292C",
+  "archive_time_utc": "2026-08-24T15:44:20.023043+00:00",
+  "authorized": true,
+  "markers": {
+    "REAL_G_2B01F82E_AUTHORIZED_RETRY_EXECUTED": true,
+    "REAL_G_2B01F82E_REACHED_TIMEOUT_200US": true,
+    "TIMEOUT_SOFTWARE_OST_CLASSIFICATION_FIXED": true,
+    "NO_ABORT_TZ_OBSERVED": true,
+    "NOPOWER_TIMEOUT_END_PASS_STILL_VALID": true
+  },
+  "measured": {
+    "state": 3,
+    "state_name": "COMPLETE",
+    "tick": 11,
+    "abort": 1,
+    "abort_name": "SHOT_ABORT_TIMEOUT",
+    "ok": 1,
+    "power_writes": 6,
+    "softstart_result": 1,
+    "handoff_result": 1,
+    "fault": 0,
+    "pwm_enabled": 0,
+    "pwm_enable_result": 0,
+    "power_window_state": 2,
+    "power_window_state_name": "POST_OST",
+    "ost": 1,
+    "isr_max": 688,
+    "compute_max": 569,
+    "apply_max": 688,
+    "overrun": 0,
+    "entry_interval_max": 1821,
+    "summary_abort_reason": 1,
+    "timer2_delta": 12916,
+    "first_freq": 150000,
+    "last_freq": 150000
+  },
+  "verdict": "STAGE_G_200US_NOLOAD_REAL_SHOT_FAIL_OVERALL_SCRIPT",
+  "core_timeout_classification": "PASS",
+  "remaining_fail_gates": [
+    "ENTRY_INTERVAL_LE_1230",
+    "PI_DIRECTION_NEGATIVE_ERROR"
+  ],
+  "note": "The 200us timeout path was reached and the software-OST classification fix is confirmed: state=COMPLETE, abort=TIMEOUT, power_window_state=POST_OST, fault=0, no abort=TZ. The overall harness still prints FAIL due to entry-interval and PI-direction gates."
+}
