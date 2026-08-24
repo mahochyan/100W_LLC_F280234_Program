@@ -162,6 +162,8 @@ volatile Uint32 g_real_timer0_entry_interval_min = 0UL;
 volatile Uint32 g_real_timer0_entry_interval_max = 0UL;
 volatile Uint32 g_real_compute_phase_cycles_max = 0UL;
 volatile Uint32 g_real_apply_phase_cycles_max   = 0UL;
+volatile Uint32 g_shot_entry_interval_max       = 0UL;   /* shot-local entry max, reset at first apply */
+volatile Uint32 g_shot_entry_last               = 0UL;   /* last TINT0 entry Timer2 for shot-local delta */
 #endif
 
 /* Tutorial SoftStart Engine */

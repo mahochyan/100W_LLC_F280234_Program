@@ -154,6 +154,8 @@ extern volatile Uint32 g_real_timer0_entry_interval_max;
  * only on ticks whose pipeline phase actually executed. */
 extern volatile Uint32 g_real_compute_phase_cycles_max;
 extern volatile Uint32 g_real_apply_phase_cycles_max;
+extern volatile Uint32 g_shot_entry_interval_max;   /* shot-local entry max */
+extern volatile Uint32 g_shot_entry_last;           /* shot-local last entry */
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;

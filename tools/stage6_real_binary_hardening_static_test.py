@@ -332,6 +332,52 @@ check("g_fault_flags |= FAULT_ADC_STALE_OVERFLOW" in adc_text,
 check("ISR_MAX_LE_900" in read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_binary_timing_nopower.js"),
       "ISR <=900 gate is not lowered/removed in no-power timing harness")
 
+# 17f. STAGE6_G6_ACCEPTANCE_RECONCILIATION_AND_SHOT_LOCAL_TELEMETRY_V1:
+#      shot-local entry max, signed error summary, Uint32 fault cause,
+#      no-handoff POST_OST planned stop, and harness no longer uses global
+#      post-IDLE error for direction.
+shot_h = read_text(ROOT / "app" / "shot.h")
+check("entry_interval_max_shot" in shot_h and "first_error_raw" in shot_h and
+      "last_error_raw" in shot_h and "min_error_raw" in shot_h and "max_error_raw" in shot_h,
+      "SHOT_ShotSummary contains shot-local entry max and signed error fields")
+check("g_shot_summary.entry_interval_max_shot = g_shot_entry_interval_max;" in shot_c,
+      "SHOT_Revoke(TIMEOUT) freezes shot-local entry max into summary")
+control_c = read_text(ROOT / "app" / "control.c")
+check("g_shot_entry_interval_max = 0UL;" in control_c and "g_shot_entry_last         = CpuTimer2Regs.TIM.all;" in control_c,
+      "first apply resets shot-local entry interval measurement")
+check("g_shot_entry_interval_max" in read_text(ROOT / "app" / "llc_globals.c") and
+      "g_shot_entry_interval_max" in read_text(ROOT / "app" / "llc_globals.h"),
+      "shot-local entry interval globals exist in llc_globals")
+# NO_HANDOFF planned stop must not leave ACTIVE.
+nh_block = shot_c[shot_c.find("if (reason == SHOT_ABORT_NO_HANDOFF)"):shot_c.find("/* Abort paths -> FAULT")]
+check("LLC_PWM_DisableSafe();" in nh_block and "POWER_WINDOW_POST_OST" in nh_block,
+      "SHOT_ABORT_NO_HANDOFF routes through LLC_PWM_DisableSafe() to POST_OST")
+check("g_fault_flags" not in nh_block,
+      "SHOT_ABORT_NO_HANDOFF does not latch a fault")
+# Uint32 fault cause plumbing.
+check("void PWM_Trip(Uint32 cause, Uint16 countTrip)" in read_text(ROOT / "driver" / "pwm.c") and
+      "void    PWM_Trip(Uint32 cause, Uint16 countTrip);" in read_text(ROOT / "driver" / "pwm.h"),
+      "PWM_Trip cause widened to Uint32")
+check("void PROT_RequestFault(Uint32 cause, Uint16 countTrip)" in read_text(ROOT / "app" / "protection.c") and
+      "void PROT_RequestFault(Uint32 cause, Uint16 countTrip);" in read_text(ROOT / "app" / "protection.h"),
+      "PROT_RequestFault cause widened to Uint32")
+# Harness must use shot-local entry max and NOT post-IDLE global error direction.
+for label, script in [("real 200us noload", noload_script), ("no-power chaincheck", chain_script)]:
+    check('sEntryMax=rv32("g_shot_summary.entry_interval_max_shot")' in script,
+          f"{label} reads shot-local entry max from summary")
+    check("ENTRY_INTERVAL_LE_1230" in script and "sEntryMax" in script,
+          f"{label} entry gate uses shot-local max")
+    check("PI_DIRECTION_NEGATIVE_ERROR" not in script,
+          f"{label} no longer gates on post-IDLE global error direction")
+timing = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_binary_timing_nopower.js")
+check("g_shot_summary.entry_interval_max_shot" in timing and "sentry" in timing,
+      "no-power timing harness reads shot-local entry max from summary")
+check("ENTRY_INTERVAL_MAX_LE_1230" in timing and "sentry" in timing,
+      "no-power timing entry gate uses shot-local max")
+check("PI_DIRECTION_NEGATIVE_ERROR" not in timing,
+      "no-power timing harness has no post-ID PI error direction gate")
+
+
 
 # 18. F: timing script symbol audit against REAL MAP
 timing = read_text(ROOT / "tools" / "stage6_first_real_pi_shot_real_binary_timing_nopower.js")

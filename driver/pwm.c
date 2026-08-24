@@ -543,7 +543,7 @@ void PWM_StartDeterministic(void)
  * force test); otherwise it is a protection-initiated fault that must not
  * increment g_trip_count per the bring-up rule.
  */
-void PWM_Trip(Uint16 cause, Uint16 countTrip)
+void PWM_Trip(Uint32 cause, Uint16 countTrip)
 {
     EALLOW;
     EPwm1Regs.TZEINT.bit.OST = 0U;   /* avoid ISR double-count for software trips */
@@ -580,7 +580,7 @@ void PWM_Trip(Uint16 cause, Uint16 countTrip)
  * Public software force-trip test used in Stage 4.  This is one of the two
  * paths that increments g_trip_count.
  */
-void LLC_ProtectionForceTrip(Uint16 cause)
+void LLC_ProtectionForceTrip(Uint32 cause)
 {
     PWM_Trip(cause, 1U);
     if (cause == 0U)

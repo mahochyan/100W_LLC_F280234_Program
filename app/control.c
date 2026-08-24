@@ -278,6 +278,28 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     error = (int32)g_control_vref_raw - (int32)vout_raw;   /* [-4095,4095] */
     g_control_error_raw = (int16)error;
 
+    /* G6 acceptance: keep shot-local signed error telemetry in the ISR-side
+     * summary so post-shot IDLE clearing of g_control_error_raw cannot erase
+     * the ACTIVE-window direction evidence. */
+    if ((g_first_real_pi_shot_arm != 0U) &&
+        (g_first_real_pi_shot_state == SHOT_STATE_ARMED ||
+         g_first_real_pi_shot_state == SHOT_STATE_ACTIVE))
+    {
+        int16 e = (int16)error;
+        if (g_shot_summary.pi_compute_count == 0UL)
+        {
+            g_shot_summary.first_error_raw = e;
+            g_shot_summary.min_error_raw   = e;
+            g_shot_summary.max_error_raw   = e;
+        }
+        else
+        {
+            if (e < g_shot_summary.min_error_raw) g_shot_summary.min_error_raw = e;
+            if (e > g_shot_summary.max_error_raw) g_shot_summary.max_error_raw = e;
+        }
+        g_shot_summary.last_error_raw = e;
+    }
+
     p_q12 = CTRL_KP_RAW_Q12 * error;                       /* [-903303765,903303765] */
 #if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_control_p_term_q12 = p_q12;
@@ -598,6 +620,12 @@ static void CTRL_PipelineApply(void)
         g_first_real_pi_shot_tick  = 0U;
         g_first_real_pi_shot_first_write_timer2 = CpuTimer2Regs.TIM.all;
         g_shot_summary.first_apply_timer2 = g_first_real_pi_shot_first_write_timer2;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+        /* G6 acceptance: shot-local entry-interval measurement starts at the
+         * first apply; the previous global accumulation is NOT used. */
+        g_shot_entry_interval_max = 0UL;
+        g_shot_entry_last         = CpuTimer2Regs.TIM.all;
+#endif
     }
     g_pipeline_executed_phase = PIPELINE_PHASE_APPLY;
 }

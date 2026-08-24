@@ -100,7 +100,7 @@ void PROT_Init(void)
     g_first_start_pwm = 0U;
 }
 
-void PROT_RequestFault(Uint16 cause, Uint16 countTrip)
+void PROT_RequestFault(Uint32 cause, Uint16 countTrip)
 {
     PWM_Trip(cause, countTrip);
 }
@@ -259,6 +259,16 @@ __interrupt void TINT0_ISR(void)
             Uint32 r_delta = (Uint32)((Uint32)(g_real_timer0_last_entry - r_entry) & 0xFFFFFFFFUL);
             if (r_delta > g_real_timer0_entry_interval_max)
                 g_real_timer0_entry_interval_max = r_delta;
+            /* Shot-local entry interval: only while the bounded shot is ACTIVE.
+             * Reset at first apply in CTRL_PipelineApply; frozen at TIMEOUT by
+             * SHOT_Revoke. This excludes APP init / stage confirms / IDLE. */
+            if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
+            {
+                Uint32 s_delta = (Uint32)((Uint32)(g_shot_entry_last - r_entry) & 0xFFFFFFFFUL);
+                if (s_delta > g_shot_entry_interval_max)
+                    g_shot_entry_interval_max = s_delta;
+                g_shot_entry_last = r_entry;
+            }
         }
         g_real_timer0_entry_count++;
         g_real_timer0_last_entry = r_entry;

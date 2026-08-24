@@ -75,8 +75,8 @@ PASS: REAL script does NOT read power_writes as rv32
 PASS: shot envelope min 145 kHz
 PASS: shot envelope max 170 kHz
 PASS: SHOT_ClampFreq clamps into 145..170 kHz
-PASS: 200 us cage = 10 x 20 us ticks (FIRST_REAL_PI_DURATION_TICKS == 10)
-PASS: on-chip 200 us auto-OST uses FIRST_REAL_PI_DURATION_TICKS
+PASS: 200 us real-time cage = 12000 Timer2 cycles at 60 MHz
+PASS: on-chip 200 us auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)
 PASS: debug override declarations guarded out of REAL build (shot.h)
 PASS: debug override definitions guarded out of REAL build (shot.c)
 PASS: no-energy TZ bypass guarded by NOENERGY_TEST (protection.c)
@@ -105,6 +105,43 @@ PASS: SoftStart FINAL max window ends NOT_REACHED + ABORTED (REAL build)
 PASS: no-handoff path revokes shot arm with SHOT_ABORT_NO_HANDOFF
 PASS: SS_End revokes shot arm on every other abort path (REAL build)
 PASS: shot.h defines SHOT_ABORT_NO_HANDOFF / SHOT_ABORT_CEILING
+PASS: SHOT_Revoke(SHOT_ABORT_TIMEOUT) routes through LLC_PWM_DisableSafe()
+PASS: SHOT_Revoke timeout branch has NO raw TZFRC.OST write
+PASS: SHOT_Revoke timeout branch explicitly closes power window to POST_OST
+PASS: SHOT_Revoke timeout branch clears PWM enable and result
+PASS: enum FAULT_COMP_TZ1 == 0x10
+PASS: enum FAULT_ADC_STALE_OVERFLOW == 0x40
+PASS: enum SHOT_ABORT_TZ == 3
+PASS: enum SHOT_ABORT_PERMISSION == 6
+PASS: real 200us noload harness defines signed int16 r16()
+PASS: real 200us noload harness reads control_error_raw as signed int16
+PASS: real 200us noload harness defines enum static gates
+PASS: real 200us noload harness gates timeout closure + enum bits
+PASS: no-power chaincheck harness defines signed int16 r16()
+PASS: no-power chaincheck harness reads control_error_raw as signed int16
+PASS: no-power chaincheck harness defines enum static gates
+PASS: no-power chaincheck harness gates timeout closure + enum bits
+PASS: ADC stale overflow protection remains present
+PASS: Comparator/DAC/protection thresholds remain unchanged in protection.c
+PASS: ADC stale overflow still latches fault (no exemption)
+PASS: ISR <=900 gate is not lowered/removed in no-power timing harness
+PASS: SHOT_ShotSummary contains shot-local entry max and signed error fields
+PASS: SHOT_Revoke(TIMEOUT) freezes shot-local entry max into summary
+PASS: first apply resets shot-local entry interval measurement
+PASS: shot-local entry interval globals exist in llc_globals
+PASS: SHOT_ABORT_NO_HANDOFF routes through LLC_PWM_DisableSafe() to POST_OST
+PASS: SHOT_ABORT_NO_HANDOFF does not latch a fault
+PASS: PWM_Trip cause widened to Uint32
+PASS: PROT_RequestFault cause widened to Uint32
+PASS: real 200us noload reads shot-local entry max from summary
+PASS: real 200us noload entry gate uses shot-local max
+PASS: real 200us noload no longer gates on post-IDLE global error direction
+PASS: no-power chaincheck reads shot-local entry max from summary
+PASS: no-power chaincheck entry gate uses shot-local max
+PASS: no-power chaincheck no longer gates on post-IDLE global error direction
+PASS: no-power timing harness reads shot-local entry max from summary
+PASS: no-power timing entry gate uses shot-local max
+PASS: no-power timing harness has no post-ID PI error direction gate
 PASS: timing script symbol g_voltage_reference exists in REAL MAP
 PASS: timing script symbol g_control_vref_raw exists in REAL MAP
 PASS: timing script symbol g_real_timer0_entry_interval_min exists in REAL MAP
@@ -138,11 +175,14 @@ PASS: timing script symbol g_first_real_pi_shot_state exists in REAL MAP
 PASS: timing script symbol g_first_real_pi_shot_abort exists in REAL MAP
 PASS: timing script symbol g_first_real_pi_shot_tick exists in REAL MAP
 PASS: timing script symbol g_first_real_pi_shot_power_writes exists in REAL MAP
-PASS: timing script symbol g_first_real_pi_shot_rb_index exists in REAL MAP
-PASS: timing script symbol g_first_real_pi_shot_rb_count exists in REAL MAP
-PASS: timing script symbol g_first_real_pi_shot_rb exists in REAL MAP
 PASS: timing script symbol g_first_real_pi_shot_first_write_timer2 exists in REAL MAP
 PASS: timing script symbol g_first_real_pi_shot_ost_timer2 exists in REAL MAP
+PASS: timing script symbol g_pipeline_phase exists in REAL MAP
+PASS: timing script symbol g_pipeline_executed_phase exists in REAL MAP
+PASS: timing script symbol g_pipeline_pending exists in REAL MAP
+PASS: timing script symbol g_shot_summary exists in REAL MAP
+PASS: timing script symbol g_real_compute_phase_cycles_max exists in REAL MAP
+PASS: timing script symbol g_real_apply_phase_cycles_max exists in REAL MAP
 PASS: timing script uses real symbol names (no g_control_reference_volts / g_real_timer0_interval_*)
 PASS: timing script gates on DSH_CNT34_OPEN_CONFIRMED=1
 PASS: timing script host SHA256 hard gate present
@@ -183,29 +223,38 @@ PASS: RECOVERY V1 B fastpath gate FASTPATH_READY_WRITTEN present
 PASS: RECOVERY V1 B fastpath gate ADC_CADENCE_ET3RD_CMPB present
 PASS: timing script writes g_pwm_fastpath_ready=1 only after read-only verification
 PASS: timing script sets closed-loop ADC cadence ET_CTRU_CMPB / ET_3RD / SOCAEN
-PASS: timing script prints fastpath-ready ISR max + B verdict (PASS or proceed to C)
-PASS: timing result hard gate RING_FIRST_FRESH present
-PASS: timing result hard gate RING_FIRST_FREQ_149800 present
-PASS: timing result hard gate RING_FIRST_TBPRD_400 present
-PASS: timing result hard gate RING_FIRST_ACTUAL_149625 present
+PASS: timing script prints split-pipeline phase maxima + RECOVERY V1 verdict (PASS or FAIL)
+PASS: timing result hard gate SUMMARY_FIRST_FREQ_149800 present
+PASS: timing result hard gate SUMMARY_FIRST_TBPRD_400 present
+PASS: timing result hard gate SUMMARY_FIRST_ACTUAL_149625 present
 PASS: timing PASS requires TBPRD change + actual-frequency update (prevents FREQUENCY_CHANGED_BUT_TBPRD_UNCHANGED)
 PASS: timing script does NOT rely on freq_cmd != 150000 as the actuator-path proof
 PASS: timing script Timer2 delta gate 11000..14000 with FIRST_WRITE_TIMER2/OST_TIMER2/TIMER2_DELTA output
 PASS: timing result hard gate FRESH_SAMPLE_DELTA present
 PASS: timing result hard gate PI_UPDATE_DELTA present
-PASS: timing result hard gate POWER_WRITES_DELTA_11 present
+PASS: timing result hard gate POWER_WRITES_DELTA_6 present
+PASS: timing result hard gate SUMMARY_FIRST_FREQ_149800 present
+PASS: timing result hard gate SUMMARY_FIRST_TBPRD_400 present
+PASS: timing result hard gate SUMMARY_FIRST_ACTUAL_149625 present
+PASS: timing result hard gate PIPELINE_PI_COMPUTE_COUNT_6 present
+PASS: timing result hard gate PIPELINE_PWM_APPLY_COUNT_6 present
+PASS: timing result hard gate PIPELINE_FAST_TICKS_11 present
+PASS: timing result hard gate PENDING_FINAL_INVALID present
 PASS: timing result hard gate SHOT_STATE_COMPLETE present
 PASS: timing result hard gate SHOT_ABORT_TIMEOUT present
-PASS: timing result hard gate SHOT_TICK_10 present
+PASS: timing result hard gate SHOT_TICK_11 present
 PASS: timing result hard gate SHOT_OK_1 present
-PASS: timing result hard gate RB_COUNT_11 present
 PASS: timing result hard gate PWM_ZERO present
 PASS: timing result hard gate OST_LATCHED_END present
 PASS: timing result hard gate FAULT_ZERO_END present
+PASS: timing result hard gate COMPUTE_PHASE_MAX_LE_900 present
+PASS: timing result hard gate APPLY_PHASE_MAX_LE_900 present
 PASS: timing result hard gate ISR_MAX_LE_900 present
 PASS: timing result hard gate OVERRUN_ZERO present
+PASS: timing result hard gate ENTRY_INTERVAL_MAX_LE_1230 present
 PASS: timing result hard gate ISR_COUNT_POSITIVE present
 PASS: timing result hard gate TIMER0_ENTRY_POSITIVE present
+PASS: RECOVERY V1 E: no 12-field/4-field ring gates inside the 20 us ISR
 PASS: timing script prints TIMING_NOPOWER_FAIL on any gate failure
 PASS: timing script runs 20 ms (not 2 s) from direct RUN state
 PASS: timing script comments clarify Stage6 == 7 / Stage7 == 8

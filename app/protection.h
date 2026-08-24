@@ -11,7 +11,7 @@
 void PROT_Init(void);
 void PROT_SlowTask(void);
 void PROT_FastTask(void);
-void PROT_RequestFault(Uint16 cause, Uint16 countTrip);
+void PROT_RequestFault(Uint32 cause, Uint16 countTrip);
 
 __interrupt void EPWM1_TZINT_ISR(void);
 __interrupt void TINT0_ISR(void);

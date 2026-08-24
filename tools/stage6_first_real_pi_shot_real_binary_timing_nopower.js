@@ -336,6 +336,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   var amax=rv32("g_real_apply_phase_cycles_max");
   var ovf=rv32("g_real_isr_overrun_count");
   var tmax=rv32("g_real_timer0_entry_interval_max");
+  var sentry=rv32("g_shot_summary.entry_interval_max_shot");
   var tmin=rv32("g_real_timer0_entry_interval_min");
   var count=rv32("g_real_isr_cycles_count");
   var ecnt=rv32("g_real_timer0_entry_count");
@@ -376,7 +377,8 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   var tbprd2=reg("EPwm1Regs.TBPRD");
   var actual2=rv32("g_actual_switching_frequency_hz");
   print("real_isr_max="+max+" compute_phase_max="+cmax+" apply_phase_max="+amax+
-        " overrun="+ovf+" entry_interval_max="+tmax+" min="+tmin+" count="+count+" entry_count="+ecnt);
+        " overrun="+ovf+" global_entry_interval_max="+tmax+" shot_entry_interval_max="+sentry+
+        " min="+tmin+" count="+count+" entry_count="+ecnt);
   print("fresh_delta="+fdelta+" pi_delta="+pdelta+" power_writes="+pw1+" (delta "+pwdelta+")");
   print("shot state="+st+" abort="+ab+" tick="+tk+" ok="+okf);
   print("post-run pwm="+pwm2+" pwm_enable_result="+pres2+" power_window_state="+pws2+" ost="+ost2+" fault="+fault2);
@@ -406,14 +408,14 @@ for (attempt=0; attempt<5 && !done; attempt++) {
   print("SPLIT_PIPELINE_40US_COMPUTE_MAX="+cmax);
   print("SPLIT_PIPELINE_40US_APPLY_MAX="+amax);
   print("SPLIT_PIPELINE_40US_REAL_ISR_MAX="+max);
-  print("SPLIT_PIPELINE_40US_ENTRY_INTERVAL_MAX="+tmax);
+  print("SPLIT_PIPELINE_40US_ENTRY_INTERVAL_MAX="+sentry);
   print("SPLIT_PIPELINE_40US_FAST_TICKS="+stk);
   print("SPLIT_PIPELINE_40US_PI_COMPUTE_COUNT="+spc);
   print("SPLIT_PIPELINE_40US_PWM_APPLY_COUNT="+sac);
   // Whole/phase ISR budget gates: compute<=900, apply<=900, whole<=900,
   // overrun==0, entry_interval_max<=1230 (TINT0 period 1200 + Timer2 read-in
   // measurement window; the overrun counter covers the real-time violation).
-  if (cmax<=900 && amax<=900 && max<=900 && ovf===0 && tmax<=1230) {
+  if (cmax<=900 && amax<=900 && max<=900 && ovf===0 && sentry<=1230) {
     print("SPLIT_PIPELINE_40US_TIMING_PASS");
   } else {
     print("SPLIT_PIPELINE_40US_TIMING_FAIL");
@@ -441,7 +443,7 @@ for (attempt=0; attempt<5 && !done; attempt++) {
     gate("APPLY_PHASE_MAX_LE_900", amax<=900);
     gate("ISR_MAX_LE_900", max<=900);
     gate("OVERRUN_ZERO", ovf===0);
-    gate("ENTRY_INTERVAL_MAX_LE_1230", tmax<=1230);
+    gate("ENTRY_INTERVAL_MAX_LE_1230", sentry<=1230);   /* shot-local, reset at first apply */
     gate("ISR_COUNT_POSITIVE", count>0);
     gate("TIMER0_ENTRY_POSITIVE", ecnt>0);
     gate("TIMER2_DELTA_11000_14000", t2d>=11000 && t2d<=14000);

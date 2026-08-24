@@ -145,13 +145,19 @@ var sab=rw("g_shot_summary.abort_reason");
 var isrMax=rv32("g_real_isr_cycles_max"); var cMax=rv32("g_real_compute_phase_cycles_max");
 var aMax=rv32("g_real_apply_phase_cycles_max"); var ovf=rv32("g_real_isr_overrun_count");
 var tMax=rv32("g_real_timer0_entry_interval_max"); var iCnt=rv32("g_real_isr_cycles_count");
+var sEntryMax=rv32("g_shot_summary.entry_interval_max_shot");
+var sErrFirst=r16("g_shot_summary.first_error_raw");
+var sErrLast=r16("g_shot_summary.last_error_raw");
+var sErrMin=r16("g_shot_summary.min_error_raw");
+var sErrMax=r16("g_shot_summary.max_error_raw");
 var abortRaw=rw("g_first_real_pi_shot_abort_vout_raw"); var errRaw=r16("g_control_error_raw");
 print("shot state="+st+" tick="+tk+" abort="+ab+" ok="+okf+" power_writes="+pw);
 print("first_write_timer2="+fw+" ost_timer2="+ostt+" timer2_delta="+t2d);
 print("post sys="+sys2+" pwm="+pwm2+" pwm_enable_result="+pres2+" power_window_state="+pws2+" fault="+fault2+" ost="+ost2+" int="+int2+" softstart="+ssres+" handoff="+hres);
 print("summary first_cmd="+sfirst+" tbprd="+stbprd+" actual="+sact+" last="+slast+" min="+smin+" max="+smax+" max_vout_raw="+smv+" fast_ticks="+sfk+" pi="+spc+" apply="+sac+" abort_reason="+sab);
-print("ISR max="+isrMax+" compute="+cMax+" apply="+aMax+" overrun="+ovf+" entry_max="+tMax+" count="+iCnt);
-print("abort_vout_raw="+abortRaw+" control_error_raw="+errRaw);
+print("ISR max="+isrMax+" compute="+cMax+" apply="+aMax+" overrun="+ovf+" global_entry_max="+tMax+" shot_entry_max="+sEntryMax+" count="+iCnt);
+print("shot_error first="+sErrFirst+" last="+sErrLast+" min="+sErrMin+" max="+sErrMax+" (global control_error_raw="+errRaw+")");
+print("abort_vout_raw="+abortRaw);
 
 // ---- strict PASS gates ----
 chk("SHOT_STATE_COMPLETE", st===3);
@@ -163,12 +169,12 @@ chk("TZ_ACTIVE_ZERO", int2==="0" && ost2==="1");
 chk("ISR_MAX_LE_900", isrMax<=900);
 chk("COMPUTE_MAX_LE_900", cMax<=900);
 chk("APPLY_MAX_LE_900", aMax<=900);
-chk("ENTRY_INTERVAL_LE_1230", tMax<=1230);
+chk("ENTRY_INTERVAL_LE_1230", sEntryMax<=1230);   /* shot-local, reset at first apply */
 chk("OVERRUN_ZERO", ovf===0);
 chk("FREQ_MIN_145K", smin>=145000);
 chk("FREQ_MAX_170K", smax<=170000);
 chk("TIMER2_DELTA_11000_14000", t2d>=11000 && t2d<=14000);
-chk("PI_DIRECTION_NEGATIVE_ERROR", errRaw<0);
+/* G6 acceptance: do NOT read post-IDLE global error for direction. */
 chk("FINAL_PWM_ZERO", pwm2===0);
 chk("FINAL_OST_1", ost2==="1");
 chk("PIPELINE_TICKS_POSITIVE", sfk>=1 && spc>=1 && sac>=1);

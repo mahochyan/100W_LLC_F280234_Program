@@ -71,6 +71,15 @@ void SHOT_Init(void)
     g_shot_summary.abort_reason      = SHOT_ABORT_NONE;
     g_shot_summary.first_apply_timer2 = 0UL;
     g_shot_summary.ost_timer2         = 0UL;
+    g_shot_summary.entry_interval_max_shot = 0UL;
+    g_shot_summary.first_error_raw    = 0;
+    g_shot_summary.last_error_raw     = 0;
+    g_shot_summary.min_error_raw      = 0;
+    g_shot_summary.max_error_raw      = 0;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    g_shot_entry_interval_max = 0UL;
+    g_shot_entry_last         = 0UL;
+#endif
 #if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     g_first_shot_debug_freq_hz    = 0UL;
     g_first_shot_debug_ticks      = 0U;
@@ -315,8 +324,29 @@ void SHOT_Revoke(Uint16 reason)
         g_pwm_enable_result        = 0U;
         g_system_state             = SYS_STATE_IDLE;   /* exit RUN */
         g_power_window_state       = POWER_WINDOW_POST_OST; /* explicit closure */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+        g_shot_summary.entry_interval_max_shot = g_shot_entry_interval_max; /* freeze shot-local entry max */
+#endif
         return;
     }
+
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    if (reason == SHOT_ABORT_NO_HANDOFF)
+    {
+        /* G6 acceptance: no-handoff is a planned stop, not a fault. Use
+         * LLC_PWM_DisableSafe() to enter POST_OST cleanly and leave ACTIVE. */
+        g_first_real_pi_shot_ost_timer2 = CpuTimer2Regs.TIM.all;
+        g_shot_summary.ost_timer2       = g_first_real_pi_shot_ost_timer2;
+        LLC_PWM_DisableSafe();
+        g_first_real_pi_shot_state = SHOT_STATE_ABORTED;
+        g_first_real_pi_shot_ok    = 0U;
+        g_pwm_enabled              = 0U;
+        g_pwm_enable_result        = 0U;
+        g_system_state             = SYS_STATE_IDLE;
+        g_power_window_state       = POWER_WINDOW_POST_OST;
+        return;
+    }
+#endif
 
     /* Abort paths -> FAULT (OST + PWM disabled + fault flag). */
     g_first_real_pi_shot_state = SHOT_STATE_ABORTED;

@@ -89,6 +89,11 @@ typedef struct {
     Uint16 abort_reason;
     Uint32 first_apply_timer2;
     Uint32 ost_timer2;
+    Uint32 entry_interval_max_shot;   /* shot-local Timer0/TINT0 entry max, reset at first apply, frozen at TIMEOUT */
+    int16  first_error_raw;           /* signed PI error, first compute of the shot */
+    int16  last_error_raw;           /* signed PI error, last compute before termination */
+    int16  min_error_raw;            /* signed PI error, minimum (most negative) observed */
+    int16  max_error_raw;            /* signed PI error, maximum (most positive) observed */
 } SHOT_ShotSummary;
 
 void   SHOT_Init(void);

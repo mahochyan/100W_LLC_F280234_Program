@@ -14,7 +14,7 @@ void    PWM_Init(void);
 Uint16  LLC_SetFrequencyHz(Uint32 hz);
 void    LLC_PWM_Enable(void);
 void    LLC_PWM_DisableSafe(void);
-void    LLC_ProtectionForceTrip(Uint16 cause);
+void    LLC_ProtectionForceTrip(Uint32 cause);
 Uint16  LLC_ProtectionResetExplicit(void);
 
 /* Unified PWM register API (only these functions write TBPRD/CMPA/DBRED/DBFED) */
@@ -24,7 +24,7 @@ Uint16  PWM_PrepareStart(Uint32 period, Uint16 deadtime, Uint16 start_phase);
 void    PWM_StartDeterministic(void);
 
 /* Internal helper used by protection/state machine */
-void    PWM_Trip(Uint16 cause, Uint16 countTrip);
+void    PWM_Trip(Uint32 cause, Uint16 countTrip);
 Uint16  PWM_ConfigMatchesFrozenBaseline(void);
 Uint16  PWM_ConfigTopologyValid(void);
 Uint16  PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime);
