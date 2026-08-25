@@ -90,3 +90,13 @@ REAL MAP    = BAD6CF0140FB652B4FBAC3565F2D317CDC73346BA6BED31C54B1B5C58AE2C25C
 NOENERGY OUT= 04E3CA30D7DAA58C633359FD0E9512DF758E7F37959AD485E975485908738344
 NOENERGY MAP= 3D76E37073265F0CD336DE996FEA5CEF3D63CA902ED5D36C21EB4048FE4675E9
 ```
+
+## V1_5 Source provenance and revalidation
+
+- Source commit A: `227f08b`
+- Rebuilt NOENERGY from committed source: `AA173F91...`
+- Mode6 revalidation: PASS (same trajectory/counters as V1_4)
+- Real script prepared: `tools/stage6_cr100_single_burst_restart_real.js` (not executed)
+- REAL OUT `9794211D...` remains frozen for real preflight only.
+
+Final status: **BURST_RESTART_NOENERGY_REVALIDATION_PASS**
