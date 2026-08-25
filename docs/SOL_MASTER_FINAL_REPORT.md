@@ -1,8 +1,8 @@
 # SOL Master Final Report
 
-Status: W2 Candidate4 real 2MS failed twice (CR15 15ohm and 500mA CC), both with
-COMP_TZ1 + pre-brake high abort. No retry. The authoritative resume point is
-`docs/SOL_MASTER_EXECUTION_STATE.md`.
+Status: W2 Candidate4 real 2MS failed three times (CR15 15ohm, 500mA CC, and
+load off), all with COMP_TZ1 + pre-brake high abort. No retry. The authoritative
+resume point is `docs/SOL_MASTER_EXECUTION_STATE.md`.
 
 ## Verified milestones
 
@@ -45,8 +45,8 @@ W2 Candidate4 (pre-handoff energy shaping) was the authorized new root-cause
 direction. It implements a pre-handoff brake, dv/dt gate, and bumpless PI preload
 to the actual brake frequency. All no-power gates passed, the unique real ladder
 SHA was frozen, and the authorized unique real CR15 2MS shot was executed. It
-failed twice: first with CR15 15ohm (pre-brake entry raw 1359), then with the
-operator-authorized same-SHA 500mA CC retest (pre-brake entry raw 1362). Both
+failed three times: CR15 15ohm (pre-brake entry raw 1359), operator-authorized
+same-SHA 500mA CC (entry raw 1362), and same-SHA load-off (entry raw 1361). All
 were `FAULT_COMP_TZ1` with immediate pre-brake high-window abort (reason 2) and
 final PWM0/OST1/TZINT0. No further retry; no CR12.5.
 
@@ -56,9 +56,9 @@ W2 has now consumed the allowed three distinct real root-cause attempts:
 3. Candidate 3 timingfix5 (handoff brake 160 kHz + PI preload)
 
 The first three attempts stopped at the same 2 ms VOUT gate
-(`max_vout_raw >= 1367`). Candidate4 stopped at the same 2 ms window twice, both
-with a real comparator TZ1 trip and an immediate pre-brake high-window abort.
-These five attempts remain closed and will not be retried.
+(`max_vout_raw >= 1367`). Candidate4 stopped at the same 2 ms window three times,
+all with a real comparator TZ1 trip and an immediate pre-brake high-window abort.
+These six attempts remain closed and will not be retried.
 
 The `200K_DB140_NOT_PRODUCTION_PATH_AUDIT` is accepted as a closed prior: it is
 not a production baseline, must not be retried, and no blanking / qualification /
