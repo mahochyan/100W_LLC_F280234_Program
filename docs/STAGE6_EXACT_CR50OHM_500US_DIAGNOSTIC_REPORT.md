@@ -61,3 +61,32 @@ BOARD_LEFT_SAFE_PWM0_OST1
 NO_RETRY_EXECUTED
 STOPPED_AWAITING_REVIEW
 ```
+
+## Retry (confirmed CR 50Ω)
+
+Result: **POWER BEHAVIOR FAIL — VOUT_11V_ABORT**
+
+- Connected, entered PI.
+- Frequency rose to 155422 Hz.
+- VOUT hit 1367 >= abort_vout_raw 1367.
+- Abort telemetry complete:
+  - abort_adc_vout_raw=1453
+  - abort_filtered_vout_raw=1367
+  - abort_control_vout_raw=1367
+  - abort_control_error_raw=-123
+  - abort_frequency_hz=155422
+  - abort_pipeline_phase=1
+  - abort_adc_sequence=3027
+  - abort_consumed_sequence=3027
+  - abort_timer2=4244282890
+- ISR max=1115 >900, pending_valid=1.
+
+Final output:
+
+```text
+EXACT_CR50OHM_500US_POWER_BEHAVIOR_FAIL
+FAILED_GATE=VOUT_MAX_BELOW_11V
+BOARD_LEFT_SAFE_PWM0_OST1
+NO_RETRY_EXECUTED
+STOPPED_AWAITING_REVIEW
+```
