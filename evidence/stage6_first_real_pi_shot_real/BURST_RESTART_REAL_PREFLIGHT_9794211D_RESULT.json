@@ -1,0 +1,10 @@
+{
+  "milestone": "BURST_RESTART_REAL_PREFLIGHT",
+  "real_out_sha256": "9794211DE6081F1EE2FD2EA7C83454BBFD76ADAEB2281308B00BF0510C886B77",
+  "verdict": "PASS",
+  "fault": 0,
+  "pwm": 0,
+  "ost": 1,
+  "aqcsfrc_csfa": 1,
+  "aqcsfrc_csfb": 1
+}

@@ -1,0 +1,2 @@
+PREFLIGHT fault=0 pwm=0 ost=1 cfa=1 cfb=1
+REAL_PREFLIGHT_PASS=true
