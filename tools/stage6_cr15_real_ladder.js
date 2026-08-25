@@ -167,6 +167,15 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   var maxv=rw("g_shot_summary.max_vout_raw");
   var fc=rv32("g_shot_summary.fresh_compute_count"); var pc=rv32("g_shot_summary.pi_compute_count");
   var ac=rv32("g_shot_summary.pwm_apply_count");
+  var firstSeq=rv32("g_shot_summary.first_adc_sample_sequence");
+  var lastSeq=rv32("g_shot_summary.last_adc_sample_sequence");
+  var firstConsumed=rv32("g_shot_summary.first_consumed_sequence");
+  var lastConsumed=rv32("g_shot_summary.last_consumed_sequence");
+  var firstTbprd=rw("g_shot_summary.first_tbprd");
+  var minCmd=rv32("g_shot_summary.min_command_hz");
+  var maxCmd=rv32("g_shot_summary.max_command_hz");
+  var lastCmd=rv32("g_shot_summary.last_command_hz");
+  var finalTbprd=rw("g_pwm_period");
   var pv=rw("g_pipeline_pending.valid");
   var tf=rw("g_timing_frozen"); var sc=rv32("g_timing_sample_count");
   var cmax=rv32("g_timing_compute_max"); var cnorm=rv32("g_timing_compute_normal_max");
@@ -197,6 +206,10 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   var faultSnap=rw("g_adc_fault_snapshot_frozen");
   print("state="+st+" abort="+ab+" ok="+okf+" softstart="+ssres+" handoff="+hres);
   print("burst="+burst+" max_vout_raw="+maxv+" fresh="+fc+" pi="+pc+" apply="+ac+" pw="+pw+" pending="+pv);
+  print("adc_sequence first="+firstSeq+" last="+lastSeq+
+        " consumed_first="+firstConsumed+" consumed_last="+lastConsumed);
+  print("active_envelope min_cmd_hz="+minCmd+" max_cmd_hz="+maxCmd+
+        " last_cmd_hz="+lastCmd+" first_tbprd="+firstTbprd+" final_tbprd="+finalTbprd);
   print("timing_frozen="+tf+" samples="+sc+" compute="+cmax+" normal="+cnorm+" fmax="+cfmax+" abort="+cabort+" apply="+amax+" active="+amax2+" shutdown="+smax+" overrun="+tov);
   print("hw_trip_delta="+hwdelta+" active_trip_delta="+actdelta+" pwm="+pwm2+" ost="+ost2+" tzint="+tzint+" pws="+pws2+" fault="+fault2);
   print("burst_blackbox phase="+be_phase+" vout_raw="+be_vout+" error_raw="+be_err+
@@ -212,7 +225,10 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   print("compute_normal_limit="+normalLimit);
   var pass = (ssres===1 && hres===1 && st===3 && ab===1 && okf===1 &&
               fault2===0 && burst===0 && maxv<1367 &&
-              fc===pc && ac===pw && pv===0 &&
+              fc>0 && pc>0 && ac>0 && pw>0 && fc===pc && ac===pw && pv===0 &&
+              lastSeq>firstSeq && lastConsumed>=firstConsumed &&
+              minCmd>=145000 && maxCmd<=170000 && lastCmd>=145000 && lastCmd<=170000 &&
+              firstTbprd>=352 && firstTbprd<=413 && finalTbprd>=352 && finalTbprd<=413 &&
               freshArm===1 && staleMax<=1 && lastPubT2!==0 && lastConsumeT2!==0 && faultSnap===0 &&
               tf===1 && sc>0 && cmax<=900 && cnorm<=normalLimit && cfmax<=900 && cabort<1200 &&
               amax<=900 && amax2<=900 && smax<1200 && tov===0 &&

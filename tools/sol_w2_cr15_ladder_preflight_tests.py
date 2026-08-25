@@ -36,10 +36,17 @@ def main() -> None:
         "100MS_TBPRD_WITHIN_352_413",
         "100MS_PI_INTEGRAL_WITHIN_CLAMPS",
         "LAST50_FMAX_COUNT=",
+        "active_envelope min_cmd_hz=",
+        "adc_sequence first=",
     ):
         require(token, LADDER)
     require('(cfg.label==="100MS") ? 900 : 850', LADDER)
     require('(cfg.label==="100MS") ? 900 : 850', NOPOWER_LADDER)
+    require("lastSeq>firstSeq", LADDER)
+    require("fc>0 && pc>0 && ac>0 && pw>0", LADDER)
+    require("minCmd>=145000 && maxCmd<=170000", LADDER)
+    require("firstTbprd>=352 && firstTbprd<=413", LADDER)
+    require("finalTbprd>=352 && finalTbprd<=413", LADDER)
 
     # Telemetry is passive and restricted to the >=100 ms real-shot build.
     require("FIRST_REAL_PI_DURATION_CYCLES >= 6000000UL", SHOT)

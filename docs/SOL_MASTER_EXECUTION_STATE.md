@@ -11,11 +11,11 @@ user's request and bench-safety constraints remain controlling.
 
 ```text
 STATE_VERSION=2
-UPDATED_AT=2026-08-25T23:22:55+08:00
+UPDATED_AT=2026-08-25T23:26:14+08:00
 MASTER_STATUS=PAUSED_FOR_PHYSICAL_ACTION
 CURRENT_WORK_ORDER=W2
 CURRENT_GATE=NEW_SHA_CR15_REAL_LADDER_2MS_TO_10MS_TO_100MS
-CURRENT_CHECKPOINT=W1_W2_FINAL_MIXED_SHA_ALL_NOPOWER_GATES_PASS__REAL_CR15_LADDER_READY
+CURRENT_CHECKPOINT=W1_W2_FINAL_MIXED_SHA_ALL_NOPOWER_GATES_PASS__REAL_CR15_LADDER_HOST_GATES_CLOSED__READY
 LAST_VERIFIED_WORK_ORDER=W1
 NEXT_ACTION=After CR15_READY=1, execute the qualified new-SHA CR15 ladder once; stop safely on the first failed gate, otherwise continue 2ms -> 10ms -> 100ms without review.
 BOARD_LAST_STATE=PWM0_OST1
@@ -37,6 +37,7 @@ W0_INITIAL_WORKTREE_CLEAN=1
 W1_ROOT_FIX_COMMIT=9dd89680d4dd243bbaa26af1e55ac98d587155f0
 W2_GATE_HARDENING_COMMIT=4946bb409d2ae78eddac1ba77710584b66e3c35f
 W2_TELEMETRY_BUDGET_COMMIT=7c90900b39ff464497fa2761b2dfb278366156c4
+W2_REAL_LADDER_HOST_GATE_AUDIT=THREE_DURATION_ENVELOPE_AND_ADC_SEQUENCE_HARD_GATES_ADDED
 ```
 
 ## Toolchain and target
@@ -173,3 +174,5 @@ control code must not be transplanted directly.
 - Only ask the operator for physical power/load/probe/emergency-stop actions.
 - Every physical run ends with PWM=0, OST=1 and TZ INT=0, otherwise hard stop.
 - Real ladder stops on the first failed gate; no automatic repeat.
+- Every W2 duration must independently prove nonzero compute/apply, advancing
+  ADC publication/consumption, 145..170 kHz commands and TBPRD 352..413.
