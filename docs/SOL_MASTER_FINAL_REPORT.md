@@ -32,5 +32,13 @@ walk also reached 913 compute cycles. It ended PWM0/OST1/TZINT0 and did not run
 10/100 ms. The parameter direction is rejected; the active root cause is now
 the SoftStart-to-PI handoff energy/state discontinuity.
 
+W2 candidate 3 timingfix5 (handoff brake 160 kHz, PI integral preload -10000 Hz,
+real Q12 hot path trim) passed all no-power gates with 2/10/100 ms compute
+846/846/846 and fmax stress. Its unique real 2 ms run still failed on the VOUT
+gate: `max_vout_raw=1370 >= 1367`, `abort=2`, compute/active=875 (<900),
+apply=859, shutdown=1086, overrun=0, final PWM0/OST1/TZINT0. 10/100 ms were not
+run and no CR12.5 was auto-run. This candidate is rejected; the next W2 attempt
+requires a new proven root-cause change, new SHA, and all no-power gates.
+
 This report will be extended only with verified W0-W14 results and immutable
 evidence references.

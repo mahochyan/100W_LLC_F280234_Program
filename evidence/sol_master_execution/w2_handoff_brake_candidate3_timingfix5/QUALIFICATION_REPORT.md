@@ -33,5 +33,28 @@ FMAX_SAT_3: BURST1 SAFE_STOP PASS
 
 Static/Q12, ADC freshness, binary hardening, exhaustive fastpath equivalence
 and period equivalence gates also pass. Every target test ended PWM0/OST1 or
-remained OST1 throughout. These exact frozen SHA binaries are qualified for
+remained OST1 throughout. These exact frozen SHA binaries were qualified for
 one CR15 real 2/10/100 ms ladder under the standing operator confirmation.
+
+## Unique CR15 real ladder result
+
+The unique real 2 ms run was executed with the standing CR15 load confirmation.
+It FAILED on the first duration; no 10/100 ms step was run and no CR12.5 was
+auto-run.
+
+```text
+FAILED_DURATION=2MS
+state=4 abort=2 (VOUT_11V) ok=0
+softstart=1 handoff=1 burst=0
+max_vout_raw=1370 (>=1367)
+adc: fresh=8 pi=8 apply=7, seq 2753..2767, consumed 2752..2767,
+     stale_total=0 stale_max=0 active_ovf=1 fault_snapshot=0
+envelope: min_cmd=160500 max_cmd=163500 last_cmd=163500,
+          first_tbprd=373 final_tbprd=366
+timing: compute=875 active=875 apply=859 shutdown=1086 overrun=0
+final: PWM=0 OST=1 TZ INT=0 pws=2 fault=0x10000
+FAILED_GATE=MAX_VOUT_RAW_LT_1367
+NEXT_LOAD_CANDIDATE=CR12.5
+NO_RETRY_EXECUTED
+BOARD_LEFT_SAFE_PWM0_OST1
+```

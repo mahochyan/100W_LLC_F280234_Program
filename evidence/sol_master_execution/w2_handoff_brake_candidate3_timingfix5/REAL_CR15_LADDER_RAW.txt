@@ -1,0 +1,45 @@
+CNT34 permanent: true operator: true input limit 0.5A: true CR15: true Vin24: true
+=== REAL CR15 LADDER STEP 1: 2MS ===
+REAL OUT host SHA256: 2E13741CA4CFCB408C19C26E6621B487AA21A00A888133D52B894BF66B5626BD
+Expected SHA       : 2E13741CA4CFCB408C19C26E6621B487AA21A00A888133D52B894BF66B5626BD
+REAL_CR15_HOST_SHA256_HARD_GATE_PASS
+GATE INIT_SYS_IDLE: PASS
+GATE INIT_PWM_OFF: PASS
+GATE INIT_FAULT_ZERO: PASS
+GATE INIT_OST_LATCHED: PASS
+GATE INIT_VOUT_CAL_VALID: PASS
+GATE INIT_STAGE_ZERO: PASS
+GATE LOOPBACK_PASS: PASS
+GATE STAGE_CONFIRM_1: PASS
+GATE STAGE_CONFIRM_2: PASS
+GATE STAGE_CONFIRM_3: PASS
+GATE STAGE_CONFIRM_4: PASS
+GATE STAGE_CONFIRM_5: PASS
+GATE STAGE_CONFIRM_6: PASS
+GATE STAGE_CONFIRM_7: PASS
+GATE PREFLIGHT_SYS_IDLE: PASS
+GATE PREFLIGHT_PWM_OFF: PASS
+GATE PREFLIGHT_FAULT_ZERO: PASS
+GATE PREFLIGHT_OST_LATCHED: PASS
+GATE PREFLIGHT_VOUT_CAL: PASS
+GATE PREFLIGHT_COMP_VERIFIED: PASS
+GATE PREFLIGHT_STAGE6: PASS
+GATE PREFLIGHT_ARM_CLEAR: PASS
+Running real CR15 2MS shot, waitMs=50
+state=4 abort=2 ok=0 softstart=1 handoff=1
+burst=0 max_vout_raw=1370 fresh=8 pi=8 apply=7 pw=7 pending=0
+adc_sequence first=2753 last=2767 consumed_first=2752 consumed_last=2767
+active_envelope min_cmd_hz=160500 max_cmd_hz=163500 last_cmd_hz=163500 first_tbprd=373 final_tbprd=366
+timing_frozen=1 samples=507 compute=875 normal=875 fmax=0 abort=0 apply=859 active=875 shutdown=1086 overrun=0
+hw_trip_delta=0 active_trip_delta=0 pwm=0 ost=1 tzint=0 pws=2 fault=65536
+burst_blackbox phase=0 vout_raw=0 error_raw=-1 period=2 freq_hz=170000 unclamped_hz=0 unclamped_period=0 pi_q12=0 applied_period=0 timer2=0 fmax_saturate_count=0
+adc_freshness armed=1 stale_total=0 stale_max=0 active_ovf=1 last_publish_t2=4245544355 last_consume_t2=4248489027 first_stale_frozen=0 first_stale_phase=0 first_stale_age=0 fault_snapshot=0
+compute_normal_limit=900
+REAL_2MS_PASS=FAIL
+STAGE6_CR15_CONTINUOUS_PFM_FAIL
+FAILED_DURATION=2MS
+FAILED_GATE=MAX_VOUT_RAW_LT_1367
+NEXT_LOAD_CANDIDATE=CR12.5
+NO_RETRY_EXECUTED
+BOARD_LEFT_SAFE_PWM0_OST1
+js: "tools\stage6_cr15_real_ladder.js", line 247: exception from uncaught JavaScript throw: real-fail-2MS
