@@ -135,3 +135,14 @@ Status: **FAIL — NOENERGY_WHOLE_ISR_OVER_BUDGET_AND_HW_TRIP_DELTA**
   - whole-ISR polluted/over budget.
 
 Status: **FAIL — OVERRUN_AND_HW_TRIP_DELTA**
+
+## V1_9 TZ postmortem
+
+- Current RAM symbols unavailable -> ran one NOENERGY diagnostic with 3EB8A50B.
+- Timing measurement valid (ISR max 1442 < 100000).
+- TZ event classified as:
+  `BURST_TZ_FINAL_SOFTWARE_OST_LATE_ISR_CONFIRMED`
+- GPIO15/COMPSTS indicate software OST late ISR, not comparator assert.
+- Still overrun=5 and whole-ISR >900, so real power remains unauthorized.
+
+Status: **CLASSIFIED / TIMING VALID / STILL NOT REAL-POWER READY**

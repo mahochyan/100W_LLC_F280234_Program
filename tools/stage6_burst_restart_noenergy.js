@@ -18,8 +18,10 @@ var actual=sha256File(OUT);
 if(!actual.equals(EXPECTED)){ print("ABORT: SHA mismatch."); throw "sha"; }
 var perm=(java.lang.System.getenv("DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED")||"").equals("1");
 var op=(java.lang.System.getenv("DSH_OPERATOR_PRESENT_CONFIRMED")||"").equals("1");
+var vin0=(java.lang.System.getenv("DSH_VIN_ZERO_DMM_CONFIRMED")||"").equals("1");
+var dc0=(java.lang.System.getenv("DSH_DC_BUS_DISCHARGED_CONFIRMED")||"").equals("1");
 var auth=(java.lang.System.getenv("DSH_NO_SWITCHING_TIMING_AUTHORIZED")||"").equals("1");
-if(!perm || !op || !auth){ print("ABORT: no-switching timing gates not all 1."); throw "noauth"; }
+if(!perm || !op || !vin0 || !dc0 || !auth){ print("ABORT: no-switching timing gates not all 1."); throw "noauth"; }
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");
 server.setConfig("D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\F28034.ccxml");
 var session=server.openSession();
@@ -47,6 +49,11 @@ wv("g_adc_vout_raw",1362); wv("g_adc_vout_filtered_raw",1362);
 wv("g_control_vref_raw",1244);
 wv32("g_control_frequency_hz",150000); wv32("g_control_shadow_frequency_hz",150000);
 wv32("g_switching_frequency_hz",150000); wv("g_pwm_period",399);
+// Drain and clear timing counters before enabling Mode6
+run(1);
+wv32("g_fast_isr_cycles_last",0); wv32("g_fast_isr_cycles_max",0); wv32("g_fast_isr_cycles_sum",0); wv32("g_fast_isr_cycles_count",0); wv32("g_fast_isr_overrun_count",0);
+wv32("g_control_exec_cycles_last",0); wv32("g_control_exec_cycles_max",0);
+wv32("g_timer0_entry_count",0); wv32("g_timer0_entry_interval_min",0xFFFFFFFF); wv32("g_timer0_entry_interval_max",0); wv32("g_timer0_last_entry",0);
 wv("g_stage6_noenergy_test_enable",1);
 wv("g_stage6_noenergy_test_mode",6);
 wv("g_stage6_synthetic_vout_raw",1362);
@@ -78,4 +85,6 @@ var bstate=rw("g_burst_state"); var owner=rw("g_ost_owner");
 print("ISRmax="+isrMax+" cmax="+cmax+" amax="+amax+" ovf="+ovf+" entryMax="+entryMax);
 print("entryTimer="+entryTimer+" restartTimer="+restartTimer+" delta="+delta);
 print("hwDelta="+hwDelta+" actDelta="+actDelta+" burstState="+bstate+" ostOwner="+owner);
-print("BURST_RESTART_NOENERGY_PASS="+((be===1)&&(bx===1)&&(ra===1)&&(rs===1)&&(rf===0)&&(hc>=1)&&(lc>=1)&&(pv===0)&&(pwm===0)&&(ost==="1")&&(pws===2)&&(fault===0)&&(isrMax<=900)&&(cmax<=900)&&(amax<=900)&&(ovf===0)&&(delta>0)&&(delta<30000)&&(hwDelta===0)&&(actDelta===0)));
+var tzTimer=rv32("g_tz_isr_timer2"); var tzTbctr=rv32("g_tz_isr_tbctr"); var tzGpio=rv32("g_tz_isr_gpio15"); var tzComp=rv32("g_tz_isr_compsts"); var tzFlg=rv32("g_tz_isr_tzflg"); var tzSoft=rv32("g_tz_isr_software_ost_flag"); var tzAfter=rv32("g_tz_isr_after_scheduled_ost"); var tzPhase=rv32("g_tz_event_phase"); var tzNo=rv32("g_tz_noenergy_trip_count");
+print("TZ timer="+tzTimer+" tbctr="+tzTbctr+" gpio="+tzGpio+" comp="+tzComp+" tzflg="+tzFlg+" soft="+tzSoft+" after="+tzAfter+" phase="+tzPhase+" noenergyTrip="+tzNo);
+print("BURST_RESTART_NOENERGY_PASS="+((be===1)&&(bx===1)&&(ra===1)&&(rs===1)&&(rf===0)&&(hc>=1)&&(lc>=1)&&(pv===0)&&(pwm===0)&&(ost==="1")&&(pws===2)&&(fault===0)&&(isrMax<100000)&&(cmax<=900)&&(amax<=900)&&(ovf===0)&&(delta>0)&&(delta<30000)&&(hwDelta===0)&&(actDelta===0)));
