@@ -793,9 +793,10 @@ void SHOT_FastTask(void)
         g_shot_summary.max_vout_raw = g_adc_vout_filtered_raw;
 
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD && FIRST_REAL_PI_DURATION_CYCLES >= 6000000UL
-    /* 100 ms ladder: record the last 50 ms (3,000,000 Timer2 cycles) of VOUT
-     * and actual frequency on-chip. This is measurement-only and compiled only
-     * into the 100 ms build. */
+    /* 100 ms ladder: record the last 50 ms (3,000,000 Timer2 cycles) of VOUT,
+     * actual frequency, applied TBPRD, PI integral and fmax occupancy on-chip.
+     * This is passive evidence-only telemetry compiled only into >=100 ms REAL
+     * builds; it changes no control/protection decision. */
     {
         Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
         Uint32 elapsed = (Uint32)((Uint32)(g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL);
@@ -803,10 +804,13 @@ void SHOT_FastTask(void)
         {
             Uint16 vout = g_adc_vout_filtered_raw;
             Uint32 freq = g_actual_switching_frequency_hz;
+            Uint16 tbprd = EPwm1Regs.TBPRD;
+            int32 pi_q12 = g_pi_integral_q12;
             if (g_timing_last50_vout_count == 0UL)
             {
                 g_timing_last50_vout_min = vout;
                 g_timing_last50_vout_max = vout;
+                g_timing_last50_vout_first = vout;
             }
             else
             {
@@ -815,6 +819,7 @@ void SHOT_FastTask(void)
             }
             g_timing_last50_vout_sum += vout;
             g_timing_last50_vout_count++;
+            g_timing_last50_vout_last = vout;
             if (g_timing_last50_freq_count == 0UL)
             {
                 g_timing_last50_freq_min = freq;
@@ -827,6 +832,27 @@ void SHOT_FastTask(void)
             }
             g_timing_last50_freq_sum += freq;
             g_timing_last50_freq_count++;
+            if (g_timing_last50_tbprd_count == 0UL)
+            {
+                g_timing_last50_tbprd_min = tbprd;
+                g_timing_last50_tbprd_max = tbprd;
+                g_timing_last50_pi_q12_min = pi_q12;
+                g_timing_last50_pi_q12_max = pi_q12;
+            }
+            else
+            {
+                if (tbprd < g_timing_last50_tbprd_min) g_timing_last50_tbprd_min = tbprd;
+                if (tbprd > g_timing_last50_tbprd_max) g_timing_last50_tbprd_max = tbprd;
+                if (pi_q12 < g_timing_last50_pi_q12_min) g_timing_last50_pi_q12_min = pi_q12;
+                if (pi_q12 > g_timing_last50_pi_q12_max) g_timing_last50_pi_q12_max = pi_q12;
+            }
+            g_timing_last50_tbprd_sum += tbprd;
+            g_timing_last50_tbprd_count++;
+            /* Divide by the Q12 scale before summing so 2500 samples at the
+             * +/-60 kHz integral clamps remain safely inside signed 32 bits. */
+            g_timing_last50_pi_hz_sum += (pi_q12 / 4096L);
+            g_timing_last50_pi_count++;
+            if (tbprd == 352U) g_timing_last50_fmax_count++;
         }
     }
 #endif

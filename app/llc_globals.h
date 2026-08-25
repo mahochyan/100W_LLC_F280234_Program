@@ -226,16 +226,28 @@ extern volatile Uint32 g_timing_compute_normal_max;
 extern volatile Uint32 g_timing_compute_fmax_max;
 extern volatile Uint32 g_timing_compute_abort_max;
 extern volatile Uint32 g_timing_overrun_count;
-/* 100 ms ladder: last-50 ms VOUT/frequency statistics (compiled only in the
- * 100 ms build; zero overhead in 2 ms/10 ms builds). */
+/* 100 ms ladder: last-50 ms steady-state statistics. The additional symbols
+ * are populated only by the >=100 ms REAL build; shorter binaries never
+ * execute the measurement path. */
 extern volatile Uint16 g_timing_last50_vout_min;
 extern volatile Uint16 g_timing_last50_vout_max;
 extern volatile Uint32 g_timing_last50_vout_sum;
 extern volatile Uint32 g_timing_last50_vout_count;
+extern volatile Uint16 g_timing_last50_vout_first;
+extern volatile Uint16 g_timing_last50_vout_last;
 extern volatile Uint32 g_timing_last50_freq_min;
 extern volatile Uint32 g_timing_last50_freq_max;
 extern volatile Uint32 g_timing_last50_freq_sum;
 extern volatile Uint32 g_timing_last50_freq_count;
+extern volatile Uint16 g_timing_last50_tbprd_min;
+extern volatile Uint16 g_timing_last50_tbprd_max;
+extern volatile Uint32 g_timing_last50_tbprd_sum;
+extern volatile Uint32 g_timing_last50_tbprd_count;
+extern volatile int32  g_timing_last50_pi_q12_min;
+extern volatile int32  g_timing_last50_pi_q12_max;
+extern volatile int32  g_timing_last50_pi_hz_sum;
+extern volatile Uint32 g_timing_last50_pi_count;
+extern volatile Uint32 g_timing_last50_fmax_count;
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;

@@ -265,10 +265,34 @@ volatile Uint16 g_timing_last50_vout_min  = 0U;
 volatile Uint16 g_timing_last50_vout_max  = 0U;
 volatile Uint32 g_timing_last50_vout_sum  = 0UL;
 volatile Uint32 g_timing_last50_vout_count = 0UL;
+/* W2 100 ms evidence-only observability lives in RAML3 so it cannot consume
+ * the already-tight RAML2 .ebss budget. */
+#pragma DATA_SECTION(g_timing_last50_vout_first, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_vout_last, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_tbprd_min, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_tbprd_max, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_tbprd_sum, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_tbprd_count, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_pi_q12_min, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_pi_q12_max, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_pi_hz_sum, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_pi_count, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_fmax_count, "shot_ram")
+volatile Uint16 g_timing_last50_vout_first = 0U;
+volatile Uint16 g_timing_last50_vout_last  = 0U;
 volatile Uint32 g_timing_last50_freq_min  = 0UL;
 volatile Uint32 g_timing_last50_freq_max  = 0UL;
 volatile Uint32 g_timing_last50_freq_sum  = 0UL;
 volatile Uint32 g_timing_last50_freq_count = 0UL;
+volatile Uint16 g_timing_last50_tbprd_min  = 0U;
+volatile Uint16 g_timing_last50_tbprd_max  = 0U;
+volatile Uint32 g_timing_last50_tbprd_sum  = 0UL;
+volatile Uint32 g_timing_last50_tbprd_count = 0UL;
+volatile int32  g_timing_last50_pi_q12_min = 0;
+volatile int32  g_timing_last50_pi_q12_max = 0;
+volatile int32  g_timing_last50_pi_hz_sum  = 0;
+volatile Uint32 g_timing_last50_pi_count   = 0UL;
+volatile Uint32 g_timing_last50_fmax_count = 0UL;
 #endif
 
 /* Tutorial SoftStart Engine */

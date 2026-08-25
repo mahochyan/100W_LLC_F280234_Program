@@ -85,10 +85,21 @@ void PROT_Init(void)
     g_timing_last50_vout_max  = 0U;
     g_timing_last50_vout_sum  = 0UL;
     g_timing_last50_vout_count = 0UL;
+    g_timing_last50_vout_first = 0U;
+    g_timing_last50_vout_last  = 0U;
     g_timing_last50_freq_min  = 0UL;
     g_timing_last50_freq_max  = 0UL;
     g_timing_last50_freq_sum  = 0UL;
     g_timing_last50_freq_count = 0UL;
+    g_timing_last50_tbprd_min  = 0U;
+    g_timing_last50_tbprd_max  = 0U;
+    g_timing_last50_tbprd_sum  = 0UL;
+    g_timing_last50_tbprd_count = 0UL;
+    g_timing_last50_pi_q12_min = 0;
+    g_timing_last50_pi_q12_max = 0;
+    g_timing_last50_pi_hz_sum  = 0;
+    g_timing_last50_pi_count   = 0UL;
+    g_timing_last50_fmax_count = 0UL;
 #endif
 
     /* Critical zero-init for globals that were previously compile-time zero.

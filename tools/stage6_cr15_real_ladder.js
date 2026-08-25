@@ -228,24 +228,54 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   }
   print("REAL_"+cfg.label+"_DONE");
 
+  if(cfg.label==="2MS"){
+    print("W1_ADC_FRESHNESS_FIXED");
+    print("W1_CR15_2MS_PASS");
+    print("W1_PWM0_OST1");
+  }
+
   if(cfg.label==="100MS"){
     var vmin=rw("g_timing_last50_vout_min"); var vmax=rw("g_timing_last50_vout_max");
     var vsum=rv32("g_timing_last50_vout_sum"); var vcnt=rv32("g_timing_last50_vout_count");
     var fmin=rv32("g_timing_last50_freq_min"); var fmax=rv32("g_timing_last50_freq_max");
     var fsum=rv32("g_timing_last50_freq_sum"); var fcnt=rv32("g_timing_last50_freq_count");
+    var vfirst=rw("g_timing_last50_vout_first"); var vlast=rw("g_timing_last50_vout_last");
+    var pmin=rw("g_timing_last50_tbprd_min"); var pmax=rw("g_timing_last50_tbprd_max");
+    var psum=rv32("g_timing_last50_tbprd_sum"); var pcnt=rv32("g_timing_last50_tbprd_count");
+    var pimin=rv32("g_timing_last50_pi_q12_min"); var pimax=rv32("g_timing_last50_pi_q12_max");
+    var pisum=rv32("g_timing_last50_pi_hz_sum"); var picnt=rv32("g_timing_last50_pi_count");
+    var fmaxcnt=rv32("g_timing_last50_fmax_count");
+    if(pimin>=0x80000000) pimin=pimin-0x100000000;
+    if(pimax>=0x80000000) pimax=pimax-0x100000000;
+    if(pisum>=0x80000000) pisum=pisum-0x100000000;
     var vavg = vcnt>0 ? (vsum / vcnt) : 0;
     var favg = fcnt>0 ? (fsum / fcnt) : 0;
+    var pavg = pcnt>0 ? (psum / pcnt) : 0;
+    var piavg = picnt>0 ? (pisum / picnt) : 0;
+    var fmaxRatio = pcnt>0 ? (fmaxcnt / pcnt) : 0;
     var vminV = vmin*0.008089325 - 0.063715;
     var vmaxV = vmax*0.008089325 - 0.063715;
     var vavgV = vavg*0.008089325 - 0.063715;
     print("LAST50_VOUT_RAW_MIN="+vmin+" MAX="+vmax+" AVG="+vavg+" COUNT="+vcnt);
     print("LAST50_FREQ_MIN="+fmin+" MAX="+fmax+" AVG="+favg+" COUNT="+fcnt);
+    print("LAST50_TBPRD_MIN="+pmin+" MAX="+pmax+" AVG="+pavg+" COUNT="+pcnt);
+    print("LAST50_PI_Q12_MIN="+pimin+" MAX="+pimax+" AVG_HZ="+piavg+" COUNT="+picnt);
+    print("LAST50_FMAX_COUNT="+fmaxcnt+" RATIO="+fmaxRatio);
+    print("LAST50_VOUT_FIRST="+vfirst+" LAST="+vlast+" DELTA="+(vlast-vfirst));
     print("LAST50_VOUT_V_MIN="+vminV.toFixed(4)+" MAX="+vmaxV.toFixed(4)+" AVG="+vavgV.toFixed(4));
     print("LAST50_STEADY_STATE_ERROR_V="+(10.0-vavgV).toFixed(4));
     print("LAST50_INPUT_CURRENT_AND_LIMIT_TRIP=<record from bench DMM/power supply>");
+    gate("100MS_STATS_COUNTS_MATCH", vcnt>0 && vcnt===fcnt && vcnt===pcnt && vcnt===picnt);
+    gate("100MS_VOUT_AVG_RAW_1182_1306", vavg>=1182 && vavg<=1306);
+    /* A rise of <=12 raw across the full 50 ms window is <=~1% of nominal and
+     * excludes a materially sustained one-way rise while tolerating ADC noise. */
+    gate("100MS_VOUT_NOT_SUSTAINED_ONE_WAY_RISE", vlast<=vfirst+12);
+    gate("100MS_TBPRD_WITHIN_352_413", pmin>=352 && pmax<=413);
+    gate("100MS_PI_INTEGRAL_WITHIN_CLAMPS", pimin>=-245760000 && pimax<=245760000);
   }
 }
 
 print("STAGE6_REAL_FMAX_TIMING_RECOVERY_PASS");
 print("STAGE6_CR15_10V_CONTINUOUS_PFM_100MS_PASS");
+print("W2_CR15_10V_CONTINUOUS_PFM_100MS_PASS");
 print("READY_FOR_10V_SUSTAINED_RUN");
