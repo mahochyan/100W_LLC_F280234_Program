@@ -1,0 +1,26 @@
+{
+  "milestone": "REAL_V2_NOPOWER_TIMING",
+  "real_out_sha256": "7DE1836A821F97119E09016541DD440183AFFCD6D3E68224D0575E939620487A",
+  "verdict": "FAIL",
+  "failure_reason": "REAL_APPLY_ISR_OVER_900",
+  "values": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "timer2_delta": 30835,
+    "fresh_compute_count": 1,
+    "stale_compute_count": 25,
+    "pi_compute_count": 1,
+    "pwm_apply_count": 1,
+    "power_writes": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "isr_max": 910,
+    "compute_max": 828,
+    "apply_max": 910,
+    "overrun": 0
+  }
+}
