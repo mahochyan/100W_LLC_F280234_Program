@@ -1,0 +1,14 @@
+OUT=D:\CCS21_workspace\Codex_Project\evidence\sol_master_execution\w2_power_reduction_candidate2\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out
+OUT_SHA256=3EC59B1A300EAFBBE3EBBDFA9EF7F1F5EC010CEFE60A94D9ABD69F2F55E7A9D2
+INIT pwm=0 ost=1 fault=0
+RESULT seq=615 consumed=111 fresh=50 pi=50 stale=1
+RESULT ovf_count=2 ovf_first_tbctr=290 ovf_first_flag=0
+RESULT ovf_active_count=2
+RESULT int1cont=1
+RESULT compute_max=850 apply_max=776 active_max=0 overrun=0
+RESULT compute_normal_max=850 compute_fmax_max=831 compute_abort_max=0
+FINAL pwm=0 ost=1 tzint=0 fault=0
+SOL_W1_ADCINT_OVERFLOW_REPRODUCED
+SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY
+SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS
+DSS_EXIT=0

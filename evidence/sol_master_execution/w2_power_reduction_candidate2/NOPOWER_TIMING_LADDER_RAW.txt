@@ -1,0 +1,52 @@
+CNT34 permanent connected: true operator present: true no-switching auth: true
+=== LADDER STEP 1: 2MS ===
+REAL OUT host SHA256: 3EC59B1A300EAFBBE3EBBDFA9EF7F1F5EC010CEFE60A94D9ABD69F2F55E7A9D2
+Expected SHA       : 3EC59B1A300EAFBBE3EBBDFA9EF7F1F5EC010CEFE60A94D9ABD69F2F55E7A9D2
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+timing_frozen=1 active=0 request=0 epoch=1 samples=103
+compute_normal_max=849 compute_fmax_max=0 compute_abort_max=0
+compute_max=849 apply_max=841 active_isr_max=849 shutdown_max=535 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+compute_normal_limit=850
+TIMING_2MS_PASS=PASS
+TIMING_2MS_DONE
+=== LADDER STEP 2: 10MS ===
+REAL OUT host SHA256: DDD2F278EA68CB8183CA6EF9A4DB3FD3E41F708CDB5CF191BA2F32A0135AEEFF
+Expected SHA       : DDD2F278EA68CB8183CA6EF9A4DB3FD3E41F708CDB5CF191BA2F32A0135AEEFF
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+timing_frozen=1 active=0 request=0 epoch=1 samples=502
+compute_normal_max=849 compute_fmax_max=0 compute_abort_max=0
+compute_max=849 apply_max=841 active_isr_max=849 shutdown_max=535 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+compute_normal_limit=850
+TIMING_10MS_PASS=PASS
+TIMING_10MS_DONE
+=== LADDER STEP 3: 100MS ===
+REAL OUT host SHA256: 1D4C196605115EEF5706E2871940A34CEDCD5BE76C0EEB749ED70FAD410BCBC4
+Expected SHA       : 1D4C196605115EEF5706E2871940A34CEDCD5BE76C0EEB749ED70FAD410BCBC4
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+timing_frozen=1 active=0 request=0 epoch=1 samples=4999
+compute_normal_max=853 compute_fmax_max=0 compute_abort_max=0
+compute_max=853 apply_max=866 active_isr_max=866 shutdown_max=537 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+compute_normal_limit=900
+TIMING_100MS_PASS=PASS
+TIMING_100MS_DONE
+STAGE6_ONCHIP_TIMING_FREEZE_PASS
+STAGE6_ONCHIP_TIMING_FREEZE_NOPOWER_LADDER_ALL_PASS
+DSS_EXIT=0
