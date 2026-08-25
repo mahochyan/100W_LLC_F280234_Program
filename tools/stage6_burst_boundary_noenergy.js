@@ -13,7 +13,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT = "D:\\CCS21_workspace\\Codex_Project\\Stage6_FLASH_SHOT_NOENERGY\\LLC_100W_F28034_BRINGUP_DSH.out";
-var EXPECTED_SHA = "0C501B0A6C14DA08A1292A6A74D6470BA5ECA3F619FD3F861600DB1E8204E6D1";
+var EXPECTED_SHA = java.lang.System.getenv("SOL_NOENERGY_SHA") || "EFADA6848B7E106B73C73E5944792481D1C13E7E2C152C89996F5C9AE8C6F5CE";
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256"); var fis=new FileInputStream(path);
   var buf=java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE,8192); var n;
@@ -69,6 +69,7 @@ for(var ci=0; ci<cases.length; ci++){
   wv32("g_first_real_pi_shot_first_write_timer2", rt("CpuTimer2Regs.TIM.all"));
   wv("g_burst_active",0); wv32("g_burst_enter_count",0);
   wv32("g_control_fmax_saturate_count",c.fsat); wv32("g_control_unclamped_frequency_hz",c.uncl);
+  wv("g_control_unclamped_period",(c.uncl > 170000) ? 351 : 0);
   wv("g_control_error_raw",0xFFFF);
   wv32("g_control_frequency_hz",c.cmd); wv32("g_control_shadow_frequency_hz",c.cmd);
   wv32("g_switching_frequency_hz",c.cmd); wv("g_pwm_period",c.period);
@@ -76,6 +77,8 @@ for(var ci=0; ci<cases.length; ci++){
   wv("g_pipeline_pending.valid",1); wv("g_pipeline_pending.period",c.period);
   wv32("g_pipeline_pending.command_hz",c.cmd); wv32("g_pipeline_pending.actual_hz",c.cmd);
   wv("g_pipeline_pending.cmpa",(c.period+1)>>1); wv("g_pipeline_pending.cmpb",(c.period+1)>>2);
+  wv("g_no_energy_test_mode",1); wv("g_softstart_no_energy",1);
+  wv("g_stage6_actuator_test_arm",0);
   wv("g_stage6_noenergy_test_enable",1); wv("g_stage6_noenergy_test_mode",3);
   wv("g_stage6_synthetic_vout_raw",1362); wv("g_stage6_synthetic_sequence",0);
   wv("g_stage6_multifresh_trace_count",0);

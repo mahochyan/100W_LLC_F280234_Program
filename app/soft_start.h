@@ -21,6 +21,7 @@
 #define SOFTSTART_PHASE_B    8U  /* period 239->399, 10 cycles/step */
 #define SOFTSTART_FINAL      9U  /* 150kHz/DB36, acceptance window */
 #define SOFTSTART_PFM_WINDOW 10U /* STAGE5A: fixed-frequency direction window */
+#define SOFTSTART_PRE_HANDOFF_BRAKE 11U /* W2_CANDIDATE4: pre-handoff energy shaping */
 
 /* Verified Profile C trajectory constants (board-PASSed) */
 #define SS_START_PERIOD        239U
@@ -50,6 +51,21 @@
 #define SS_HANDOFF_BRAKE_CMPA         187U
 #define SS_HANDOFF_BRAKE_HZ           160000UL
 #define SS_HANDOFF_BRAKE_INTEGRAL_Q12 (-40960000L)
+
+/* W2_CANDIDATE4_PRE_HANDOFF_ENERGY_STATE_SHAPING_V1:
+ * A dedicated SoftStart state that enters before 10V, applies a bounded
+ * frequency brake (155..170 kHz), waits for the positive VOUT slope to fall,
+ * and only then hands off to PI at the actual brake frequency. */
+#define SS_PRE_BRAKE_ENTRY_OFFSET_RAW  20U   /* enter ~9.84V below 10V target */
+#define SS_PRE_BRAKE_EXIT_HIGH_OFFSET_RAW 60U /* handoff window upper edge ~10.5V */
+#define SS_PRE_BRAKE_DVOUT_LIMIT       1U    /* max positive raw/sample before handoff */
+#define SS_PRE_BRAKE_SETTLE_SAMPLES    4U    /* consecutive low-slope samples required */
+#define SS_PRE_BRAKE_MAX_CYCLES        300U  /* ~2ms at 150k; hard timeout */
+#define SS_PRE_BRAKE_FREQ_INIT_HZ      155000UL
+#define SS_PRE_BRAKE_FREQ_MIN_HZ       150000UL
+#define SS_PRE_BRAKE_FREQ_MAX_HZ       170000UL
+#define SS_PRE_BRAKE_STEP_HZ           5000UL
+#define SS_Q_ONE                       4096L  /* Q12 for PI preload */
 #define SS_HANDOFF_BRAKE_UNSAT_Q12    655360000L
 
 /* STAGE5A PFM direction test (g_pfm_direction_test_mode) */
@@ -72,6 +88,8 @@
 #define SS_RESULT_REJECTED      7U
 #define SS_RESULT_PFM_WINDOW_DONE 8U   /* STAGE5A window completed -> scheduled OST */
 #define SS_RESULT_PFM_HARD_ABORT  9U   /* STAGE5A window hit ceiling -> immediate OST */
+#define SS_RESULT_PRE_BRAKE_ABORT    10U  /* W2_CANDIDATE4: pre-brake window too high */
+#define SS_RESULT_PRE_BRAKE_TIMEOUT  11U  /* W2_CANDIDATE4: pre-brake did not settle */
 
 /* Profiles */
 #define SOFTSTART_PROFILE_TUTORIAL_REFERENCE  0U

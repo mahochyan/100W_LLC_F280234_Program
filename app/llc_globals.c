@@ -649,6 +649,24 @@ volatile Uint16 g_softstart_no_energy = 0U;
 volatile Uint16 g_board_vout_cal_valid = BOARD_VOUT_CAL_VALID;
 volatile Uint16 g_softstart_ramp_active = 0U;  /* explicit init */
 
+/* W2_CANDIDATE4_PRE_HANDOFF_ENERGY_STATE_SHAPING_V1 */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+volatile Uint16 g_pre_brake_test_ramp;
+volatile Uint16 g_pre_brake_test_step;
+volatile Uint16 g_pre_brake_test_override;
+volatile Uint16 g_pre_brake_test_vout_raw;
+#endif
+volatile Uint16 g_pre_brake_cycles;
+volatile Uint16 g_pre_brake_settle_count;
+volatile Uint16 g_pre_brake_prev_raw;
+volatile Uint32 g_pre_brake_freq_hz;
+volatile Uint16 g_pre_brake_entry_raw_frozen;
+volatile Uint16 g_pre_brake_exit_raw_frozen;
+volatile Uint32 g_pre_brake_exit_timer2;
+volatile Uint16 g_pre_brake_max_dvout;
+volatile Uint16 g_pre_brake_handoff_ready;
+volatile Uint16 g_pre_brake_abort_reason;
+
 /* STAGE5A PFM direction test window */
 volatile Uint16 g_pfm_direction_test_mode = 0U;  /* 0=OFF; explicit init: DSS loadProgram does not zero .bss */
 volatile Uint16 g_pfm_start_raw;

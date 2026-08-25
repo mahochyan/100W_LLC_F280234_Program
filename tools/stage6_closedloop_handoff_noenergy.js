@@ -135,15 +135,16 @@ var complete_once=(rw("g_softstart_state")==3 && rv32u("g_stage6_run_entry_count
 c_ok = transferred && (rv32u("g_stage6_handoff_count")==1) && (rw("g_softstart_result")==1);
 var handoff_once=(rv32u("g_stage6_handoff_count")==1);
 var run_once=(rv32u("g_stage6_run_entry_count")==1);
-var pwm_ok=(reg("EPwm1Regs.TBPRD")=="399" && reg("EPwm1Regs.CMPA.half.CMPA")=="200");
+var pwm_ok=(reg("EPwm1Regs.TBPRD")=="386" && reg("EPwm1Regs.CMPA.half.CMPA")=="193");
 var db_ok=(reg("EPwm1Regs.DBRED")=="36" && reg("EPwm1Regs.DBFED")=="36");
-// Bumpless entry (gate G): control state must stay 150 kHz/150 kHz/0 integral
-// and the FIRST closed-loop sample must not jump (gate N). With the no-energy
-// Vout == reference the PI error is 0, so freq/integral stay at the handoff base.
-var freq_ok=Math.abs(rv32u("g_control_frequency_hz")-150000)<=3000;
-var shadow_ok=Math.abs(rv32u("g_control_shadow_frequency_hz")-150000)<=3000;
-var integral_ok=rv32u("g_pi_integral_q12") < 1200*4096;   // ~0, small Q12 noise
-var first_freq_ok=(rw("g_stage6_first_pi_observed")==1 && Math.abs(rv32u("g_stage6_first_pi_freq_hz")-150000)<=1000);
+// Bumpless entry (gate G): Candidate4 pre-handoff brake uses the actual brake
+// frequency (155 kHz, period 386) and preloads -10 kHz Q12 integral.
+// FIRST closed-loop sample must not jump (gate N).
+var freq_ok=Math.abs(rv32u("g_control_frequency_hz")-155000)<=3000;
+var shadow_ok=Math.abs(rv32u("g_control_shadow_frequency_hz")-155000)<=3000;
+var integral_signed=(rv32u("g_pi_integral_q12")|0);
+  var integral_ok=Math.abs(integral_signed-(-20480000))<=50000;
+var first_freq_ok=(rw("g_stage6_first_pi_observed")==1 && Math.abs(rv32u("g_stage6_first_pi_freq_hz")-155000)<=1000);
 var bumpless=freq_ok && shadow_ok && integral_ok;
 var ref_ok=(rw("g_control_reference_valid")==1 && Math.abs(rw("g_control_vref_raw")-1244)<=2);
 

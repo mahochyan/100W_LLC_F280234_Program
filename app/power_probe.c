@@ -686,7 +686,7 @@ __interrupt void EPWM1_INT_ISR(void)
         CALHOLD_PacketIsr();
     }
     else if (g_softstart_state >= SOFTSTART_START_HOLD &&
-             g_softstart_state <= SOFTSTART_PFM_WINDOW)
+             g_softstart_state <= SOFTSTART_PRE_HANDOFF_BRAKE)
     {
         /* FORMAL SoftStart: ePWM-cycle driven trajectory + PFM direction
          * window (see soft_start.c). */

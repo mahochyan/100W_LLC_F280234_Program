@@ -219,6 +219,44 @@ static void SS_ApplyStage(Uint16 period, Uint16 db)
     ADC_UpdatePwmSyncPoint(period);   /* CMPB = CMPA/2, SOCA midpoint */
 }
 
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+/* ------------------------------------------------------------------ */
+/* W2_CANDIDATE4_PRE_HANDOFF_ENERGY_STATE_SHAPING_V1                  */
+/* ------------------------------------------------------------------ */
+
+static Uint16 SS_FreqToPeriod(Uint32 hz)
+{
+    Uint32 period = (LLC_TBCLK_HZ + (hz / 2UL)) / hz;
+    if (period > 0UL) period--;
+    return (Uint16)period;
+}
+
+static void SS_ApplyPreBrakeFreq(void)
+{
+    Uint16 period = SS_FreqToPeriod(g_pre_brake_freq_hz);
+    PWM_ApplyPeriodDeadtime((Uint32)period, SS_FINAL_DB);
+    ADC_UpdatePwmSyncPoint(period);
+}
+
+static void SS_EnterPreHandoffBrake(void)
+{
+    g_pre_brake_cycles = 0U;
+    g_pre_brake_settle_count = 0U;
+    g_pre_brake_prev_raw = g_adc_vout_pwm_sync_raw;
+    g_pre_brake_freq_hz = SS_PRE_BRAKE_FREQ_INIT_HZ;
+    g_pre_brake_entry_raw_frozen = g_adc_vout_pwm_sync_raw;
+    g_pre_brake_exit_raw_frozen = 0U;
+    g_pre_brake_exit_timer2 = 0UL;
+    g_pre_brake_max_dvout = 0U;
+    g_pre_brake_handoff_ready = 0U;
+    g_pre_brake_abort_reason = 0U;
+    SS_ApplyPreBrakeFreq();
+    g_softstart_state = SOFTSTART_PRE_HANDOFF_BRAKE;
+    g_softstart_stage = 4U;
+}
+#endif /* STAGE6_FIRST_BOUNDED_REAL_PI_SHOT */
+
+
 /* ------------------------------------------------------------------ */
 /* STAGE5A PFM direction window                                        */
 /* ------------------------------------------------------------------ */
@@ -324,16 +362,33 @@ void SoftStart_FastUpdate(void)
      * production reads the real ADC. */
     if (g_softstart_no_energy != 0U)
     {
-        /* PFM window keeps the FINAL-stage simulated VOUT (no real energy).
-         * The FINAL value is the exact 10V handoff target so the closed-loop
-         * filter seed (gate L) and first injected sample match the reference,
-         * giving a clean bumpless 150 kHz entry (gate G/N). */
-        Uint16 sim = (g_softstart_state == SOFTSTART_FINAL ||
-                      g_softstart_state == SOFTSTART_PFM_WINDOW) ? 1244U
-                   : (g_softstart_state >= SOFTSTART_PHASE_B) ? 900U : 400U;
-        g_adc_vout_pwm_sync_raw = sim;
-        g_softstart_last_vout_raw = sim;
-        if (sim > g_softstart_last_vout_max) g_softstart_last_vout_max = sim;
+        /* W2_CANDIDATE4 test hook: allow the no-power harness to drive the
+         * pre-brake VOUT sample directly so the dv/dt and window scenarios can
+         * be exercised on-target. Only active in the no-energy test build. */
+        if (g_pre_brake_test_override != 0U &&
+            g_softstart_state == SOFTSTART_PRE_HANDOFF_BRAKE)
+        {
+            Uint16 sim = g_pre_brake_test_vout_raw;
+            g_adc_vout_pwm_sync_raw = sim;
+            g_softstart_last_vout_raw = sim;
+            if (sim > g_softstart_last_vout_max) g_softstart_last_vout_max = sim;
+            if (g_pre_brake_test_ramp != 0U)
+                g_pre_brake_test_vout_raw = (Uint16)(sim + g_pre_brake_test_step);
+        }
+        else
+        {
+            /* PFM window keeps the FINAL-stage simulated VOUT (no real energy).
+             * The FINAL value is the exact 10V handoff target so the closed-loop
+             * filter seed (gate L) and first injected sample match the reference,
+             * giving a clean bumpless 150 kHz entry (gate G/N). */
+            Uint16 sim = (g_softstart_state == SOFTSTART_FINAL ||
+                          g_softstart_state == SOFTSTART_PFM_WINDOW ||
+                          g_softstart_state == SOFTSTART_PRE_HANDOFF_BRAKE) ? 1244U
+                         : (g_softstart_state >= SOFTSTART_PHASE_B) ? 900U : 400U;
+            g_adc_vout_pwm_sync_raw = sim;
+            g_softstart_last_vout_raw = sim;
+            if (sim > g_softstart_last_vout_max) g_softstart_last_vout_max = sim;
+        }
     }
 #endif
 
@@ -356,7 +411,8 @@ void SoftStart_FastUpdate(void)
                 SS_End(SS_RESULT_HARD_CEILING);
                 return;
             }
-            if (g_softstart_acceptance_mode != 0U &&
+            if (g_softstart_state != SOFTSTART_PRE_HANDOFF_BRAKE &&
+                g_softstart_acceptance_mode != 0U &&
                 g_adc_vout_pwm_sync_raw >= g_softstart_accept_target_raw)
             {
                 if (g_pfm_direction_test_mode == PFM_DIRECTION_MODE_TEST_150K ||
@@ -439,6 +495,15 @@ void SoftStart_FastUpdate(void)
              * FINAL stage and Vout >= 10V handoff target, transfer to the Q12
              * closed-loop PI instead of a scheduled OST. The 12V raw ceiling
              * is enforced before this (SS_HardStop ceiling check). */
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+            if (g_bringup_stage == BRINGUP_STAGE_6_CLOSED_LOOP &&
+                g_adc_vout_pwm_sync_raw >= (g_softstart_accept_target_raw > SS_PRE_BRAKE_ENTRY_OFFSET_RAW
+                                            ? (Uint16)(g_softstart_accept_target_raw - SS_PRE_BRAKE_ENTRY_OFFSET_RAW) : 0U))
+            {
+                SS_EnterPreHandoffBrake();
+                return;
+            }
+#else
             if (g_bringup_stage == BRINGUP_STAGE_6_CLOSED_LOOP &&
                 g_adc_vout_pwm_sync_raw >= g_softstart_accept_target_raw)
             {
@@ -449,6 +514,7 @@ void SoftStart_FastUpdate(void)
                 /* transfer rejected (gate/ceiling/PWM invalid) -> stay FINAL
                  * until the 300-cycle window decides (COMPLETE or NOT_REACHED). */
             }
+#endif
             if (g_softstart_final_cycles >= SS_FINAL_MAX_CYCLES)
             {
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
@@ -474,6 +540,71 @@ void SoftStart_FastUpdate(void)
 #endif
             }
             break;
+
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+        case SOFTSTART_PRE_HANDOFF_BRAKE:
+            g_pre_brake_cycles++;
+            if (g_pre_brake_cycles >= SS_PRE_BRAKE_MAX_CYCLES)
+            {
+                g_pre_brake_abort_reason = 1U;
+                SS_End(SS_RESULT_PRE_BRAKE_TIMEOUT);
+                return;
+            }
+            /* Hard VOUT ceiling is enforced by the generic check before this
+             * switch. Add a tighter pre-brake upper window: if VOUT has already
+             * risen past the handoff window, do not hand off and do not gamble. */
+            if (g_adc_vout_pwm_sync_raw >= (Uint16)(g_softstart_accept_target_raw + SS_PRE_BRAKE_EXIT_HIGH_OFFSET_RAW))
+            {
+                g_pre_brake_abort_reason = 2U;
+                SS_End(SS_RESULT_PRE_BRAKE_ABORT);
+                return;
+            }
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+            if (g_softstart_no_energy != 0U || fresh != 0U)
+#else
+            if (fresh != 0U)
+#endif
+            {
+                Uint16 cur = g_adc_vout_pwm_sync_raw;
+                Uint16 dv = (cur >= g_pre_brake_prev_raw) ? (Uint16)(cur - g_pre_brake_prev_raw) : 0U;
+                if (dv > g_pre_brake_max_dvout) g_pre_brake_max_dvout = dv;
+                g_pre_brake_prev_raw = cur;
+                if (dv > SS_PRE_BRAKE_DVOUT_LIMIT)
+                {
+                    g_pre_brake_settle_count = 0U;
+                    if (g_pre_brake_freq_hz < SS_PRE_BRAKE_FREQ_MAX_HZ)
+                    {
+                        g_pre_brake_freq_hz += SS_PRE_BRAKE_STEP_HZ;
+                        if (g_pre_brake_freq_hz > SS_PRE_BRAKE_FREQ_MAX_HZ)
+                            g_pre_brake_freq_hz = SS_PRE_BRAKE_FREQ_MAX_HZ;
+                        SS_ApplyPreBrakeFreq();
+                    }
+                }
+                else if (g_pre_brake_settle_count < SS_PRE_BRAKE_SETTLE_SAMPLES)
+                {
+                    g_pre_brake_settle_count++;
+                }
+            }
+            /* Handoff is allowed only when VOUT is inside the window, slope has
+             * settled, no fault is latched, and ADC freshness is intact. The
+             * transfer function performs the full PWM/state re-validation. */
+            if (g_adc_vout_pwm_sync_raw >= g_softstart_accept_target_raw &&
+                g_adc_vout_pwm_sync_raw < (Uint16)(g_softstart_accept_target_raw + SS_PRE_BRAKE_EXIT_HIGH_OFFSET_RAW) &&
+                g_pre_brake_settle_count >= SS_PRE_BRAKE_SETTLE_SAMPLES &&
+                g_fault_flags == 0UL)
+            {
+                g_pre_brake_exit_raw_frozen = g_adc_vout_pwm_sync_raw;
+                g_pre_brake_exit_timer2 = CpuTimer2Regs.TIM.all;
+                g_pre_brake_handoff_ready = 1U;
+                if (SoftStart_TransferToClosedLoop() != 0U)
+                {
+                    return;
+                }
+                g_pre_brake_handoff_ready = 0U;
+            }
+            break;
+#endif
+
 
         case SOFTSTART_PFM_WINDOW:
             /* STAGE5A direction window: count complete cycles, abort on the
@@ -620,6 +751,7 @@ void SoftStart_Update5ms(void)
         default:
             break;
     }
+
 }
 
 /* ------------------------------------------------------------------ */
@@ -660,6 +792,19 @@ void SoftStart_Init(void)
     g_comp1_dac_code = g_softstart_ocp_dac_code;
     g_pwm_start_prepared = 0U;
     g_softstart_abort_reason = 0U;
+
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    g_pre_brake_cycles = 0U;
+    g_pre_brake_settle_count = 0U;
+    g_pre_brake_prev_raw = 0U;
+    g_pre_brake_freq_hz = SS_PRE_BRAKE_FREQ_INIT_HZ;
+    g_pre_brake_entry_raw_frozen = 0U;
+    g_pre_brake_exit_raw_frozen = 0U;
+    g_pre_brake_exit_timer2 = 0UL;
+    g_pre_brake_max_dvout = 0U;
+    g_pre_brake_handoff_ready = 0U;
+    g_pre_brake_abort_reason = 0U;
+#endif
 }
 
 void SoftStart_Begin(void)
@@ -688,7 +833,12 @@ Uint16 SoftStart_TransferToClosedLoop(void)
         g_softstart_handoff_result = HANDOFF_GATE_FAIL;
         return 0U;
     }
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    if (g_softstart_state != SOFTSTART_FINAL &&
+        g_softstart_state != SOFTSTART_PRE_HANDOFF_BRAKE)
+#else
     if (g_softstart_state != SOFTSTART_FINAL)
+#endif
     {
         g_softstart_handoff_result = HANDOFF_GATE_FAIL;
         return 0U;
@@ -719,25 +869,43 @@ Uint16 SoftStart_TransferToClosedLoop(void)
         return 0U;
     }
 
-    /* F: PWM state must be the verified 150kHz + formal dead-time config:
-     * TBPRD=399, CMPA=200, DBRED=36, DBFED=36. Otherwise STOP safe. */
-    if (EPwm1Regs.TBPRD != SS_FINAL_PERIOD ||
-        EPwm1Regs.CMPA.half.CMPA != SS_FINAL_CMPA ||
-        EPwm1Regs.DBCTL.bit.OUT_MODE == 0U ||
-        EPwm1Regs.DBRED != SS_FINAL_DB ||
-        EPwm1Regs.DBFED != SS_FINAL_DB)
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* F: Candidate4 - from PRE_HANDOFF_BRAKE the PWM is already at the actual
+     * brake frequency (g_pre_brake_period). Validate that exact state. */
+    if (g_softstart_state == SOFTSTART_PRE_HANDOFF_BRAKE)
     {
-        g_softstart_handoff_result = HANDOFF_PWM_STATE_INVALID;
-        g_softstart_state = SOFTSTART_ABORTED;
-        g_system_state = SYS_STATE_FAULT;
-        return 0U;
+        Uint16 pb_period = SS_FreqToPeriod(g_pre_brake_freq_hz);
+        if (EPwm1Regs.TBPRD != pb_period ||
+            EPwm1Regs.CMPA.half.CMPA != (Uint16)((pb_period + 1U) / 2U) ||
+            EPwm1Regs.DBCTL.bit.OUT_MODE == 0U ||
+            EPwm1Regs.DBRED != SS_FINAL_DB ||
+            EPwm1Regs.DBFED != SS_FINAL_DB)
+        {
+            g_softstart_handoff_result = HANDOFF_PWM_STATE_INVALID;
+            g_softstart_state = SOFTSTART_ABORTED;
+            g_system_state = SYS_STATE_FAULT;
+            return 0U;
+        }
+    }
+    else
+#endif
+    {
+        if (EPwm1Regs.TBPRD != SS_FINAL_PERIOD ||
+            EPwm1Regs.CMPA.half.CMPA != SS_FINAL_CMPA ||
+            EPwm1Regs.DBCTL.bit.OUT_MODE == 0U ||
+            EPwm1Regs.DBRED != SS_FINAL_DB ||
+            EPwm1Regs.DBFED != SS_FINAL_DB)
+        {
+            g_softstart_handoff_result = HANDOFF_PWM_STATE_INVALID;
+            g_softstart_state = SOFTSTART_ABORTED;
+            g_system_state = SYS_STATE_FAULT;
+            return 0U;
+        }
     }
 
-    /* W2_HANDOFF_ENERGY_STATE_CONTINUITY_CANDIDATE3:
-     * The formal Profile C endpoint above remains unchanged and is verified
-     * before this write. Apply the bounded 160 kHz brake while SoftStart still
-     * owns the PWM, then move the ADC sample point. ADC_SetClosedLoop... below
-     * is deliberately later so it restores ET_3RD after this helper's ET_1ST. */
+#if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* Legacy fixed 160 kHz brake for non-bounded builds. Candidate4 performs
+     * the brake in SOFTSTART_PRE_HANDOFF_BRAKE before this function. */
     if (PWM_ApplyPeriodDeadtime(SS_HANDOFF_BRAKE_PERIOD,
                                 SS_FINAL_DB) == 0U)
     {
@@ -763,6 +931,7 @@ Uint16 SoftStart_TransferToClosedLoop(void)
         LLC_PWM_DisableSafe();
         return 0U;
     }
+#endif
 
     /* I + K: ADC ownership handoff. The SoftStart ePWM-cycle ISR stops
      * owning ADC freshness; ADCINT1 closed-loop vector takes over. */
@@ -794,6 +963,14 @@ Uint16 SoftStart_TransferToClosedLoop(void)
     g_adc_vout_filter_acc     = ((Uint32)raw) << 4U;
     g_adc_vout_filtered_raw   = raw;
 
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* G) Candidate4: preload PI at the actual pre-brake frequency so the first
+     * PI command is bumpless with respect to the current PWM. */
+    g_control_frequency_hz        = g_pre_brake_freq_hz;
+    g_control_shadow_frequency_hz = g_pre_brake_freq_hz;
+    g_pi_integral_q12             = -((int32)(g_pre_brake_freq_hz - SS_PRE_BRAKE_FREQ_MIN_HZ) * SS_Q_ONE);
+    g_control_unsat_q12           = (int32)g_pre_brake_freq_hz * SS_Q_ONE;
+#else
     /* G) - bumpless state matching the 160 kHz handoff brake. The controller
      * bias remains 150 kHz; a -10 kHz integral term therefore commands
      * 160 kHz at zero error with CTRL_SIGN=-1. */
@@ -801,6 +978,7 @@ Uint16 SoftStart_TransferToClosedLoop(void)
     g_control_shadow_frequency_hz = SS_HANDOFF_BRAKE_HZ;
     g_pi_integral_q12             = SS_HANDOFF_BRAKE_INTEGRAL_Q12;
     g_control_unsat_q12           = SS_HANDOFF_BRAKE_UNSAT_Q12;
+#endif
 
     /* H) - first real-PI reference target = 10V. Production slow path derives
      * g_control_vref_raw (~1244) and reference_valid=1 from this only. */

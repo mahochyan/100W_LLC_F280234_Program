@@ -1,7 +1,7 @@
 // stage6_cr15_real_ladder.js
-// STAGE6_CR15_TIMING_RECOVERY_AND_CONTINUOUS_PFM_LADDER_V1 - conditional real CR15 ladder.
-// Runs REAL_CR15_2MS, REAL_CR15_10MS, REAL_CR15_100MS in order with a real 15.0 ohm
-// electronic load. Each duration is attempted exactly once; any failure stops the ladder.
+// STAGE6_CR15_TIMING_RECOVERY_AND_CONTINUOUS_PFM_LADDER_V1 - Candidate4 unique real CR15 ladder.
+// Defaults to the unique Candidate4 2MS shot first (CONFIG_LIMIT=1); operator may authorize
+// further durations by setting SOL_W1_REAL_LIMIT. Each duration is attempted exactly once;
 //
 // Field conditions (human gates):
 //   DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED=1
@@ -24,14 +24,14 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var BASE = java.lang.System.getenv("SOL_W1_LADDER_BASE") ||
-  "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
+  "D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\w2_candidate4_pre_handoff_energy\\nopower_real_binaries";
 var MANIFEST = BASE + "\\REAL_CR15_LADDER_SHA256SUMS.txt";
 var CONFIGS = [
   { label:"2MS",  out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out",  waitMs:50,  shaKey:"REAL_CR15_2MS_OUT_SHA256" },
   { label:"10MS", out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_10MS.out", waitMs:100, shaKey:"REAL_CR15_10MS_OUT_SHA256" },
   { label:"100MS",out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_100MS.out",waitMs:300, shaKey:"REAL_CR15_100MS_OUT_SHA256" }
 ];
-var CONFIG_LIMIT = parseInt(java.lang.System.getenv("SOL_W1_REAL_LIMIT") || "3", 10);
+var CONFIG_LIMIT = parseInt(java.lang.System.getenv("SOL_W1_REAL_LIMIT") || "1", 10);
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
@@ -204,6 +204,25 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   var firstStalePhase=rw("g_adc_first_stale_phase");
   var firstStaleAge=rv32("g_adc_first_stale_sample_age_cycles");
   var faultSnap=rw("g_adc_fault_snapshot_frozen");
+  var pbEntryRaw=rw("g_pre_brake_entry_raw_frozen");
+  var pbExitRaw=rw("g_pre_brake_exit_raw_frozen");
+  var pbFreq=rv32("g_pre_brake_freq_hz");
+  var pbPeriod=rw("g_pre_brake_period");
+  var pbCycles=rw("g_pre_brake_cycles");
+  var pbSettle=rw("g_pre_brake_settle_count");
+  var pbMaxDv=rw("g_pre_brake_max_dvout");
+  var pbReady=rw("g_pre_brake_handoff_ready");
+  var pbAbort=rw("g_pre_brake_abort_reason");
+  var pbTimeout=rw("g_pre_brake_timeout_abort");
+  var pbExitT2=rv32("g_pre_brake_exit_timer2");
+  var firstVout=rw("g_shot_summary.first_control_vout_raw");
+  var firstErr=r16("g_shot_summary.first_error_raw");
+  var firstCmd=rv32("g_shot_summary.first_command_hz");
+  var firstApplyT2=rv32("g_shot_summary.first_apply_timer2");
+  var abortT2=rv32("g_shot_summary.abort_timer2");
+  var firstPiRaw=rw("g_stage6_first_pi_sample_raw");
+  var firstPiFreq=rv32("g_stage6_first_pi_freq_hz");
+  var firstPiObs=rw("g_stage6_first_pi_observed");
   print("state="+st+" abort="+ab+" ok="+okf+" softstart="+ssres+" handoff="+hres);
   print("burst="+burst+" max_vout_raw="+maxv+" fresh="+fc+" pi="+pc+" apply="+ac+" pw="+pw+" pending="+pv);
   print("adc_sequence first="+firstSeq+" last="+lastSeq+
@@ -220,6 +239,12 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
         " active_ovf="+ovfActive+" last_publish_t2="+lastPubT2+" last_consume_t2="+lastConsumeT2+
         " first_stale_frozen="+firstStaleFrozen+" first_stale_phase="+firstStalePhase+
         " first_stale_age="+firstStaleAge+" fault_snapshot="+faultSnap);
+  print("pre_brake entry_raw="+pbEntryRaw+" exit_raw="+pbExitRaw+" freq_hz="+pbFreq+
+        " period="+pbPeriod+" cycles="+pbCycles+" settle="+pbSettle+" max_dvout="+pbMaxDv+
+        " ready="+pbReady+" abort="+pbAbort+" timeout="+pbTimeout+" exit_t2="+pbExitT2);
+  print("handoff first_vout="+firstVout+" first_error="+firstErr+" first_cmd="+firstCmd+
+        " first_apply_t2="+firstApplyT2+" abort_t2="+abortT2+
+        " first_pi_raw="+firstPiRaw+" first_pi_freq="+firstPiFreq+" first_pi_observed="+firstPiObs);
 
   /* W2 common PASS gate is <=900 cycles for every real duration. The tighter
    * 850-cycle limit belongs to W1/no-power qualification, not the W2 shot. */

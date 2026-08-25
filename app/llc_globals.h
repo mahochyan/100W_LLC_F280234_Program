@@ -668,6 +668,24 @@ extern volatile Uint16 g_softstart_no_energy;
 extern volatile Uint16 g_board_vout_cal_valid;   /* 1 = software VOUT simulation */
 extern volatile Uint16 g_softstart_ramp_active; /* 1 = formal ramp window (ISR OVF guard) */
 
+/* W2_CANDIDATE4_PRE_HANDOFF_ENERGY_STATE_SHAPING_V1 */
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+extern volatile Uint16 g_pre_brake_test_ramp;
+extern volatile Uint16 g_pre_brake_test_step;
+extern volatile Uint16 g_pre_brake_test_override;
+extern volatile Uint16 g_pre_brake_test_vout_raw;
+#endif
+extern volatile Uint16 g_pre_brake_cycles;
+extern volatile Uint16 g_pre_brake_settle_count;
+extern volatile Uint16 g_pre_brake_prev_raw;
+extern volatile Uint32 g_pre_brake_freq_hz;
+extern volatile Uint16 g_pre_brake_entry_raw_frozen;
+extern volatile Uint16 g_pre_brake_exit_raw_frozen;
+extern volatile Uint32 g_pre_brake_exit_timer2;
+extern volatile Uint16 g_pre_brake_max_dvout;
+extern volatile Uint16 g_pre_brake_handoff_ready;
+extern volatile Uint16 g_pre_brake_abort_reason;
+
 /* STAGE5A PFM direction test window (see soft_start.h) */
 extern volatile Uint16 g_pfm_direction_test_mode;  /* 0=OFF 1=150K 2=170K; >2 rejects start */
 extern volatile Uint16 g_pfm_start_raw;

@@ -1,7 +1,7 @@
 # SOL Master Final Report
 
-Status: engineering blocked at W2. The authoritative resume point is
-`docs/SOL_MASTER_EXECUTION_STATE.md`.
+Status: W2 Candidate4 is no-power qualified and ready for its unique real CR15 2MS
+shot. The authoritative resume point is `docs/SOL_MASTER_EXECUTION_STATE.md`.
 
 ## Verified milestones
 
@@ -40,16 +40,21 @@ apply=859, shutdown=1086, overrun=0, final PWM0/OST1/TZINT0. 10/100 ms were not
 run and no CR12.5 was auto-run. This candidate is rejected; the next W2 attempt
 requires a new proven root-cause change, new SHA, and all no-power gates.
 
+W2 Candidate4 (pre-handoff energy shaping) is the authorized new root-cause
+direction. It implements a pre-handoff brake, dv/dt gate, and bumpless PI preload
+to the actual brake frequency. All no-power gates pass, the unique real ladder
+SHAs are frozen, and the next action is operator authorization for the unique
+Candidate4 REAL CR15 2MS shot only.
+
 W2 has now consumed the allowed three distinct real root-cause attempts:
 1. W2 attempt 1 (original handoff)
 2. Candidate 2 (fast slew 1000 Hz)
 3. Candidate 3 timingfix5 (handoff brake 160 kHz + PI preload)
 
-All three stopped at the same 2 ms VOUT gate (`max_vout_raw >= 1367`). Per the
-master work order, W2 is now `SOL_MASTER_EXECUTION_ENGINEERING_BLOCKED`. A
-further attempt requires either a new authorized root-cause direction or the
-missing bench instrumentation (true trip waveform / IPRI / ZVS) to identify the
-physical transient.
+All three stopped at the same 2 ms VOUT gate (`max_vout_raw >= 1367`). Those
+three attempts remain closed and will not be retried. Candidate4 is the newly
+authorized root-cause direction; it is now no-power qualified and ready for its
+unique real CR15 2MS shot, pending operator authorization.
 
 The `200K_DB140_NOT_PRODUCTION_PATH_AUDIT` is accepted as a closed prior: it is
 not a production baseline, must not be retried, and no blanking / qualification /
