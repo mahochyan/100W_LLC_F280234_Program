@@ -1,0 +1,32 @@
+{
+  "milestone": "SINGLE_CR100_BURST_RESTART_REAL",
+  "real_out_sha256": "439E1BDF46C237AE4BCC1923289FBFB2F038AFE15EB5DF4FD9F82DECD1E07EF9",
+  "verdict": "FAIL",
+  "failure_reason": "SOFTSTART_TZ_TRIP_BEFORE_HANDOFF",
+  "values": {
+    "state": 4,
+    "abort": 3,
+    "ok": 0,
+    "power_writes": 0,
+    "fault": 16,
+    "softstart_complete": 4,
+    "handoff_ok": 0,
+    "max_vout_raw": 0,
+    "abort_vout_raw": 1367,
+    "isr_max": 372,
+    "overrun": 0,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 1,
+    "abort_adc_vout_raw": 11,
+    "abort_filtered_vout_raw": 9,
+    "abort_control_vout_raw": 0,
+    "abort_control_error_raw": 0,
+    "abort_frequency_hz": 150000,
+    "abort_pipeline_phase": 0,
+    "abort_adc_sequence": 3250,
+    "abort_consumed_sequence": 0,
+    "abort_timer2": 4241817253
+  }
+}

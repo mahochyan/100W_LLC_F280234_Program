@@ -358,8 +358,18 @@ void SHOT_PendingCommit(void)
         DINT;
         EPwm1Regs.TBPRD = period;
         EPwm1Regs.CMPA.half.CMPA = p->cmpa;
-        EINT;
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+        /* STAGE6_REAL_APPLY_10CYCLE_CLOSURE_AND_SINGLE_SHOT:
+         * In the bounded-shot fast path, SOCASEL/SOCAEN are already frozen;
+         * only CMPB and the SOCA flag need updating. This avoids the generic
+         * ADC_UpdatePwmSyncPointKeepCadence() re-writing the full ADC sync
+         * configuration on every period change. */
+        EPwm1Regs.CMPB = (Uint16)((period + 1U) >> 2);
+        EPwm1Regs.ETCLR.bit.SOCA = 1U;
+#else
         ADC_UpdatePwmSyncPointKeepCadence(period);
+#endif
+        EINT;
     }
     g_pwm_period = period;
     g_switching_frequency_hz = p->command_hz;
