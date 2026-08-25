@@ -1,7 +1,7 @@
 # SOL Master Final Report
 
-Status: W2 Candidate4 is no-power qualified and ready for its unique real CR15 2MS
-shot. The authoritative resume point is `docs/SOL_MASTER_EXECUTION_STATE.md`.
+Status: W2 Candidate4 unique real CR15 2MS failed (COMP_TZ1 + pre-brake high
+abort). No retry. The authoritative resume point is `docs/SOL_MASTER_EXECUTION_STATE.md`.
 
 ## Verified milestones
 
@@ -40,21 +40,22 @@ apply=859, shutdown=1086, overrun=0, final PWM0/OST1/TZINT0. 10/100 ms were not
 run and no CR12.5 was auto-run. This candidate is rejected; the next W2 attempt
 requires a new proven root-cause change, new SHA, and all no-power gates.
 
-W2 Candidate4 (pre-handoff energy shaping) is the authorized new root-cause
+W2 Candidate4 (pre-handoff energy shaping) was the authorized new root-cause
 direction. It implements a pre-handoff brake, dv/dt gate, and bumpless PI preload
-to the actual brake frequency. All no-power gates pass, the unique real ladder
-SHAs are frozen, and the next action is operator authorization for the unique
-Candidate4 REAL CR15 2MS shot only.
+to the actual brake frequency. All no-power gates passed, the unique real ladder
+SHA was frozen, and the authorized unique real CR15 2MS shot was executed. It
+failed: `FAULT_COMP_TZ1`, pre-brake entered at raw 1359 and immediately aborted
+(high-window, reason 2), final PWM0/OST1/TZINT0. No retry; no CR12.5.
 
 W2 has now consumed the allowed three distinct real root-cause attempts:
 1. W2 attempt 1 (original handoff)
 2. Candidate 2 (fast slew 1000 Hz)
 3. Candidate 3 timingfix5 (handoff brake 160 kHz + PI preload)
 
-All three stopped at the same 2 ms VOUT gate (`max_vout_raw >= 1367`). Those
-three attempts remain closed and will not be retried. Candidate4 is the newly
-authorized root-cause direction; it is now no-power qualified and ready for its
-unique real CR15 2MS shot, pending operator authorization.
+The first three attempts stopped at the same 2 ms VOUT gate
+(`max_vout_raw >= 1367`). Candidate4 stopped at the same 2 ms window but with a
+real comparator TZ1 trip and an immediate pre-brake high-window abort. Those four
+attempts remain closed and will not be retried.
 
 The `200K_DB140_NOT_PRODUCTION_PATH_AUDIT` is accepted as a closed prior: it is
 not a production baseline, must not be retried, and no blanking / qualification /
