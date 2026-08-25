@@ -233,6 +233,9 @@ __interrupt void EPWM1_TZINT_ISR(void)
 
 __interrupt void TINT0_ISR(void)
 {
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    Uint16 r_entry_pws = g_power_window_state;
+#endif
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     Uint32 t_isr_entry = 0UL, t_isr_exit = 0UL;
     if (g_stage6_noenergy_test_enable != 0U)
@@ -515,6 +518,20 @@ __interrupt void TINT0_ISR(void)
         {
             if (g_real_isr_cycles_last > g_real_apply_phase_cycles_max)
                 g_real_apply_phase_cycles_max = g_real_isr_cycles_last;
+        }
+        /* STAGE6_CR20_CONTINUOUS_PFM_FAST_QUALIFICATION_V1:
+         * Separate sustained ACTIVE control cost from shutdown/software-OST
+         * cost. */
+        if (r_entry_pws == POWER_WINDOW_ACTIVE &&
+            g_power_window_state == POWER_WINDOW_ACTIVE)
+        {
+            if (g_real_isr_cycles_last > g_real_active_isr_cycles_max)
+                g_real_active_isr_cycles_max = g_real_isr_cycles_last;
+        }
+        else
+        {
+            if (g_real_isr_cycles_last > g_real_shutdown_isr_cycles_max)
+                g_real_shutdown_isr_cycles_max = g_real_isr_cycles_last;
         }
     }
 #endif

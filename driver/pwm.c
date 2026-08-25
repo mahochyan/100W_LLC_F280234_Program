@@ -405,18 +405,21 @@ void LLC_PWM_DisableSafe(void)
     g_software_ost_in_progress = 1U;
     g_software_ost_pending = 1U;
     g_software_ost_timer2 = CpuTimer2Regs.TIM.all;
+    g_power_window_state = POWER_WINDOW_POST_OST;
 
     EALLOW;
     EPwm1Regs.TZEINT.bit.OST = 0U;
+    EPwm1Regs.TZCLR.bit.INT = 1U;   /* clear old TZ INT before force */
     EPwm1Regs.TZFRC.bit.OST = 1U;
-    EPwm1Regs.TZCLR.bit.INT = 1U;
     EDIS;
 
-    /* Intentional OST is now being forced; classify subsequent TZ events as
-     * POST_OST diagnostics, not ACTIVE_WINDOW faults.  Set this immediately
-     * after the write (not conditional on an immediate flag read, which can
-     * still be settling) so a nested TZ ISR cannot see a stale ACTIVE state. */
-    g_power_window_state = POWER_WINDOW_POST_OST;
+    /* Confirm OST latched, then clear the software-force TZ INT. */
+    if (EPwm1Regs.TZFLG.bit.OST == 1U)
+    {
+        EALLOW;
+        EPwm1Regs.TZCLR.bit.INT = 1U;
+        EDIS;
+    }
 
     g_software_ost_in_progress = 0U;
     g_pwm_enabled = 0U;

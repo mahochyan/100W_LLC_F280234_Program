@@ -164,6 +164,8 @@ extern volatile Uint32 g_real_timer0_entry_interval_max;
  * only on ticks whose pipeline phase actually executed. */
 extern volatile Uint32 g_real_compute_phase_cycles_max;
 extern volatile Uint32 g_real_apply_phase_cycles_max;
+extern volatile Uint32 g_real_active_isr_cycles_max;
+extern volatile Uint32 g_real_shutdown_isr_cycles_max;
 extern volatile Uint32 g_shot_entry_interval_max;   /* shot-local entry max */
 extern volatile Uint32 g_shot_entry_interval_min;   /* shot-local entry min */
 extern volatile Uint32 g_shot_entry_over_1230_count;
