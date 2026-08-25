@@ -1,0 +1,26 @@
+{
+  "milestone": "REAL_100MS_NOPOWER_ONCHIP_TIMING_FREEZE",
+  "real_out_sha256": "5391FD1D21B9283CBD0DCD7FED84C1DB4F048B4FD647DB7CFC7409B7305C0321",
+  "verdict": "PASS",
+  "values": {
+    "timing_frozen": 1,
+    "timing_active": 0,
+    "timing_request": 0,
+    "timing_epoch": 1,
+    "timing_sample_count": 4998,
+    "timing_compute_max": 0,
+    "timing_apply_max": 893,
+    "timing_active_isr_max": 893,
+    "timing_shutdown_max": 610,
+    "timing_overrun_count": 0,
+    "old_overrun": 0,
+    "pending": 0,
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0
+  }
+}

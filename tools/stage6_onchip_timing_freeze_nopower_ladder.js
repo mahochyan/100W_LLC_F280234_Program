@@ -22,7 +22,7 @@ var waitMs = parseInt(java.lang.System.getenv("DSH_TIMING_WAIT_MS") || "10", 10)
 var outEnv = java.lang.System.getenv("DSH_TIMING_OUT");
 var OUT = (outEnv != null && outEnv.length() > 0)
     ? outEnv
-    : "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_" + label + ".out";
+    : "D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_" + label + ".out";
 var expEnv = java.lang.System.getenv("DSH_TIMING_EXPECTED_SHA");
 var EXPECTED = (expEnv != null && expEnv.length() > 0)
     ? expEnv
@@ -60,7 +60,7 @@ print("CNT34 permanent connected: "+perm+" operator present: "+op+" no-switching
 if(!perm || !op || !auth){ print("ABORT: connected no-switching timing gates not all 1."); throw "no-timing-auth"; }
 
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");
-server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
+server.setConfig("D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\F28034.ccxml");
 var session=server.openSession();
 function addr(n){
   var v=session.expression.evaluate("&"+n); var s=""+v;
@@ -104,14 +104,14 @@ wv("g_system_state",3); wv("g_pwm_enabled",1); wv("g_bringup_stage",7);
 wv("g_control_reference_valid",1); wv32("g_voltage_reference",0x41200000);
 wv("g_first_real_pi_shot_arm",1); wv("g_softstart_handoff_result",1);
 wv("g_board_vout_cal_valid",1); wv("g_comp_tz_loopback_verified",1);
-wv32("g_power_run_min_frequency_hz",150000);
+wv32("g_power_run_min_frequency_hz",145000);
 wv32("g_control_adc_sequence_last",0); wv32("g_adc_sample_sequence",1);
 wv("g_adc_pwm_sync_consecutive_miss",0);
 wv("g_adc_vout_raw",1200); wv("g_adc_vout_filtered_raw",1200);
 wv("g_control_vref_raw",1244);
 wv32("g_control_frequency_hz",149900); wv32("g_control_shadow_frequency_hz",149900);
 wv32("g_switching_frequency_hz",149900); wv("g_pwm_period",399);
-wv("g_power_window_state",1);   // POWER_WINDOW_ACTIVE
+wv("g_power_window_state",1); wv("g_no_energy_test_mode",1);   // POWER_WINDOW_ACTIVE
 
 // ---- host writes ONLY g_timing_request=1 ----
 wv("g_timing_request",1);
