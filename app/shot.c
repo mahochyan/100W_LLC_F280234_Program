@@ -341,6 +341,23 @@ void SHOT_Revoke(Uint16 reason)
     g_first_real_pi_shot_arm   = 0U;   /* revoke PI write permission */
     g_shot_summary.abort_reason = reason;   /* E: ISR-side summary */
 
+    /* STAGE6_500US_COMPUTE_FASTPATH_PENDING_ATOMIC_CLOSURE_V1:
+     * atomically discard any uncommitted pending and reset pipeline phase on
+     * EVERY termination path so a later start can never reuse old pending and
+     * a revoke can never be followed by a pending commit. */
+    g_pipeline_pending.valid = 0U;
+    g_pipeline_executed_phase = 0xFFU;
+    g_pipeline_phase = PIPELINE_PHASE_COMPUTE;
+
+    /* Freeze last-sample / final-command telemetry from live global state on
+     * every termination path (TIMEOUT and aborts). */
+    g_shot_summary.last_adc_sample_sequence = g_adc_sample_sequence;
+    g_shot_summary.last_consumed_sequence   = g_control_adc_sequence_consumed;
+    g_shot_summary.last_control_vout_raw    = g_control_vout_raw;
+    g_shot_summary.last_vref_raw            = g_control_vref_raw;
+    g_shot_summary.last_error_raw           = g_control_error_raw;
+    g_shot_summary.last_command_hz          = g_control_frequency_hz;
+
     if (reason == SHOT_ABORT_TIMEOUT)
     {
         /* E: auto-OST at 1 ms. Capture Timer2 BEFORE the planned OST, then
@@ -474,6 +491,23 @@ void SHOT_FastTask(void)
     /* E: max VOUT raw (whole shot), cheap per-tick compare. */
     if (g_adc_vout_filtered_raw > (Uint16)g_shot_summary.max_vout_raw)
         g_shot_summary.max_vout_raw = g_adc_vout_filtered_raw;
+
+    /* STAGE6_500US_COMPUTE_FASTPATH_PENDING_ATOMIC_CLOSURE_V1:
+     * last/min/max telemetry is maintained here (outside COMPUTE) and frozen
+     * by SHOT_Revoke. This keeps the COMPUTE critical path minimal. */
+    g_shot_summary.last_adc_sample_sequence = g_adc_sample_sequence;
+    g_shot_summary.last_consumed_sequence   = g_control_adc_sequence_consumed;
+    g_shot_summary.last_control_vout_raw    = g_control_vout_raw;
+    g_shot_summary.last_vref_raw            = g_control_vref_raw;
+    if (g_control_vout_raw < g_shot_summary.min_control_vout_raw)
+        g_shot_summary.min_control_vout_raw = g_control_vout_raw;
+    if (g_control_vout_raw > g_shot_summary.max_control_vout_raw)
+        g_shot_summary.max_control_vout_raw = g_control_vout_raw;
+    g_shot_summary.last_error_raw = g_control_error_raw;
+    if (g_control_error_raw < g_shot_summary.min_error_raw)
+        g_shot_summary.min_error_raw = g_control_error_raw;
+    if (g_control_error_raw > g_shot_summary.max_error_raw)
+        g_shot_summary.max_error_raw = g_control_error_raw;
 
     /* F: fast 11 V VOUT abort. */
     if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw)
