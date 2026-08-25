@@ -1,6 +1,6 @@
 # SOL Master Final Report
 
-Status: in progress. The authoritative resume point is
+Status: engineering blocked at W2. The authoritative resume point is
 `docs/SOL_MASTER_EXECUTION_STATE.md`.
 
 ## Verified milestones
@@ -39,6 +39,21 @@ gate: `max_vout_raw=1370 >= 1367`, `abort=2`, compute/active=875 (<900),
 apply=859, shutdown=1086, overrun=0, final PWM0/OST1/TZINT0. 10/100 ms were not
 run and no CR12.5 was auto-run. This candidate is rejected; the next W2 attempt
 requires a new proven root-cause change, new SHA, and all no-power gates.
+
+W2 has now consumed the allowed three distinct real root-cause attempts:
+1. W2 attempt 1 (original handoff)
+2. Candidate 2 (fast slew 1000 Hz)
+3. Candidate 3 timingfix5 (handoff brake 160 kHz + PI preload)
+
+All three stopped at the same 2 ms VOUT gate (`max_vout_raw >= 1367`). Per the
+master work order, W2 is now `SOL_MASTER_EXECUTION_ENGINEERING_BLOCKED`. A
+further attempt requires either a new authorized root-cause direction or the
+missing bench instrumentation (true trip waveform / IPRI / ZVS) to identify the
+physical transient.
+
+The `200K_DB140_NOT_PRODUCTION_PATH_AUDIT` is accepted as a closed prior: it is
+not a production baseline, must not be retried, and no blanking / qualification /
+DAC / TZ changes are allowed to make that diagnostic point pass.
 
 This report will be extended only with verified W0-W14 results and immutable
 evidence references.
