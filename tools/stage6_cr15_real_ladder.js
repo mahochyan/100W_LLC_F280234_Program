@@ -64,7 +64,9 @@ function readManifest(){
   return map;
 }
 
-var perm=(java.lang.System.getenv("DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED")||"").equals("1");
+var perm_conn=(java.lang.System.getenv("DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED")||"").equals("1");
+var perm_open=(java.lang.System.getenv("DSH_CNT34_OPEN_CONFIRMED")||"").equals("1");
+var perm_ok = perm_conn || perm_open;
 var op=(java.lang.System.getenv("DSH_OPERATOR_PRESENT_CONFIRMED")||"").equals("1");
 var ilim=(java.lang.System.getenv("DSH_INPUT_LIMIT_0_5A_CONFIRMED")||"").equals("1");
 var cr15=(java.lang.System.getenv("DSH_CR15_OHM_CONFIRMED")||"").equals("1");
@@ -72,10 +74,11 @@ var cc500=(java.lang.System.getenv("DSH_LOAD_500MA_CC_CONFIRMED")||"").equals("1
 var loadoff=(java.lang.System.getenv("DSH_LOAD_OFF_CONFIRMED")||"").equals("1");
 var vin24=(java.lang.System.getenv("DSH_VIN_24V_CONFIRMED")||"").equals("1");
 var load_ok = cr15 || cc500 || loadoff;
-print("CNT34 permanent: "+perm+" operator: "+op+" input limit 0.5A: "+ilim+
+print("CNT34 connected: "+perm_conn+" CNT34 open: "+perm_open+" perm_ok: "+perm_ok+
+      " operator: "+op+" input limit 0.5A: "+ilim+
       " CR15: "+cr15+" CC500: "+cc500+" LOAD_OFF: "+loadoff+" load_ok: "+load_ok+" Vin24: "+vin24);
-if(!perm || !op || !ilim || !load_ok || !vin24){
-  print("ABORT: real ladder human gates not all 1 (require CR15 15ohm OR 500mA CC OR load OFF).");
+if(!perm_ok || !op || !ilim || !load_ok || !vin24){
+  print("ABORT: real ladder human gates not all 1 (require CNT34 connected OR open; CR15 OR 500mA CC OR load OFF).");
   throw "no-real-auth";
 }
 

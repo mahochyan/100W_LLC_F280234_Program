@@ -1,0 +1,67 @@
+CNT34 connected: false CNT34 open: true perm_ok: true operator: true input limit 0.5A: true CR15: false CC500: false LOAD_OFF: true load_ok: true Vin24: true
+=== REAL CR15 LADDER STEP 1: 2MS ===
+REAL OUT host SHA256: E48DE5A9A7A2075C50C62F986BFB2F97DCB161648DAEEF2BCB93D902CF52FB92
+Expected SHA       : E48DE5A9A7A2075C50C62F986BFB2F97DCB161648DAEEF2BCB93D902CF52FB92
+REAL_CR15_HOST_SHA256_HARD_GATE_PASS
+GATE INIT_SYS_IDLE: PASS
+GATE INIT_PWM_OFF: PASS
+GATE INIT_FAULT_ZERO: PASS
+GATE INIT_OST_LATCHED: PASS
+GATE INIT_VOUT_CAL_VALID: PASS
+GATE INIT_STAGE_ZERO: PASS
+GATE LOOPBACK_PASS: PASS
+GATE STAGE_CONFIRM_1: PASS
+GATE STAGE_CONFIRM_2: PASS
+GATE STAGE_CONFIRM_3: PASS
+GATE STAGE_CONFIRM_4: PASS
+GATE STAGE_CONFIRM_5: PASS
+GATE STAGE_CONFIRM_6: PASS
+GATE STAGE_CONFIRM_7: PASS
+GATE PREFLIGHT_SYS_IDLE: PASS
+GATE PREFLIGHT_PWM_OFF: PASS
+GATE PREFLIGHT_FAULT_ZERO: PASS
+GATE PREFLIGHT_OST_LATCHED: PASS
+GATE PREFLIGHT_VOUT_CAL: PASS
+GATE PREFLIGHT_COMP_VERIFIED: PASS
+GATE PREFLIGHT_STAGE6: PASS
+GATE PREFLIGHT_ARM_CLEAR: PASS
+Running real CR15 2MS shot, waitMs=50
+SEVERE: identifier not found: g_pre_brake_period
+	 at &(g_pre_brake_period)
+SEVERE: Error evaluating "&g_pre_brake_period": identifier not found: g_pre_brake_period
+	 at &(g_pre_brake_period)
+SEVERE: identifier not found: g_pre_brake_timeout_abort
+	 at &(g_pre_brake_timeout_abort)
+SEVERE: Error evaluating "&g_pre_brake_timeout_abort": identifier not found: g_pre_brake_timeout_abort
+	 at &(g_pre_brake_timeout_abort)
+SEVERE: identifier not found: g_stage6_first_pi_sample_raw
+	 at &(g_stage6_first_pi_sample_raw)
+SEVERE: Error evaluating "&g_stage6_first_pi_sample_raw": identifier not found: g_stage6_first_pi_sample_raw
+	 at &(g_stage6_first_pi_sample_raw)
+SEVERE: identifier not found: g_stage6_first_pi_freq_hz
+	 at &(g_stage6_first_pi_freq_hz)
+SEVERE: Error evaluating "&g_stage6_first_pi_freq_hz": identifier not found: g_stage6_first_pi_freq_hz
+	 at &(g_stage6_first_pi_freq_hz)
+SEVERE: identifier not found: g_stage6_first_pi_observed
+	 at &(g_stage6_first_pi_observed)
+SEVERE: Error evaluating "&g_stage6_first_pi_observed": identifier not found: g_stage6_first_pi_observed
+	 at &(g_stage6_first_pi_observed)
+state=4 abort=7 ok=0 softstart=6 handoff=0
+burst=0 max_vout_raw=0 fresh=0 pi=0 apply=0 pw=0 pending=0
+adc_sequence first=0 last=2751 consumed_first=0 consumed_last=0
+active_envelope min_cmd_hz=0 max_cmd_hz=0 last_cmd_hz=150000 first_tbprd=0 final_tbprd=399
+timing_frozen=1 samples=822 compute=0 normal=0 fmax=0 abort=0 apply=0 active=346 shutdown=0 overrun=0
+hw_trip_delta=0 active_trip_delta=0 pwm=0 ost=1 tzint=0 pws=2 fault=0
+burst_blackbox phase=0 vout_raw=0 error_raw=-1 period=2 freq_hz=170000 unclamped_hz=0 unclamped_period=0 pi_q12=0 applied_period=0 timer2=4289803562 fmax_saturate_count=0
+adc_freshness armed=0 stale_total=0 stale_max=0 active_ovf=0 last_publish_t2=4263438038 last_consume_t2=0 first_stale_frozen=0 first_stale_phase=0 first_stale_age=0 fault_snapshot=0
+pre_brake entry_raw=0 exit_raw=0 freq_hz=155000 period=-1 cycles=0 settle=0 max_dvout=0 ready=0 abort=0 timeout=-1 exit_t2=0
+handoff first_vout=0 first_error=0 first_cmd=0 first_apply_t2=0 abort_t2=0 first_pi_raw=-1 first_pi_freq=-1 first_pi_observed=-1
+compute_normal_limit=900
+REAL_2MS_PASS=FAIL
+STAGE6_CR15_CONTINUOUS_PFM_FAIL
+FAILED_DURATION=2MS
+FAILED_GATE=<see above>
+NEXT_LOAD_CANDIDATE=NONE
+NO_RETRY_EXECUTED
+BOARD_LEFT_SAFE_PWM0_OST1
+js: "tools\stage6_cr15_real_ladder.js", line 278: exception from uncaught JavaScript throw: real-fail-2MS
