@@ -674,9 +674,11 @@ static void CTRL_PipelineApply(void)
         }
         if (g_burst_active != 0U && p->period < TUTORIAL_MIN_BURST)
         {
-            /* Stay in Burst OFF: discard pending, no PWM write. */
+            /* Stay in Burst OFF: consume/discard pending, no PWM write.
+             * Mark APPLY executed so the next tick returns to COMPUTE. */
             p->valid = 0U;
-            g_pipeline_executed_phase = 0xFFU;
+            g_pipeline_executed_phase = PIPELINE_PHASE_APPLY;
+            g_burst_off_apply_discard_count++;
             return;
         }
     }
@@ -777,6 +779,18 @@ void CTRL_FastTask(void)
         return;
     }
 #endif
+    /* D: real-time 500us cage from Timer2, checked BEFORE system/pwm gates so
+     * Burst OFF / shadow-control / Mode6 cannot extend past the cage. */
+    if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
+    {
+        Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
+        if (((g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL) >=
+            FIRST_REAL_PI_DURATION_CYCLES)
+        {
+            SHOT_Revoke(SHOT_ABORT_TIMEOUT);
+            return;
+        }
+    }
     if (g_system_state != SYS_STATE_RUN)
     {
         return;
@@ -793,21 +807,6 @@ void CTRL_FastTask(void)
     if (g_control_reference_valid == 0U)
     {
         return;   /* no valid Vref yet -> no PI */
-    }
-
-    /* D: real-time 1 ms cage from Timer2, checked BEFORE any pipeline phase
-     * so a pending is never committed after the cage elapsed: elapsed =
-     * first_apply_timer2 - current_timer2 (down counter), >= 60000 cycles ->
-     * immediate OST/PWM=0/revoke/COMPLETE/IDLE on this protection tick. */
-    if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
-    {
-        Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
-        if (((g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL) >=
-            FIRST_REAL_PI_DURATION_CYCLES)
-        {
-            SHOT_Revoke(SHOT_ABORT_TIMEOUT);
-            return;
-        }
     }
 
     g_control_running = 1U;

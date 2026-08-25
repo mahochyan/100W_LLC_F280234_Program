@@ -382,7 +382,8 @@ __interrupt void TINT0_ISR(void)
             {
                 tb = CpuTimer2Regs.TIM.all;
                 g_control_running = 1U;
-                g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
+                if (g_stage6_noenergy_test_mode != 6U)
+                    g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
                 CTRL_RunFastControl();   /* production freshness + binding + PI + apply */
                 tx = CpuTimer2Regs.TIM.all;
                 /* region B: one Compute+Apply (down counter -> entry-exit diff) */

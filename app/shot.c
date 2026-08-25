@@ -148,6 +148,11 @@ void SHOT_Init(void)
     g_burst_timeout_shadow_hz = 0UL;
     g_burst_timeout_period = 0U;
     g_burst_timeout_error_raw = 0;
+    g_burst_off_apply_discard_count = 0UL;
+    g_burst_restart_timer2 = 0UL;
+    g_burst_entry_to_restart_delta = 0UL;
+    g_burst_entry_hw_trip_count = 0UL;
+    g_burst_entry_active_trip_count = 0UL;
 }
 
 /* ------------------------------------------------------------------ */
@@ -521,7 +526,6 @@ Uint16 SHOT_BurstShadowControlAllowed(void)
     if (g_board_vout_cal_valid == 0U) return 0U;
     if (g_comp_tz_loopback_verified == 0U) return 0U;
     if (EPwm1Regs.TZFLG.bit.OST == 0U) return 0U;
-    if (g_pipeline_pending.valid != 0U) return 0U;
     return 1U;
 #else
     return 0U;
@@ -542,6 +546,8 @@ void SHOT_BurstEnter(void)
     g_burst_entry_frequency_hz  = g_pipeline_pending.command_hz;
     g_burst_entry_adc_sequence  = g_adc_sample_sequence;
     g_burst_entry_timer2        = CpuTimer2Regs.TIM.all;
+    g_burst_entry_hw_trip_count = g_tz_hardware_trip_count;
+    g_burst_entry_active_trip_count = g_tz_active_window_trip_count;
     g_burst_shadow_base_frequency_hz = g_pipeline_pending.command_hz;
     g_burst_off_first_shadow_hz = g_pipeline_pending.command_hz;
     g_burst_off_min_shadow_hz   = g_pipeline_pending.command_hz;
@@ -561,7 +567,9 @@ void SHOT_BurstRestart(void)
 {
     Uint16 period = g_pipeline_pending.period;
     Uint32 actual = g_pipeline_pending.actual_hz;
+    Uint16 gate_ok;
 
+    g_burst_state = BURST_STATE_RESTART_ARMED;
     g_burst_exit_count++;
     g_burst_restart_attempt_count++;
     g_burst_exit_vout_raw     = g_control_vout_raw;
@@ -572,6 +580,50 @@ void SHOT_BurstRestart(void)
     g_burst_exit_timer2       = CpuTimer2Regs.TIM.all;
 
     g_burst_restart_pre_ost = EPwm1Regs.TZFLG.bit.OST;
+    g_burst_restart_timer2 = CpuTimer2Regs.TIM.all;
+    g_burst_entry_to_restart_delta =
+        (Uint32)((Uint32)(g_burst_entry_timer2 - g_burst_restart_timer2) & 0xFFFFFFFFUL);
+
+    /* STAGE6_BURST_RESTART_SOURCE_PROVENANCE_AND_REAL_PREFLIGHT_CLOSURE_V1_5:
+     * Full hardware safety gate before any OST clear / deterministic start. */
+    gate_ok = 1U;
+    if (g_ost_owner != OST_OWNER_BURST_SOFTWARE) gate_ok = 0U;
+    if (g_burst_state != BURST_STATE_RESTART_ARMED) gate_ok = 0U;
+    if (g_burst_active != 1U) gate_ok = 0U;
+    if (g_first_real_pi_shot_arm != 1U) gate_ok = 0U;
+    if (g_fault_flags != 0UL) gate_ok = 0U;
+    if (EPwm1Regs.TZFLG.bit.OST != 1U) gate_ok = 0U;
+    if (EPwm1Regs.TZFLG.bit.INT != 0U) gate_ok = 0U;
+    if (GpioDataRegs.GPADAT.bit.GPIO15 != 1U) gate_ok = 0U;
+    if (g_board_vout_cal_valid == 0U) gate_ok = 0U;
+    if (g_comp_tz_loopback_verified == 0U) gate_ok = 0U;
+    if (g_pipeline_pending.valid != 1U) gate_ok = 0U;
+    if (period < TUTORIAL_MIN_BURST) gate_ok = 0U;
+    if (g_burst_restart_attempt_count != 1UL) gate_ok = 0U;
+    if ((g_tz_hardware_trip_count - g_burst_entry_hw_trip_count) != 0UL) gate_ok = 0U;
+    if ((g_tz_active_window_trip_count - g_burst_entry_active_trip_count) != 0UL) gate_ok = 0U;
+    if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw) gate_ok = 0U;
+
+    if (gate_ok == 0U)
+    {
+        g_burst_restart_fail_count++;
+        g_pipeline_pending.valid = 0U;
+        g_pipeline_executed_phase = 0xFFU;
+        g_pipeline_phase = PIPELINE_PHASE_COMPUTE;
+        LLC_PWM_DisableSafe();
+        g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
+        g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+        g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+        g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+        g_first_real_pi_shot_ok    = 0U;
+        g_first_real_pi_shot_arm   = 0U;
+        g_pwm_enabled              = 0U;
+        g_pwm_enable_result        = 0U;
+        g_system_state             = SYS_STATE_IDLE;
+        g_power_window_state       = POWER_WINDOW_POST_OST;
+        return;
+    }
+
     /* Deterministic start through the formal path (safe in NOENERGY). */
     if (PWM_PrepareStart(period, 36U, 0U) == 1U)
     {
