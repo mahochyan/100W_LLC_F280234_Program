@@ -68,11 +68,13 @@ var perm=(java.lang.System.getenv("DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED")||""
 var op=(java.lang.System.getenv("DSH_OPERATOR_PRESENT_CONFIRMED")||"").equals("1");
 var ilim=(java.lang.System.getenv("DSH_INPUT_LIMIT_0_5A_CONFIRMED")||"").equals("1");
 var cr15=(java.lang.System.getenv("DSH_CR15_OHM_CONFIRMED")||"").equals("1");
+var cc500=(java.lang.System.getenv("DSH_LOAD_500MA_CC_CONFIRMED")||"").equals("1");
 var vin24=(java.lang.System.getenv("DSH_VIN_24V_CONFIRMED")||"").equals("1");
+var load_ok = cr15 || cc500;
 print("CNT34 permanent: "+perm+" operator: "+op+" input limit 0.5A: "+ilim+
-      " CR15: "+cr15+" Vin24: "+vin24);
-if(!perm || !op || !ilim || !cr15 || !vin24){
-  print("ABORT: real CR15 ladder human gates not all 1.");
+      " CR15: "+cr15+" CC500: "+cc500+" load_ok: "+load_ok+" Vin24: "+vin24);
+if(!perm || !op || !ilim || !load_ok || !vin24){
+  print("ABORT: real ladder human gates not all 1 (require CR15 15ohm OR 500mA CC).");
   throw "no-real-auth";
 }
 
