@@ -495,6 +495,7 @@ void CTRL_ApplyFrequencyCommand(void)
  * committed g_pwm_period (the same rounding as the reference divide), then
  * the period-command consistency is re-proved by multiplication. Returns 1
  * on success (pending.valid=1), 0 on any inconsistency. */
+#pragma CODE_ALIGN(CTRL_PipelineMakePending, 8)
 static Uint16 CTRL_PipelineMakePending(Uint32 target)
 {
     SHOT_PipelinePending *p = &g_pipeline_pending;
@@ -557,6 +558,7 @@ static Uint16 CTRL_PipelineMakePending(Uint32 target)
  *   - Any uncommitted pending is discarded on stale so an old pending can
  *     never be applied after ADC freshness is lost.
  *   - pi_compute_count counts only fresh-sample pending creations. */
+#pragma CODE_ALIGN(CTRL_PipelineCompute, 8)
 static void CTRL_PipelineCompute(void)
 {
     Uint32 fresh_seq; Uint16 sample_valid, vout_raw;
@@ -661,6 +663,7 @@ static void CTRL_PipelineCompute(void)
 }
 
 /* PHASE_APPLY: full re-validation + commit. */
+#pragma CODE_ALIGN(CTRL_PipelineApply, 8)
 static void CTRL_PipelineApply(void)
 {
     SHOT_PipelinePending *p = &g_pipeline_pending;
