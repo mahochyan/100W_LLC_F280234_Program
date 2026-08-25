@@ -71,9 +71,25 @@ These values are consistent with operating near the slew saturation boundary.
 
 ## 6. No-power validation status
 
-**Not executed on target in this review** because CNT3/CNT4 OPEN confirmation
-is required and was not provided for this no-power session. The new REAL
-candidate OUT has been built; no-power RAW/JSON are pending that confirmation.
+**Executed and PASS** with CNT3/CNT4 OPEN confirmed, using the new REAL
+candidate OUT `4448F6C0...`.
+
+- Scenario A (fresh then stale):
+  - `fresh_compute_count=1`, `stale_compute_count=50`
+  - `pi_compute_count=1`, `pwm_apply_count=1`, `power_writes=1`
+  - `pending_valid=0`, state=COMPLETE/TIMEOUT, PWM=0, OST=1, POST_OST
+  - ISR max=844 <=900, compute max=844, apply max=761, overrun=0
+- Scenario B (VOUT abort simulation):
+  - state=ABORTED, abort=VOUT_11V, PWM=0, OST=1, POST_OST
+  - abort telemetry complete: filtered/control VOUT=1368, error=-124,
+    frequency=150000, sequence/consumed=1, timer2 captured
+- Scenario C (fresh->stale->fresh):
+  - second fresh injection produced `fresh_compute_count=2` and
+    `power_writes=2`; recovery consumed the new sequence exactly once.
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/G9_ROOTCAUSE_NOPOWER_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/G9_ROOTCAUSE_NOPOWER_RESULT.json`
 
 ## 7. Deliverables
 

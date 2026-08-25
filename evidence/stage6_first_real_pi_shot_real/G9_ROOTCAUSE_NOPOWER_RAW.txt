@@ -1,0 +1,45 @@
+REAL OUT host SHA256: 4448F6C055E6A2600DA1079B6B0CDFE5856266D5D2DDF891D9836E717431AF5E
+REAL OUT expected   : 4448F6C055E6A2600DA1079B6B0CDFE5856266D5D2DDF891D9836E717431AF5E
+TIMING_HOST_SHA256_HARD_GATE_PASS
+CNT3/CNT4 open confirmed: true
+=== SCENARIO A: fresh then stale (single fresh injection) ===
+drain_max=304
+pre-run fault=0 sys=3 pwm=1 arm=1
+attempt 1 state=3 abort=1 max=19118412 overrun=1
+drain_max=304
+pre-run fault=0 sys=3 pwm=1 arm=1
+attempt 2 state=3 abort=1 max=844 overrun=0
+fresh_compute_count=1
+stale_compute_count=50
+pi_compute_count=1
+pwm_apply_count=1
+power_writes=1
+pending_valid=0
+state=3 abort=1
+pwm=0 ost=1 power_window_state=2
+faultA=0 sysA=1 handoffA=1 armA=0
+ISR max=844 compute=844 apply=761 overrun=0
+SCENARIO_A_FRESH_COUNT=1
+SCENARIO_A_STALE_COUNT=50
+SCENARIO_A_PI_COMPUTE=1
+SCENARIO_A_PWM_APPLY=1
+SCENARIO_A_POWER_WRITES=1
+=== SCENARIO B: VOUT abort telemetry ===
+drain_max=304
+pre-run fault=0 sys=3 pwm=1 arm=1
+state=4 abort=2 ok=0 pwm=0 ost=1 pws=2 fault=65536
+abort_adc_vout_raw=1200 abort_filtered_vout_raw=1368 abort_control_vout_raw=1368
+abort_control_error_raw=-124 abort_frequency_hz=150000 abort_pipeline_phase=0
+abort_adc_sequence=1 abort_consumed_sequence=1 abort_timer2=4276726946
+SCENARIO_B_ABORT_STATE=4
+SCENARIO_B_ABORT_REASON=2
+SCENARIO_B_ABORT_TELEMETRY_COMPLETE=true
+SCENARIO_B_POST_OST=true
+=== SCENARIO C: fresh -> stale -> fresh (attempt) ===
+drain_max=304
+pre-run fault=0 sys=3 pwm=1 arm=1
+attempt 1 after run(0) state=2 fresh=1 stale=31
+after second fresh state=4 fresh=2 stale=36 power_writes=2
+SCENARIO_C_FRESH_RECOVERY=true
+SCENARIO_C_FRESH_RECOVERY_FINAL=true
+NO_POWER_DONE
