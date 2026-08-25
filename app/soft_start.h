@@ -41,6 +41,17 @@
 #define SS_FINAL_MAX_CYCLES    300U  /* acceptance wait window after ramp */
 #define SS_STALE_MISS_LIMIT    3U
 
+/* W2 handoff-energy brake. Profile C still completes and is validated at
+ * 150 kHz/TBPRD=399. Immediately before closed-loop ownership is published,
+ * preload the already-running bridge at 160 kHz and seed the PI with the
+ * equivalent -10 kHz integral term. This removes the first-sample energy
+ * discontinuity while retaining the frozen 145..170 kHz control envelope. */
+#define SS_HANDOFF_BRAKE_PERIOD       374U
+#define SS_HANDOFF_BRAKE_CMPA         187U
+#define SS_HANDOFF_BRAKE_HZ           160000UL
+#define SS_HANDOFF_BRAKE_INTEGRAL_Q12 (-40960000L)
+#define SS_HANDOFF_BRAKE_UNSAT_Q12    655360000L
+
 /* STAGE5A PFM direction test (g_pfm_direction_test_mode) */
 #define PFM_DIRECTION_MODE_OFF       0U
 #define PFM_DIRECTION_MODE_TEST_150K 1U
@@ -87,6 +98,7 @@
 #define HANDOFF_GATE_FAIL              3U
 #define HANDOFF_CEILING                4U
 #define HANDOFF_FAULT                  5U
+#define HANDOFF_BRAKE_INVALID          6U
 
 void SoftStart_Init(void);
 void SoftStart_Begin(void);

@@ -733,6 +733,37 @@ Uint16 SoftStart_TransferToClosedLoop(void)
         return 0U;
     }
 
+    /* W2_HANDOFF_ENERGY_STATE_CONTINUITY_CANDIDATE3:
+     * The formal Profile C endpoint above remains unchanged and is verified
+     * before this write. Apply the bounded 160 kHz brake while SoftStart still
+     * owns the PWM, then move the ADC sample point. ADC_SetClosedLoop... below
+     * is deliberately later so it restores ET_3RD after this helper's ET_1ST. */
+    if (PWM_ApplyPeriodDeadtime(SS_HANDOFF_BRAKE_PERIOD,
+                                SS_FINAL_DB) == 0U)
+    {
+        g_softstart_handoff_result = HANDOFF_BRAKE_INVALID;
+        g_softstart_state = SOFTSTART_ABORTED;
+        g_fault_flags |= FAULT_PWM_CONFIG_MISMATCH;
+        g_fault_history |= FAULT_PWM_CONFIG_MISMATCH;
+        g_system_state = SYS_STATE_FAULT;
+        LLC_PWM_DisableSafe();
+        return 0U;
+    }
+    ADC_UpdatePwmSyncPoint(SS_HANDOFF_BRAKE_PERIOD);
+    if (EPwm1Regs.TBPRD != SS_HANDOFF_BRAKE_PERIOD ||
+        EPwm1Regs.CMPA.half.CMPA != SS_HANDOFF_BRAKE_CMPA ||
+        EPwm1Regs.DBRED != SS_FINAL_DB ||
+        EPwm1Regs.DBFED != SS_FINAL_DB)
+    {
+        g_softstart_handoff_result = HANDOFF_BRAKE_INVALID;
+        g_softstart_state = SOFTSTART_ABORTED;
+        g_fault_flags |= FAULT_PWM_CONFIG_MISMATCH;
+        g_fault_history |= FAULT_PWM_CONFIG_MISMATCH;
+        g_system_state = SYS_STATE_FAULT;
+        LLC_PWM_DisableSafe();
+        return 0U;
+    }
+
     /* I + K: ADC ownership handoff. The SoftStart ePWM-cycle ISR stops
      * owning ADC freshness; ADCINT1 closed-loop vector takes over. */
     ADC_ResetFreshnessBlackbox();
@@ -763,11 +794,13 @@ Uint16 SoftStart_TransferToClosedLoop(void)
     g_adc_vout_filter_acc     = ((Uint32)raw) << 4U;
     g_adc_vout_filtered_raw   = raw;
 
-    /* G) - bumpless control state (PI bias = SoftStart final = 150 kHz). */
-    g_control_frequency_hz       = LLC_DEFAULT_FREQUENCY_HZ;
-    g_control_shadow_frequency_hz = LLC_DEFAULT_FREQUENCY_HZ;
-    g_pi_integral_q12            = 0;
-    g_control_unsat_q12          = 150000 * 4096;   /* Q12 bias = 150 kHz */
+    /* G) - bumpless state matching the 160 kHz handoff brake. The controller
+     * bias remains 150 kHz; a -10 kHz integral term therefore commands
+     * 160 kHz at zero error with CTRL_SIGN=-1. */
+    g_control_frequency_hz        = SS_HANDOFF_BRAKE_HZ;
+    g_control_shadow_frequency_hz = SS_HANDOFF_BRAKE_HZ;
+    g_pi_integral_q12             = SS_HANDOFF_BRAKE_INTEGRAL_Q12;
+    g_control_unsat_q12           = SS_HANDOFF_BRAKE_UNSAT_Q12;
 
     /* H) - first real-PI reference target = 10V. Production slow path derives
      * g_control_vref_raw (~1244) and reference_valid=1 from this only. */
