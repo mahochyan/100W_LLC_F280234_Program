@@ -13,7 +13,7 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var BASE = "D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real";
+var BASE = "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
 var MANIFEST = BASE + "\\REAL_LADDER_SHA256SUMS.txt";
 var CONFIGS = [
   { label:"2MS",  out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_2MS.out",  waitMs:10,  shaKey:"REAL_2MS_OUT_SHA256" },
@@ -59,7 +59,7 @@ print("CNT34 permanent connected: "+perm+" operator present: "+op+" no-switching
 if(!perm || !op || !auth){ print("ABORT: connected no-switching timing gates not all 1."); throw "no-timing-auth"; }
 
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");
-server.setConfig("D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\F28034.ccxml");
+server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
 function addr(n){
   var v=session.expression.evaluate("&"+n); var s=""+v;

@@ -1,0 +1,7 @@
+REAL_2MS_NOPOWER_1F6B16E4
+OUT_SHA256=1F6B16E484AB56D7D7FC1E045E71BE9555C67908AB843C5CFBC29842F52130F5
+timing_frozen=1 active=0 request=0 epoch=1 samples=103
+compute_max=864 apply_max=872 active_isr_max=872 shutdown_max=632 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+TIMING_2MS_PASS=PASS

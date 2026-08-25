@@ -1,0 +1,12 @@
+REAL_2MS_CR20_1F6B16E4_FAIL
+OUT_SHA256=1F6B16E484AB56D7D7FC1E045E71BE9555C67908AB843C5CFBC29842F52130F5
+state=4 abort=2 ok=0 softstart=1 handoff=1
+burst=0 max_vout_raw=1369 fresh=2 pi=2 apply=2 pw=2 pending=0
+timing_frozen=1 samples=494 compute=952 apply=887 active=952 shutdown=1139 overrun=0
+hw_trip_delta=0 active_trip_delta=0 pwm=0 ost=1 tzint=0 pws=2 fault=65536
+burst_blackbox phase=0 vout_raw=64697 error_raw=30853 period=2 freq_hz=1 unclamped_hz=0 unclamped_period=0 pi_q12=0 applied_period=0 timer2=2480822491 fmax_saturate_count=0
+REAL_2MS_PASS=FAIL
+FAILED_DURATION=2MS
+FAILED_GATE=compute_max_952_gt_900_and_max_vout_raw_1369_ge_1367_and_abort_2
+NO_RETRY_EXECUTED
+BOARD_LEFT_SAFE_PWM0_OST1

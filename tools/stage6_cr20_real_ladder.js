@@ -23,7 +23,7 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var BASE = "D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real";
+var BASE = "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
 var MANIFEST = BASE + "\\REAL_LADDER_SHA256SUMS.txt";
 var CONFIGS = [
   { label:"2MS",  out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_2MS.out",  waitMs:50,  shaKey:"REAL_2MS_OUT_SHA256" },
@@ -75,7 +75,7 @@ if(!approved || !op || !ilim || !cr20 || !vin24){
 }
 
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");
-server.setConfig("D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\F28034.ccxml");
+server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
 function addr(n){
   var v=session.expression.evaluate("&"+n); var s=""+v;
@@ -175,10 +175,20 @@ for(var i=0;i<CONFIGS.length;i++){
   var pwm2=rw("g_pwm_enabled"); var ost2=reg("EPwm1Regs.TZFLG.bit.OST");
   var tzint=reg("EPwm1Regs.TZFLG.bit.INT"); var pws2=rw("g_power_window_state");
   var fault2=rv32("g_fault_flags");
+  var be_phase=rw("g_burst_entry_phase"); var be_vout=rw("g_burst_entry_vout_raw");
+  var be_err=r16("g_burst_entry_error_raw"); var be_period=rw("g_burst_entry_period");
+  var be_freq=rv32("g_burst_entry_frequency_hz"); var be_uncl=rv32("g_burst_entry_unclamped_hz");
+  var be_unclp=rw("g_burst_entry_unclamped_period"); var be_pi=rv32("g_burst_entry_pi_integral_q12");
+  var be_applied=rw("g_burst_entry_applied_period"); var be_t2=rv32("g_burst_entry_timer2");
+  var fsat=rv32("g_control_fmax_saturate_count");
   print("state="+st+" abort="+ab+" ok="+okf+" softstart="+ssres+" handoff="+hres);
   print("burst="+burst+" max_vout_raw="+maxv+" fresh="+fc+" pi="+pc+" apply="+ac+" pw="+pw+" pending="+pv);
   print("timing_frozen="+tf+" samples="+sc+" compute="+cmax+" apply="+amax+" active="+amax2+" shutdown="+smax+" overrun="+tov);
   print("hw_trip_delta="+hwdelta+" active_trip_delta="+actdelta+" pwm="+pwm2+" ost="+ost2+" tzint="+tzint+" pws="+pws2+" fault="+fault2);
+  print("burst_blackbox phase="+be_phase+" vout_raw="+be_vout+" error_raw="+be_err+
+        " period="+be_period+" freq_hz="+be_freq+" unclamped_hz="+be_uncl+
+        " unclamped_period="+be_unclp+" pi_q12="+be_pi+" applied_period="+be_applied+
+        " timer2="+be_t2+" fmax_saturate_count="+fsat);
 
   var pass = (ssres===1 && hres===1 && st===3 && ab===1 && okf===1 &&
               fault2===0 && burst===0 && maxv<1367 &&

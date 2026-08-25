@@ -360,6 +360,10 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     if (step_q12 < -CTRL_MAX_STEP_Q12) step_q12 = -CTRL_MAX_STEP_Q12;
 #endif
     out_q12 = base_q12 + step_q12;
+    /* STAGE6_CR20_BURST_THRESHOLD_CONFLICT_CLOSURE_V1: keep the unclamped
+     * requested frequency (after slew limiting, before envelope clamp) so Burst
+     * can distinguish a true >170 kHz request from a legal 150..170 kHz one. */
+    g_control_unclamped_frequency_hz = (Uint32)(out_q12 >> CTRL_Q_SHIFT);
     if (out_q12 < CTRL_CLAMP_MIN_Q12) out_q12 = CTRL_CLAMP_MIN_Q12;
     if (out_q12 > CTRL_CLAMP_MAX_Q12) out_q12 = CTRL_CLAMP_MAX_Q12;
 
@@ -619,6 +623,19 @@ static void CTRL_PipelineCompute(void)
     {
         g_pipeline_executed_phase = PIPELINE_PHASE_COMPUTE;
         g_shot_summary.pi_compute_count++;
+
+        /* STAGE6_CR20_BURST_THRESHOLD_CONFLICT_CLOSURE_V1: count consecutive
+         * fresh computes that saturate at fmax (period==352) while VOUT is
+         * above Vref. Reset on any non-saturated or non-overvoltage compute. */
+        if (g_pipeline_pending.period == 352U && g_control_error_raw < 0)
+        {
+            if (g_control_fmax_saturate_count < 0xFFFFFFFFUL)
+                g_control_fmax_saturate_count++;
+        }
+        else
+        {
+            g_control_fmax_saturate_count = 0UL;
+        }
     }
     else
     {
@@ -674,7 +691,16 @@ static void CTRL_PipelineApply(void)
      * Minimal tutorial Burst state machine. */
     if (g_burst_enabled != 0U)
     {
-        if (g_burst_active == 0U && p->period < TUTORIAL_MIN_BURST)
+        /* STAGE6_CR20_BURST_THRESHOLD_CONFLICT_CLOSURE_V1:
+         * Do NOT Burst merely because p->period < 400 (352..399 is legal
+         * continuous PFM). Burst only when the PI truly needs >170 kHz
+         * (unclamped request > FIRST_REAL_PI_MAX_HZ), or when the clamped
+         * command is pinned at 352 for 3 consecutive fresh overvoltage
+         * computes. */
+        if (g_burst_active == 0U &&
+            g_control_error_raw < 0 &&
+            ((g_control_unclamped_frequency_hz > FIRST_REAL_PI_MAX_HZ) ||
+             (p->period == 352U && g_control_fmax_saturate_count >= 3UL)))
         {
             SHOT_BurstEnter();       /* enter Burst OFF, keep control running */
             return;
@@ -1020,10 +1046,6 @@ void CTRL_OfflineSelfTest(void)
     g_offline_test_status = pass;
 }
 #endif /* STAGE6_OFFLINE_SELFTEST */
-
-
-
-
 
 
 

@@ -1,0 +1,7 @@
+REAL_10MS_NOPOWER_D5D94A28
+OUT_SHA256=D5D94A282A009A5716BF01B660EF9290D825B72C1F20153A6719C524EDBE7BC9
+timing_frozen=1 active=0 request=0 epoch=1 samples=501
+compute_max=0 apply_max=877 active_isr_max=877 shutdown_max=632 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+TIMING_10MS_PASS=PASS

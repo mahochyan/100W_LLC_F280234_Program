@@ -14,7 +14,7 @@ if "%~2"=="" (
 )
 set LABEL=%~1
 set DUR=%~2
-set PROJ=D:\100W_LLC_F280234_Program\branch_first_real_pi_shot_v1_1
+set PROJ=D:\CCS21_workspace\Codex_Project
 set CGT=D:\CCS21\ccs\tools\compiler\ti-cgt-c2000_25.11.1.LTS
 set BUILD=%PROJ%\Stage6_FLASH_SHOT_REAL_%LABEL%
 

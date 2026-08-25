@@ -1,0 +1,11 @@
+BURST_BOUNDARY_NOENERGY_0C501B0A
+OUT_SHA256=0C501B0A6C14DA08A1292A6A74D6470BA5ECA3F619FD3F861600DB1E8204E6D1
+PERIOD_400 state=3 abort=1 burst=0 pw=1 fmax_sat=0 uncl=149500 pending=0 pwm=0 ost=1 fault=0 PASS
+PERIOD_399 state=3 abort=1 burst=0 pw=1 fmax_sat=0 uncl=150000 pending=0 pwm=0 ost=1 fault=0 PASS
+UNDER_400_OVER_V state=3 abort=1 burst=0 pw=1 fmax_sat=0 uncl=150500 pending=0 pwm=0 ost=1 fault=0 PASS
+PERIOD_353 state=3 abort=1 burst=0 pw=1 fmax_sat=0 uncl=169500 pending=0 pwm=0 ost=1 fault=0 PASS
+PERIOD_352 state=3 abort=1 burst=0 pw=1 fmax_sat=0 uncl=170000 pending=0 pwm=0 ost=1 fault=0 PASS
+ONE_352_SAT state=3 abort=1 burst=0 pw=1 fmax_sat=1 uncl=170000 pending=0 pwm=0 ost=1 fault=0 PASS
+THREE_352_SAT state=3 abort=1 burst=1 pw=0 fmax_sat=3 uncl=170000 pending=0 pwm=0 ost=1 fault=0 PASS
+UNCLAMPED_352_BURST state=3 abort=1 burst=1 pw=0 fmax_sat=1 uncl=170500 pending=0 pwm=0 ost=1 fault=0 PASS
+STAGE6_CR20_BURST_BOUNDARY_NOENERGY_ALL_PASS

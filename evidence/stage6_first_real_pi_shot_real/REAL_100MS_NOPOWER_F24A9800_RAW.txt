@@ -1,0 +1,7 @@
+REAL_100MS_NOPOWER_F24A9800
+OUT_SHA256=F24A9800557B3E8BEDC41C35EDDA6EA20588501E04591F2DBE9058169BC27C0A
+timing_frozen=1 active=0 request=0 epoch=1 samples=4998
+compute_max=0 apply_max=899 active_isr_max=899 shutdown_max=637 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+TIMING_100MS_PASS=PASS
