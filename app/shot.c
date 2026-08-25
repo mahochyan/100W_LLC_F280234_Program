@@ -164,6 +164,7 @@ void SHOT_Init(void)
     g_burst_entry_pi_integral_q12 = 0;
     g_burst_entry_applied_period = 0U;
     g_control_unclamped_frequency_hz = 0UL;
+  g_control_unclamped_period = 0U;
     g_control_fmax_saturate_count = 0UL;
     g_software_ost_pending = 0U;
     g_software_ost_timer2 = 0UL;
@@ -590,8 +591,8 @@ void SHOT_BurstEnter(void)
     g_burst_entry_adc_sequence  = g_adc_sample_sequence;
     g_burst_entry_timer2        = CpuTimer2Regs.TIM.all;
     g_burst_entry_phase         = g_pipeline_phase;
-    g_burst_entry_unclamped_hz  = g_control_unclamped_frequency_hz;
-    g_burst_entry_unclamped_period = (g_control_unclamped_frequency_hz > FIRST_REAL_PI_MAX_HZ) ? 0U : g_pipeline_pending.period;
+    g_burst_entry_unclamped_hz  = 0UL;
+    g_burst_entry_unclamped_period = g_control_unclamped_period;
     g_burst_entry_pi_integral_q12 = g_pi_integral_q12;
     g_burst_entry_applied_period = g_pwm_period;
     g_burst_entry_hw_trip_count = g_tz_hardware_trip_count;

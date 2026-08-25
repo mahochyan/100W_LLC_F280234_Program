@@ -1,0 +1,51 @@
+CNT34 permanent connected: true operator present: true no-switching auth: true
+=== LADDER STEP 1: 2MS ===
+REAL OUT host SHA256: 5E2B320B906F867725A9C843A94E78B8D50CB576CA92E2841871AF081DE3EDD7
+Expected SHA       : 5E2B320B906F867725A9C843A94E78B8D50CB576CA92E2841871AF081DE3EDD7
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+Running no-power timing window for 2MS, waitMs=10
+timing_frozen=1 active=0 request=0 epoch=1 samples=103
+compute_normal_max=837 compute_fmax_max=0 compute_abort_max=0
+compute_max=837 apply_max=836 active_isr_max=837 shutdown_max=534 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+TIMING_2MS_PASS=PASS
+TIMING_2MS_DONE
+=== LADDER STEP 2: 10MS ===
+REAL OUT host SHA256: 767CF282BCAC527CC05588CB90E8A981A9B4DEB068A3257ACAB236B0281819B0
+Expected SHA       : 767CF282BCAC527CC05588CB90E8A981A9B4DEB068A3257ACAB236B0281819B0
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+Running no-power timing window for 10MS, waitMs=25
+timing_frozen=1 active=0 request=0 epoch=1 samples=502
+compute_normal_max=837 compute_fmax_max=0 compute_abort_max=0
+compute_max=837 apply_max=836 active_isr_max=837 shutdown_max=534 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+TIMING_10MS_PASS=PASS
+TIMING_10MS_DONE
+=== LADDER STEP 3: 100MS ===
+REAL OUT host SHA256: 64FBCC9175B541DF46683231337BB23DCB49EEAB12916A0E3DA8208725E4ED58
+Expected SHA       : 64FBCC9175B541DF46683231337BB23DCB49EEAB12916A0E3DA8208725E4ED58
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+Running no-power timing window for 100MS, waitMs=130
+timing_frozen=1 active=0 request=0 epoch=1 samples=4999
+compute_normal_max=837 compute_fmax_max=0 compute_abort_max=0
+compute_max=837 apply_max=849 active_isr_max=849 shutdown_max=529 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+TIMING_100MS_PASS=PASS
+TIMING_100MS_DONE
+STAGE6_ONCHIP_TIMING_FREEZE_PASS
+STAGE6_ONCHIP_TIMING_FREEZE_NOPOWER_LADDER_ALL_PASS

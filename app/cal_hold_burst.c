@@ -224,12 +224,14 @@ void CALHOLD_PacketIsr(void)
 void CALHOLD_FastTask(void)
 {
     Uint16 raw;
-    Uint32 limit = (Uint32)g_cal_hold_duration_ms * 50UL;
+    Uint32 limit = 0UL;
+    if (g_cal_hold_state == CAL_HOLD_IDLE) return;
 
     switch (g_cal_hold_state)
     {
         case CAL_HOLD_OFF:
         {
+        limit = (Uint32)g_cal_hold_duration_ms * 50UL;
             g_cal_hold_elapsed_ticks++;
             g_cal_hold_hold_active_ticks++;
             g_cal_hold_off_ticks++;
@@ -341,6 +343,7 @@ void CALHOLD_FastTask(void)
 
         case CAL_HOLD_PACKET:
         {
+        limit = (Uint32)g_cal_hold_duration_ms * 50UL;
             g_cal_hold_elapsed_ticks++;
             g_cal_hold_hold_active_ticks++;
             if (g_cal_measure_active != 0U)

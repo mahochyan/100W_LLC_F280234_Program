@@ -363,7 +363,7 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     /* STAGE6_CR20_BURST_THRESHOLD_CONFLICT_CLOSURE_V1: keep the unclamped
      * requested frequency (after slew limiting, before envelope clamp) so Burst
      * can distinguish a true >170 kHz request from a legal 150..170 kHz one. */
-    g_control_unclamped_frequency_hz = (Uint32)(out_q12 >> CTRL_Q_SHIFT);
+    g_control_unclamped_period = (out_q12 > CTRL_CLAMP_MAX_Q12) ? 351U : 0U;
     if (out_q12 < CTRL_CLAMP_MIN_Q12) out_q12 = CTRL_CLAMP_MIN_Q12;
     if (out_q12 > CTRL_CLAMP_MAX_Q12) out_q12 = CTRL_CLAMP_MAX_Q12;
 
@@ -699,7 +699,7 @@ static void CTRL_PipelineApply(void)
          * computes. */
         if (g_burst_active == 0U &&
             g_control_error_raw < 0 &&
-            ((g_control_unclamped_frequency_hz > FIRST_REAL_PI_MAX_HZ) ||
+            ((g_control_unclamped_period != 0U) ||
              (p->period == 352U && g_control_fmax_saturate_count >= 3UL)))
         {
             SHOT_BurstEnter();       /* enter Burst OFF, keep control running */

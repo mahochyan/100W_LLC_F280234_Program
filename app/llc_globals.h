@@ -188,6 +188,9 @@ extern volatile Uint32 g_timing_active_isr_max;
 extern volatile Uint32 g_timing_compute_max;
 extern volatile Uint32 g_timing_apply_max;
 extern volatile Uint32 g_timing_shutdown_max;
+extern volatile Uint32 g_timing_compute_normal_max;
+extern volatile Uint32 g_timing_compute_fmax_max;
+extern volatile Uint32 g_timing_compute_abort_max;
 extern volatile Uint32 g_timing_overrun_count;
 /* 100 ms ladder: last-50 ms VOUT/frequency statistics (compiled only in the
  * 100 ms build; zero overhead in 2 ms/10 ms builds). */
@@ -250,6 +253,7 @@ extern volatile Uint16 g_burst_entry_unclamped_period;
 extern volatile int32  g_burst_entry_pi_integral_q12;
 extern volatile Uint16 g_burst_entry_applied_period;
 extern volatile Uint32 g_control_unclamped_frequency_hz;
+extern volatile Uint16 g_control_unclamped_period;
 extern volatile Uint32 g_control_fmax_saturate_count;
 extern volatile Uint16 g_burst_exit_vout_raw;
 extern volatile int16  g_burst_exit_error_raw;

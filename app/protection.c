@@ -74,6 +74,9 @@ void PROT_Init(void)
     g_timing_sample_count  = 0UL;
     g_timing_active_isr_max = 0UL;
     g_timing_compute_max   = 0UL;
+    g_timing_compute_normal_max = 0UL;
+    g_timing_compute_fmax_max   = 0UL;
+    g_timing_compute_abort_max  = 0UL;
     g_timing_apply_max     = 0UL;
     g_timing_shutdown_max  = 0UL;
     g_timing_overrun_count = 0UL;
@@ -267,6 +270,9 @@ __interrupt void TINT0_ISR(void)
         g_timing_sample_count   = 0UL;
         g_timing_active_isr_max = 0UL;
         g_timing_compute_max    = 0UL;
+        g_timing_compute_normal_max = 0UL;
+        g_timing_compute_fmax_max   = 0UL;
+        g_timing_compute_abort_max  = 0UL;
         g_timing_apply_max      = 0UL;
         g_timing_shutdown_max   = 0UL;
         g_timing_overrun_count  = 0UL;
@@ -309,42 +315,9 @@ __interrupt void TINT0_ISR(void)
 #endif
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     /* Passive whole-ISR / entry-interval observation (gate K1). Read-only
-     * Timer2 cycle counting; does not modify ADC, PI input, PWM command, or
-     * protection. Present in the final frozen REAL OUT. */
+     * Timer2 cycle counting; does not touch control. Present in final REAL.
+     * Minimal: only keep g_real_timer0_last_entry/count for ISR exit math. */
     {
-        if (g_real_timer0_entry_count == 0UL)
-        {
-            g_real_timer0_entry_interval_min = 0UL;
-            g_real_timer0_entry_interval_max = 0UL;
-        }
-        else
-        {
-            Uint32 r_delta = (Uint32)((Uint32)(g_real_timer0_last_entry - r_entry) & 0xFFFFFFFFUL);
-            if (r_delta > g_real_timer0_entry_interval_max)
-                g_real_timer0_entry_interval_max = r_delta;
-            /* Shot-local entry interval: only while the bounded shot is ACTIVE.
-             * Reset at first apply in CTRL_PipelineApply; frozen at TIMEOUT by
-             * SHOT_Revoke. This excludes APP init / stage confirms / IDLE. */
-            if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
-            {
-                Uint32 s_delta = (Uint32)((Uint32)(g_shot_entry_last - r_entry) & 0xFFFFFFFFUL);
-                if (g_shot_entry_interval_min == 0UL || s_delta < g_shot_entry_interval_min)
-                    g_shot_entry_interval_min = s_delta;
-                if (s_delta > g_shot_entry_interval_max)
-                    g_shot_entry_interval_max = s_delta;
-                if (s_delta > 1230UL) g_shot_entry_over_1230_count++;
-                if (s_delta > 1500UL) g_shot_entry_over_1500_count++;
-                if (s_delta > 2400UL) g_shot_entry_over_2400_count++;
-                if (g_shot_entry_adjacent_prev != 0UL)
-                {
-                    Uint32 adj = g_shot_entry_adjacent_prev + s_delta;
-                    if (adj > g_shot_entry_adjacent_max)
-                        g_shot_entry_adjacent_max = adj;
-                }
-                g_shot_entry_adjacent_prev = s_delta;
-                g_shot_entry_last = r_entry;
-            }
-        }
         g_real_timer0_entry_count++;
         g_real_timer0_last_entry = r_entry;
     /* RECOVERY V1 candidate 2: g_real_isr_cycles_last is always filled at ISR
@@ -604,6 +577,22 @@ __interrupt void TINT0_ISR(void)
             {
                 if (r_timing_cycles > g_timing_compute_max)
                     g_timing_compute_max = r_timing_cycles;
+                  if (r_entry_pws == POWER_WINDOW_ACTIVE &&
+                      g_power_window_state != POWER_WINDOW_ACTIVE)
+                  {
+                      if (r_timing_cycles > g_timing_compute_abort_max)
+                          g_timing_compute_abort_max = r_timing_cycles;
+                  }
+                  else if (g_pipeline_pending.period == 352U)
+                  {
+                      if (r_timing_cycles > g_timing_compute_fmax_max)
+                          g_timing_compute_fmax_max = r_timing_cycles;
+                  }
+                  else
+                  {
+                      if (r_timing_cycles > g_timing_compute_normal_max)
+                          g_timing_compute_normal_max = r_timing_cycles;
+                  }
             }
             else if (g_pipeline_executed_phase == PIPELINE_PHASE_APPLY)
             {
@@ -886,9 +875,3 @@ void PROT_SlowTask(void)
     }
     }
 }
-
-
-
-
-
-

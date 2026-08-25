@@ -22,7 +22,7 @@ if exist "%BUILD%" rmdir /s /q "%BUILD%"
 mkdir "%BUILD%"
 
 echo === CGT 25.11.1.LTS clean Stage6_FLASH_SHOT_REAL_%LABEL% compile (COFF, REAL bounded shot, %DUR% cycles) ===
-"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
+"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=5 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
   -DSTAGE6_FLASH_BUILD=1 ^
   -DSTAGE6_FIRST_BOUNDED_REAL_PI_SHOT=1 ^
   -DSTAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD=1 ^
@@ -63,7 +63,7 @@ echo === assemble codestart (boot-to-flash branch) ===
 if errorlevel 1 exit /b 1
 
 echo === compile soft_start.c (-O2, size) ===
-"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O2 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
+"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O2 --opt_for_speed=5 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
   -DSTAGE6_FLASH_BUILD=1 ^
   -DSTAGE6_FIRST_BOUNDED_REAL_PI_SHOT=1 ^
   -DSTAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD=1 ^
@@ -72,7 +72,7 @@ echo === compile soft_start.c (-O2, size) ===
   -c "%PROJ%\app\soft_start.c" --obj_directory="%BUILD%" || exit /b 1
 
 echo === link (FLASH) ===
-"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=0 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
+"%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=5 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
   -z -m"%BUILD%\LLC_100W_F28034_BRINGUP_DSH_REAL_%LABEL%.map" --stack_size=0xBF --warn_sections --entry_point=code_start ^
   -i"%CGT%\lib" -i"%CGT%\include" --reread_libs --diag_wrap=off --display_error_number ^
   --xml_link_info="%BUILD%\LLC_100W_F28034_BRINGUP_DSH_REAL_%LABEL%_linkInfo.xml" --rom_model ^
