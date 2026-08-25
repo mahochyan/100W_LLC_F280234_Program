@@ -133,3 +133,34 @@ STOPPED_AWAITING_REVIEW
 ```
 
 No real power was executed. No 500us real shot was fired.
+
+## 8. Real 500us asymmetric shot (executed once)
+
+Result: **FAIL — NO_HANDOFF**
+
+- Real OUT: `3ECDBA30685C636E3A28C7EAA695BD21B34CD91DE920D391AB65BE5F5AF74413`
+- Conditions: Vin=24V, 0.5A, ~1W load, CNT3/CNT4 connected
+- `abort=7 (SHOT_ABORT_NO_HANDOFF)`
+- `softstart_complete=6`, `handoff_ok=0`, `power_writes=0`
+- No PI window was entered; no frequency trajectory was produced
+- Abort telemetry read as zeros (no PI/apply occurred)
+- Final state: PWM=0, OST=1, POST_OST, fault=0
+
+Classification: `NO_HANDOFF`
+
+No retry, no reload, no fault clear.
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RESULT.json`
+
+## 9. Final output
+
+```text
+STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_FAIL
+FAILED_GATE=HANDOFF_OK
+ROOT_CAUSE_CLASS=NO_HANDOFF
+BOARD_LEFT_SAFE_PWM0_OST1
+NO_RETRY_EXECUTED
+STOPPED_AWAITING_REVIEW
+```
