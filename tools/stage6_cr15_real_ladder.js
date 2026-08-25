@@ -221,7 +221,9 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
         " first_stale_frozen="+firstStaleFrozen+" first_stale_phase="+firstStalePhase+
         " first_stale_age="+firstStaleAge+" fault_snapshot="+faultSnap);
 
-  var normalLimit = (cfg.label==="100MS") ? 900 : 850;
+  /* W2 common PASS gate is <=900 cycles for every real duration. The tighter
+   * 850-cycle limit belongs to W1/no-power qualification, not the W2 shot. */
+  var normalLimit = 900;
   print("compute_normal_limit="+normalLimit);
   var pass = (ssres===1 && hres===1 && st===3 && ab===1 && okf===1 &&
               fault2===0 && burst===0 && maxv<1367 &&

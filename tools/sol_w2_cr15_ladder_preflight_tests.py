@@ -40,7 +40,8 @@ def main() -> None:
         "adc_sequence first=",
     ):
         require(token, LADDER)
-    require('(cfg.label==="100MS") ? 900 : 850', LADDER)
+    require("var normalLimit = 900", LADDER)
+    assert '(cfg.label==="100MS") ? 900 : 850' not in LADDER
     require('(cfg.label==="100MS") ? 900 : 850', NOPOWER_LADDER)
     require("lastSeq>firstSeq", LADDER)
     require("fc>0 && pc>0 && ac>0 && pw>0", LADDER)

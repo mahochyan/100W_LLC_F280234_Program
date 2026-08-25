@@ -70,7 +70,7 @@
  * In the bounded-shot candidate only, allow faster frequency INCREASE
  * (reduce LLC power when VOUT > Vref) while keeping the conservative
  * frequency DECREASE (increase LLC power when VOUT < Vref). */
-#define CTRL_REDUCE_POWER_MAX_STEP_HZ   500
+#define CTRL_REDUCE_POWER_MAX_STEP_HZ   1000
 #define CTRL_INCREASE_POWER_MAX_STEP_HZ 100
 #define CTRL_REDUCE_POWER_MAX_STEP_Q12  ((int32)CTRL_REDUCE_POWER_MAX_STEP_HZ << CTRL_Q_SHIFT)
 #define CTRL_INCREASE_POWER_MAX_STEP_Q12 ((int32)CTRL_INCREASE_POWER_MAX_STEP_HZ << CTRL_Q_SHIFT)
