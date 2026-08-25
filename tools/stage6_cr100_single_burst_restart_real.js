@@ -188,6 +188,16 @@ print("abort_control_error_raw="+aErr+" abort_frequency_hz="+aFreq+" abort_pipel
 print("abort_adc_sequence="+aSeq+" abort_consumed_sequence="+aCon+" abort_timer2="+aTim);
 print("entry min="+eMin+" max="+eMax+" over1230="+e1230+" over1500="+e1500+" over2400="+e2400+" adjacent_max="+eAdj);
 
+// ---- TZ fast postmortem snapshot ----
+var tzGpio=rw("g_tz_isr_gpio15"); var tzComp=rw("g_tz_isr_compsts"); var tzFlg=rw("g_tz_isr_tzflg"); var tzPhase=rw("g_tz_event_phase"); var tzTbctr=rw("g_tz_isr_tbctr"); var tzTimer=rv32("g_tz_isr_timer2");
+var compDac=rw("g_comp_trip_dac_code"); var compTbctr=rw("g_comp_trip_tbctr"); var compVout=rw("g_comp_trip_vout_raw");
+var accPhase=rw("g_accel_trip_phase"); var accPeriod=rw("g_accel_trip_period"); var accCmpa=rw("g_accel_trip_cmpa"); var accDb=rw("g_accel_trip_db"); var accCycles=rv32("g_accel_trip_completed_cycles"); var accStop=rw("g_accel_stop_reason");
+var hwTrip=rv32("g_tz_hardware_trip_count"); var actTrip=rv32("g_tz_active_window_trip_count"); var postTrip=rv32("g_tz_post_ost_trip_count"); var softOst=rv32("g_tz_software_ost_count"); var softPending=rw("g_software_ost_pending"); var softTimer=rv32("g_software_ost_timer2"); var softConsumed=rv32("g_software_ost_consumed_count"); var softLate=rv32("g_software_ost_late_isr_count");
+print("TZ_GPIO15="+tzGpio+" TZ_COMPSTS="+tzComp+" TZ_TZFLG="+tzFlg+" TZ_PHASE="+tzPhase+" TZ_TBCTR="+tzTbctr+" TZ_TIMER2="+tzTimer);
+print("COMP_DAC="+compDac+" COMP_TBCTR="+compTbctr+" COMP_VOUT="+compVout);
+print("ACC_PHASE="+accPhase+" ACC_PERIOD="+accPeriod+" ACC_CMPA="+accCmpa+" ACC_DB="+accDb+" ACC_CYCLES="+accCycles+" ACC_STOP="+accStop);
+print("HW_TRIP="+hwTrip+" ACT_TRIP="+actTrip+" POST_TRIP="+postTrip+" SOFT_OST="+softOst+" SOFT_PENDING="+softPending+" SOFT_TIMER="+softTimer+" SOFT_CONSUMED="+softConsumed+" SOFT_LATE="+softLate);
+
 // ---- strict PASS gates ----
 chk("SHOT_STATE_COMPLETE", st===3);
 chk("SOFTSTART_COMPLETE", ssres===1);
