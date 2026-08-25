@@ -44,7 +44,9 @@ def main() -> None:
     assert "#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD" in CONTROL
     assert "stale = (Uint16)(sample_valid == 0U);" in CONTROL
     assert "g_adc_pwm_sync_consecutive_miss >= (Uint16)CTRL_ADC_STALE_LIMIT" in CONTROL
-    assert "This legacy mirror has no firmware reader" in CONTROL
+    fixed = CONTROL.split("Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)", 1)[1]
+    assert "stale = (Uint16)(sample_valid == 0U);" in fixed
+    assert "This legacy mirror has no firmware reader" in fixed
     assert "#define SS_HANDOFF_BRAKE_PERIOD       374U" in SOFT_H
     assert "#define SS_HANDOFF_BRAKE_HZ           160000UL" in SOFT_H
     assert "#define SS_HANDOFF_BRAKE_INTEGRAL_Q12 (-40960000L)" in SOFT_H
