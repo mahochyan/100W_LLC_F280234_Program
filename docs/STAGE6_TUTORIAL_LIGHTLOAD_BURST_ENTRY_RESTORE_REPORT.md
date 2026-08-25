@@ -99,3 +99,27 @@ CNT34_PERMANENTLY_CONNECTED
 NO_REAL_POWER_EXECUTED
 READY_FOR_SINGLE_CR100_BURST_ENTRY_REAL_REVIEW
 ```
+
+## Real CR100 Burst-entry shot (authorized)
+
+Result: **PASS — TUTORIAL BURST ENTRY**
+
+- Real OUT: `773252E4...`
+- Load: CR 100Ω
+- Handoff OK, entered PI
+- First high-frequency request triggered Burst entry:
+  - state=COMPLETE
+  - abort=9 (BURST_ENTRY)
+  - ok=1
+  - burst_active=1, burst_enter_count=1
+  - max_vout_raw=1249 (<1367)
+  - fault=0
+  - PWM=0, OST=1, POST_OST, pending=0
+- ISR max=823 <=900, compute=823, apply=756, overrun=0
+- Note: Burst entry is a normal stop before the 500us TIMEOUT, so TIMER2/TIMEOUT gates are not applicable.
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/BURST_ENTRY_REAL_CR100_773252E4_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/BURST_ENTRY_REAL_CR100_773252E4_RESULT.json`
+
+No retry, no further power.
