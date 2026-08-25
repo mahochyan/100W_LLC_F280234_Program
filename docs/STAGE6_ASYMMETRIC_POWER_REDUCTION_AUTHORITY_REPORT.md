@@ -236,3 +236,31 @@ BOARD_LEFT_SAFE_PWM0_OST1
 NO_RETRY_EXECUTED
 STOPPED_AWAITING_REVIEW
 ```
+
+## 14. Real 500us asymmetric shot retry #3
+
+Result: **FAIL — real-time budget + pending_valid (VOUT<11V, TIMEOUT)**
+
+- Connected, entered PI.
+- VOUT max=1366 <1367, no 11V abort.
+- state=COMPLETE, abort=TIMEOUT, ok=1, t2d=30938.
+- Frequency rose to 155366 Hz.
+- ISR max=947 >900, compute max=947 >900, pending_valid=1.
+- Entry max=1229, adjacent max=2409.
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RETRY3_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RETRY3_RESULT.json`
+
+## 15. Final output (retry #3)
+
+```text
+STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_FAIL
+FAILED_GATE_1=ISR_MAX_LE_900
+FAILED_GATE_2=COMPUTE_MAX_LE_900
+FAILED_GATE_3=PENDING_FINAL_INVALID
+ROOT_CAUSE_CLASS=REALTIME_BUDGET_AND_PENDING_VALID
+BOARD_LEFT_SAFE_PWM0_OST1
+NO_RETRY_EXECUTED
+STOPPED_AWAITING_REVIEW
+```
