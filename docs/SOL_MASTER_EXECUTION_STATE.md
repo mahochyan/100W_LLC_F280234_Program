@@ -11,17 +11,19 @@ user's request and bench-safety constraints remain controlling.
 
 ```text
 STATE_VERSION=2
-UPDATED_AT=2026-08-25T23:27:01+08:00
-MASTER_STATUS=PAUSED_FOR_PHYSICAL_ACTION
+UPDATED_AT=2026-08-25T23:34:26+08:00
+MASTER_STATUS=HARD_STOP_PHYSICAL_POWER_OFF_REQUIRED
 CURRENT_WORK_ORDER=W2
-CURRENT_GATE=NEW_SHA_CR15_REAL_LADDER_2MS_TO_10MS_TO_100MS
-CURRENT_CHECKPOINT=W1_W2_FINAL_MIXED_SHA_ALL_NOPOWER_GATES_PASS__REAL_CR15_LADDER_HOST_GATES_CLOSED__READY
+CURRENT_GATE=VIN_OFF_DISCHARGED_CONFIRMATION_THEN_W2_ROOT_CAUSE
+CURRENT_CHECKPOINT=W2_CR15_ATTEMPT1_VOUT_ABORT__POSTMORTEM_RECONNECT_OST_DROPPED__NO_RETRY
 LAST_VERIFIED_WORK_ORDER=W1
-NEXT_ACTION=After CR15_READY=1, execute the qualified new-SHA CR15 ladder once; stop safely on the first failed gate, otherwise continue 2ms -> 10ms -> 100ms without review.
-BOARD_LAST_STATE=PWM0_OST1
-PHYSICAL_ACTION_REQUIRED=Set Vin=24.0V, current limit=0.5A, electronic load=CR15.0ohm; keep CNT3/CNT4 connected; confirm output discharged and emergency stop available.
+NEXT_ACTION=Require VIN_OFF_DISCHARGED=1; then close VOUT-abort root cause offline and qualify a new candidate before any new real-power attempt.
+BOARD_LAST_STATE=AFTER_REAL_RUN_PWM0_OST1_TZINT0__AFTER_READONLY_RECONNECT_PWM0_OST0_TZINT0_FAULT_0x10000
+PHYSICAL_ACTION_REQUIRED=Turn Vin OFF now and confirm output discharged; do not re-energize until a new qualified candidate and explicit setup request.
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
+W2_REAL_ATTEMPT_COUNT=1
+W2_REAL_RETRY_ALLOWED=0
 ```
 
 ## Authoritative repository identity
@@ -151,7 +153,7 @@ control code must not be transplanted directly.
 |---|---|---|
 | W0 | PASS | `W0_IDENTITY_RESTORED` |
 | W1 | PASS | `SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS` |
-| W2 | IN PROGRESS | Qualified new-SHA CR15 2ms -> 10ms -> 100ms real ladder |
+| W2 | ROOT CAUSE | Attempt 1 stopped at 2ms VOUT abort; 10/100ms not run; no retry |
 | W3 | NOT STARTED | 10V 500ms -> 60s |
 | W4 | NOT STARTED | 10V PI/PFM quality |
 | W5 | NOT STARTED | 10V -> 12V reference transition |

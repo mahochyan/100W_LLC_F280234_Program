@@ -1,0 +1,17 @@
+SOL_W2_CR15_POSTMORTEM_READONLY
+OUT=D:\CCS21_workspace\Codex_Project\evidence\sol_master_execution\w1_adc_freshness\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out
+SAFE sys=4 pwm=0 fault=65536 ost=0 tzint=0 pws=2
+SHOT state=4 abort=2 ok=0 power_writes=8 abort_limit=1367
+VOUT first=1298 last=1369 min=1298 max=1298 whole_max=1369 vref_first=1244 vref_last=1244
+ERROR first=-54 last=-125 min=-54 max=-54
+ABORT adc=1455 filtered=1369 control=1369 error=-125 freq=154000 phase=0 adc_seq=2769 consumed_seq=2769 timer2=4250588624
+COMMAND first=150500 last=154000 min=150500 max=154000 first_tbprd=398 first_actual=150375
+COUNTS fresh=9 stale=2 pi=9 apply=8 first_seq=2753 last_seq=2769 first_consumed=2752 last_consumed=2769
+TIMER first_apply=4250607565 ost=0 delta=4250607565 entry_max=0 adjacent_max=0
+TIMING compute=872 normal=872 fmax=0 apply=844 active=872 shutdown=1110 overrun=0
+SOL_W2_CR15_POSTMORTEM_READONLY_DONE
+DSS_EXIT=0
+
+SAFETY_CLASSIFICATION=RECONNECT_CHANGED_OST_FROM_1_TO_0
+DO_NOT_REPEAT_POSTMORTEM_RECONNECT_WITH_VIN_PRESENT
+REQUIRED_ACTION=VIN_OFF_AND_OUTPUT_DISCHARGED

@@ -17,11 +17,13 @@ Status: in progress. The authoritative resume point is
 
 ## Open milestone
 
-W2 is waiting only for the physical CR15 bench confirmation recorded in the
-master state. One guarded command will run 2 ms, 10 ms and 100 ms in order,
-stopping safely on the first failed gate. The user's required 50 W stable-load
-milestone remains recorded under W10; successful W2 does not complete the
-W0-W14 master task.
+W2 attempt 1 stopped at the 2 ms VOUT safety abort (`1369 >= 1367`). SoftStart,
+handoff, ADC freshness, control direction, 145..170 kHz envelope and W2 timing
+limits passed; no 10/100 ms step or retry was executed. A later symbol-only
+reconnect read OST0 after the real script had ended OST1, so the current hard
+stop requires Vin off and output discharge before offline root-cause work can
+advance to a newly qualified candidate. The user's required 50 W stable-load
+milestone remains recorded under W10.
 
 This report will be extended only with verified W0-W14 results and immutable
 evidence references.
