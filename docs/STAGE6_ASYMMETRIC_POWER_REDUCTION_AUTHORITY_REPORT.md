@@ -164,3 +164,36 @@ BOARD_LEFT_SAFE_PWM0_OST1
 NO_RETRY_EXECUTED
 STOPPED_AWAITING_REVIEW
 ```
+
+## 10. Real 500us asymmetric shot retry (re-connected)
+
+Result: **FAIL — real-time budget exceeded + pending_valid=1**
+
+- The retry connected successfully and entered the PI window.
+- State=COMPLETE, abort=TIMEOUT, ok=1, Timer2 delta=30995.
+- VOUT max=1366 <1367, so the asymmetric +500Hz authority **prevented the 11V abort**.
+- Frequency rose from 150108 to 155200 Hz (well above old 151300).
+- However:
+  - ISR max = 947 > 900
+  - compute max = 947 > 900
+  - pending_valid = 1 (an extra fresh pending was left when the 500us cage fired)
+- Entry stats: max=1226 <=1230, adjacent_max=2429 <=2460, over1500=0, over2400=0.
+
+Classification: `REALTIME_BUDGET_AND_PENDING_VALID`
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RETRY_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RETRY_RESULT.json`
+
+## 11. Final output (retry)
+
+```text
+STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_FAIL
+FAILED_GATE_1=ISR_MAX_LE_900
+FAILED_GATE_2=COMPUTE_MAX_LE_900
+FAILED_GATE_3=PENDING_FINAL_INVALID
+ROOT_CAUSE_CLASS=REALTIME_BUDGET_AND_PENDING_VALID
+BOARD_LEFT_SAFE_PWM0_OST1
+NO_RETRY_EXECUTED
+STOPPED_AWAITING_REVIEW
+```
