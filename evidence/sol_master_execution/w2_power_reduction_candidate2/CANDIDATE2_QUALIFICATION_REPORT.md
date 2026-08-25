@@ -43,3 +43,23 @@ STAGE6_CR15_FMAX_STRESS_NOENERGY_PASS
 Candidate 2 is qualified for one new-SHA CR15 real ladder under the standing
 operator confirmation. It must stop on the first failed duration and may not
 be repeated unchanged.
+
+## Real verdict
+
+The unique 2 ms run failed and stopped the ladder:
+
+```text
+MAX_VOUT_RAW=1370 (limit 1367)
+COMMAND=151000..156423Hz
+COMPUTE_ACTIVE_MAX=913 (W2 limit 900)
+APPLY_MAX=854
+SHUTDOWN_MAX=1121
+FAULT=0x00010000
+FINAL=PWM0_OST1_TZINT0_POST_OST
+```
+
+The higher slew demonstrably increased authority but did not prevent the
+handoff overshoot and lengthened the bounded period walk enough to exceed the
+real compute budget. This candidate and the strategy of further increasing
+fast-loop slew are rejected. The 10/100 ms steps were not run and the SHA was
+not retried.

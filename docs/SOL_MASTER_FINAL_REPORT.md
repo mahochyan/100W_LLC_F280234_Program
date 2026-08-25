@@ -25,5 +25,12 @@ stop requires Vin off and output discharge before offline root-cause work can
 advance to a newly qualified candidate. The user's required 50 W stable-load
 milestone remains recorded under W10.
 
+W2 candidate 2 increased the bounded power-reduction slew from 500 to
+1000 Hz/fresh-compute and passed every no-power gate. Its unique real 2 ms run
+reached 156423 Hz but still crossed the VOUT gate at raw 1370; the longer period
+walk also reached 913 compute cycles. It ended PWM0/OST1/TZINT0 and did not run
+10/100 ms. The parameter direction is rejected; the active root cause is now
+the SoftStart-to-PI handoff energy/state discontinuity.
+
 This report will be extended only with verified W0-W14 results and immutable
 evidence references.
