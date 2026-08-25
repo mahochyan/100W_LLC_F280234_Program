@@ -184,7 +184,12 @@ Uint32 CTRL_ComputeFrequencyCommandFloat(Uint16 sample_valid, float vout_v)
     stale = (Uint16)((sample_valid == 0U) ||
                      (g_adc_pwm_sync_consecutive_miss >= (Uint16)CTRL_ADC_STALE_LIMIT));
 #endif
+#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* REAL uses publication sequence + shot freshness counters as the
+     * authoritative evidence. This legacy mirror has no firmware reader and
+     * would add a volatile store to every timed compute frame. */
     g_control_sample_valid = sample_valid;
+#endif
     g_control_adc_stale_inhibit = stale;
 
     g_control_vref_volts = g_voltage_reference;
