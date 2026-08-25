@@ -1,2 +1,8 @@
 evidence/stage6_first_real_pi_shot_real/*.map -text
 evidence/sol_master_execution/w2_power_reduction_candidate2/*.map -text
+evidence/sol_master_execution/w2_handoff_brake_candidate3/*.map -text
+evidence/sol_master_execution/w2_handoff_brake_candidate3_alignment1/*.map -text
+evidence/sol_master_execution/w2_handoff_brake_candidate3_alignment2/*.map -text
+evidence/sol_master_execution/w2_handoff_brake_candidate3_timingfix3/*.map -text
+evidence/sol_master_execution/w2_handoff_brake_candidate3_timingfix4/*.map -text
+evidence/sol_master_execution/w2_handoff_brake_candidate3_timingfix5/*.map -text
