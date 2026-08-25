@@ -92,3 +92,21 @@ CNT34_PERMANENTLY_CONNECTED
 NO_REAL_POWER_EXECUTED
 READY_FOR_SINGLE_NEW_SHA_100OHM_CONFIRMATION
 ```
+
+## Real new-SHA 100Ω confirmation attempt
+
+Result: **FAIL — CAL_MISSING fault before PI**
+
+- New REAL OUT: `19C9ECFA...`
+- Load: CR 100Ω
+- CNT34 permanently connected
+- PRE gates passed
+- After arm/enable, firmware latched `FAULT_CAL_MISSING (0x800)`
+- state=0, power_writes=0, no PI window entered
+- PWM=0, OST=1
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/NEWSHA_CR100_500US_19C9ECFA_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/NEWSHA_CR100_500US_19C9ECFA_RESULT.json`
+
+No retry, no fault clear, no further power.

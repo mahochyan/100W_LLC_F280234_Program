@@ -1,0 +1,30 @@
+{
+  "milestone": "STAGE6_SINGLE_NEW_SHA_100OHM_CONFIRMATION_V1",
+  "real_out_sha256": "19C9ECFAEA0EFC38747BC1EF6DC79A7325B4C783461FC379DC028656F488C824",
+  "load_mode": "CR",
+  "load_setpoint_ohm": 100.0,
+  "cn34": "PERMANENTLY_CONNECTED",
+  "verdict": "FAIL",
+  "failure_reason": "CAL_MISSING_FAULT_BEFORE_PI",
+  "values": {
+    "state": 0,
+    "abort": 0,
+    "ok": 0,
+    "power_writes": 0,
+    "fault": 2048,
+    "softstart_complete": 1,
+    "handoff_ok": 1,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 1,
+    "isr_max": 338,
+    "overrun": 0,
+    "fresh_compute_count": 0,
+    "stale_compute_count": 0,
+    "pi_compute_count": 0,
+    "pwm_apply_count": 0,
+    "pending_valid": 0,
+    "max_vout_raw": 0,
+    "abort_telemetry": null
+  }
+}
