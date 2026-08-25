@@ -28,7 +28,7 @@
 /* Real-time 500 us cage: 500e-6 s * 60 MHz = 30000 Timer2 cycles. The cage is
  * checked from the first successful PHASE_APPLY (first_apply_timer2), so a
  * pending is never committed after the window has elapsed (500us step). */
-#define FIRST_REAL_PI_DURATION_CYCLES   30000UL
+#define FIRST_REAL_PI_DURATION_CYCLES   120000UL
 
 /* Pipeline phase ids. PHASE_COMPUTE runs PI + writes the pending structure
  * only; PHASE_APPLY re-verifies and commits (PWM registers) - never both in

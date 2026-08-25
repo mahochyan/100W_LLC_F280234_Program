@@ -1,0 +1,25 @@
+{
+  "milestone": "REAL_2MS_NOPOWER",
+  "real_out_sha256": "E16F82C552FE34E3EBF45E0906B95A753DC3567DF0D31F067162475FE6782291",
+  "verdict": "FAIL_MEASUREMENT_POLLUTED",
+  "values": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "timer2_delta": 120967,
+    "fresh_compute_count": 1,
+    "stale_compute_count": 100,
+    "pi_compute_count": 1,
+    "pwm_apply_count": 1,
+    "power_writes": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "isr_max": 19545460,
+    "compute_max": 812,
+    "apply_max": 851,
+    "overrun": 1
+  }
+}
