@@ -146,3 +146,15 @@ Status: **FAIL — OVERRUN_AND_HW_TRIP_DELTA**
 - Still overrun=5 and whole-ISR >900, so real power remains unauthorized.
 
 Status: **CLASSIFIED / TIMING VALID / STILL NOT REAL-POWER READY**
+
+## V1_10 Software OST late ISR closure
+
+- Added `g_software_ost_pending` token set in `LLC_PWM_DisableSafe`, cleared in `PWM_StartDeterministic`.
+- TZ ISR now classifies late software OST as non-hardware.
+- NOENERGY result:
+  - `hardware_trip_delta=0`
+  - `active_trip_delta=0`
+  - restart success=1, fail=0
+- Still timing polluted/overrun (ISR max artifact, overrun=3), so full timing gate not yet met.
+
+Status: **PARTIAL — HW_TRIP_DELTA_ZERO, TIMING_STILL_POLLUTED**

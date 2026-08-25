@@ -4,8 +4,8 @@ importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
-var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_NOENERGY_MODE6_3EB8A50B.out";
-var EXPECTED="3EB8A50B1E2D5BB571CAED36E1E8E924781BED9B9CE38D19901110F49B140B6F";
+var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_NOENERGY_MODE6_75C23562.out";
+var EXPECTED="75C23562168E3FD263DE3D2CAF84C333255D64A64EB5CD9F373DAB96AF52C8C8";
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256"); var fis=new FileInputStream(path);
   var buf=java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE,8192); var n;

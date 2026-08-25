@@ -158,6 +158,10 @@ void SHOT_Init(void)
     g_burst_restart_snapshot_actual_hz = 0UL;
     g_burst_restart_snapshot_frequency_hz = 0UL;
     g_burst_restart_snapshot_sequence = 0UL;
+    g_software_ost_pending = 0U;
+    g_software_ost_timer2 = 0UL;
+    g_software_ost_consumed_count = 0UL;
+    g_software_ost_late_isr_count = 0UL;
 }
 
 /* ------------------------------------------------------------------ */

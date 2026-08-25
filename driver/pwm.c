@@ -403,6 +403,8 @@ void LLC_PWM_Enable(void)
 void LLC_PWM_DisableSafe(void)
 {
     g_software_ost_in_progress = 1U;
+    g_software_ost_pending = 1U;
+    g_software_ost_timer2 = CpuTimer2Regs.TIM.all;
 
     EALLOW;
     EPwm1Regs.TZEINT.bit.OST = 0U;
@@ -508,6 +510,9 @@ Uint16 PWM_SetDeadbandOnly(Uint16 deadtime)
 void PWM_StartDeterministic(void)
 {
     if (g_pwm_start_prepared == 0U) return;
+
+    /* Consume the software-OST token only at the deterministic start. */
+    g_software_ost_pending = 0U;
 
     EALLOW;
     EPwm1Regs.AQCSFRC.all = 0U;

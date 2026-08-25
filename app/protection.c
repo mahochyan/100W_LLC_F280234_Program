@@ -147,6 +147,22 @@ __interrupt void EPWM1_TZINT_ISR(void)
         return;
     }
 
+    /* STAGE6_SOFTWARE_OST_LATE_ISR_AND_REAL_EQUIVALENT_TIMING_CLOSURE_V1_10:
+     * Late software-OST ISR classification. This is NOT a comparator trip. */
+    if (g_software_ost_pending != 0U &&
+        g_power_window_state == POWER_WINDOW_POST_OST &&
+        GpioDataRegs.GPADAT.bit.GPIO15 == 1U &&
+        Comp1Regs.COMPSTS.bit.COMPSTS == 1U)
+    {
+        g_tz_event_phase = 3U;   /* LATE_SOFTWARE_OST */
+        g_software_ost_late_isr_count++;
+        g_software_ost_consumed_count++;
+        g_software_ost_pending = 0U;
+        EPwm1Regs.TZCLR.bit.INT = 1U;
+        PieCtrlRegs.PIEACK.all = PIEACK_GROUP2;
+        return;
+    }
+
     /* No-energy benchmark: there is no real power, so a real comparator/TZ1
      * trip is environmental noise (floating comparator on the open bench),
      * not a hardware fault. Count it and leave OST latched (outputs stay

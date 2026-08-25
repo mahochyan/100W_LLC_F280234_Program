@@ -1,0 +1,13 @@
+state=3 abort=10 ok=1
+enter=1 exit=1 attempt=1 success=1 fail=0
+high=2 low=19 fresh=20
+pending=0 pwm=0 ost=1 pws=2 fault=0
+pre_ost=1 post_ost=0
+offFresh=7 offApply=6
+firstShadow=150500 lastShadow=149700 minShadow=149700
+firstPeriod=398 lastPeriod=0
+ISRmax=19579841 cmax=778 amax=778 ovf=3 entryMax=0
+entryTimer=4275386539 restartTimer=4275367265 delta=19274
+hwDelta=0 actDelta=0 burstState=5 ostOwner=1
+TZ timer=0 tbctr=0 gpio=262145 comp=131076 tzflg=131074 soft=65536 after=65537 phase=131074 noenergyTrip=18755635
+BURST_RESTART_NOENERGY_PASS=false

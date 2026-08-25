@@ -248,6 +248,10 @@ volatile Uint16 g_burst_restart_snapshot_cmpa;
 volatile Uint32 g_burst_restart_snapshot_actual_hz;
 volatile Uint32 g_burst_restart_snapshot_frequency_hz;
 volatile Uint32 g_burst_restart_snapshot_sequence;
+volatile Uint16 g_software_ost_pending;
+volatile Uint32 g_software_ost_timer2;
+volatile Uint32 g_software_ost_consumed_count;
+volatile Uint32 g_software_ost_late_isr_count;
 volatile Uint16 g_ocp_recovery_mode;   /* 0 = LOCKED, 1 = TUTORIAL_HICCUP */
 volatile Uint16 g_softstart_abort_reason;
 volatile Uint16 g_softstart_ocp_dac_code;
