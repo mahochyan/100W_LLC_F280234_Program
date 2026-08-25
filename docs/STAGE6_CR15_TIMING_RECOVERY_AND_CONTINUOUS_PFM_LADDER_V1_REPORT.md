@@ -96,27 +96,31 @@ AQCSFRC force-low:
 
 ## CR15 real ladder summary
 
-The conditional real CR15 2ms step was attempted exactly once after no-power
-and fmax-stress PASS. It FAILED on the first and only attempt:
+The valid CR15 2ms step (15Ω load confirmed) was attempted exactly once after
+no-power and fmax-stress PASS. It FAILED on the first and only attempt:
 
 - `FAILED_DURATION=2MS`
-- `state=4` (ABORTED), `abort=2` (VOUT_11V), `ok=0`
+- `state=4` (ABORTED), `abort=6` (SHOT_ABORT_PERMISSION), `ok=0`
 - `softstart=1`, `handoff=1`, `burst=0`
-- `max_vout_raw=1367` (>=1367)
-- `compute_max=868`, `active_isr_max=868`, `shutdown_max=1040`, `overrun=0`
-- final `PWM=0`, `OST=1`, `TZ INT=0`, `POST_OST`, `fault=0x10000`
-- `NEXT_LOAD_CANDIDATE=CR12.5`
+- `max_vout_raw=1357` (<1367, so not a VOUT_11V abort)
+- `fault=65600` = `0x10040` (`FAULT_FIRST_SHOT_ABORT | FAULT_ADC_STALE_OVERFLOW`)
+- `compute_max=868`, `active_isr_max=868`, `apply_max=849`, `overrun=0`
+- final `PWM=0`, `OST=1`, `TZ INT=0`
+- `NEXT_LOAD_CANDIDATE=NONE`
 - `NO_RETRY_EXECUTED`
 
 No CR15 10ms/100ms steps were attempted, and no CR12.5 was auto-run.
+
+Note: an earlier 20Ω-load attempt is invalid and is not treated as the CR15
+result.
 
 ## Tokens (current milestone)
 
 ```
 STAGE6_CR15_CONTINUOUS_PFM_FAIL
 FAILED_DURATION=2MS
-FAILED_GATE=MAX_VOUT_RAW_LT_1367
-NEXT_LOAD_CANDIDATE=CR12.5
+FAILED_GATE=FAULT_ADC_STALE_OVERFLOW
+NEXT_LOAD_CANDIDATE=NONE
 NO_RETRY_EXECUTED
 BOARD_LEFT_SAFE_PWM0_OST1
 ```
