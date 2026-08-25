@@ -1,0 +1,31 @@
+{
+  "milestone": "BURST_RESTART_MULTITICK_NOENERGY_V1_7",
+  "noenergy_out_sha256": "585BA04623A6B6E8FA3A25F05EE24365C3845778E8E62FA76A7EA5ADCC5650AA",
+  "verdict": "FAIL",
+  "failure_reason": "NOENERGY_WHOLE_ISR_OVER_BUDGET_AND_HW_TRIP_DELTA",
+  "values": {
+    "state": 3,
+    "abort": 10,
+    "ok": 1,
+    "burst_enter_count": 1,
+    "burst_exit_count": 1,
+    "restart_attempt_count": 1,
+    "restart_success_count": 1,
+    "restart_fail_count": 0,
+    "isr_max": 1363,
+    "compute_max": 695,
+    "apply_max": 695,
+    "overrun": 7,
+    "entry_interval_max": 0,
+    "burst_entry_to_restart_delta": 19372,
+    "hardware_trip_delta": 1,
+    "active_trip_delta": 0,
+    "burst_state": 5,
+    "ost_owner": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0
+  }
+}

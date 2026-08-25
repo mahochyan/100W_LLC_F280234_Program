@@ -646,6 +646,19 @@ static void CTRL_PipelineApply(void)
         return;
     }
 
+    /* STAGE6_BURST_RESTART_MULTITICK_FASTPATH_CLOSURE_V1_7:
+     * Advance the multitick restart state machine even when no new pending
+     * exists (Tick B/C use the immutable snapshot). */
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    if (g_burst_enabled != 0U && g_burst_active != 0U &&
+        (g_burst_state == BURST_STATE_RESTART_ARMED ||
+         g_burst_state == BURST_STATE_RESTART_PREPARED))
+    {
+        SHOT_BurstRestart();
+        return;
+    }
+#endif
+
     /* B: pending present + range/consistency-validated. */
     if (SHOT_PendingValid() == 0U)
     {

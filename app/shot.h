@@ -67,6 +67,7 @@
 #define BURST_STATE_RESTART_ARMED     3U
 #define BURST_STATE_RESTARTED         4U
 #define BURST_STATE_FINAL_SAFE_STOP   5U
+#define BURST_STATE_RESTART_PREPARED  6U
 
 /* Software OST owner tracking. */
 #define OST_OWNER_UNKNOWN         0U

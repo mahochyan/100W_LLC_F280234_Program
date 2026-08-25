@@ -1,0 +1,12 @@
+state=3 abort=10 ok=1
+enter=1 exit=1 attempt=1 success=1 fail=0
+high=2 low=19 fresh=20
+pending=0 pwm=0 ost=1 pws=2 fault=0
+pre_ost=1 post_ost=0
+offFresh=7 offApply=6
+firstShadow=150500 lastShadow=149700 minShadow=149700
+firstPeriod=398 lastPeriod=0
+ISRmax=1363 cmax=695 amax=695 ovf=7 entryMax=0
+entryTimer=4275838062 restartTimer=4275818690 delta=19372
+hwDelta=1 actDelta=0 burstState=5 ostOwner=1
+BURST_RESTART_NOENERGY_PASS=false

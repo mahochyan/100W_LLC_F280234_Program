@@ -114,3 +114,12 @@ NOENERGY Mode6 re-run with AA173F91:
 - Real script was NOT authorized/run.
 
 Status: **FAIL — NOENERGY_ISR_OVER_BUDGET**
+
+## V1_7 Multitick attempt
+
+- Split restart into ARMED -> PREPARED -> RESTARTED -> FINAL_SAFE_STOP.
+- compute/apply max dropped to 695 (<=900).
+- But NOENERGY whole-ISR still 1363, overrun=7, and hardware_trip_delta=1.
+- Therefore FAIL.
+
+Status: **FAIL — NOENERGY_WHOLE_ISR_OVER_BUDGET_AND_HW_TRIP_DELTA**

@@ -243,6 +243,11 @@ volatile Uint32 g_burst_restart_timer2;
 volatile Uint32 g_burst_entry_to_restart_delta;
 volatile Uint32 g_burst_entry_hw_trip_count;
 volatile Uint32 g_burst_entry_active_trip_count;
+volatile Uint16 g_burst_restart_snapshot_period;
+volatile Uint16 g_burst_restart_snapshot_cmpa;
+volatile Uint32 g_burst_restart_snapshot_actual_hz;
+volatile Uint32 g_burst_restart_snapshot_frequency_hz;
+volatile Uint32 g_burst_restart_snapshot_sequence;
 volatile Uint16 g_ocp_recovery_mode;   /* 0 = LOCKED, 1 = TUTORIAL_HICCUP */
 volatile Uint16 g_softstart_abort_reason;
 volatile Uint16 g_softstart_ocp_dac_code;
