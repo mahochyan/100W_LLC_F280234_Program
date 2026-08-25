@@ -197,3 +197,42 @@ BOARD_LEFT_SAFE_PWM0_OST1
 NO_RETRY_EXECUTED
 STOPPED_AWAITING_REVIEW
 ```
+
+## 12. Real 500us asymmetric shot retry #2
+
+Result: **FAIL — VOUT_11V_ABORT with full abort telemetry**
+
+- Connected and entered PI.
+- Frequency rose to 155309 Hz (still above old 151300).
+- VOUT hit exactly `1367 >= abort_vout_raw 1367`.
+- Abort telemetry complete:
+  - `abort_adc_vout_raw=1461`
+  - `abort_filtered_vout_raw=1367`
+  - `abort_control_vout_raw=1367`
+  - `abort_control_error_raw=-123`
+  - `abort_frequency_hz=155309`
+  - `abort_pipeline_phase=1`
+  - `abort_adc_sequence=3027`
+  - `abort_consumed_sequence=3027`
+  - `abort_timer2=4244883392`
+- ISR max=1115 >900, compute max=1115 >900, pending_valid=1.
+
+Classification: `ASYMMETRIC_AUTHORITY_STILL_INSUFFICIENT`
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RETRY2_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/ASYMMETRIC_REAL_3ECDBA30_RETRY2_RESULT.json`
+
+## 13. Final output (retry #2)
+
+```text
+STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_FAIL
+FAILED_GATE_1=VOUT_MAX_BELOW_11V
+FAILED_GATE_2=ISR_MAX_LE_900
+FAILED_GATE_3=COMPUTE_MAX_LE_900
+FAILED_GATE_4=PENDING_FINAL_INVALID
+ROOT_CAUSE_CLASS=ASYMMETRIC_AUTHORITY_STILL_INSUFFICIENT
+BOARD_LEFT_SAFE_PWM0_OST1
+NO_RETRY_EXECUTED
+STOPPED_AWAITING_REVIEW
+```
