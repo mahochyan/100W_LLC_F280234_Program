@@ -1,0 +1,33 @@
+{
+  "milestone": "BURST_RESTART_NOENERGY_TIMING_V1_6",
+  "noenergy_out_sha256": "AA173F9192CA0B807E52CD755CFFDBC68A6CD25E27E838665BBD46F8CB2DF64B",
+  "verdict": "FAIL",
+  "failure_reason": "NOENERGY_ISR_OVER_BUDGET",
+  "values": {
+    "state": 3,
+    "abort": 10,
+    "ok": 1,
+    "burst_enter_count": 1,
+    "burst_exit_count": 1,
+    "restart_attempt_count": 1,
+    "restart_success_count": 1,
+    "restart_fail_count": 0,
+    "isr_max": 1717,
+    "compute_max": 1043,
+    "apply_max": 1043,
+    "overrun": 5,
+    "entry_interval_max": 0,
+    "burst_entry_timer2": 4276791684,
+    "burst_restart_timer2": 4276774743,
+    "burst_entry_to_restart_delta": 16941,
+    "hardware_trip_delta": 0,
+    "active_trip_delta": 0,
+    "burst_state": 5,
+    "ost_owner": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0
+  }
+}

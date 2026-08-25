@@ -69,4 +69,13 @@ var firstPeriod=rw("g_burst_off_first_period"); var lastPeriod=rw("g_burst_off_l
 print("offFresh="+offFresh+" offApply="+offApply);
 print("firstShadow="+firstShadow+" lastShadow="+lastShadow+" minShadow="+minShadow);
 print("firstPeriod="+firstPeriod+" lastPeriod="+lastPeriod);
-print("BURST_RESTART_NOENERGY_PASS="+((be===1)&&(bx===1)&&(ra===1)&&(rs===1)&&(rf===0)&&(hc>=1)&&(lc>=1)&&(pv===0)&&(pwm===0)&&(ost==="1")&&(pws===2)&&(fault===0)));
+var isrMax=rv32("g_fast_isr_cycles_max"); var cmax=rv32("g_control_exec_cycles_max"); var amax=rv32("g_control_exec_cycles_max"); var ovf=rv32("g_fast_isr_overrun_count");
+var entryMax=rv32("g_shot_summary.entry_interval_max_shot");
+var entryTimer=rv32("g_burst_entry_timer2"); var restartTimer=rv32("g_burst_restart_timer2"); var delta=rv32("g_burst_entry_to_restart_delta");
+var hwDelta=rv32("g_tz_hardware_trip_count")-rv32("g_burst_entry_hw_trip_count");
+var actDelta=rv32("g_tz_active_window_trip_count")-rv32("g_burst_entry_active_trip_count");
+var bstate=rw("g_burst_state"); var owner=rw("g_ost_owner");
+print("ISRmax="+isrMax+" cmax="+cmax+" amax="+amax+" ovf="+ovf+" entryMax="+entryMax);
+print("entryTimer="+entryTimer+" restartTimer="+restartTimer+" delta="+delta);
+print("hwDelta="+hwDelta+" actDelta="+actDelta+" burstState="+bstate+" ostOwner="+owner);
+print("BURST_RESTART_NOENERGY_PASS="+((be===1)&&(bx===1)&&(ra===1)&&(rs===1)&&(rf===0)&&(hc>=1)&&(lc>=1)&&(pv===0)&&(pwm===0)&&(ost==="1")&&(pws===2)&&(fault===0)&&(isrMax<=900)&&(cmax<=900)&&(amax<=900)&&(ovf===0)&&(delta>0)&&(delta<30000)&&(hwDelta===0)&&(actDelta===0)));

@@ -100,3 +100,17 @@ NOENERGY MAP= 3D76E37073265F0CD336DE996FEA5CEF3D63CA902ED5D36C21EB4048FE4675E9
 - REAL OUT `9794211D...` remains frozen for real preflight only.
 
 Final status: **BURST_RESTART_NOENERGY_REVALIDATION_PASS**
+
+## V1_6 Auditable timing
+
+NOENERGY Mode6 re-run with AA173F91:
+
+- Trajectory/restart logic still PASS.
+- But auditable NOENERGY whole-ISR budget FAIL:
+  - ISR max=1717
+  - compute/apply max=1043
+  - overrun=5
+- Since task E requires ISR/compute/apply <=900 and overrun=0, this is a FAIL.
+- Real script was NOT authorized/run.
+
+Status: **FAIL — NOENERGY_ISR_OVER_BUDGET**
