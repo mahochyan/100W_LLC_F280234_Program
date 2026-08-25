@@ -158,3 +158,14 @@ Status: **CLASSIFIED / TIMING VALID / STILL NOT REAL-POWER READY**
 - Still timing polluted/overrun (ISR max artifact, overrun=3), so full timing gate not yet met.
 
 Status: **PARTIAL — HW_TRIP_DELTA_ZERO, TIMING_STILL_POLLUTED**
+
+## V2 Clean timing attempt
+
+- Drain improved; ISR max now clean 1439 (not polluted).
+- hardware_trip_delta=0, active_trip_delta=0.
+- Still FAIL:
+  - NOENERGY whole ISR 1439 > 1200
+  - overrun=2
+- Real power not authorized.
+
+Status: **FAIL — NOENERGY_WHOLE_ISR_OVER_1200_AND_OVERRUN**

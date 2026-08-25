@@ -1,0 +1,28 @@
+{
+  "milestone": "BURST_RESTART_NOENERGY_V2_CLEAN",
+  "noenergy_out_sha256": "75C23562168E3FD263DE3D2CAF84C333255D64A64EB5CD9F373DAB96AF52C8C8",
+  "verdict": "FAIL",
+  "failure_reason": "NOENERGY_WHOLE_ISR_OVER_1200_AND_OVERRUN",
+  "values": {
+    "state": 3,
+    "abort": 10,
+    "ok": 1,
+    "burst_enter_count": 1,
+    "burst_exit_count": 1,
+    "restart_attempt_count": 1,
+    "restart_success_count": 1,
+    "restart_fail_count": 0,
+    "isr_max": 1439,
+    "compute_max": 778,
+    "apply_max": 778,
+    "overrun": 2,
+    "entry_to_restart_delta": 19258,
+    "hardware_trip_delta": 0,
+    "active_trip_delta": 0,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0
+  }
+}

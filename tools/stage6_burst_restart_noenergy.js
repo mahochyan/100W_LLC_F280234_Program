@@ -49,8 +49,12 @@ wv("g_adc_vout_raw",1362); wv("g_adc_vout_filtered_raw",1362);
 wv("g_control_vref_raw",1244);
 wv32("g_control_frequency_hz",150000); wv32("g_control_shadow_frequency_hz",150000);
 wv32("g_switching_frequency_hz",150000); wv("g_pwm_period",399);
-// Drain and clear timing counters before enabling Mode6
-run(1);
+// Drain suspended ISRs and clear timing counters before enabling Mode6
+for(var d=0; d<6; d++){
+  run(1);
+  var dm=rv32("g_fast_isr_cycles_max");
+  if(dm<100000) break;
+}
 wv32("g_fast_isr_cycles_last",0); wv32("g_fast_isr_cycles_max",0); wv32("g_fast_isr_cycles_sum",0); wv32("g_fast_isr_cycles_count",0); wv32("g_fast_isr_overrun_count",0);
 wv32("g_control_exec_cycles_last",0); wv32("g_control_exec_cycles_max",0);
 wv32("g_timer0_entry_count",0); wv32("g_timer0_entry_interval_min",0xFFFFFFFF); wv32("g_timer0_entry_interval_max",0); wv32("g_timer0_last_entry",0);
