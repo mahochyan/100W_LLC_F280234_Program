@@ -69,7 +69,7 @@
  * In the bounded-shot candidate only, allow faster frequency INCREASE
  * (reduce LLC power when VOUT > Vref) while keeping the conservative
  * frequency DECREASE (increase LLC power when VOUT < Vref). */
-#define CTRL_REDUCE_POWER_MAX_STEP_HZ   1000
+#define CTRL_REDUCE_POWER_MAX_STEP_HZ   500
 #define CTRL_INCREASE_POWER_MAX_STEP_HZ 100
 #define CTRL_REDUCE_POWER_MAX_STEP_Q12  ((int32)CTRL_REDUCE_POWER_MAX_STEP_HZ << CTRL_Q_SHIFT)
 #define CTRL_INCREASE_POWER_MAX_STEP_Q12 ((int32)CTRL_INCREASE_POWER_MAX_STEP_HZ << CTRL_Q_SHIFT)
@@ -286,17 +286,8 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     error = (int32)g_control_vref_raw - (int32)vout_raw;   /* [-4095,4095] */
     g_control_error_raw = (int16)error;
 
-    /* STAGE6_500US_COMPUTE_FASTPATH_PENDING_ATOMIC_CLOSURE_V1:
-     * Only the FIRST shot error is recorded in COMPUTE. last/min/max error
-     * are maintained in SHOT_FastTask (outside the compute critical path) and
-     * frozen by SHOT_Revoke, so the COMPUTE path stays minimal. */
-    if ((g_first_real_pi_shot_arm != 0U) &&
-        (g_first_real_pi_shot_state == SHOT_STATE_ARMED ||
-         g_first_real_pi_shot_state == SHOT_STATE_ACTIVE) &&
-        (g_shot_summary.pi_compute_count == 0UL))
-    {
-        g_shot_summary.first_error_raw = (int16)error;
-    }
+    /* First-error telemetry is recorded at first APPLY (not in COMPUTE) to
+     * keep the COMPUTE path minimal. */
 
     p_q12 = CTRL_KP_RAW_Q12 * error;                       /* [-903303765,903303765] */
 #if !STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
@@ -486,17 +477,23 @@ static Uint16 CTRL_PipelineMakePending(Uint32 target)
     }
     else
     {
-        /* STAGE6_500US_COMPUTE_FASTPATH_PENDING_ATOMIC_CLOSURE_V1:
-         * direct rounded-period calculation (reference-equivalent) instead of
-         * the multi-step walk. This is exact for the full 145..170 kHz /
-         * 352..413 period space and avoids repeated 32-bit multiply walks. */
         sum    = LLC_TBCLK_HZ + (target / 2UL);
-        clocks = sum / target;
-        if (clocks == 0UL) return 0U;
+        clocks = (Uint32)g_pwm_period + 1UL;
+        /* No-division bounded walk. For the real control range
+         * (-100..+500 Hz from the committed command) this walks at most a few
+         * period steps and stays within the 145..170 kHz / 352..413 range. */
+        {
+            Uint16 guard;
+            for (guard = 0U; guard < 8U; guard++)
+            {
+                if ((clocks + 1UL) * target <= sum) { clocks++; continue; }
+                if (clocks * target > sum) { clocks--; continue; }
+                break;
+            }
+        }
+        if (clocks * target > sum || (clocks + 1UL) * target <= sum) return 0U;
         period = clocks - 1UL;
         if (period < 352UL || period > 413UL) return 0U;
-        /* Re-verify consistency by multiplication (same as reference). */
-        if (clocks * target > sum || (clocks + 1UL) * target <= sum) return 0U;
     }
 
     /* The adjacent no-division calculation above already proves the
@@ -559,18 +556,8 @@ static void CTRL_PipelineCompute(void)
     sample_valid = 1U;
     vout_raw = g_adc_vout_filtered_raw;  /* latest, consumed once */
 
-    /* Shot-local fresh sample / VOUT / Vref telemetry: only FIRST-sample
-     * fields are written in COMPUTE. last/min/max fields are maintained in
-     * SHOT_FastTask / frozen by SHOT_Revoke to keep COMPUTE minimal. */
-    if (g_shot_summary.fresh_compute_count == 1UL)
-    {
-        g_shot_summary.first_adc_sample_sequence = fresh_seq;
-        g_shot_summary.first_consumed_sequence   = g_control_adc_sequence_consumed;
-        g_shot_summary.first_control_vout_raw    = vout_raw;
-        g_shot_summary.min_control_vout_raw      = vout_raw;
-        g_shot_summary.max_control_vout_raw      = vout_raw;
-        g_shot_summary.first_vref_raw            = g_control_vref_raw;
-    }
+    /* First-sample telemetry is recorded at first APPLY (not in COMPUTE) to
+     * keep the COMPUTE path minimal. */
 
     target = CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
 
@@ -649,6 +636,16 @@ static void CTRL_PipelineApply(void)
         g_shot_summary.first_command_hz = cmd;
         g_shot_summary.first_tbprd      = p->period;
         g_shot_summary.first_actual_hz  = p->actual_hz;
+        /* First-sample telemetry from live real-time state at first APPLY. */
+        g_shot_summary.first_adc_sample_sequence = g_adc_sample_sequence;
+        g_shot_summary.first_consumed_sequence   = g_control_adc_sequence_consumed;
+        g_shot_summary.first_control_vout_raw    = g_control_vout_raw;
+        g_shot_summary.first_vref_raw            = g_control_vref_raw;
+        g_shot_summary.first_error_raw           = g_control_error_raw;
+        g_shot_summary.min_control_vout_raw      = g_control_vout_raw;
+        g_shot_summary.max_control_vout_raw      = g_control_vout_raw;
+        g_shot_summary.min_error_raw             = g_control_error_raw;
+        g_shot_summary.max_error_raw             = g_control_error_raw;
     }
     g_shot_summary.last_command_hz = cmd;
     if (cmd > g_shot_summary.max_command_hz) g_shot_summary.max_command_hz = cmd;

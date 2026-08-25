@@ -10,7 +10,7 @@ BIAS = 150000 * ONE
 I_MAX = 60000 * ONE
 F_MIN = 145000
 F_MAX = 170000
-UP = 1000  # +Hz allowed when reducing power
+UP = 500   # +Hz allowed when reducing power
 DN = 100   # -Hz allowed when increasing power
 SIGN = -1  # LLC_CONTROL_SIGN = -1
 
@@ -63,6 +63,6 @@ for raw in [10, 20, 40, 80, 118]:
     min_dn = min(min_dn, st)
 print("positive error trajectory:", freq)
 print("min single -step Hz:", min_dn)
-assert max_up <= 1000.0 + 1e-9
+assert max_up <= 500.0 + 1e-9
 assert min_dn >= -100.0 - 1e-9
 print("ASYMMETRIC_SLEW_MATH_PASS")

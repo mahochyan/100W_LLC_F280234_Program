@@ -492,23 +492,6 @@ void SHOT_FastTask(void)
     if (g_adc_vout_filtered_raw > (Uint16)g_shot_summary.max_vout_raw)
         g_shot_summary.max_vout_raw = g_adc_vout_filtered_raw;
 
-    /* STAGE6_500US_COMPUTE_FASTPATH_PENDING_ATOMIC_CLOSURE_V1:
-     * last/min/max telemetry is maintained here (outside COMPUTE) and frozen
-     * by SHOT_Revoke. This keeps the COMPUTE critical path minimal. */
-    g_shot_summary.last_adc_sample_sequence = g_adc_sample_sequence;
-    g_shot_summary.last_consumed_sequence   = g_control_adc_sequence_consumed;
-    g_shot_summary.last_control_vout_raw    = g_control_vout_raw;
-    g_shot_summary.last_vref_raw            = g_control_vref_raw;
-    if (g_control_vout_raw < g_shot_summary.min_control_vout_raw)
-        g_shot_summary.min_control_vout_raw = g_control_vout_raw;
-    if (g_control_vout_raw > g_shot_summary.max_control_vout_raw)
-        g_shot_summary.max_control_vout_raw = g_control_vout_raw;
-    g_shot_summary.last_error_raw = g_control_error_raw;
-    if (g_control_error_raw < g_shot_summary.min_error_raw)
-        g_shot_summary.min_error_raw = g_control_error_raw;
-    if (g_control_error_raw > g_shot_summary.max_error_raw)
-        g_shot_summary.max_error_raw = g_control_error_raw;
-
     /* F: fast 11 V VOUT abort. */
     if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw)
     {
