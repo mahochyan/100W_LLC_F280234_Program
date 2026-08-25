@@ -123,9 +123,11 @@ void SHOT_Init(void)
         (Uint16)((11.0f - BOARD_VOUT_OFFSET_V) / BOARD_VOUT_GAIN_V_PER_RAW);
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     g_first_real_pi_shot_build = 1U;
-#else
-    g_first_real_pi_shot_build = 0U;
+    g_burst_enabled = 1U;   /* tutorial Burst entry active in bounded-shot candidate */
 #endif
+    g_burst_active = 0U;
+    g_burst_enter_count = 0UL;
+    g_burst_exit_count = 0UL;
 }
 
 /* ------------------------------------------------------------------ */
@@ -454,6 +456,29 @@ void SHOT_OnTrip(void)
     g_first_real_pi_shot_abort = SHOT_ABORT_TZ;
     g_first_real_pi_shot_arm   = 0U;
     g_first_real_pi_shot_state = SHOT_STATE_ABORTED;
+}
+
+/* STAGE6_TUTORIAL_LIGHTLOAD_BURST_ENTRY_RESTORE_V1:
+ * Tutorial-style normal Burst entry. PWM is shut down through the existing
+ * safe OST path (LLC_PWM_DisableSafe), not GPIO MUX. No fault, no auto
+ * restart. This round only enters Burst. */
+void SHOT_EnterTutorialBurst(void)
+{
+    g_burst_active = 1U;
+    g_burst_enter_count++;
+    g_first_real_pi_shot_arm   = 0U;
+    g_pipeline_pending.valid   = 0U;
+    g_pipeline_executed_phase  = 0xFFU;
+    g_pipeline_phase           = PIPELINE_PHASE_COMPUTE;
+    LLC_PWM_DisableSafe();
+    g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+    g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+    g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+    g_first_real_pi_shot_ok    = 1U;
+    g_pwm_enabled              = 0U;
+    g_pwm_enable_result        = 0U;
+    g_system_state             = SYS_STATE_IDLE;
+    g_power_window_state       = POWER_WINDOW_POST_OST;
 }
 
 /* ------------------------------------------------------------------ */

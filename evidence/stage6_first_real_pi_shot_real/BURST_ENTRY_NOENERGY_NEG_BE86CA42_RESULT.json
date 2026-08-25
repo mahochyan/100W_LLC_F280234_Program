@@ -1,0 +1,17 @@
+{
+  "milestone": "TUTORIAL_BURST_ENTRY_NOENERGY_NEG",
+  "noenergy_out_sha256": "BE86CA424A8A69DBC0DE5595A8B6C11A01A60F5CEFF327EEA20DF42559FEBCEC",
+  "vout_raw": 1362,
+  "verdict": "PASS",
+  "state": 3,
+  "abort": 9,
+  "ok": 1,
+  "burst_active": 1,
+  "burst_enter_count": 1,
+  "power_writes": 0,
+  "pending_valid": 0,
+  "pwm": 0,
+  "ost": 1,
+  "power_window_state": 2,
+  "fault": 0
+}

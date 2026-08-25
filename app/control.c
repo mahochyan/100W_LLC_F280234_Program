@@ -637,6 +637,17 @@ static void CTRL_PipelineApply(void)
         return;   /* no pending produced by the last compute: nothing to commit */
     }
 
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* STAGE6_TUTORIAL_LIGHTLOAD_BURST_ENTRY_RESTORE_V1:
+     * Tutorial-style Burst entry: if the PI requests a period below
+     * TUTORIAL_MIN_BURST (frequency above ~150 kHz), enter Burst and stop
+     * safely instead of writing the high-frequency PWM command. */
+    if (g_burst_enabled != 0U && p->period < (TUTORIAL_MIN_BURST - 1U))
+    {
+        SHOT_EnterTutorialBurst();
+        return;
+    }
+#endif
     cmd = p->command_hz;
     SHOT_PendingCommit();                /* B/A: PWM write + sw state, valid=0 */
     g_control_frequency_hz = cmd;        /* commit the commanded base */

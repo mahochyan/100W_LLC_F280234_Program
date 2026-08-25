@@ -53,6 +53,11 @@
 #define SHOT_ABORT_PERMISSION 6U   /* a permission condition disappeared */
 #define SHOT_ABORT_NO_HANDOFF 7U   /* SoftStart FINAL window expired without 10V handoff */
 #define SHOT_ABORT_CEILING    8U   /* SoftStart hard ceiling (12V) reached during ramp */
+#define SHOT_ABORT_TUTORIAL_BURST_ENTRY 9U  /* normal stop: tutorial light-load Burst entry */
+
+/* Tutorial CSS024DV2.1_PI Burst entry: period_request < 400 (i.e. frequency
+ * request above ~150 kHz) -> PWM off / Burst active. This round only enters. */
+#define TUTORIAL_MIN_BURST       400U
 
 /* ------------------------------------------------------------------ */
 /* B: pending structure - produced by PHASE_COMPUTE, consumed (once) by
@@ -138,6 +143,7 @@ void   SHOT_PendingCommit(void);                /* B: commit pending to PWM (app
 void   SHOT_Revoke(Uint16 reason);   /* on-chip termination (E/F/C/D) */
 void   SHOT_FastTask(void);          /* called from TINT0_ISR: cage + 11V abort + summary (E/D/F) */
 void   SHOT_OnTrip(void);            /* called from real TZ ISR (G): revoke on real trip */
+void   SHOT_EnterTutorialBurst(void);  /* normal stop: tutorial light-load Burst entry */
 
 /* Non-static shot globals (CCS-visible by name). */
 extern volatile Uint16 g_first_real_pi_shot_build;
