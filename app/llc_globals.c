@@ -278,6 +278,7 @@ volatile Uint32 g_timing_last50_vout_count = 0UL;
 #pragma DATA_SECTION(g_timing_last50_pi_hz_sum, "shot_ram")
 #pragma DATA_SECTION(g_timing_last50_pi_count, "shot_ram")
 #pragma DATA_SECTION(g_timing_last50_fmax_count, "shot_ram")
+#pragma DATA_SECTION(g_timing_last50_sample_phase, "shot_ram")
 volatile Uint16 g_timing_last50_vout_first = 0U;
 volatile Uint16 g_timing_last50_vout_last  = 0U;
 volatile Uint32 g_timing_last50_freq_min  = 0UL;
@@ -293,6 +294,7 @@ volatile int32  g_timing_last50_pi_q12_max = 0;
 volatile int32  g_timing_last50_pi_hz_sum  = 0;
 volatile Uint32 g_timing_last50_pi_count   = 0UL;
 volatile Uint32 g_timing_last50_fmax_count = 0UL;
+volatile Uint16 g_timing_last50_sample_phase = 0U;
 #endif
 
 /* Tutorial SoftStart Engine */

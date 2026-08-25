@@ -14,6 +14,7 @@ var EXPECTED = java.lang.System.getenv("SOL_W1_EXPECTED_SHA") ||
   "5E2B320B906F867725A9C843A94E78B8D50CB576CA92E2841871AF081DE3EDD7";
 var INT1CONT = parseInt(java.lang.System.getenv("SOL_W1_INT1CONT") || "0", 10);
 var FAULTS_ACTIVE = (java.lang.System.getenv("SOL_W1_FAULTS_ACTIVE") || "0") === "1";
+var RUN_MS = parseInt(java.lang.System.getenv("SOL_W1_RUN_MS") || "10", 10);
 
 function sha256File(path) {
   var md = MessageDigest.getInstance("SHA-256");
@@ -134,6 +135,10 @@ try {
   // Baseline OUT predates the W1 arm-state symbols.
 }
 wv32("g_adc_ovf_count", 0);
+/* APP_Init may have observed benign pre-handoff overlap before this harness
+ * establishes its exact cadence. Reset both totals at the same boundary so
+ * the ACTIVE verdict cannot include startup history. */
+try { wv32("g_adc_ovf_active_count", 0); } catch (e) {}
 wv("g_adc_ovf_first_tbctr", 0);
 wv("g_adc_ovf_first_flag_was_set", 0);
 wv32("g_fault_flags", 0);
@@ -148,11 +153,12 @@ session.expression.evaluate("PieCtrlRegs.PIEIFR1.bit.INTx1 = 0");
 session.expression.evaluate("EPwm1Regs.ETCLR.bit.SOCA = 1");
 session.expression.evaluate("EPwm1Regs.ETSEL.bit.SOCAEN = 1");
 
-run(10);
+run(RUN_MS);
 
 var seq = rv32("g_adc_sample_sequence");
 var consumed = rv32("g_control_adc_sequence_consumed");
 var fresh = rv32("g_shot_summary.fresh_compute_count");
+var piCompute = rv32("g_shot_summary.pi_compute_count");
 var stale = rv32("g_shot_summary.stale_compute_count");
 var ovf = rv32("g_adc_ovf_count");
 var ovfActive = -1;
@@ -167,7 +173,7 @@ var computeMax = rv32("g_timing_compute_max");
 var applyMax = rv32("g_timing_apply_max");
 var activeMax = rv32("g_timing_active_isr_max");
 var overrun = rv32("g_timing_overrun_count");
-print("RESULT seq=" + seq + " consumed=" + consumed + " fresh=" + fresh + " stale=" + stale);
+print("RESULT seq=" + seq + " consumed=" + consumed + " fresh=" + fresh + " pi=" + piCompute + " stale=" + stale);
 print("RESULT ovf_count=" + ovf + " ovf_first_tbctr=" + ovfTbctr + " ovf_first_flag=" + ovfFlag);
 print("RESULT ovf_active_count=" + ovfActive);
 print("RESULT int1cont=" + regn("AdcRegs.INTSEL1N2.bit.INT1CONT"));
@@ -175,6 +181,30 @@ print("RESULT compute_max=" + computeMax + " apply_max=" + applyMax + " active_m
 print("FINAL pwm=" + finalPwm + " ost=" + finalOst + " tzint=" + finalTzint + " fault=" + finalFault);
 print(ovf > 0 ? "SOL_W1_ADCINT_OVERFLOW_REPRODUCED" : "SOL_W1_ADCINT_OVERFLOW_NOT_REPRODUCED");
 if (ovfActive === 0) print("SOL_W1_ACTIVE_ADCINT_OVERFLOW_CLEAR");
+else print("SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY");
 
 if (finalPwm !== 0 || finalOst !== 1 || finalTzint !== 0) throw "FINAL_NOT_SAFE";
+if (seq === 0 || consumed === 0 || fresh === 0 || fresh !== piCompute || stale > 1)
+  throw "ADC_PUBLICATION_FRESHNESS_GATE_FAIL";
+/* INT1CONT=1 deliberately preserves publication if a same-group scheduling
+ * overlap latches ADCINTOVF. W1 accepts this only when publication remains
+ * fresh and fault-free; the overlap count stays visible as telemetry. */
+if (finalFault !== 0 || computeMax > 900 || applyMax > 900 || overrun !== 0)
+  throw "ADC_ACTIVE_CADENCE_GATE_FAIL";
+print("SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS");
+if (RUN_MS >= 120) {
+  var vcnt = rv32("g_timing_last50_vout_count");
+  var fcnt = rv32("g_timing_last50_freq_count");
+  var pcnt = rv32("g_timing_last50_tbprd_count");
+  var picnt = rv32("g_timing_last50_pi_count");
+  var pmin = rw("g_timing_last50_tbprd_min");
+  var pmax = rw("g_timing_last50_tbprd_max");
+  var fmaxcnt = rv32("g_timing_last50_fmax_count");
+  print("W2_100MS_STATS counts vout="+vcnt+" freq="+fcnt+" tbprd="+pcnt+" pi="+picnt+
+        " tbprd_min="+pmin+" tbprd_max="+pmax+" fmax_count="+fmaxcnt);
+  if (vcnt === 0 || fcnt === 0 || pcnt === 0 || picnt === 0 ||
+      Math.abs(vcnt-fcnt)>1 || Math.abs(vcnt-pcnt)>1 || Math.abs(vcnt-picnt)>1 ||
+      pmin < 352 || pmax > 413) throw "W2_100MS_TELEMETRY_GATE_FAIL";
+  print("SOL_W2_100MS_TELEMETRY_NOPOWER_HARD_GATES_PASS");
+}
 try { session.terminate(); } catch (e) {}

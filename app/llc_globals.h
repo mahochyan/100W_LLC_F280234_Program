@@ -248,6 +248,7 @@ extern volatile int32  g_timing_last50_pi_q12_max;
 extern volatile int32  g_timing_last50_pi_hz_sum;
 extern volatile Uint32 g_timing_last50_pi_count;
 extern volatile Uint32 g_timing_last50_fmax_count;
+extern volatile Uint16 g_timing_last50_sample_phase;
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;

@@ -798,61 +798,107 @@ void SHOT_FastTask(void)
      * This is passive evidence-only telemetry compiled only into >=100 ms REAL
      * builds; it changes no control/protection decision. */
     {
-        Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
-        Uint32 elapsed = (Uint32)((Uint32)(g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL);
-        if (elapsed >= (FIRST_REAL_PI_DURATION_CYCLES - 3000000UL))
+        Uint16 collect = 1U;
+        /* Once collection starts, vout_count stays nonzero. Avoid repeating
+         * the 32-bit Timer2 subtraction/comparison on every measured tick. */
+        if (g_timing_last50_vout_count == 0UL)
         {
-            Uint16 vout = g_adc_vout_filtered_raw;
-            Uint32 freq = g_actual_switching_frequency_hz;
-            Uint16 tbprd = EPwm1Regs.TBPRD;
-            int32 pi_q12 = g_pi_integral_q12;
-            if (g_timing_last50_vout_count == 0UL)
+            Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
+            Uint32 elapsed = (Uint32)((Uint32)(g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL);
+            if (elapsed < (FIRST_REAL_PI_DURATION_CYCLES - 3000000UL))
+                collect = 0U;
+        }
+        if (collect != 0U)
+        {
+            /* Split passive telemetry across eight fast ticks. Min/max and
+             * sum/count work are separated, preserving 6.25 ksample/s per
+             * statistic across the full window while
+             * keeping any individual ISR below the 900-cycle W2 gate. */
+            if (g_timing_last50_sample_phase == 0U)
             {
-                g_timing_last50_vout_min = vout;
-                g_timing_last50_vout_max = vout;
-                g_timing_last50_vout_first = vout;
+                Uint16 vout = g_adc_vout_filtered_raw;
+                if (g_timing_last50_vout_count == 0UL)
+                {
+                    g_timing_last50_vout_min = vout;
+                    g_timing_last50_vout_max = vout;
+                    g_timing_last50_vout_first = vout;
+                }
+                else
+                {
+                    if (vout < g_timing_last50_vout_min) g_timing_last50_vout_min = vout;
+                    if (vout > g_timing_last50_vout_max) g_timing_last50_vout_max = vout;
+                }
+                g_timing_last50_vout_last = vout;
+            }
+            else if (g_timing_last50_sample_phase == 1U)
+            {
+                g_timing_last50_vout_sum += g_adc_vout_filtered_raw;
+                g_timing_last50_vout_count++;
+            }
+            else if (g_timing_last50_sample_phase == 2U)
+            {
+                Uint32 freq = g_actual_switching_frequency_hz;
+                if (g_timing_last50_freq_count == 0UL)
+                {
+                    g_timing_last50_freq_min = freq;
+                    g_timing_last50_freq_max = freq;
+                }
+                else
+                {
+                    if (freq < g_timing_last50_freq_min) g_timing_last50_freq_min = freq;
+                    if (freq > g_timing_last50_freq_max) g_timing_last50_freq_max = freq;
+                }
+            }
+            else if (g_timing_last50_sample_phase == 3U)
+            {
+                g_timing_last50_freq_sum += g_actual_switching_frequency_hz;
+                g_timing_last50_freq_count++;
+            }
+            else if (g_timing_last50_sample_phase == 4U)
+            {
+                Uint16 tbprd = EPwm1Regs.TBPRD;
+                if (g_timing_last50_tbprd_count == 0UL)
+                {
+                    g_timing_last50_tbprd_min = tbprd;
+                    g_timing_last50_tbprd_max = tbprd;
+                }
+                else
+                {
+                    if (tbprd < g_timing_last50_tbprd_min) g_timing_last50_tbprd_min = tbprd;
+                    if (tbprd > g_timing_last50_tbprd_max) g_timing_last50_tbprd_max = tbprd;
+                }
+            }
+            else if (g_timing_last50_sample_phase == 5U)
+            {
+                Uint16 tbprd = EPwm1Regs.TBPRD;
+                g_timing_last50_tbprd_sum += tbprd;
+                g_timing_last50_tbprd_count++;
+                if (tbprd == 352U) g_timing_last50_fmax_count++;
+            }
+            else if (g_timing_last50_sample_phase == 6U)
+            {
+                int32 pi_q12 = g_pi_integral_q12;
+                if (g_timing_last50_pi_count == 0UL)
+                {
+                    g_timing_last50_pi_q12_min = pi_q12;
+                    g_timing_last50_pi_q12_max = pi_q12;
+                }
+                else
+                {
+                    if (pi_q12 < g_timing_last50_pi_q12_min) g_timing_last50_pi_q12_min = pi_q12;
+                    if (pi_q12 > g_timing_last50_pi_q12_max) g_timing_last50_pi_q12_max = pi_q12;
+                }
             }
             else
             {
-                if (vout < g_timing_last50_vout_min) g_timing_last50_vout_min = vout;
-                if (vout > g_timing_last50_vout_max) g_timing_last50_vout_max = vout;
+                /* Scale before summing so 312 samples at the +/-60 kHz clamps
+                 * remain safely inside signed 32 bits. */
+                g_timing_last50_pi_hz_sum += (g_pi_integral_q12 >> 12);
+                g_timing_last50_pi_count++;
             }
-            g_timing_last50_vout_sum += vout;
-            g_timing_last50_vout_count++;
-            g_timing_last50_vout_last = vout;
-            if (g_timing_last50_freq_count == 0UL)
-            {
-                g_timing_last50_freq_min = freq;
-                g_timing_last50_freq_max = freq;
-            }
-            else
-            {
-                if (freq < g_timing_last50_freq_min) g_timing_last50_freq_min = freq;
-                if (freq > g_timing_last50_freq_max) g_timing_last50_freq_max = freq;
-            }
-            g_timing_last50_freq_sum += freq;
-            g_timing_last50_freq_count++;
-            if (g_timing_last50_tbprd_count == 0UL)
-            {
-                g_timing_last50_tbprd_min = tbprd;
-                g_timing_last50_tbprd_max = tbprd;
-                g_timing_last50_pi_q12_min = pi_q12;
-                g_timing_last50_pi_q12_max = pi_q12;
-            }
-            else
-            {
-                if (tbprd < g_timing_last50_tbprd_min) g_timing_last50_tbprd_min = tbprd;
-                if (tbprd > g_timing_last50_tbprd_max) g_timing_last50_tbprd_max = tbprd;
-                if (pi_q12 < g_timing_last50_pi_q12_min) g_timing_last50_pi_q12_min = pi_q12;
-                if (pi_q12 > g_timing_last50_pi_q12_max) g_timing_last50_pi_q12_max = pi_q12;
-            }
-            g_timing_last50_tbprd_sum += tbprd;
-            g_timing_last50_tbprd_count++;
-            /* Divide by the Q12 scale before summing so 2500 samples at the
-             * +/-60 kHz integral clamps remain safely inside signed 32 bits. */
-            g_timing_last50_pi_hz_sum += (pi_q12 / 4096L);
-            g_timing_last50_pi_count++;
-            if (tbprd == 352U) g_timing_last50_fmax_count++;
+            g_timing_last50_sample_phase++;
+            if (g_timing_last50_sample_phase >= 8U)
+                g_timing_last50_sample_phase = 0U;
         }
     }
 #endif

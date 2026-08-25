@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LADDER = (ROOT / "tools" / "stage6_cr15_real_ladder.js").read_text(encoding="utf-8")
 SHOT = (ROOT / "app" / "shot.c").read_text(encoding="utf-8")
+CADENCE = (ROOT / "tools" / "sol_w1_adc_cadence_nopower.js").read_text(encoding="utf-8")
 
 
 def require(text: str, source: str) -> None:
@@ -40,8 +41,18 @@ def main() -> None:
     # Telemetry is passive and restricted to the >=100 ms real-shot build.
     require("FIRST_REAL_PI_DURATION_CYCLES >= 6000000UL", SHOT)
     require("g_timing_last50_tbprd_sum += tbprd", SHOT)
-    require("g_timing_last50_pi_hz_sum +=", SHOT)
+    require("g_timing_last50_pi_hz_sum += (g_pi_integral_q12 >> 12)", SHOT)
     require("if (tbprd == 352U) g_timing_last50_fmax_count++", SHOT)
+    require("g_timing_last50_sample_phase >= 8U", SHOT)
+
+    # The real-cadence diagnostic starts ACTIVE counters at its own boundary
+    # and makes its W1 acceptance conditions fatal on failure.
+    require('wv32("g_adc_ovf_active_count", 0)', CADENCE)
+    require("fresh !== piCompute", CADENCE)
+    require("SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY", CADENCE)
+    require("SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS", CADENCE)
+    require('getenv("SOL_W1_RUN_MS")', CADENCE)
+    require("SOL_W2_100MS_TELEMETRY_NOPOWER_HARD_GATES_PASS", CADENCE)
 
     print("SOL_W2_CR15_LADDER_PREFLIGHT_TESTS_PASS")
 

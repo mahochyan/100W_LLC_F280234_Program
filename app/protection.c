@@ -100,6 +100,7 @@ void PROT_Init(void)
     g_timing_last50_pi_hz_sum  = 0;
     g_timing_last50_pi_count   = 0UL;
     g_timing_last50_fmax_count = 0UL;
+    g_timing_last50_sample_phase = 0U;
 #endif
 
     /* Critical zero-init for globals that were previously compile-time zero.

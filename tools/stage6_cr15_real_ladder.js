@@ -265,7 +265,8 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
     print("LAST50_VOUT_V_MIN="+vminV.toFixed(4)+" MAX="+vmaxV.toFixed(4)+" AVG="+vavgV.toFixed(4));
     print("LAST50_STEADY_STATE_ERROR_V="+(10.0-vavgV).toFixed(4));
     print("LAST50_INPUT_CURRENT_AND_LIMIT_TRIP=<record from bench DMM/power supply>");
-    gate("100MS_STATS_COUNTS_MATCH", vcnt>0 && vcnt===fcnt && vcnt===pcnt && vcnt===picnt);
+    gate("100MS_STATS_COUNTS_MATCH", vcnt>0 && fcnt>0 && pcnt>0 && picnt>0 &&
+         Math.abs(vcnt-fcnt)<=1 && Math.abs(vcnt-pcnt)<=1 && Math.abs(vcnt-picnt)<=1);
     gate("100MS_VOUT_AVG_RAW_1182_1306", vavg>=1182 && vavg<=1306);
     /* A rise of <=12 raw across the full 50 ms window is <=~1% of nominal and
      * excludes a materially sustained one-way rise while tolerating ADC noise. */
