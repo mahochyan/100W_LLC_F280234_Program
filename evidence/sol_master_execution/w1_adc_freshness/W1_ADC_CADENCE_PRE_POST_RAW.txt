@@ -1,0 +1,41 @@
+SOL W1 ADC cadence no-power root-cause evidence
+Target: TMS320F28034, ePWM1 SOCA ET_3RD at 170 kHz, ADCINT1 from EOC2
+Safety: OST remained 1 and AQCSFRC A/B remained force-low; no real power run
+
+=== BASELINE 36ef115 / OUT 5E2B320B... ===
+RESULT seq=649 consumed=107 fresh=50 stale=1
+RESULT ovf_count=4 ovf_first_tbctr=206 ovf_first_flag=1
+RESULT int1cont=0
+RESULT compute_max=839 apply_max=776 overrun=0
+FINAL pwm=0 ost=1 tzint=0 fault=0
+SOL_W1_ADCINT_OVERFLOW_REPRODUCED
+
+=== CANDIDATE SOURCE 9dd8968 / OUT A1067015... ===
+RESULT seq=1124 consumed=110 fresh=50 stale=1
+RESULT ovf_count=0 ovf_first_tbctr=0 ovf_first_flag=0
+RESULT ovf_active_count=0
+RESULT int1cont=1
+RESULT compute_max=848 apply_max=771 overrun=0
+FINAL pwm=0 ost=1 tzint=0 fault=0
+SOL_W1_ADCINT_OVERFLOW_NOT_REPRODUCED
+SOL_W1_ACTIVE_ADCINT_OVERFLOW_CLEAR
+
+=== CANDIDATE NO-POWER TIMING LADDER ===
+2MS: samples=103 compute_normal_max=848 apply_max=837 active_isr_max=848 shutdown_max=538 overrun=0 PASS
+10MS: samples=501 compute_max=0 apply_max=847 active_isr_max=847 shutdown_max=538 overrun=0 PASS
+100MS: samples=4999 compute_normal_max=838 apply_max=850 active_isr_max=850 shutdown_max=530 overrun=0 PASS
+All: pending=0 state=COMPLETE abort=TIMEOUT ok=1 fault=0 PWM=0 OST=1 POST_OST
+STAGE6_ONCHIP_TIMING_FREEZE_NOPOWER_LADDER_ALL_PASS
+
+=== CANDIDATE FMAX STRESS ===
+FMAX_SAT_0: compute_fmax=841 apply=732 burst=0 PASS
+FMAX_SAT_1: compute_fmax=841 apply=732 burst=0 PASS
+FMAX_SAT_2: compute_fmax=831 apply=778 burst=0 PASS
+FMAX_SAT_3: burst=1 final PWM0/OST1 fault0 PASS
+STAGE6_CR15_FMAX_STRESS_NOENERGY_PASS
+
+=== SEMANTIC/STATIC REGRESSION ===
+SOL_W1_ADC_FRESHNESS_UNIT_TESTS_PASS
+ALL STAGE6 REAL BINARY HARDENING STATIC CHECKS PASSED
+EQUIVALENCE_TEST_PASS: all 145000..170000 Hz
+
