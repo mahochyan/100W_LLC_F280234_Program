@@ -275,6 +275,7 @@ Uint16 SHOT_RealBoundedPiAuthOk(void)
  * tick (a fault appearing, or an explicit revoke) to keep the 20 us budget.
  * The static conditions (stage, handoff, reference valid, VOUT cal, Comp/TZ
  * armed) are fixed at handoff and cannot change during the bounded shot. */
+#pragma CODE_ALIGN(SHOT_WriteAllowed, 8)
 Uint16 SHOT_WriteAllowed(void)
 {
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
@@ -293,6 +294,7 @@ Uint16 SHOT_WriteAllowed(void)
 /* ------------------------------------------------------------------ */
 /* B: clamp the commanded frequency into the first-shot envelope.     */
 /* ------------------------------------------------------------------ */
+#pragma CODE_ALIGN(SHOT_ClampFreq, 8)
 Uint16 SHOT_ClampFreq(Uint32 *p_hz)
 {
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
@@ -313,6 +315,7 @@ Uint16 SHOT_ClampFreq(Uint32 *p_hz)
  * (SHOT_Revoke(SHOT_ABORT_ACTUATOR): OST, PWM=0, abort, no further run).
  * The pending is never committed twice: commit clears valid. */
 /* ------------------------------------------------------------------ */
+#pragma CODE_ALIGN(SHOT_PendingValid, 8)
 Uint16 SHOT_PendingValid(void)
 {
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT

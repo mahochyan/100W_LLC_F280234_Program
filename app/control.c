@@ -268,6 +268,7 @@ static Uint16 CTRL_VoltsToRaw(float v)
  * writes shadow command + integer telemetry; never ePWM registers. Teaching
  * floats are updated by CTRL_UpdateTelemetrySlow() (5 ms), not here.
  */
+#pragma CODE_ALIGN(CTRL_ComputeFrequencyCommand, 8)
 Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
 {
     int32 error, p_q12, i_q12, unsat_q12, step_q12, out_q12, base_q12;
@@ -815,6 +816,7 @@ void CTRL_RunFastControl(void)
     }
 }
 
+#pragma CODE_ALIGN(CTRL_FastTask, 8)
 void CTRL_FastTask(void)
 {
     g_pipeline_executed_phase = 0xFFU;   /* default: no phase executed this tick */

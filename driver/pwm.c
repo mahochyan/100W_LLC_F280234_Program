@@ -214,6 +214,7 @@ Uint16 PWM_ConfigMatchesFrozenBaseline(void)
  * operate unless the PWM is still in the frozen configuration.  Shadow
  * registers are updated in a short critical section.
  */
+#pragma CODE_ALIGN(LLC_SetFrequencyHz, 8)
 Uint16 LLC_SetFrequencyHz(Uint32 hz)
 {
     Uint32 period;
