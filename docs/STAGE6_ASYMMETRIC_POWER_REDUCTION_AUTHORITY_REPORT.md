@@ -1,6 +1,6 @@
 # STAGE6 Asymmetric Power Reduction Authority Report
 
-Status: **NO REAL POWER EXECUTED — on-chip multifresh trajectory PASS, whole-ISR >900 in NOENERGY test build**
+Status: **NO REAL POWER EXECUTED — compact on-chip multifresh trajectory/counts PASS, whole-ISR >900 in NOENERGY test build**
 Branch: `stage6/first-real-pi-shot-real-binary-hardening-v1-1`
 Baseline: `c650201`
 Date: 2026-08-25
@@ -101,12 +101,33 @@ No-power basic run did not show a >1230 interval, so the classification would
 be `ADC_ISR_PREEMPTION_JITTER_ONLY` if a short compensated interval is seen in
 the real run. The real run was not executed, so this remains pending.
 
+## 7. Compact on-chip multifresh results (this task)
+
+NOENERGY OUT: `DBB43BF3...`
+
+Negative scenario:
+- trace exact 150500..156500
+- fresh=13, stale=0, pi=13, apply=13, pw=13
+- state=COMPLETE, abort=TIMEOUT, t2d=30889
+- whole ISR max = 1107 (>900)
+
+Positive scenario:
+- trace exact 149900..148700
+- fresh=13, stale=0, pi=13, apply=13, pw=13
+- state=COMPLETE, abort=TIMEOUT, t2d=30949
+- whole ISR max = 1070 (>900)
+
+REAL no-power timing with `3ECDBA30...`:
+- PASS, ISR max=847 <=900, t2d=30935
+
+Because the NOENERGY whole-ISR still exceeds 900, real power is not authorized.
+
 ## 7. Final output
 
 ```text
-STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_NOT_EXECUTED
-BLOCKED_GATE=NOENERGY_ISR_MAX_GT_900
-NO_REAL_POWER_EXECUTED
+ONCHIP_MULTIFRESH_COMPACT_NOPOWER_FAIL
+FAILED_GATE=NOENERGY_WHOLE_ISR_MAX_GT_900
+REAL_POWER_NOT_EXECUTED
 BOARD_LEFT_SAFE_PWM0_OST1
 STOPPED_AWAITING_REVIEW
 ```

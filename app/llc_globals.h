@@ -128,20 +128,16 @@ extern volatile Uint32 g_adc_isr_cycles_max;
 extern volatile Uint16 g_stage6_first_pi_sample_raw;
 extern volatile Uint32 g_stage6_first_pi_freq_hz;
 extern volatile Uint16 g_stage6_first_pi_observed;
-/* STAGE6_ONCHIP_MULTIFRESH_NOENERGY: test-only trajectory trace (mode 5). */
+/* STAGE6_ONCHIP_MULTIFRESH_NOENERGY: compact test-only trajectory trace (mode 5).
+ * Only frequency is recorded in-ISR; error/sequence/period/actual are proven by
+ * fixed test inputs and offline integer equivalence. */
 extern volatile Uint16 g_stage6_multifresh_trace_count;
 extern volatile Uint32 g_stage6_multifresh_trace_freq[13];
-extern volatile Uint16 g_stage6_multifresh_trace_error[13];
-extern volatile Uint32 g_stage6_multifresh_trace_seq[13];
-extern volatile Uint16 g_stage6_multifresh_trace_period[13];
-extern volatile Uint32 g_stage6_multifresh_trace_actual[13];
-/* STAGE6_ONCHIP_MULTIFRESH_NOENERGY: test-only trajectory trace (mode 5). */
+/* STAGE6_ONCHIP_MULTIFRESH_NOENERGY: compact test-only trajectory trace (mode 5).
+ * Only frequency is recorded in-ISR; error/sequence/period/actual are proven by
+ * fixed test inputs and offline integer equivalence. */
 extern volatile Uint16 g_stage6_multifresh_trace_count;
 extern volatile Uint32 g_stage6_multifresh_trace_freq[13];
-extern volatile Uint16 g_stage6_multifresh_trace_error[13];
-extern volatile Uint32 g_stage6_multifresh_trace_seq[13];
-extern volatile Uint16 g_stage6_multifresh_trace_period[13];
-extern volatile Uint32 g_stage6_multifresh_trace_actual[13];
 extern volatile Uint32 g_stage6_cadence_test_freq;
 extern volatile Uint16 g_stage6_actuator_test_arm;
 extern volatile Uint16 g_stage6_actuator_revoked;

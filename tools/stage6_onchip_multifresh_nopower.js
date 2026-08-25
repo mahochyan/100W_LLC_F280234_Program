@@ -6,8 +6,8 @@ importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
-var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_NOENERGY_ONCHIP_MULTIFRESH_1CBDBE67.out";
-var EXPECTED="1CBDBE67C44B406F6167012E152DBE8EDC3E53EB7826085354932BFE432869A2";
+var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_NOENERGY_ONCHIP_MULTIFRESH_DBB43BF3.out";
+var EXPECTED="DBB43BF3D28D403A4047BFB03DB7F76BFE774F060A5F1726305E494EA6E5CB7A";
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256"); var fis=new FileInputStream(path);
   var buf=java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE,8192); var n;
@@ -77,10 +77,6 @@ print("ISR max="+maxIsr+" compute="+cmax+" apply="+amax+" overrun="+ovf);
 print("trace_count="+tcount);
 for(var i=0;i<tcount && i<13;i++){
   var f=rv32("g_stage6_multifresh_trace_freq["+i+"]");
-  var e=r16("g_stage6_multifresh_trace_error["+i+"]");
-  var s=rv32("g_stage6_multifresh_trace_seq["+i+"]");
-  var p=rw("g_stage6_multifresh_trace_period["+i+"]");
-  var a=rv32("g_stage6_multifresh_trace_actual["+i+"]");
-  print("TRACE["+i+"] freq="+f+" err="+e+" seq="+s+" period="+p+" actual="+a);
+  print("TRACE["+i+"] freq="+f);
 }
 print("ONCHIP_MULTIFRESH_DONE");

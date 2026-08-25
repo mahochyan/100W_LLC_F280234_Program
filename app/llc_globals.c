@@ -135,13 +135,9 @@ volatile Uint32 g_adc_isr_cycles_max          = 0UL;
 volatile Uint16 g_stage6_first_pi_sample_raw  = 0U;
 volatile Uint32 g_stage6_first_pi_freq_hz     = 0UL;
 volatile Uint16 g_stage6_first_pi_observed    = 0U;
-/* STAGE6_ONCHIP_MULTIFRESH_NOENERGY: test-only trajectory trace (mode 5). */
+/* STAGE6_ONCHIP_MULTIFRESH_NOENERGY: compact test-only trajectory trace (mode 5). */
 volatile Uint16 g_stage6_multifresh_trace_count = 0U;
 volatile Uint32 g_stage6_multifresh_trace_freq[13] = {0UL};
-volatile Uint16 g_stage6_multifresh_trace_error[13] = {0U};
-volatile Uint32 g_stage6_multifresh_trace_seq[13] = {0UL};
-volatile Uint16 g_stage6_multifresh_trace_period[13] = {0U};
-volatile Uint32 g_stage6_multifresh_trace_actual[13] = {0UL};
 volatile Uint32 g_stage6_cadence_test_freq  = 0UL;   /* test time-base config (applied once) */
 /* STAGE6_REAL_ACTUATOR_OST_TEST - real PWM actuator write gate (test build). */
 volatile Uint16 g_stage6_actuator_test_arm   = 0U;   /* harness arms only after OST=1 + AQCSFRC LOW */

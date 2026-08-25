@@ -1,0 +1,21 @@
+HOST_SHA256_PASS
+MULTIFRESH_VOUT_RAW=1362
+state=3 abort=1 ok=1 t2d=30889
+fresh=13 stale=0 pi=13 apply=13 pw=13
+pwm=0 ost=1 pws=2 fault=0
+ISR max=1107 compute=587 apply=587 overrun=0
+trace_count=13
+TRACE[0] freq=150500
+TRACE[1] freq=151000
+TRACE[2] freq=151500
+TRACE[3] freq=152000
+TRACE[4] freq=152500
+TRACE[5] freq=153000
+TRACE[6] freq=153500
+TRACE[7] freq=154000
+TRACE[8] freq=154500
+TRACE[9] freq=155000
+TRACE[10] freq=155500
+TRACE[11] freq=156000
+TRACE[12] freq=156500
+ONCHIP_MULTIFRESH_DONE

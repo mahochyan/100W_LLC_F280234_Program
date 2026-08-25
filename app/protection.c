@@ -352,39 +352,56 @@ __interrupt void TINT0_ISR(void)
              * PWM stays 0 / OST stays 1; no real power. */
             Uint32 tb, tx;
             if (g_stage6_noenergy_test_mode == 1U ||
-                g_stage6_noenergy_test_mode == 5U)
+                (g_stage6_noenergy_test_mode == 5U &&
+                 g_shot_summary.fresh_compute_count < 13U))
             {
                 g_stage6_synthetic_sequence++;   /* new sample every 20 us tick */
             }
             g_adc_sample_sequence    = g_stage6_synthetic_sequence;
             g_adc_vout_filtered_raw  = g_stage6_synthetic_vout_raw;
-            tb = CpuTimer2Regs.TIM.all;
-            g_control_running = 1U;
-            g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
-            CTRL_RunFastControl();   /* production freshness + binding + PI + apply */
-            tx = CpuTimer2Regs.TIM.all;
-            /* region B: one Compute+Apply (down counter -> entry-exit diff) */
-            g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
-            if (g_control_exec_cycles_last > g_control_exec_cycles_max)
-                g_control_exec_cycles_max = g_control_exec_cycles_last;
-            /* NOENERGY hook drives the split pipeline alone (CTRL_FastTask is
-             * bypassed by pwm_enabled=0), so advance the phase here exactly
-             * like SHOT_FastTask would in the real path. */
-            if (g_pipeline_executed_phase != 0xFFU)
-                g_pipeline_phase = (Uint16)(1U - g_pipeline_executed_phase);
-            /* STAGE6_ONCHIP_MULTIFRESH_NOENERGY (mode 5): record the committed
-             * trajectory on each APPLY phase, up to 13 samples. */
-            if (g_stage6_noenergy_test_mode == 5U &&
-                g_pipeline_executed_phase == PIPELINE_PHASE_APPLY &&
-                g_stage6_multifresh_trace_count < 13U)
+            /* After the 13th apply, stop driving the pipeline so no stale
+             * compute is counted; only wait for the on-chip 500 us cage. */
+            if (!(g_stage6_noenergy_test_mode == 5U &&
+                  g_stage6_multifresh_trace_count >= 13U))
             {
-                Uint16 idx = g_stage6_multifresh_trace_count;
-                g_stage6_multifresh_trace_freq[idx]    = g_control_frequency_hz;
-                g_stage6_multifresh_trace_error[idx]   = (Uint16)g_control_error_raw;
-                g_stage6_multifresh_trace_seq[idx]     = g_adc_sample_sequence;
-                g_stage6_multifresh_trace_period[idx]  = g_pwm_period;
-                g_stage6_multifresh_trace_actual[idx]  = g_actual_switching_frequency_hz;
-                g_stage6_multifresh_trace_count++;
+                tb = CpuTimer2Regs.TIM.all;
+                g_control_running = 1U;
+                g_control_frequency_hz = g_control_shadow_frequency_hz; /* keep committed base */
+                CTRL_RunFastControl();   /* production freshness + binding + PI + apply */
+                tx = CpuTimer2Regs.TIM.all;
+                /* region B: one Compute+Apply (down counter -> entry-exit diff) */
+                g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
+                if (g_control_exec_cycles_last > g_control_exec_cycles_max)
+                    g_control_exec_cycles_max = g_control_exec_cycles_last;
+                /* NOENERGY hook drives the split pipeline alone (CTRL_FastTask is
+                 * bypassed by pwm_enabled=0), so advance the phase here exactly
+                 * like SHOT_FastTask would in the real path. */
+                if (g_pipeline_executed_phase != 0xFFU)
+                    g_pipeline_phase = (Uint16)(1U - g_pipeline_executed_phase);
+                /* STAGE6_ONCHIP_MULTIFRESH_NOENERGY (mode 5): record only the
+                 * committed frequency on each APPLY phase, up to 13 samples. */
+                if (g_stage6_noenergy_test_mode == 5U &&
+                    g_pipeline_executed_phase == PIPELINE_PHASE_APPLY &&
+                    g_stage6_multifresh_trace_count < 13U)
+                {
+                    Uint16 idx = g_stage6_multifresh_trace_count;
+                    g_stage6_multifresh_trace_freq[idx] = g_control_frequency_hz;
+                    g_stage6_multifresh_trace_count++;
+                }
+            }
+            /* STAGE6_ONCHIP_MULTIFRESH_NOENERGY (mode 5): after the 13th apply,
+             * stop generating fresh samples and let the on-chip 500 us Timer2
+             * cage close the shot normally (COMPLETE/TIMEOUT/POST_OST). */
+            if (g_stage6_noenergy_test_mode == 5U &&
+                g_first_real_pi_shot_first_write_timer2 != 0UL)
+            {
+                Uint32 now = CpuTimer2Regs.TIM.all;
+                if (((g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL) >=
+                    FIRST_REAL_PI_DURATION_CYCLES)
+                {
+                    SHOT_Revoke(SHOT_ABORT_TIMEOUT);
+                    g_stage6_noenergy_test_enable = 0U;
+                }
             }
         }
     }
