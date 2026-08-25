@@ -90,6 +90,11 @@ typedef struct {
     Uint32 first_apply_timer2;
     Uint32 ost_timer2;
     Uint32 entry_interval_max_shot;   /* shot-local Timer0/TINT0 entry max, reset at first apply, frozen at TIMEOUT */
+    Uint32 entry_interval_min_shot;   /* shot-local entry min */
+    Uint32 entry_over_1230_count;
+    Uint32 entry_over_1500_count;
+    Uint32 entry_over_2400_count;
+    Uint32 entry_adjacent_max_shot;
     int16  first_error_raw;           /* signed PI error, first compute of the shot */
     int16  last_error_raw;           /* signed PI error, last compute before termination */
     int16  min_error_raw;            /* signed PI error, minimum (most negative) observed */

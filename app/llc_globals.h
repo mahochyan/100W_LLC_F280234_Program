@@ -155,6 +155,12 @@ extern volatile Uint32 g_real_timer0_entry_interval_max;
 extern volatile Uint32 g_real_compute_phase_cycles_max;
 extern volatile Uint32 g_real_apply_phase_cycles_max;
 extern volatile Uint32 g_shot_entry_interval_max;   /* shot-local entry max */
+extern volatile Uint32 g_shot_entry_interval_min;   /* shot-local entry min */
+extern volatile Uint32 g_shot_entry_over_1230_count;
+extern volatile Uint32 g_shot_entry_over_1500_count;
+extern volatile Uint32 g_shot_entry_over_2400_count;
+extern volatile Uint32 g_shot_entry_adjacent_prev;
+extern volatile Uint32 g_shot_entry_adjacent_max;
 extern volatile Uint32 g_shot_entry_last;           /* shot-local last entry */
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */

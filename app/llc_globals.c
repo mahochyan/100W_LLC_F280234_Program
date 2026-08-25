@@ -163,6 +163,12 @@ volatile Uint32 g_real_timer0_entry_interval_max = 0UL;
 volatile Uint32 g_real_compute_phase_cycles_max = 0UL;
 volatile Uint32 g_real_apply_phase_cycles_max   = 0UL;
 volatile Uint32 g_shot_entry_interval_max       = 0UL;   /* shot-local entry max, reset at first apply */
+volatile Uint32 g_shot_entry_interval_min       = 0UL;
+volatile Uint32 g_shot_entry_over_1230_count    = 0UL;
+volatile Uint32 g_shot_entry_over_1500_count    = 0UL;
+volatile Uint32 g_shot_entry_over_2400_count    = 0UL;
+volatile Uint32 g_shot_entry_adjacent_prev      = 0UL;
+volatile Uint32 g_shot_entry_adjacent_max       = 0UL;
 volatile Uint32 g_shot_entry_last               = 0UL;   /* last TINT0 entry Timer2 for shot-local delta */
 #endif
 

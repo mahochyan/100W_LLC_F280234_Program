@@ -65,6 +65,14 @@
 #define CTRL_CLAMP_MIN_Q12       ((int32)OFFLINE_CONTROL_MIN_HZ * CTRL_Q_ONE)
 #define CTRL_CLAMP_MAX_Q12       ((int32)OFFLINE_CONTROL_MAX_HZ * CTRL_Q_ONE)
 #define CTRL_MAX_STEP_Q12        ((int32)100 * CTRL_Q_ONE)                /* 409600    */
+/* STAGE6_ASYMMETRIC_POWER_REDUCTION_AUTHORITY_RECOVERY_V1:
+ * In the bounded-shot candidate only, allow faster frequency INCREASE
+ * (reduce LLC power when VOUT > Vref) while keeping the conservative
+ * frequency DECREASE (increase LLC power when VOUT < Vref). */
+#define CTRL_REDUCE_POWER_MAX_STEP_HZ   500
+#define CTRL_INCREASE_POWER_MAX_STEP_HZ 100
+#define CTRL_REDUCE_POWER_MAX_STEP_Q12  ((int32)CTRL_REDUCE_POWER_MAX_STEP_HZ << CTRL_Q_SHIFT)
+#define CTRL_INCREASE_POWER_MAX_STEP_Q12 ((int32)CTRL_INCREASE_POWER_MAX_STEP_HZ << CTRL_Q_SHIFT)
 #define CTRL_RAW_MIN             0U
 #define CTRL_RAW_MAX             4095U
 
@@ -340,8 +348,15 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
 
     base_q12 = (int32)g_control_frequency_hz << CTRL_Q_SHIFT;
     step_q12 = unsat_q12 - base_q12;
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* Asymmetric authority: +500 Hz/fresh compute for power reduction
+     * (VOUT > Vref), -100 Hz/fresh compute for power increase (VOUT < Vref). */
+    if (step_q12 >  CTRL_REDUCE_POWER_MAX_STEP_Q12) step_q12 =  CTRL_REDUCE_POWER_MAX_STEP_Q12;
+    if (step_q12 < -CTRL_INCREASE_POWER_MAX_STEP_Q12) step_q12 = -CTRL_INCREASE_POWER_MAX_STEP_Q12;
+#else
     if (step_q12 >  CTRL_MAX_STEP_Q12) step_q12 =  CTRL_MAX_STEP_Q12;
     if (step_q12 < -CTRL_MAX_STEP_Q12) step_q12 = -CTRL_MAX_STEP_Q12;
+#endif
     out_q12 = base_q12 + step_q12;
     if (out_q12 < CTRL_CLAMP_MIN_Q12) out_q12 = CTRL_CLAMP_MIN_Q12;
     if (out_q12 > CTRL_CLAMP_MAX_Q12) out_q12 = CTRL_CLAMP_MAX_Q12;
@@ -664,6 +679,12 @@ static void CTRL_PipelineApply(void)
         /* G6 acceptance: shot-local entry-interval measurement starts at the
          * first apply; the previous global accumulation is NOT used. */
         g_shot_entry_interval_max = 0UL;
+        g_shot_entry_interval_min = 0UL;
+        g_shot_entry_over_1230_count = 0UL;
+        g_shot_entry_over_1500_count = 0UL;
+        g_shot_entry_over_2400_count = 0UL;
+        g_shot_entry_adjacent_prev = 0UL;
+        g_shot_entry_adjacent_max = 0UL;
         g_shot_entry_last         = CpuTimer2Regs.TIM.all;
 #endif
     }

@@ -1,0 +1,26 @@
+{
+  "milestone": "STAGE6_ASYMMETRIC_NOPOWER_TIMING",
+  "real_out_sha256": "0BE17D52D03F3740130B06FC70F287C09883D9F9879625C1B3E9E77C3C4F1EE6",
+  "cn34": "OPEN_CONFIRMED",
+  "verdict": "PASS",
+  "values": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "timer2_delta": 30940,
+    "fresh_compute_count": 1,
+    "stale_compute_count": 25,
+    "pi_compute_count": 1,
+    "pwm_apply_count": 1,
+    "power_writes": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "isr_max": 837,
+    "compute_max": 837,
+    "apply_max": 759,
+    "overrun": 0
+  }
+}

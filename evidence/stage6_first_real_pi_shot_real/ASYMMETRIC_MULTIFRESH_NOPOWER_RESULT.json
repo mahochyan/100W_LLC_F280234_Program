@@ -1,0 +1,17 @@
+{
+  "milestone": "STAGE6_ASYMMETRIC_MULTIFRESH_NOPOWER",
+  "real_out_sha256": "0BE17D52D03F3740130B06FC70F287C09883D9F9879625C1B3E9E77C3C4F1EE6",
+  "cn34": "OPEN_CONFIRMED",
+  "verdict": "FAIL",
+  "failure_reason": "HARNESS_CANNOT_INJECT_SECOND_FRESH_BEFORE_500US_TIMEOUT",
+  "attempts": 8,
+  "observed": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "fresh_compute_count": 1,
+    "frequency_hz": 150500,
+    "isr_max": 856,
+    "overrun": 0
+  }
+}

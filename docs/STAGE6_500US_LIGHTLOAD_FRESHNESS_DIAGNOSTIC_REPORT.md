@@ -95,11 +95,16 @@ Result:
 
 > Note: the real-script output did not print the `abort_*` telemetry fields; those are marked unavailable in the JSON. The primary freshness and control-authority data were captured.
 
+> Postmortem abort telemetry: **`POSTMORTEM_RAM_UNAVAILABLE`** — a later read-only
+> session could not resolve `g_shot_summary` without reloading the program, so the
+> abort_* fields from the real shot were not recoverable. No re-power was performed.
+
 ## 5. Final output
 
 ```text
 STAGE6_500US_LIGHTLOAD_FRESHNESS_DIAGNOSTIC_FAIL
-FAILED_GATE=VOUT_MAX_BELOW_11V
+FAILED_GATE_1=VOUT_MAX_BELOW_11V
+FAILED_GATE_2=ENTRY_INTERVAL_LE_1230
 ROOT_CAUSE_CLASS=LIGHTLOAD_CONTROL_AUTHORITY_INSUFFICIENT
 BOARD_LEFT_SAFE_PWM0_OST1
 NO_RETRY_EXECUTED

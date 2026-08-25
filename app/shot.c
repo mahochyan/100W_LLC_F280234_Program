@@ -72,6 +72,11 @@ void SHOT_Init(void)
     g_shot_summary.first_apply_timer2 = 0UL;
     g_shot_summary.ost_timer2         = 0UL;
     g_shot_summary.entry_interval_max_shot = 0UL;
+    g_shot_summary.entry_interval_min_shot = 0UL;
+    g_shot_summary.entry_over_1230_count = 0UL;
+    g_shot_summary.entry_over_1500_count = 0UL;
+    g_shot_summary.entry_over_2400_count = 0UL;
+    g_shot_summary.entry_adjacent_max_shot = 0UL;
     g_shot_summary.first_error_raw    = 0;
     g_shot_summary.last_error_raw     = 0;
     g_shot_summary.min_error_raw      = 0;
@@ -100,6 +105,12 @@ void SHOT_Init(void)
     g_shot_summary.abort_timer2 = 0UL;
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     g_shot_entry_interval_max = 0UL;
+    g_shot_entry_interval_min = 0UL;
+    g_shot_entry_over_1230_count = 0UL;
+    g_shot_entry_over_1500_count = 0UL;
+    g_shot_entry_over_2400_count = 0UL;
+    g_shot_entry_adjacent_prev = 0UL;
+    g_shot_entry_adjacent_max = 0UL;
     g_shot_entry_last         = 0UL;
 #endif
 #if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
@@ -348,6 +359,11 @@ void SHOT_Revoke(Uint16 reason)
         g_power_window_state       = POWER_WINDOW_POST_OST; /* explicit closure */
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
         g_shot_summary.entry_interval_max_shot = g_shot_entry_interval_max; /* freeze shot-local entry max */
+        g_shot_summary.entry_interval_min_shot = g_shot_entry_interval_min;
+        g_shot_summary.entry_over_1230_count   = g_shot_entry_over_1230_count;
+        g_shot_summary.entry_over_1500_count   = g_shot_entry_over_1500_count;
+        g_shot_summary.entry_over_2400_count   = g_shot_entry_over_2400_count;
+        g_shot_summary.entry_adjacent_max_shot = g_shot_entry_adjacent_max;
 #endif
         return;
     }
@@ -376,6 +392,11 @@ void SHOT_Revoke(Uint16 reason)
     /* Freeze abort-instant telemetry BEFORE latching the fault. */
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     g_shot_summary.entry_interval_max_shot = g_shot_entry_interval_max;
+    g_shot_summary.entry_interval_min_shot = g_shot_entry_interval_min;
+    g_shot_summary.entry_over_1230_count   = g_shot_entry_over_1230_count;
+    g_shot_summary.entry_over_1500_count   = g_shot_entry_over_1500_count;
+    g_shot_summary.entry_over_2400_count   = g_shot_entry_over_2400_count;
+    g_shot_summary.entry_adjacent_max_shot = g_shot_entry_adjacent_max;
 #endif
     g_shot_summary.abort_adc_vout_raw       = g_adc_vout_raw;
     g_shot_summary.abort_filtered_vout_raw  = g_adc_vout_filtered_raw;

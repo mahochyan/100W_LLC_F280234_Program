@@ -1,0 +1,18 @@
+HOST_SHA256_PASS
+attempt 1 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 2 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 3 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 4 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 5 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 6 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 7 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+attempt 8 st=3 abort=1 ok=1 fresh=1 freq=150500 max=856 ovf=0
+MULTIFRESH_500US_FRESH=1
+MULTIFRESH_500US_FREQ=150500
+MULTIFRESH_500US_PI=1
+MULTIFRESH_500US_APPLY=1
+MULTIFRESH_500US_PW=1
+MULTIFRESH_500US_PENDING=0
+MULTIFRESH_500US_ISR_MAX=856
+MULTIFRESH_500US_OVERRUN=0
+MULTIFRESH_500US_PASS=false

@@ -7,8 +7,8 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_500US_LIGHTLOAD_9FBEA053.out";
-var EXPECTED="9FBEA0533A3EE36E792ACBF8DF8CB3BC9C68AB69D122BE9CBAB69C4DBB196822";
+var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_ASYMMETRIC_0BE17D52.out";
+var EXPECTED="0BE17D52D03F3740130B06FC70F287C09883D9F9879625C1B3E9E77C3C4F1EE6";
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");

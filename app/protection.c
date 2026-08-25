@@ -265,8 +265,20 @@ __interrupt void TINT0_ISR(void)
             if (g_first_real_pi_shot_state == SHOT_STATE_ACTIVE)
             {
                 Uint32 s_delta = (Uint32)((Uint32)(g_shot_entry_last - r_entry) & 0xFFFFFFFFUL);
+                if (g_shot_entry_interval_min == 0UL || s_delta < g_shot_entry_interval_min)
+                    g_shot_entry_interval_min = s_delta;
                 if (s_delta > g_shot_entry_interval_max)
                     g_shot_entry_interval_max = s_delta;
+                if (s_delta > 1230UL) g_shot_entry_over_1230_count++;
+                if (s_delta > 1500UL) g_shot_entry_over_1500_count++;
+                if (s_delta > 2400UL) g_shot_entry_over_2400_count++;
+                if (g_shot_entry_adjacent_prev != 0UL)
+                {
+                    Uint32 adj = g_shot_entry_adjacent_prev + s_delta;
+                    if (adj > g_shot_entry_adjacent_max)
+                        g_shot_entry_adjacent_max = adj;
+                }
+                g_shot_entry_adjacent_prev = s_delta;
                 g_shot_entry_last = r_entry;
             }
         }
