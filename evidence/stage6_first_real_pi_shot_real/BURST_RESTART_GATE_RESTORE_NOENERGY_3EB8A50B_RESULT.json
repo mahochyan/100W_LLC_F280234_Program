@@ -1,0 +1,31 @@
+{
+  "milestone": "BURST_RESTART_GATE_RESTORE_NOENERGY_V1_8",
+  "noenergy_out_sha256": "3EB8A50B1E2D5BB571CAED36E1E8E924781BED9B9CE38D19901110F49B140B6F",
+  "verdict": "FAIL",
+  "failure_reason": "OVERRUN_AND_HW_TRIP_DELTA",
+  "values": {
+    "state": 3,
+    "abort": 10,
+    "ok": 1,
+    "burst_enter_count": 1,
+    "burst_exit_count": 1,
+    "restart_attempt_count": 1,
+    "restart_success_count": 1,
+    "restart_fail_count": 0,
+    "isr_max": 18061741,
+    "compute_max": 776,
+    "apply_max": 776,
+    "overrun": 6,
+    "entry_interval_max": 0,
+    "burst_entry_to_restart_delta": 19317,
+    "hardware_trip_delta": 1,
+    "active_trip_delta": 0,
+    "burst_state": 5,
+    "ost_owner": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0
+  }
+}

@@ -775,12 +775,27 @@ void CTRL_FastTask(void)
      * final safe stop BEFORE any PI/apply. This gives OST 1->0->1 evidence. */
     if (g_burst_state == BURST_STATE_RESTARTED)
     {
+        Uint16 ok = 1U;
         LLC_PWM_DisableSafe();
         g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
-        g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
-        g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+        if ((g_tz_hardware_trip_count - g_burst_entry_hw_trip_count) != 0UL) ok = 0U;
+        if ((g_tz_active_window_trip_count - g_burst_entry_active_trip_count) != 0UL) ok = 0U;
+        if (g_fault_flags != 0UL) ok = 0U;
+        if (ok != 0U)
+        {
+            g_burst_restart_success_count++;
+            g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+            g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+            g_first_real_pi_shot_ok    = 1U;
+        }
+        else
+        {
+            g_burst_restart_fail_count++;
+            g_first_real_pi_shot_abort = SHOT_ABORT_TZ;
+            g_shot_summary.abort_reason = SHOT_ABORT_TZ;
+            g_first_real_pi_shot_ok    = 0U;
+        }
         g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
-        g_first_real_pi_shot_ok    = 1U;
         g_first_real_pi_shot_arm   = 0U;
         g_pipeline_pending.valid   = 0U;
         g_pipeline_executed_phase  = 0xFFU;

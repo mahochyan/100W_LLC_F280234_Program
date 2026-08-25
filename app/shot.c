@@ -597,13 +597,50 @@ void SHOT_BurstRestart(void)
 
     if (g_burst_state == BURST_STATE_RESTART_ARMED)
     {
-        /* Tick B: prepare deterministic start. */
+        /* Tick B: prepare deterministic start, with full safety gate. */
+        Uint16 gate_ok = 1U;
         period = g_burst_restart_snapshot_period;
         actual = g_burst_restart_snapshot_actual_hz;
         g_burst_restart_pre_ost = EPwm1Regs.TZFLG.bit.OST;
         g_burst_restart_timer2 = CpuTimer2Regs.TIM.all;
         g_burst_entry_to_restart_delta =
             (Uint32)((Uint32)(g_burst_entry_timer2 - g_burst_restart_timer2) & 0xFFFFFFFFUL);
+        if (g_ost_owner != OST_OWNER_BURST_SOFTWARE) gate_ok = 0U;
+        if (g_burst_state != BURST_STATE_RESTART_ARMED) gate_ok = 0U;
+        if (g_burst_active != 1U) gate_ok = 0U;
+        if (g_first_real_pi_shot_arm != 1U) gate_ok = 0U;
+        if (g_fault_flags != 0UL) gate_ok = 0U;
+        if (EPwm1Regs.TZFLG.bit.OST != 1U) gate_ok = 0U;
+        if (EPwm1Regs.TZFLG.bit.INT != 0U) gate_ok = 0U;
+        if (GpioDataRegs.GPADAT.bit.GPIO15 != 1U) gate_ok = 0U;
+        if (g_board_vout_cal_valid == 0U) gate_ok = 0U;
+        if (g_comp_tz_loopback_verified == 0U) gate_ok = 0U;
+        if (g_burst_restart_attempt_count != 1UL) gate_ok = 0U;
+        if ((g_tz_hardware_trip_count - g_burst_entry_hw_trip_count) != 0UL) gate_ok = 0U;
+        if ((g_tz_active_window_trip_count - g_burst_entry_active_trip_count) != 0UL) gate_ok = 0U;
+        if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw) gate_ok = 0U;
+        if (period < TUTORIAL_MIN_BURST) gate_ok = 0U;
+        if (g_burst_restart_snapshot_cmpa != (Uint16)((period + 1UL) >> 1)) gate_ok = 0U;
+        if (g_burst_restart_snapshot_sequence == 0UL) gate_ok = 0U;
+        if (gate_ok == 0U)
+        {
+            g_burst_restart_fail_count++;
+            LLC_PWM_DisableSafe();
+            g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
+            g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+            g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+            g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+            g_first_real_pi_shot_ok    = 0U;
+            g_first_real_pi_shot_arm   = 0U;
+            g_pipeline_pending.valid   = 0U;
+            g_pipeline_executed_phase  = 0xFFU;
+            g_pipeline_phase           = PIPELINE_PHASE_COMPUTE;
+            g_pwm_enabled              = 0U;
+            g_pwm_enable_result        = 0U;
+            g_system_state             = SYS_STATE_IDLE;
+            g_power_window_state       = POWER_WINDOW_POST_OST;
+            return;
+        }
         if (PWM_PrepareStart(period, 36U, 0U) == 1U)
         {
             g_burst_state = BURST_STATE_RESTART_PREPARED;
@@ -632,15 +669,44 @@ void SHOT_BurstRestart(void)
 
     if (g_burst_state == BURST_STATE_RESTART_PREPARED)
     {
-        /* Tick C: start deterministic PWM. */
+        /* Tick C: start deterministic PWM, with full safety gate. */
+        Uint16 gate_ok = 1U;
         period = g_burst_restart_snapshot_period;
         actual = g_burst_restart_snapshot_actual_hz;
+        if (g_fault_flags != 0UL) gate_ok = 0U;
+        if (g_first_real_pi_shot_arm != 1U) gate_ok = 0U;
+        if (EPwm1Regs.TZFLG.bit.OST != 1U) gate_ok = 0U;
+        if (EPwm1Regs.TZFLG.bit.INT != 0U) gate_ok = 0U;
+        if (GpioDataRegs.GPADAT.bit.GPIO15 != 1U) gate_ok = 0U;
+        if ((g_tz_hardware_trip_count - g_burst_entry_hw_trip_count) != 0UL) gate_ok = 0U;
+        if ((g_tz_active_window_trip_count - g_burst_entry_active_trip_count) != 0UL) gate_ok = 0U;
+        if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw) gate_ok = 0U;
+        if (g_pwm_start_prepared != 1U) gate_ok = 0U;
+        if (gate_ok == 0U)
+        {
+            g_burst_restart_fail_count++;
+            LLC_PWM_DisableSafe();
+            g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
+            g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+            g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+            g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+            g_first_real_pi_shot_ok    = 0U;
+            g_first_real_pi_shot_arm   = 0U;
+            g_pipeline_pending.valid   = 0U;
+            g_pipeline_executed_phase  = 0xFFU;
+            g_pipeline_phase           = PIPELINE_PHASE_COMPUTE;
+            g_pwm_enabled              = 0U;
+            g_pwm_enable_result        = 0U;
+            g_system_state             = SYS_STATE_IDLE;
+            g_power_window_state       = POWER_WINDOW_POST_OST;
+            return;
+        }
         PWM_StartDeterministic();
         g_burst_restart_post_ost = EPwm1Regs.TZFLG.bit.OST;
         g_burst_restart_tbctr    = EPwm1Regs.TBCTR;
         g_burst_restart_tbprd    = EPwm1Regs.TBPRD;
         g_burst_restart_actual_frequency_hz = actual;
-        g_burst_restart_success_count++;
+        /* success is confirmed at Tick D, not here. */
         g_burst_state = BURST_STATE_RESTARTED;
         g_pipeline_executed_phase = PIPELINE_PHASE_APPLY;
         return;

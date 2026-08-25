@@ -123,3 +123,15 @@ Status: **FAIL — NOENERGY_ISR_OVER_BUDGET**
 - Therefore FAIL.
 
 Status: **FAIL — NOENERGY_WHOLE_ISR_OVER_BUDGET_AND_HW_TRIP_DELTA**
+
+## V1_8 Gate restore attempt
+
+- Restored Tick B/C safety gates.
+- Moved restart_success_count to Tick D.
+- compute/apply max now 776 (<=900).
+- Still FAIL:
+  - overrun=6
+  - hardware_trip_delta=1
+  - whole-ISR polluted/over budget.
+
+Status: **FAIL — OVERRUN_AND_HW_TRIP_DELTA**
