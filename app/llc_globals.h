@@ -174,6 +174,31 @@ extern volatile Uint32 g_shot_entry_over_2400_count;
 extern volatile Uint32 g_shot_entry_adjacent_prev;
 extern volatile Uint32 g_shot_entry_adjacent_max;
 extern volatile Uint32 g_shot_entry_last;           /* shot-local last entry */
+/* STAGE6_ONCHIP_TIMING_FREEZE_AND_CR20_LADDER_V1 - on-chip measurement window.
+ * Host writes only g_timing_request while halted; the next TINT0 entry clears
+ * the round, increments epoch, and activates the window. The window is frozen
+ * by firmware before the final software OST, so a later JTAG halt cannot
+ * pollute the round. */
+extern volatile Uint16 g_timing_request;
+extern volatile Uint16 g_timing_active;
+extern volatile Uint16 g_timing_frozen;
+extern volatile Uint32 g_timing_epoch;
+extern volatile Uint32 g_timing_sample_count;
+extern volatile Uint32 g_timing_active_isr_max;
+extern volatile Uint32 g_timing_compute_max;
+extern volatile Uint32 g_timing_apply_max;
+extern volatile Uint32 g_timing_shutdown_max;
+extern volatile Uint32 g_timing_overrun_count;
+/* 100 ms ladder: last-50 ms VOUT/frequency statistics (compiled only in the
+ * 100 ms build; zero overhead in 2 ms/10 ms builds). */
+extern volatile Uint16 g_timing_last50_vout_min;
+extern volatile Uint16 g_timing_last50_vout_max;
+extern volatile Uint32 g_timing_last50_vout_sum;
+extern volatile Uint32 g_timing_last50_vout_count;
+extern volatile Uint32 g_timing_last50_freq_min;
+extern volatile Uint32 g_timing_last50_freq_max;
+extern volatile Uint32 g_timing_last50_freq_sum;
+extern volatile Uint32 g_timing_last50_freq_count;
 #endif
 /* STAGE6_CLOSED_LOOP_HANDOFF - production handoff state (always built). */
 extern volatile Uint32 g_stage6_handoff_count;

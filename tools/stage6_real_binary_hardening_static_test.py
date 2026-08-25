@@ -185,13 +185,44 @@ check("FIRST_REAL_PI_MAX_HZ            170000UL" in shot_h, "shot envelope max 1
 check("SHOT_ClampFreq" in shot_c and "FIRST_REAL_PI_MIN_HZ" in shot_c and "FIRST_REAL_PI_MAX_HZ" in shot_c,
       "SHOT_ClampFreq clamps into 145..170 kHz")
 
-# 5. 1 ms real-time cage (1ms step: Timer2 cycles, not tick count)
-check(re.search(r"FIRST_REAL_PI_DURATION_CYCLES\s+60000UL", shot_h),
-      "1 ms real-time cage = 60000 Timer2 cycles at 60 MHz")
+# 5. Real-time cage (2 ms default; ladder builds override via -D)
+check("#ifndef FIRST_REAL_PI_DURATION_CYCLES" in shot_h and
+      "120000UL" in shot_h,
+      "FIRST_REAL_PI_DURATION_CYCLES is overridable, default 2 ms = 120000 cycles")
 check("FIRST_REAL_PI_DURATION_CYCLES" in read_text(ROOT / "app" / "control.c") and
       "SHOT_Revoke(SHOT_ABORT_TIMEOUT)" in read_text(ROOT / "app" / "control.c") and
       "g_first_real_pi_shot_first_write_timer2" in read_text(ROOT / "app" / "control.c"),
-      "on-chip 1 ms auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)")
+      "on-chip auto-OST via Timer2 gate in CTRL_FastTask (before any pending commit)")
+
+# 5b. STAGE6_ONCHIP_TIMING_FREEZE_AND_CR20_LADDER_V1
+globals_h = read_text(ROOT / "app" / "llc_globals.h")
+globals_c = read_text(ROOT / "app" / "llc_globals.c")
+prot = read_text(ROOT / "app" / "protection.c")
+for v in ["g_timing_request", "g_timing_active", "g_timing_frozen",
+          "g_timing_epoch", "g_timing_sample_count", "g_timing_active_isr_max",
+          "g_timing_compute_max", "g_timing_apply_max", "g_timing_shutdown_max",
+          "g_timing_overrun_count", "g_timing_last50_vout_min",
+          "g_timing_last50_vout_max", "g_timing_last50_vout_sum",
+          "g_timing_last50_vout_count", "g_timing_last50_freq_min",
+          "g_timing_last50_freq_max", "g_timing_last50_freq_sum",
+          "g_timing_last50_freq_count"]:
+    check(f"extern volatile" in globals_h and f" {v};" in globals_h,
+          f"extern volatile declaration for {v}")
+    check(re.search(rf"volatile\s+[^;]*\b{v}\b\s*(=\s*[^;]*)?;", globals_c),
+          f"non-static volatile definition for {v}")
+check("g_timing_request != 0U" in prot and "g_timing_epoch++" in prot,
+      "TINT0 entry starts/clears timing window on g_timing_request")
+check("r_timing_measure" in prot and "g_timing_shutdown_max" in prot,
+      "TINT0 exit commits frozen-window timing classification")
+check("SHOT_TimingFreeze" in read_text(ROOT / "app" / "shot.c") and
+      "SHOT_TimingFreeze" in read_text(ROOT / "app" / "shot.h"),
+      "SHOT_TimingFreeze implemented and declared")
+check("g_timing_active = 0U" in read_text(ROOT / "app" / "shot.c") and
+      "g_timing_frozen  = 1U" in read_text(ROOT / "app" / "shot.c"),
+      "timing freeze sets active=0 and frozen=1 before final OST")
+ladder_script = read_text(ROOT / "tools" / "stage6_onchip_timing_freeze_nopower_ladder_all.js")
+check('wv("g_timing_request",1)' in ladder_script,
+      "ladder no-power script writes only g_timing_request=1 before run")
 
 # 6. Debug override absent from REAL build
 check("#if !STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD" in shot_h,

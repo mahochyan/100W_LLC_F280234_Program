@@ -776,6 +776,7 @@ void CTRL_FastTask(void)
     if (g_burst_state == BURST_STATE_RESTARTED)
     {
         Uint16 ok = 1U;
+        SHOT_TimingFreeze();
         LLC_PWM_DisableSafe();
         g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
         if ((g_tz_hardware_trip_count - g_burst_entry_hw_trip_count) != 0UL) ok = 0U;

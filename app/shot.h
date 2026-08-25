@@ -25,10 +25,13 @@
 #define FIRST_REAL_PI_MIN_HZ            145000UL
 #define FIRST_REAL_PI_MAX_HZ            170000UL
 
-/* Real-time 500 us cage: 500e-6 s * 60 MHz = 30000 Timer2 cycles. The cage is
+/* Real-time cage: 500e-6 s * 60 MHz = 30000 Timer2 cycles. The cage is
  * checked from the first successful PHASE_APPLY (first_apply_timer2), so a
- * pending is never committed after the window has elapsed (500us step). */
+ * pending is never committed after the window has elapsed. The ladder builds
+ * override this via -D: 2 ms = 120000, 10 ms = 600000, 100 ms = 6000000. */
+#ifndef FIRST_REAL_PI_DURATION_CYCLES
 #define FIRST_REAL_PI_DURATION_CYCLES   120000UL
+#endif
 
 /* Pipeline phase ids. PHASE_COMPUTE runs PI + writes the pending structure
  * only; PHASE_APPLY re-verifies and commits (PWM registers) - never both in
@@ -159,6 +162,7 @@ void   SHOT_PendingCommit(void);                /* B: commit pending to PWM (app
 void   SHOT_Revoke(Uint16 reason);   /* on-chip termination (E/F/C/D) */
 void   SHOT_FastTask(void);          /* called from TINT0_ISR: cage + 11V abort + summary (E/D/F) */
 void   SHOT_OnTrip(void);            /* called from real TZ ISR (G): revoke on real trip */
+void   SHOT_TimingFreeze(void);      /* STAGE6_ONCHIP_TIMING_FREEZE: freeze round before final OST */
 void   SHOT_EnterTutorialBurst(void);  /* normal stop: tutorial light-load Burst entry */
 void   SHOT_BurstEnter(void);         /* enter Burst OFF, keep control running */
 void   SHOT_BurstRestart(void);       /* one deterministic restart, then final safe stop */

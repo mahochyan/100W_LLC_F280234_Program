@@ -180,6 +180,25 @@ volatile Uint32 g_shot_entry_over_2400_count    = 0UL;
 volatile Uint32 g_shot_entry_adjacent_prev      = 0UL;
 volatile Uint32 g_shot_entry_adjacent_max       = 0UL;
 volatile Uint32 g_shot_entry_last               = 0UL;   /* last TINT0 entry Timer2 for shot-local delta */
+/* STAGE6_ONCHIP_TIMING_FREEZE_AND_CR20_LADDER_V1 - on-chip measurement window. */
+volatile Uint16 g_timing_request       = 0U;
+volatile Uint16 g_timing_active        = 0U;
+volatile Uint16 g_timing_frozen         = 0U;
+volatile Uint32 g_timing_epoch          = 0UL;
+volatile Uint32 g_timing_sample_count   = 0UL;
+volatile Uint32 g_timing_active_isr_max = 0UL;
+volatile Uint32 g_timing_compute_max    = 0UL;
+volatile Uint32 g_timing_apply_max      = 0UL;
+volatile Uint32 g_timing_shutdown_max   = 0UL;
+volatile Uint32 g_timing_overrun_count  = 0UL;
+volatile Uint16 g_timing_last50_vout_min  = 0U;
+volatile Uint16 g_timing_last50_vout_max  = 0U;
+volatile Uint32 g_timing_last50_vout_sum  = 0UL;
+volatile Uint32 g_timing_last50_vout_count = 0UL;
+volatile Uint32 g_timing_last50_freq_min  = 0UL;
+volatile Uint32 g_timing_last50_freq_max  = 0UL;
+volatile Uint32 g_timing_last50_freq_sum  = 0UL;
+volatile Uint32 g_timing_last50_freq_count = 0UL;
 #endif
 
 /* Tutorial SoftStart Engine */

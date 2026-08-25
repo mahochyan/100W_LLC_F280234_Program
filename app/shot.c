@@ -383,6 +383,7 @@ void SHOT_PendingCommit(void)
 /* ------------------------------------------------------------------ */
 void SHOT_Revoke(Uint16 reason)
 {
+    SHOT_TimingFreeze();   /* STAGE6_ONCHIP_TIMING_FREEZE: freeze before final OST */
     g_first_real_pi_shot_abort = reason;
     g_first_real_pi_shot_arm   = 0U;   /* revoke PI write permission */
     g_shot_summary.abort_reason = reason;   /* E: ISR-side summary */
@@ -497,9 +498,23 @@ void SHOT_Revoke(Uint16 reason)
 /* ------------------------------------------------------------------ */
 void SHOT_OnTrip(void)
 {
+    SHOT_TimingFreeze();
     g_first_real_pi_shot_abort = SHOT_ABORT_TZ;
     g_first_real_pi_shot_arm   = 0U;
     g_first_real_pi_shot_state = SHOT_STATE_ABORTED;
+}
+
+/* STAGE6_ONCHIP_TIMING_FREEZE_AND_CR20_LADDER_V1:
+ * Freeze the on-chip timing round before the final software OST. After this,
+ * no later TINT0 ISR may modify the round statistics. The ISR that is already
+ * in progress and caused the freeze is still allowed to commit its final
+ * shutdown sample at exit (it started before the freeze). */
+void SHOT_TimingFreeze(void)
+{
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    g_timing_active = 0U;
+    g_timing_frozen  = 1U;
+#endif
 }
 
 /* STAGE6_TUTORIAL_LIGHTLOAD_BURST_ENTRY_RESTORE_V1:
@@ -508,6 +523,7 @@ void SHOT_OnTrip(void)
  * restart. This round only enters Burst. */
 void SHOT_EnterTutorialBurst(void)
 {
+    SHOT_TimingFreeze();
     g_burst_active = 1U;
     g_burst_enter_count++;
     g_first_real_pi_shot_arm   = 0U;
@@ -555,6 +571,7 @@ Uint16 SHOT_BurstShadowControlAllowed(void)
  * Enter Burst OFF but keep the control task running (not COMPLETE). */
 void SHOT_BurstEnter(void)
 {
+    SHOT_TimingFreeze();
     g_burst_active = 1U;
     g_burst_state  = BURST_STATE_OFF_WAIT;
     g_burst_enter_count++;
@@ -639,6 +656,7 @@ void SHOT_BurstRestart(void)
         if (gate_ok == 0U)
         {
             g_burst_restart_fail_count++;
+            SHOT_TimingFreeze();
             LLC_PWM_DisableSafe();
             g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
             g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
@@ -663,6 +681,7 @@ void SHOT_BurstRestart(void)
         else
         {
             g_burst_restart_fail_count++;
+            SHOT_TimingFreeze();
             LLC_PWM_DisableSafe();
             g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
             g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
@@ -699,6 +718,7 @@ void SHOT_BurstRestart(void)
         if (gate_ok == 0U)
         {
             g_burst_restart_fail_count++;
+            SHOT_TimingFreeze();
             LLC_PWM_DisableSafe();
             g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
             g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
@@ -758,6 +778,45 @@ void SHOT_FastTask(void)
     /* E: max VOUT raw (whole shot), cheap per-tick compare. */
     if (g_adc_vout_filtered_raw > (Uint16)g_shot_summary.max_vout_raw)
         g_shot_summary.max_vout_raw = g_adc_vout_filtered_raw;
+
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD && FIRST_REAL_PI_DURATION_CYCLES >= 6000000UL
+    /* 100 ms ladder: record the last 50 ms (3,000,000 Timer2 cycles) of VOUT
+     * and actual frequency on-chip. This is measurement-only and compiled only
+     * into the 100 ms build. */
+    {
+        Uint32 now = (Uint32)CpuTimer2Regs.TIM.all;
+        Uint32 elapsed = (Uint32)((Uint32)(g_first_real_pi_shot_first_write_timer2 - now) & 0xFFFFFFFFUL);
+        if (elapsed >= (FIRST_REAL_PI_DURATION_CYCLES - 3000000UL))
+        {
+            Uint16 vout = g_adc_vout_filtered_raw;
+            Uint32 freq = g_actual_switching_frequency_hz;
+            if (g_timing_last50_vout_count == 0UL)
+            {
+                g_timing_last50_vout_min = vout;
+                g_timing_last50_vout_max = vout;
+            }
+            else
+            {
+                if (vout < g_timing_last50_vout_min) g_timing_last50_vout_min = vout;
+                if (vout > g_timing_last50_vout_max) g_timing_last50_vout_max = vout;
+            }
+            g_timing_last50_vout_sum += vout;
+            g_timing_last50_vout_count++;
+            if (g_timing_last50_freq_count == 0UL)
+            {
+                g_timing_last50_freq_min = freq;
+                g_timing_last50_freq_max = freq;
+            }
+            else
+            {
+                if (freq < g_timing_last50_freq_min) g_timing_last50_freq_min = freq;
+                if (freq > g_timing_last50_freq_max) g_timing_last50_freq_max = freq;
+            }
+            g_timing_last50_freq_sum += freq;
+            g_timing_last50_freq_count++;
+        }
+    }
+#endif
 
     /* F: fast 11 V VOUT abort. */
     if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw)

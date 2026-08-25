@@ -66,6 +66,26 @@ void PROT_Init(void)
     g_softstart_abort_reason = 0U;
     g_pwm_start_prepared = 0U;
     g_no_energy_test_mode = 0U;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    g_timing_request       = 0U;
+    g_timing_active        = 0U;
+    g_timing_frozen        = 0U;
+    g_timing_epoch         = 0UL;
+    g_timing_sample_count  = 0UL;
+    g_timing_active_isr_max = 0UL;
+    g_timing_compute_max   = 0UL;
+    g_timing_apply_max     = 0UL;
+    g_timing_shutdown_max  = 0UL;
+    g_timing_overrun_count = 0UL;
+    g_timing_last50_vout_min  = 0U;
+    g_timing_last50_vout_max  = 0U;
+    g_timing_last50_vout_sum  = 0UL;
+    g_timing_last50_vout_count = 0UL;
+    g_timing_last50_freq_min  = 0UL;
+    g_timing_last50_freq_max  = 0UL;
+    g_timing_last50_freq_sum  = 0UL;
+    g_timing_last50_freq_count = 0UL;
+#endif
 
     /* Critical zero-init for globals that were previously compile-time zero.
      * Keeping them as uninitialized .ebss saves .cinit space, so they must be
@@ -235,6 +255,31 @@ __interrupt void TINT0_ISR(void)
 {
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     Uint16 r_entry_pws = g_power_window_state;
+    Uint32 r_entry = CpuTimer2Regs.TIM.all;
+    Uint16 r_timing_measure = 0U;
+    /* STAGE6_ONCHIP_TIMING_FREEZE_AND_CR20_LADDER_V1:
+     * Host writes only g_timing_request while halted. The next TINT0 entry
+     * atomically clears the round, increments the epoch, and activates the
+     * window. A local entry timestamp is used at exit so a stale entry from a
+     * previous/suspended ISR can never be mixed into this round. */
+    if (g_timing_request != 0U)
+    {
+        g_timing_sample_count   = 0UL;
+        g_timing_active_isr_max = 0UL;
+        g_timing_compute_max    = 0UL;
+        g_timing_apply_max      = 0UL;
+        g_timing_shutdown_max   = 0UL;
+        g_timing_overrun_count  = 0UL;
+        g_timing_epoch++;
+        g_timing_active  = 1U;
+        g_timing_frozen  = 0U;
+        g_timing_request = 0U;
+        r_timing_measure = 1U;
+    }
+    else if (g_timing_active != 0U && g_timing_frozen == 0U)
+    {
+        r_timing_measure = 1U;
+    }
 #endif
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     Uint32 t_isr_entry = 0UL, t_isr_exit = 0UL;
@@ -267,7 +312,6 @@ __interrupt void TINT0_ISR(void)
      * Timer2 cycle counting; does not modify ADC, PI input, PWM command, or
      * protection. Present in the final frozen REAL OUT. */
     {
-        Uint32 r_entry = CpuTimer2Regs.TIM.all;
         if (g_real_timer0_entry_count == 0UL)
         {
             g_real_timer0_entry_interval_min = 0UL;
@@ -532,6 +576,40 @@ __interrupt void TINT0_ISR(void)
         {
             if (g_real_isr_cycles_last > g_real_shutdown_isr_cycles_max)
                 g_real_shutdown_isr_cycles_max = g_real_isr_cycles_last;
+        }
+        /* STAGE6_ONCHIP_TIMING_FREEZE_AND_CR20_LADDER_V1:
+         * Commit the round only for ISRs that started inside the active timing
+         * window. The final ISR that froze the window is still allowed to commit
+         * its shutdown sample; after that, g_timing_active==0 prevents any later
+         * ISR from modifying the round. */
+        if (r_timing_measure != 0U)
+        {
+            Uint32 r_timing_cycles = (Uint32)((Uint32)(r_entry - r_exit) & 0xFFFFFFFFUL);
+            g_timing_sample_count++;
+            if (r_timing_cycles >= 1200UL)
+                g_timing_overrun_count++;
+            if (r_entry_pws == POWER_WINDOW_ACTIVE &&
+                g_power_window_state != POWER_WINDOW_ACTIVE)
+            {
+                if (r_timing_cycles > g_timing_shutdown_max)
+                    g_timing_shutdown_max = r_timing_cycles;
+            }
+            else if (r_entry_pws == POWER_WINDOW_ACTIVE &&
+                     g_power_window_state == POWER_WINDOW_ACTIVE)
+            {
+                if (r_timing_cycles > g_timing_active_isr_max)
+                    g_timing_active_isr_max = r_timing_cycles;
+            }
+            if (g_pipeline_executed_phase == PIPELINE_PHASE_COMPUTE)
+            {
+                if (r_timing_cycles > g_timing_compute_max)
+                    g_timing_compute_max = r_timing_cycles;
+            }
+            else if (g_pipeline_executed_phase == PIPELINE_PHASE_APPLY)
+            {
+                if (r_timing_cycles > g_timing_apply_max)
+                    g_timing_apply_max = r_timing_cycles;
+            }
         }
     }
 #endif
