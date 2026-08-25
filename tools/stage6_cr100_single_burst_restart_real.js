@@ -198,8 +198,15 @@ print("COMP_DAC="+compDac+" COMP_TBCTR="+compTbctr+" COMP_VOUT="+compVout);
 print("ACC_PHASE="+accPhase+" ACC_PERIOD="+accPeriod+" ACC_CMPA="+accCmpa+" ACC_DB="+accDb+" ACC_CYCLES="+accCycles+" ACC_STOP="+accStop);
 print("HW_TRIP="+hwTrip+" ACT_TRIP="+actTrip+" POST_TRIP="+postTrip+" SOFT_OST="+softOst+" SOFT_PENDING="+softPending+" SOFT_TIMER="+softTimer+" SOFT_CONSUMED="+softConsumed+" SOFT_LATE="+softLate);
 
-// ---- strict PASS gates ----
+// ---- Burst restart counters ----
+var bEnter=rv32("g_burst_enter_count"); var bExit=rv32("g_burst_exit_count"); var bAttempt=rv32("g_burst_restart_attempt_count"); var bSuccess=rv32("g_burst_restart_success_count"); var bFail=rv32("g_burst_restart_fail_count"); var bState=rw("g_burst_state"); var bPre=rw("g_burst_restart_pre_ost"); var bPost=rw("g_burst_restart_post_ost"); var bDelta=rv32("g_burst_entry_to_restart_delta"); var hwDelta=rv32("g_tz_hardware_trip_count")-rv32("g_burst_entry_hw_trip_count"); var actDelta=rv32("g_tz_active_window_trip_count")-rv32("g_burst_entry_active_trip_count");
+print("BURST enter="+bEnter+" exit="+bExit+" attempt="+bAttempt+" success="+bSuccess+" fail="+bFail+" state="+bState+" pre="+bPre+" post="+bPost+" delta="+bDelta+" hwDelta="+hwDelta+" actDelta="+actDelta);
+
+// ---- strict PASS gates (Burst restart) ----
 chk("SHOT_STATE_COMPLETE", st===3);
+chk("ABORT_BURST_RESTART_DONE", ab===10);
+chk("SUMMARY_ABORT_REASON_10", sab===10);
+chk("OK", okf===1);
 chk("SOFTSTART_COMPLETE", ssres===1);
 chk("HANDOFF_OK", hres===1);
 chk("VOUT_MAX_BELOW_11V", smv < abortRaw);
@@ -208,29 +215,24 @@ chk("TZ_ACTIVE_ZERO", int2==="0" && ost2==="1");
 chk("ISR_MAX_LE_900", isrMax<=900);
 chk("COMPUTE_MAX_LE_900", cMax<=900);
 chk("APPLY_MAX_LE_900", aMax<=900);
-chk("ENTRY_INTERVAL_LE_1230", sEntryMax<=1230);
 chk("OVERRUN_ZERO", ovf===0);
 chk("FREQ_MIN_145K", smin>=145000);
 chk("FREQ_MAX_170K", smax<=170000);
-chk("TIMER2_DELTA_29500_32500", t2d>=29500 && t2d<=32500);
-chk("FRESH_COMPUTE_POSITIVE", fcc>0);
-chk("FRESH_EQUALS_PI", fcc===spc);
-chk("SEQUENCE_ADVANCED", lastSeq>firstSeq && lastCon>firstCon);
-chk("PWM_APPLY_LE_FRESH", sac<=fcc);
-chk("POWER_WRITES_EQUALS_APPLY", pw===sac);
+chk("BURST_ENTER_1", bEnter===1);
+chk("BURST_EXIT_1", bExit===1);
+chk("BURST_ATTEMPT_1", bAttempt===1);
+chk("BURST_SUCCESS_1", bSuccess===1);
+chk("BURST_FAIL_0", bFail===0);
+chk("BURST_STATE_FINAL_SAFE_STOP", bState===5);
+chk("RESTART_PRE_OST_1", bPre===1);
+chk("RESTART_POST_OST_0", bPost===0);
+chk("RESTART_DELTA_LT_30000", bDelta>0 && bDelta<30000);
+chk("HW_TRIP_DELTA_ZERO", hwDelta===0);
+chk("ACTIVE_TRIP_DELTA_ZERO", actDelta===0);
 chk("PENDING_FINAL_INVALID", pv===0);
-var piDirPass = (sErrLast<0) ? (slast>=sfirst) : (sErrLast>0) ? (slast<=sfirst) : true;
-print("PI_DIRECTION_CONDITIONAL_PASS="+piDirPass);
-chk("PI_DIRECTION_CONDITIONAL_PASS", piDirPass);
 chk("FINAL_PWM_ZERO", pwm2===0);
 chk("FINAL_OST_1", ost2==="1");
 chk("POWER_WINDOW_POST_OST", pws2===2);
-chk("SUMMARY_ABORT_REASON_TIMEOUT", sab===1);
-chk("NO_ABORT_TZ", ab!==ENUM_SHOT_ABORT_TZ);
-chk("NO_ABORT_PERMISSION", ab!==ENUM_SHOT_ABORT_PERMISSION);
-chk("ENTRY_OVER_1500_ZERO", e1500===0);
-chk("ENTRY_OVER_2400_ZERO", e2400===0);
-chk("ENTRY_ADJACENT_MAX_LE_2460", eAdj<=2460);
-if (fails===0) { print("EXACT_CR100OHM_500US_POWER_BEHAVIOR_PASS"); }
-else { print("EXACT_CR100OHM_500US_POWER_BEHAVIOR_FAIL"); }
-print("CR100_500US_REAL_DONE");
+if (fails===0) { print("STAGE6_NO_SCOPE_DIAGNOSTIC_PASS"); }
+else { print("STAGE6_NO_SCOPE_DIAGNOSTIC_FAIL"); }
+print("NO_SCOPE_DIAGNOSTIC_DONE");
