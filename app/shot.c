@@ -126,8 +126,14 @@ void SHOT_Init(void)
     g_burst_enabled = 1U;   /* tutorial Burst entry active in bounded-shot candidate */
 #endif
     g_burst_active = 0U;
+    g_burst_state = BURST_STATE_NONE;
+    g_ost_owner = OST_OWNER_UNKNOWN;
     g_burst_enter_count = 0UL;
     g_burst_exit_count = 0UL;
+    g_burst_restart_attempt_count = 0UL;
+    g_burst_restart_success_count = 0UL;
+    g_burst_restart_fail_count = 0UL;
+    g_burst_stale_restart_count = 0UL;
 }
 
 /* ------------------------------------------------------------------ */
@@ -475,6 +481,85 @@ void SHOT_EnterTutorialBurst(void)
     g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
     g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
     g_first_real_pi_shot_ok    = 1U;
+    g_pwm_enabled              = 0U;
+    g_pwm_enable_result        = 0U;
+    g_system_state             = SYS_STATE_IDLE;
+    g_power_window_state       = POWER_WINDOW_POST_OST;
+}
+
+/* STAGE6_TUTORIAL_BURST_RESTART_NOENERGY_CLOSURE_V1_1:
+ * Enter Burst OFF but keep the control task running (not COMPLETE). */
+void SHOT_BurstEnter(void)
+{
+    g_burst_active = 1U;
+    g_burst_state  = BURST_STATE_OFF_WAIT;
+    g_burst_enter_count++;
+    g_ost_owner = OST_OWNER_BURST_SOFTWARE;
+    g_burst_entry_vout_raw      = g_control_vout_raw;
+    g_burst_entry_error_raw     = g_control_error_raw;
+    g_burst_entry_period        = g_pipeline_pending.period;
+    g_burst_entry_frequency_hz  = g_pipeline_pending.command_hz;
+    g_burst_entry_adc_sequence  = g_adc_sample_sequence;
+    g_burst_entry_timer2        = CpuTimer2Regs.TIM.all;
+    g_pipeline_pending.valid    = 0U;
+    g_pipeline_executed_phase   = 0xFFU;
+    g_pipeline_phase            = PIPELINE_PHASE_COMPUTE;
+    LLC_PWM_DisableSafe();
+    /* Keep shot ACTIVE; supervisor continues, ADC/PI keep running. */
+}
+
+/* STAGE6_TUTORIAL_BURST_RESTART_NOENERGY_CLOSURE_V1_1:
+ * One deterministic restart, then final safe stop. */
+void SHOT_BurstRestart(void)
+{
+    Uint16 period = g_pipeline_pending.period;
+    Uint32 actual = g_pipeline_pending.actual_hz;
+
+    g_burst_exit_count++;
+    g_burst_restart_attempt_count++;
+    g_burst_exit_vout_raw     = g_control_vout_raw;
+    g_burst_exit_error_raw    = g_control_error_raw;
+    g_burst_exit_period       = period;
+    g_burst_exit_frequency_hz = g_pipeline_pending.command_hz;
+    g_burst_exit_adc_sequence = g_adc_sample_sequence;
+    g_burst_exit_timer2       = CpuTimer2Regs.TIM.all;
+
+    g_burst_restart_pre_ost = EPwm1Regs.TZFLG.bit.OST;
+    /* Deterministic start through the formal path (safe in NOENERGY). */
+    if (PWM_PrepareStart(period, 36U, 0U) == 1U)
+    {
+        PWM_StartDeterministic();
+        g_burst_restart_post_ost = EPwm1Regs.TZFLG.bit.OST;
+        g_burst_restart_tbctr    = EPwm1Regs.TBCTR;
+        g_burst_restart_tbprd    = EPwm1Regs.TBPRD;
+        g_burst_restart_actual_frequency_hz = actual;
+        g_burst_restart_success_count++;
+        g_burst_state = BURST_STATE_RESTARTED;
+    }
+    else
+    {
+        g_burst_restart_fail_count++;
+        g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
+        LLC_PWM_DisableSafe();
+        g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+        g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_ENTRY;
+        g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+        g_first_real_pi_shot_ok    = 0U;
+        return;
+    }
+
+    /* One short NOENERGY validation window is represented by this immediate
+     * final safe stop in the minimal implementation. */
+    g_pipeline_pending.valid = 0U;
+    g_pipeline_executed_phase = 0xFFU;
+    g_pipeline_phase = PIPELINE_PHASE_COMPUTE;
+    LLC_PWM_DisableSafe();
+    g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
+    g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+    g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+    g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+    g_first_real_pi_shot_ok    = 1U;
+    g_first_real_pi_shot_arm   = 0U;
     g_pwm_enabled              = 0U;
     g_pwm_enable_result        = 0U;
     g_system_state             = SYS_STATE_IDLE;

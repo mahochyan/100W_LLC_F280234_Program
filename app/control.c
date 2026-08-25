@@ -638,14 +638,28 @@ static void CTRL_PipelineApply(void)
     }
 
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
-    /* STAGE6_TUTORIAL_LIGHTLOAD_BURST_ENTRY_RESTORE_V1:
-     * Tutorial-style Burst entry: if the PI requests a period below
-     * TUTORIAL_MIN_BURST (frequency above ~150 kHz), enter Burst and stop
-     * safely instead of writing the high-frequency PWM command. */
-    if (g_burst_enabled != 0U && p->period < TUTORIAL_MIN_BURST)
+    /* STAGE6_TUTORIAL_BURST_RESTART_NOENERGY_CLOSURE_V1_1:
+     * Minimal tutorial Burst state machine. */
+    if (g_burst_enabled != 0U)
     {
-        SHOT_EnterTutorialBurst();
-        return;
+        if (g_burst_active == 0U && p->period < TUTORIAL_MIN_BURST)
+        {
+            SHOT_BurstEnter();       /* enter Burst OFF, keep control running */
+            return;
+        }
+        if (g_burst_active != 0U && p->period >= TUTORIAL_MIN_BURST &&
+            g_burst_restart_success_count == 0UL)
+        {
+            SHOT_BurstRestart();     /* one deterministic restart, then safe stop */
+            return;
+        }
+        if (g_burst_active != 0U && p->period < TUTORIAL_MIN_BURST)
+        {
+            /* Stay in Burst OFF: discard pending, no PWM write. */
+            p->valid = 0U;
+            g_pipeline_executed_phase = 0xFFU;
+            return;
+        }
     }
 #endif
     cmd = p->command_hz;

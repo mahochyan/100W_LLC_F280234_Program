@@ -1,0 +1,22 @@
+{
+  "milestone": "TUTORIAL_BURST_RESTART_NOENERGY",
+  "noenergy_out_sha256": "A3DCA32553DDD1C648B55B6A801F0B4700EAADF03722DF8F3ECA4EE55D6B08E1",
+  "verdict": "FAIL",
+  "failure_reason": "RESTART_NOT_TRIGGERED_AFTER_BURST_OFF",
+  "phase1": {"state": 0, "burst_active": 1, "burst_enter_count": 1},
+  "final": {
+    "state": 0,
+    "abort": 0,
+    "ok": 0,
+    "burst_enter_count": 1,
+    "burst_exit_count": 0,
+    "restart_attempt_count": 0,
+    "restart_success_count": 0,
+    "restart_fail_count": 0,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0
+  }
+}

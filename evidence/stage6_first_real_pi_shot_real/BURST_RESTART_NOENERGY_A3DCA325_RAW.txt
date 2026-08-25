@@ -1,0 +1,5 @@
+PHASE1 state=0 burst_active=1 enter=1
+FINAL state=0 abort=0 ok=0
+enter=1 exit=0 attempt=0 success=0 fail=0
+pending=0 pwm=0 ost=1 pws=2 fault=0
+BURST_RESTART_NOENERGY_PASS=false

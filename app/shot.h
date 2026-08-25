@@ -54,10 +54,25 @@
 #define SHOT_ABORT_NO_HANDOFF 7U   /* SoftStart FINAL window expired without 10V handoff */
 #define SHOT_ABORT_CEILING    8U   /* SoftStart hard ceiling (12V) reached during ramp */
 #define SHOT_ABORT_TUTORIAL_BURST_ENTRY 9U  /* normal stop: tutorial light-load Burst entry */
+#define SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE 10U  /* normal stop: one Burst restart completed */
 
 /* Tutorial CSS024DV2.1_PI Burst entry: period_request < 400 (i.e. frequency
  * request above ~150 kHz) -> PWM off / Burst active. This round only enters. */
 #define TUTORIAL_MIN_BURST       400U
+
+/* Minimal tutorial Burst state machine (STAGE6_TUTORIAL_BURST_RESTART_NOENERGY_CLOSURE_V1_1). */
+#define BURST_STATE_NONE              0U
+#define BURST_STATE_ON                1U
+#define BURST_STATE_OFF_WAIT          2U
+#define BURST_STATE_RESTART_ARMED     3U
+#define BURST_STATE_RESTARTED         4U
+#define BURST_STATE_FINAL_SAFE_STOP   5U
+
+/* Software OST owner tracking. */
+#define OST_OWNER_UNKNOWN         0U
+#define OST_OWNER_BURST_SOFTWARE  1U
+#define OST_OWNER_HARDWARE_TZ     2U
+#define OST_OWNER_SAFETY_ABORT    3U
 
 /* ------------------------------------------------------------------ */
 /* B: pending structure - produced by PHASE_COMPUTE, consumed (once) by
@@ -144,6 +159,8 @@ void   SHOT_Revoke(Uint16 reason);   /* on-chip termination (E/F/C/D) */
 void   SHOT_FastTask(void);          /* called from TINT0_ISR: cage + 11V abort + summary (E/D/F) */
 void   SHOT_OnTrip(void);            /* called from real TZ ISR (G): revoke on real trip */
 void   SHOT_EnterTutorialBurst(void);  /* normal stop: tutorial light-load Burst entry */
+void   SHOT_BurstEnter(void);         /* enter Burst OFF, keep control running */
+void   SHOT_BurstRestart(void);       /* one deterministic restart, then final safe stop */
 
 /* Non-static shot globals (CCS-visible by name). */
 extern volatile Uint16 g_first_real_pi_shot_build;
