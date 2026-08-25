@@ -9,8 +9,10 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var OUT = "D:\\CCS21_workspace\\Codex_Project\\Stage6_FLASH_SHOT_REAL_CR15_2MS\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out";
-var EXPECTED_SHA = "5E2B320B906F867725A9C843A94E78B8D50CB576CA92E2841871AF081DE3EDD7";
+var OUT = java.lang.System.getenv("SOL_W1_OUT") ||
+  "D:\\CCS21_workspace\\Codex_Project\\Stage6_FLASH_SHOT_REAL_CR15_2MS\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out";
+var EXPECTED_SHA = java.lang.System.getenv("SOL_W1_EXPECTED_SHA") ||
+  "5E2B320B906F867725A9C843A94E78B8D50CB576CA92E2841871AF081DE3EDD7";
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256"); var fis=new FileInputStream(path);
   var buf=java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE,8192); var n;

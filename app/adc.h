@@ -16,6 +16,9 @@ void ADC_UpdatePwmSyncPoint(Uint16 period);
 void ADC_UpdatePwmSyncPointKeepCadence(Uint16 period);
 void ADC_SoftwareTrigger(void);
 void ADC_CheckOverflow(void);
+void ADC_ResetFreshnessBlackbox(void);
+void ADC_FreezeFirstStale(Uint16 phase);
+void ADC_FreezeFaultSnapshot(void);
 
 /* ISR implemented here for PIE vector assignment */
 __interrupt void ADCINT1_ISR(void);

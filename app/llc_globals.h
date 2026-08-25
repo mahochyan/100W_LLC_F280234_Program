@@ -100,6 +100,40 @@ extern volatile Uint32  g_control_duplicate_sample_block_count;
 extern volatile Uint32  g_control_stale_tick_count;
 extern volatile Uint32  g_control_pi_update_count;
 
+/* SOL W1 ADC freshness black box (first-stale and fault snapshots freeze once). */
+extern volatile Uint16 g_adc_freshness_wait_first_publish;
+extern volatile Uint16 g_adc_freshness_monitor_armed;
+extern volatile Uint32 g_adc_last_publish_timer2;
+extern volatile Uint32 g_control_last_consume_timer2;
+extern volatile Uint32 g_adc_stale_total;
+extern volatile Uint16 g_adc_stale_consecutive_max;
+extern volatile Uint16 g_adc_first_stale_frozen;
+extern volatile Uint16 g_adc_first_stale_phase;
+extern volatile Uint32 g_adc_first_stale_fast_tick;
+extern volatile Uint32 g_adc_first_stale_timer2;
+extern volatile Uint32 g_adc_first_stale_publish_sequence;
+extern volatile Uint32 g_adc_first_stale_consume_sequence;
+extern volatile Uint32 g_adc_first_stale_sample_age_cycles;
+extern volatile Uint16 g_adc_first_stale_consecutive;
+extern volatile Uint16 g_adc_first_stale_intflg;
+extern volatile Uint16 g_adc_first_stale_intovf;
+extern volatile Uint16 g_adc_first_stale_socflg;
+extern volatile Uint16 g_adc_first_stale_socovf;
+extern volatile Uint16 g_adc_first_stale_soca_flag;
+extern volatile Uint16 g_adc_first_stale_soca_enable;
+extern volatile Uint16 g_adc_first_stale_soca_period;
+extern volatile Uint16 g_adc_fault_snapshot_frozen;
+extern volatile Uint16 g_adc_fault_snapshot_phase;
+extern volatile Uint32 g_adc_fault_snapshot_timer2;
+extern volatile Uint32 g_adc_fault_snapshot_flags;
+extern volatile Uint32 g_adc_fault_snapshot_publish_sequence;
+extern volatile Uint32 g_adc_fault_snapshot_consume_sequence;
+extern volatile Uint16 g_adc_fault_snapshot_intflg;
+extern volatile Uint16 g_adc_fault_snapshot_intovf;
+extern volatile Uint16 g_adc_fault_snapshot_socflg;
+extern volatile Uint16 g_adc_fault_snapshot_socovf;
+extern volatile Uint32 g_adc_ovf_active_count;
+
 /* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation. Macro is set ONLY in
  * the Stage6_FLASH_NOENERGY test build; production Stage6_FLASH keeps it 0. */
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST

@@ -735,6 +735,8 @@ Uint16 SoftStart_TransferToClosedLoop(void)
 
     /* I + K: ADC ownership handoff. The SoftStart ePWM-cycle ISR stops
      * owning ADC freshness; ADCINT1 closed-loop vector takes over. */
+    ADC_ResetFreshnessBlackbox();
+    g_adc_freshness_wait_first_publish = 1U;
     EALLOW;
     EPwm1Regs.ETSEL.bit.INTEN = 0U;               /* release SoftStart ePWM INT */
     PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;           /* clear pending ADCINT1 */

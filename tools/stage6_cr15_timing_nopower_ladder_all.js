@@ -13,13 +13,15 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var BASE = "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
+var BASE = java.lang.System.getenv("SOL_W1_LADDER_BASE") ||
+  "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
 var MANIFEST = BASE + "\\REAL_CR15_LADDER_SHA256SUMS.txt";
 var CONFIGS = [
   { label:"2MS",  out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out",  waitMs:10,  shaKey:"REAL_CR15_2MS_OUT_SHA256" },
   { label:"10MS", out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_10MS.out", waitMs:25,  shaKey:"REAL_CR15_10MS_OUT_SHA256" },
   { label:"100MS",out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_100MS.out",waitMs:130, shaKey:"REAL_CR15_100MS_OUT_SHA256" }
 ];
+var CONFIG_LIMIT = parseInt(java.lang.System.getenv("SOL_W1_LADDER_LIMIT") || "3", 10);
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
@@ -80,7 +82,7 @@ function gate(name,cond){
 try{session.target.connect();}catch(e){}
 var manifest=readManifest();
 
-for(var i=0;i<CONFIGS.length;i++){
+for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   var cfg=CONFIGS[i];
   print("=== LADDER STEP "+(i+1)+": "+cfg.label+" ===");
   var actual=sha256File(cfg.out);

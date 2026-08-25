@@ -112,6 +112,73 @@ volatile Uint32  g_control_duplicate_sample_block_count = 0UL;
 volatile Uint32  g_control_stale_tick_count         = 0UL;
 volatile Uint32  g_control_pi_update_count          = 0UL;
 
+/* SOL W1 ADC freshness black box. Event snapshots freeze once; the normal
+ * fast path only updates the two Timer2 stamps and bounded counters. */
+#pragma DATA_SECTION(g_adc_freshness_wait_first_publish, "shot_ram")
+#pragma DATA_SECTION(g_adc_freshness_monitor_armed, "shot_ram")
+#pragma DATA_SECTION(g_adc_last_publish_timer2, "shot_ram")
+#pragma DATA_SECTION(g_control_last_consume_timer2, "shot_ram")
+#pragma DATA_SECTION(g_adc_stale_total, "shot_ram")
+#pragma DATA_SECTION(g_adc_stale_consecutive_max, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_frozen, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_phase, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_fast_tick, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_timer2, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_publish_sequence, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_consume_sequence, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_sample_age_cycles, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_consecutive, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_intflg, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_intovf, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_socflg, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_socovf, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_soca_flag, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_soca_enable, "shot_ram")
+#pragma DATA_SECTION(g_adc_first_stale_soca_period, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_frozen, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_phase, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_timer2, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_flags, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_publish_sequence, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_consume_sequence, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_intflg, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_intovf, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_socflg, "shot_ram")
+#pragma DATA_SECTION(g_adc_fault_snapshot_socovf, "shot_ram")
+#pragma DATA_SECTION(g_adc_ovf_active_count, "shot_ram")
+volatile Uint16 g_adc_freshness_wait_first_publish  = 0U;
+volatile Uint16 g_adc_freshness_monitor_armed       = 0U;
+volatile Uint32 g_adc_last_publish_timer2           = 0UL;
+volatile Uint32 g_control_last_consume_timer2       = 0UL;
+volatile Uint32 g_adc_stale_total                   = 0UL;
+volatile Uint16 g_adc_stale_consecutive_max         = 0U;
+volatile Uint16 g_adc_first_stale_frozen            = 0U;
+volatile Uint16 g_adc_first_stale_phase             = 0U;
+volatile Uint32 g_adc_first_stale_fast_tick         = 0UL;
+volatile Uint32 g_adc_first_stale_timer2            = 0UL;
+volatile Uint32 g_adc_first_stale_publish_sequence  = 0UL;
+volatile Uint32 g_adc_first_stale_consume_sequence  = 0UL;
+volatile Uint32 g_adc_first_stale_sample_age_cycles = 0UL;
+volatile Uint16 g_adc_first_stale_consecutive       = 0U;
+volatile Uint16 g_adc_first_stale_intflg            = 0U;
+volatile Uint16 g_adc_first_stale_intovf            = 0U;
+volatile Uint16 g_adc_first_stale_socflg            = 0U;
+volatile Uint16 g_adc_first_stale_socovf            = 0U;
+volatile Uint16 g_adc_first_stale_soca_flag         = 0U;
+volatile Uint16 g_adc_first_stale_soca_enable       = 0U;
+volatile Uint16 g_adc_first_stale_soca_period       = 0U;
+volatile Uint16 g_adc_fault_snapshot_frozen         = 0U;
+volatile Uint16 g_adc_fault_snapshot_phase          = 0U;
+volatile Uint32 g_adc_fault_snapshot_timer2         = 0UL;
+volatile Uint32 g_adc_fault_snapshot_flags          = 0UL;
+volatile Uint32 g_adc_fault_snapshot_publish_sequence = 0UL;
+volatile Uint32 g_adc_fault_snapshot_consume_sequence = 0UL;
+volatile Uint16 g_adc_fault_snapshot_intflg         = 0U;
+volatile Uint16 g_adc_fault_snapshot_intovf         = 0U;
+volatile Uint16 g_adc_fault_snapshot_socflg         = 0U;
+volatile Uint16 g_adc_fault_snapshot_socovf         = 0U;
+volatile Uint32 g_adc_ovf_active_count              = 0UL;
+
 /* STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST instrumentation (test build only). */
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
 volatile Uint32 g_control_exec_cycles_last  = 0UL;

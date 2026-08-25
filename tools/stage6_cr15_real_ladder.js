@@ -23,13 +23,15 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var BASE = "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
+var BASE = java.lang.System.getenv("SOL_W1_LADDER_BASE") ||
+  "D:\\CCS21_workspace\\Codex_Project\\evidence\\stage6_first_real_pi_shot_real";
 var MANIFEST = BASE + "\\REAL_CR15_LADDER_SHA256SUMS.txt";
 var CONFIGS = [
   { label:"2MS",  out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_2MS.out",  waitMs:50,  shaKey:"REAL_CR15_2MS_OUT_SHA256" },
   { label:"10MS", out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_10MS.out", waitMs:100, shaKey:"REAL_CR15_10MS_OUT_SHA256" },
   { label:"100MS",out:BASE+"\\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_100MS.out",waitMs:300, shaKey:"REAL_CR15_100MS_OUT_SHA256" }
 ];
+var CONFIG_LIMIT = parseInt(java.lang.System.getenv("SOL_W1_REAL_LIMIT") || "3", 10);
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
@@ -97,7 +99,7 @@ function gate(name,cond){
 try{session.target.connect();}catch(e){}
 var manifest=readManifest();
 
-for(var i=0;i<CONFIGS.length;i++){
+for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   var cfg=CONFIGS[i];
   print("=== REAL CR15 LADDER STEP "+(i+1)+": "+cfg.label+" ===");
   var actual=sha256File(cfg.out);
@@ -183,6 +185,16 @@ for(var i=0;i<CONFIGS.length;i++){
   var be_unclp=rw("g_burst_entry_unclamped_period"); var be_pi=rv32("g_burst_entry_pi_integral_q12");
   var be_applied=rw("g_burst_entry_applied_period"); var be_t2=rv32("g_burst_entry_timer2");
   var fsat=rv32("g_control_fmax_saturate_count");
+  var freshArm=rw("g_adc_freshness_monitor_armed");
+  var staleMax=rw("g_adc_stale_consecutive_max");
+  var staleTotal=rv32("g_adc_stale_total");
+  var ovfActive=rv32("g_adc_ovf_active_count");
+  var lastPubT2=rv32("g_adc_last_publish_timer2");
+  var lastConsumeT2=rv32("g_control_last_consume_timer2");
+  var firstStaleFrozen=rw("g_adc_first_stale_frozen");
+  var firstStalePhase=rw("g_adc_first_stale_phase");
+  var firstStaleAge=rv32("g_adc_first_stale_sample_age_cycles");
+  var faultSnap=rw("g_adc_fault_snapshot_frozen");
   print("state="+st+" abort="+ab+" ok="+okf+" softstart="+ssres+" handoff="+hres);
   print("burst="+burst+" max_vout_raw="+maxv+" fresh="+fc+" pi="+pc+" apply="+ac+" pw="+pw+" pending="+pv);
   print("timing_frozen="+tf+" samples="+sc+" compute="+cmax+" normal="+cnorm+" fmax="+cfmax+" abort="+cabort+" apply="+amax+" active="+amax2+" shutdown="+smax+" overrun="+tov);
@@ -191,10 +203,15 @@ for(var i=0;i<CONFIGS.length;i++){
         " period="+be_period+" freq_hz="+be_freq+" unclamped_hz="+be_uncl+
         " unclamped_period="+be_unclp+" pi_q12="+be_pi+" applied_period="+be_applied+
         " timer2="+be_t2+" fmax_saturate_count="+fsat);
+  print("adc_freshness armed="+freshArm+" stale_total="+staleTotal+" stale_max="+staleMax+
+        " active_ovf="+ovfActive+" last_publish_t2="+lastPubT2+" last_consume_t2="+lastConsumeT2+
+        " first_stale_frozen="+firstStaleFrozen+" first_stale_phase="+firstStalePhase+
+        " first_stale_age="+firstStaleAge+" fault_snapshot="+faultSnap);
 
   var pass = (ssres===1 && hres===1 && st===3 && ab===1 && okf===1 &&
               fault2===0 && burst===0 && maxv<1367 &&
               fc===pc && ac===pw && pv===0 &&
+              freshArm===1 && staleMax<=1 && lastPubT2!==0 && lastConsumeT2!==0 && faultSnap===0 &&
               tf===1 && sc>0 && cmax<=900 && cnorm<=850 && cfmax<=900 && cabort<1200 &&
               amax<=900 && amax2<=900 && smax<1200 && tov===0 &&
               hwdelta===0 && actdelta===0 &&

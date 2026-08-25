@@ -11,9 +11,85 @@
 #include "llc_config.h"
 #include "llc_globals.h"
 #include "adc.h"
+#include "shot.h"
 
 #define ADC_ACQPS     7U
 #define ADC_SOC_MASK  0x0007U   /* SOC0, SOC1, SOC2 */
+
+void ADC_ResetFreshnessBlackbox(void)
+{
+    g_adc_freshness_wait_first_publish = 0U;
+    g_adc_freshness_monitor_armed = 0U;
+    g_adc_last_publish_timer2 = 0UL;
+    g_control_last_consume_timer2 = 0UL;
+    g_adc_stale_total = 0UL;
+    g_adc_stale_consecutive_max = 0U;
+    g_adc_first_stale_frozen = 0U;
+    g_adc_first_stale_phase = 0U;
+    g_adc_first_stale_fast_tick = 0UL;
+    g_adc_first_stale_timer2 = 0UL;
+    g_adc_first_stale_publish_sequence = 0UL;
+    g_adc_first_stale_consume_sequence = 0UL;
+    g_adc_first_stale_sample_age_cycles = 0UL;
+    g_adc_first_stale_consecutive = 0U;
+    g_adc_first_stale_intflg = 0U;
+    g_adc_first_stale_intovf = 0U;
+    g_adc_first_stale_socflg = 0U;
+    g_adc_first_stale_socovf = 0U;
+    g_adc_first_stale_soca_flag = 0U;
+    g_adc_first_stale_soca_enable = 0U;
+    g_adc_first_stale_soca_period = 0U;
+    g_adc_fault_snapshot_frozen = 0U;
+    g_adc_fault_snapshot_phase = 0U;
+    g_adc_fault_snapshot_timer2 = 0UL;
+    g_adc_fault_snapshot_flags = 0UL;
+    g_adc_fault_snapshot_publish_sequence = 0UL;
+    g_adc_fault_snapshot_consume_sequence = 0UL;
+    g_adc_fault_snapshot_intflg = 0U;
+    g_adc_fault_snapshot_intovf = 0U;
+    g_adc_fault_snapshot_socflg = 0U;
+    g_adc_fault_snapshot_socovf = 0U;
+    g_adc_ovf_active_count = 0UL;
+}
+
+void ADC_FreezeFirstStale(Uint16 phase)
+{
+    Uint32 now;
+    if (g_adc_first_stale_frozen != 0U) return;
+    now = (Uint32)CpuTimer2Regs.TIM.all;
+    g_adc_first_stale_frozen = 1U;
+    g_adc_first_stale_phase = phase;
+    g_adc_first_stale_fast_tick = g_fast_tick;
+    g_adc_first_stale_timer2 = now;
+    g_adc_first_stale_publish_sequence = g_adc_sample_sequence;
+    g_adc_first_stale_consume_sequence = g_control_adc_sequence_consumed;
+    g_adc_first_stale_sample_age_cycles = (g_adc_last_publish_timer2 == 0UL)
+        ? 0xFFFFFFFFUL
+        : (Uint32)((g_adc_last_publish_timer2 - now) & 0xFFFFFFFFUL);
+    g_adc_first_stale_consecutive = g_shot_summary.consecutive_stale_count;
+    g_adc_first_stale_intflg = AdcRegs.ADCINTFLG.all;
+    g_adc_first_stale_intovf = AdcRegs.ADCINTOVF.all;
+    g_adc_first_stale_socflg = AdcRegs.ADCSOCFLG1.all;
+    g_adc_first_stale_socovf = AdcRegs.ADCSOCOVF1.all;
+    g_adc_first_stale_soca_flag = EPwm1Regs.ETFLG.bit.SOCA;
+    g_adc_first_stale_soca_enable = EPwm1Regs.ETSEL.bit.SOCAEN;
+    g_adc_first_stale_soca_period = EPwm1Regs.ETPS.bit.SOCAPRD;
+}
+
+void ADC_FreezeFaultSnapshot(void)
+{
+    if (g_adc_fault_snapshot_frozen != 0U) return;
+    g_adc_fault_snapshot_frozen = 1U;
+    g_adc_fault_snapshot_phase = g_pipeline_phase;
+    g_adc_fault_snapshot_timer2 = (Uint32)CpuTimer2Regs.TIM.all;
+    g_adc_fault_snapshot_flags = g_fault_flags | FAULT_ADC_STALE_OVERFLOW;
+    g_adc_fault_snapshot_publish_sequence = g_adc_sample_sequence;
+    g_adc_fault_snapshot_consume_sequence = g_control_adc_sequence_consumed;
+    g_adc_fault_snapshot_intflg = AdcRegs.ADCINTFLG.all;
+    g_adc_fault_snapshot_intovf = AdcRegs.ADCINTOVF.all;
+    g_adc_fault_snapshot_socflg = AdcRegs.ADCSOCFLG1.all;
+    g_adc_fault_snapshot_socovf = AdcRegs.ADCSOCOVF1.all;
+}
 
 static void ADC_ConfigureSocs(Uint16 trigsel)
 {
@@ -56,6 +132,7 @@ void ADC_SetSoftwareTriggerMode(void)
 {
     EALLOW;
     ADC_ConfigureSocs(0U);
+    AdcRegs.INTSEL1N2.bit.INT1CONT = 0U;
     EPwm1Regs.ETSEL.bit.SOCAEN = 0U;
     EDIS;
     g_adc_trigger_mode = 0U;
@@ -65,6 +142,7 @@ void ADC_SetPwmSyncTriggerMode(void)
 {
     EALLOW;
     ADC_ConfigureSocs(5U);   /* ePWM1 SOCA */
+    AdcRegs.INTSEL1N2.bit.INT1CONT = 0U;
     EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;
     EPwm1Regs.ETSEL.bit.SOCAEN  = 1U;
     EPwm1Regs.ETPS.bit.SOCAPRD  = ET_1ST;
@@ -91,6 +169,10 @@ void ADC_SetClosedLoopSyncTriggerMode(void)
 {
     EALLOW;
     ADC_ConfigureSocs(5U);           /* ePWM1 SOCA */
+    /* Closed loop is a continuous event stream. Generate an ADCINT1 pulse for
+     * every completed EOC2 frame even if a preceding flag is still pending;
+     * the ISR entry clear below then preserves any later event. */
+    AdcRegs.INTSEL1N2.bit.INT1CONT = 1U;
     EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTRU_CMPB;   /* fixed-phase CMPB point */
     EPwm1Regs.ETSEL.bit.SOCAEN  = 1U;
     EPwm1Regs.ETPS.bit.SOCAPRD  = ET_3RD;         /* every 3rd PWM period */
@@ -175,10 +257,16 @@ void ADC_CheckOverflow(void)
     EALLOW;
     if (AdcRegs.ADCINTOVF.all != 0U)
     {
-        if (g_no_energy_test_mode == 0U)
+        /* In non-continuous modes an overflow suppresses the next interrupt
+         * and is therefore a real stale-chain fault. Closed-loop INT1CONT=1
+         * still emits every EOC2 pulse; overlap is retained as telemetry while
+         * the unchanged sequence monitor owns true stopped-publication faults. */
+        if (g_no_energy_test_mode == 0U &&
+            AdcRegs.INTSEL1N2.bit.INT1CONT == 0U)
         {
             g_fault_flags |= FAULT_ADC_STALE_OVERFLOW;
             g_fault_history |= FAULT_ADC_STALE_OVERFLOW;
+            ADC_FreezeFaultSnapshot();
         }
         AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
     }
@@ -187,6 +275,8 @@ void ADC_CheckOverflow(void)
 
 __interrupt void ADCINT1_ISR(void)
 {
+    Uint16 adc_ovf_at_entry;
+    Uint16 first_publish_pending_at_entry;
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     Uint32 adc_t_entry, adc_t_exit;
     if (g_stage6_noenergy_test_enable != 0U)
@@ -198,6 +288,19 @@ __interrupt void ADCINT1_ISR(void)
     Uint16 vout = AdcResult.ADCRESULT0;
     Uint16 ipri = AdcResult.ADCRESULT1;
     Uint16 iout = AdcResult.ADCRESULT2;
+
+    /* SOL W1 root-cause fix: the old ISR held ADCINT1 asserted through the
+     * complete filter/telemetry body. At 170 kHz / ET_3RD, a deferred ADC ISR
+     * could still have the flag set when the next EOC2 arrived, latching
+     * ADCINTOVF and stopping the real shot. Snapshot overflow first, then clear
+     * ADCINT1 immediately after the completed frame is copied. A new EOC2 that
+     * arrives during this ISR remains pending for the next group-1 dispatch;
+     * there is deliberately no second flag clear at ISR exit. */
+    EALLOW;
+    first_publish_pending_at_entry = g_adc_freshness_wait_first_publish;
+    adc_ovf_at_entry = AdcRegs.ADCINTOVF.all;
+    AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
+    EDIS;
 
     /* STAGE6 closed-loop no-energy: inject a synthetic Vout VALUE while the
      * real ADC cadence (sequence advance, filter, OVF) stays fully authentic.
@@ -230,6 +333,12 @@ __interrupt void ADCINT1_ISR(void)
 
     g_adc_sample_counter++;
     g_adc_sample_sequence++;
+    g_adc_last_publish_timer2 = (Uint32)CpuTimer2Regs.TIM.all;
+    if (g_adc_freshness_wait_first_publish != 0U)
+    {
+        g_adc_freshness_wait_first_publish = 0U;
+        g_adc_freshness_monitor_armed = 1U;
+    }
     g_adc_isr_last_tbctr = EPwm1Regs.TBCTR;
 
     /* Stage 4D power probe peak capture */
@@ -242,9 +351,11 @@ __interrupt void ADCINT1_ISR(void)
     }
 
     EALLOW;
-    if (AdcRegs.ADCINTOVF.all != 0U)
+    if (adc_ovf_at_entry != 0U || AdcRegs.ADCINTOVF.all != 0U)
     {
         g_adc_ovf_count++;
+        if (first_publish_pending_at_entry == 0U)
+            g_adc_ovf_active_count++;
         if (g_adc_ovf_first_tbctr == 0U)
         {
             g_adc_ovf_first_tbctr = EPwm1Regs.TBCTR;
@@ -253,15 +364,17 @@ __interrupt void ADCINT1_ISR(void)
         /* During the formal ramp FastUpdate's SOCA discipline owns freshness
          * and the ADCINT1 vector is disabled; OVF here is a benign conversion
          * timing race, not a fault of the ramp itself. */
-        if (g_no_energy_test_mode == 0U && g_softstart_ramp_active == 0U)
+        if (g_no_energy_test_mode == 0U && g_softstart_ramp_active == 0U &&
+            AdcRegs.INTSEL1N2.bit.INT1CONT == 0U &&
+            first_publish_pending_at_entry == 0U)
         {
             g_fault_flags |= FAULT_ADC_STALE_OVERFLOW;
             g_fault_history |= FAULT_ADC_STALE_OVERFLOW;
+            ADC_FreezeFaultSnapshot();
         }
         AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
     }
 
-    AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
     EDIS;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 

@@ -31,6 +31,7 @@
 #include "control_profile.h"
 #include "board_calibration.h"
 #include "shot.h"
+#include "adc.h"
 
 /* Cross-gate compile-time consistency (I): a profile that claims hardware
  * validation is incompatible with LLC_HARDWARE_PI_VALIDATED==0. A validated
@@ -573,6 +574,13 @@ static void CTRL_PipelineCompute(void)
         g_shot_summary.stale_compute_count++;
         if (g_shot_summary.consecutive_stale_count < 0xFFFFU)
             g_shot_summary.consecutive_stale_count++;
+        if (g_adc_freshness_monitor_armed != 0U)
+        {
+            g_adc_stale_total++;
+            if (g_shot_summary.consecutive_stale_count > g_adc_stale_consecutive_max)
+                g_adc_stale_consecutive_max = g_shot_summary.consecutive_stale_count;
+            ADC_FreezeFirstStale(g_pipeline_phase);
+        }
 
         /* Close the stale same-frequency fake-write path: no pending, no
          * apply, no power_writes. Also discard any old pending. */
@@ -585,6 +593,12 @@ static void CTRL_PipelineCompute(void)
     /* Fresh sample: consume exactly once. */
     g_control_adc_sequence_last = fresh_seq;
     g_control_adc_sequence_consumed = fresh_seq;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* The REAL apply tick publishes the preceding compute tick's timestamp.
+     * Keep this <=850-cycle compute path free of measurement-only stores. */
+#else
+    g_control_last_consume_timer2 = (Uint32)CpuTimer2Regs.TIM.all;
+#endif
     g_control_fresh_sample_count++;
     g_control_pi_update_count++;
     g_shot_summary.fresh_compute_count++;
@@ -723,6 +737,12 @@ static void CTRL_PipelineApply(void)
     }
 #endif
     cmd = p->command_hz;
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* APPLY follows its successful COMPUTE by exactly one 20 us Timer0 period.
+     * Timer2 counts down, so +1200 reconstructs the preceding compute-entry
+     * consume timestamp without adding measurement work to COMPUTE. */
+    g_control_last_consume_timer2 = g_real_timer0_last_entry + 1200UL;
+#endif
     SHOT_PendingCommit();                /* B/A: PWM write + sw state, valid=0 */
     g_control_frequency_hz = cmd;        /* commit the commanded base */
     g_first_real_pi_shot_power_writes++;

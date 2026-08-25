@@ -26,6 +26,7 @@ void PROT_Init(void)
 {
     s_last_adc_counter = 0UL;
     s_adc_stale_count = 0U;
+    ADC_ResetFreshnessBlackbox();
     g_fault_flags = 0UL;
     g_fault_history = 0UL;
     g_trip_count = 0U;
@@ -727,21 +728,35 @@ void PROT_SlowTask(void)
         ((g_bringup_stage == BRINGUP_STAGE_3_ADC_MONITOR) ||
          (g_bringup_stage >= BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL && g_pwm_enabled != 0U)))
     {
-        if (g_adc_sample_counter == s_last_adc_counter)
+        /* The ACTIVE closed-loop stale monitor is armed only by the first
+         * complete post-handoff ADC publication. Pre-publication Timer0 ticks
+         * establish the baseline but cannot consume the stale budget. Stage 3
+         * keeps its legacy always-armed monitor. */
+        if (g_bringup_stage >= BRINGUP_STAGE_6_CLOSED_LOOP &&
+            g_adc_freshness_monitor_armed == 0U)
         {
-            s_adc_stale_count++;
-            if (s_adc_stale_count > 2U)
-            {
-                PROT_RequestFault(FAULT_ADC_STALE_OVERFLOW, 0U);
-                return;
-            }
+            s_adc_stale_count = 0U;
+            s_last_adc_counter = g_adc_sample_counter;
         }
         else
         {
-            s_adc_stale_count = 0U;
+            if (g_adc_sample_counter == s_last_adc_counter)
+            {
+                s_adc_stale_count++;
+                if (s_adc_stale_count > 2U)
+                {
+                    ADC_FreezeFaultSnapshot();
+                    PROT_RequestFault(FAULT_ADC_STALE_OVERFLOW, 0U);
+                    return;
+                }
+            }
+            else
+            {
+                s_adc_stale_count = 0U;
+            }
+            s_last_adc_counter = g_adc_sample_counter;
+            ADC_CheckOverflow();
         }
-        s_last_adc_counter = g_adc_sample_counter;
-        ADC_CheckOverflow();
     }
 
     /* Stage-dependent frequency legality (only while PWM is expected to run).
