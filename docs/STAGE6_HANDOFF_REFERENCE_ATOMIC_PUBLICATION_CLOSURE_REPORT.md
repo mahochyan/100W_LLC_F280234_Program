@@ -64,3 +64,33 @@ CNT34_PERMANENTLY_CONNECTED
 NO_REAL_POWER_EXECUTED
 READY_FOR_SINGLE_CR100_500US_RETRY_REVIEW
 ```
+
+## Real CR100 500us retry (handoff-fix SHA)
+
+Result: **POWER BEHAVIOR FAIL — VOUT_11V_ABORT, but handoff reference gap fixed**
+
+- Real OUT: `BE752B16...`
+- Load: CR 100Ω
+- Handoff: OK, no CAL_MISSING, entered PI
+- max_vout_raw=1367 >= abort 1367
+- Frequency rose to 154588 Hz
+- pending_valid=0 (atomic revoke works)
+- ISR max=1066 >900
+- entry max=1329 >1230, adjacent max=2530 >2460
+
+Abort telemetry complete:
+- abort_adc_vout_raw=1471
+- abort_filtered_vout_raw=1367
+- abort_control_vout_raw=1367
+- abort_control_error_raw=-123
+- abort_frequency_hz=154588
+- abort_pipeline_phase=0
+- abort_adc_sequence=3588
+- abort_consumed_sequence=3588
+- abort_timer2=4243702851
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/HANDOFF_FIX_CR100_500US_BE752B16_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/HANDOFF_FIX_CR100_500US_BE752B16_RESULT.json`
+
+No retry, no fault clear.
