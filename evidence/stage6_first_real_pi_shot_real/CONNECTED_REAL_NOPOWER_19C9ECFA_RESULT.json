@@ -1,0 +1,25 @@
+{
+  "milestone": "CONNECTED_STAGE_NO_SWITCHING_TIMING_REAL",
+  "real_out_sha256": "19C9ECFAEA0EFC38747BC1EF6DC79A7325B4C783461FC379DC028656F488C824",
+  "verdict": "PASS",
+  "values": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "timer2_delta": 30931,
+    "fresh_compute_count": 1,
+    "stale_compute_count": 25,
+    "pi_compute_count": 1,
+    "pwm_apply_count": 1,
+    "power_writes": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "isr_max": 807,
+    "compute_max": 758,
+    "apply_max": 807,
+    "overrun": 0
+  }
+}

@@ -6,8 +6,8 @@ importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
-var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_NOENERGY_ONCHIP_MULTIFRESH_DBB43BF3.out";
-var EXPECTED="DBB43BF3D28D403A4047BFB03DB7F76BFE774F060A5F1726305E494EA6E5CB7A";
+var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_NOENERGY_CORRECTED_CAB88E4D.out";
+var EXPECTED="CAB88E4D9B4FBEB7CE0683D299C253B4413BC88A87355BC437C5CA3F63DC3885";
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256"); var fis=new FileInputStream(path);
   var buf=java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE,8192); var n;
@@ -19,8 +19,10 @@ function sha256File(path){
 var actual=sha256File(OUT);
 if(!actual.equals(EXPECTED)){ print("ABORT: SHA mismatch."); throw "sha"; }
 print("HOST_SHA256_PASS");
-var open=(java.lang.System.getenv("DSH_CNT34_OPEN_CONFIRMED")||"").equals("1");
-if(!open){ print("ABORT: not open"); throw "noopen"; }
+var perm=(java.lang.System.getenv("DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED")||"").equals("1");
+var op=(java.lang.System.getenv("DSH_OPERATOR_PRESENT_CONFIRMED")||"").equals("1");
+var auth=(java.lang.System.getenv("DSH_NO_SWITCHING_TIMING_AUTHORIZED")||"").equals("1");
+if(!perm || !op || !auth){ print("ABORT: connected no-switching timing gates not all 1."); throw "no-timing-auth"; }
 var voutRaw = parseInt(java.lang.System.getenv("DSH_MULTIFRESH_VOUT_RAW") || "1362", 10);
 print("MULTIFRESH_VOUT_RAW="+voutRaw);
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");

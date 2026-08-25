@@ -7,8 +7,8 @@ importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_ASYMMETRIC_3ECDBA30.out";
-var EXPECTED="3ECDBA30685C636E3A28C7EAA695BD21B34CD91DE920D391AB65BE5F5AF74413";
+var OUT="D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\evidence\\stage6_first_real_pi_shot_real\\LLC_100W_F28034_BRINGUP_DSH_REAL_SHOT_CORRECTED_19C9ECFA.out";
+var EXPECTED="19C9ECFAEA0EFC38747BC1EF6DC79A7325B4C783461FC379DC028656F488C824";
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
@@ -32,9 +32,11 @@ print("Frozen 500us SHA   : "+EXPECTED);
 if(!actual.equals(EXPECTED)){ print("ABORT: SHA mismatch."); throw "sha-mismatch"; }
 print("TIMING_HOST_SHA256_HARD_GATE_PASS");
 
-var open=(java.lang.System.getenv("DSH_CNT34_OPEN_CONFIRMED")||"").equals("1");
-print("CNT3/CNT4 open confirmed: "+open);
-if(!open){ print("ABORT: DSH_CNT34_OPEN_CONFIRMED != 1."); throw "no-open"; }
+var perm=(java.lang.System.getenv("DSH_CNT34_PERMANENT_CONNECTED_CONFIRMED")||"").equals("1");
+var op=(java.lang.System.getenv("DSH_OPERATOR_PRESENT_CONFIRMED")||"").equals("1");
+var auth=(java.lang.System.getenv("DSH_NO_SWITCHING_TIMING_AUTHORIZED")||"").equals("1");
+print("CNT34 permanent connected: "+perm+" operator present: "+op+" no-switching auth: "+auth);
+if(!perm || !op || !auth){ print("ABORT: connected no-switching timing gates not all 1."); throw "no-timing-auth"; }
 
 var env=ScriptingEnvironment.instance(); var server=env.getServer("DebugServer.1");
 server.setConfig("D:\\100W_LLC_F280234_Program\\branch_first_real_pi_shot_v1_1\\F28034.ccxml");

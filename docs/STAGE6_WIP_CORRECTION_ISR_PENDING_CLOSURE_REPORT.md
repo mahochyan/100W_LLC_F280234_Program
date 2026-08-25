@@ -44,16 +44,51 @@ NOENERGY OUT= CAB88E4D9B4FBEB7CE0683D299C253B4413BC88A87355BC437C5CA3F63DC3885
 NOENERGY MAP= 3E0288E5984B98BE2409E9B8E4CA88B3ED3D7F084BF032BAFD58CB949B261AA1
 ```
 
-## No-power target validation
+## No-power target validation (CONNECTED_STAGE_NO_SWITCHING_TIMING)
 
-**PENDING** — requires CNT3/CNT4 OPEN confirmation (`DSH_CNT34_OPEN_CONFIRMED=1`).
+Performed with permanent CNT34 connected, AQCSFRC force-low, no enable request, no switching.
 
-## Final output (currently)
+### REAL corrected OUT (19C9ECFA)
 
 ```text
-STAGE6_WIP_CORRECTION_ISR_PENDING_CLOSURE_PASS  (not yet)
-FAILED_GATE=NO_POWER_TARGET_VALIDATION_PENDING
-CNT34_REMAIN_OPEN
+state=3 abort=1 ok=1 t2d=30931
+fresh=1 stale=25 pi=1 apply=1 pw=1 pending=0
+PWM=0 OST=1 POST_OST fault=0
+ISR max=807 <=900
+compute max=758
+apply max=807
+overrun=0
+```
+
+### NOENERGY corrected OUT (CAB88E4D)
+
+Negative:
+```text
+trace exact 150500..156500
+fresh=13 stale=0 pi=13 apply=13 pw=13
+state=3 abort=1 ok=1 t2d=30891 pending=0
+ISR max=1016 (test stimulus/trace overhead, not REAL WCET)
+```
+
+Positive:
+```text
+trace exact 149900..148700
+fresh=13 stale=0 pi=13 apply=13 pw=13
+state=3 abort=1 ok=1 t2d=30944 pending=0
+ISR max=979 (test stimulus/trace overhead, not REAL WCET)
+```
+
+## Final output
+
+```text
+STAGE6_WIP_CORRECTION_ISR_PENDING_CLOSURE_PASS
+CONTROL_500_100_BEHAVIOR_PRESERVED
+DIRECT_DIVISION_REMOVED
+PENDING_REVOKE_COMMON_ENTRY_PASS
+REAL_WHOLE_ISR_LE_900_PASS
+REAL_COMPUTE_ISR_LE_900_PASS
+REAL_APPLY_ISR_LE_900_PASS
+CNT34_PERMANENTLY_CONNECTED
 NO_REAL_POWER_EXECUTED
-STOPPED_AWAITING_REVIEW
+READY_FOR_SINGLE_NEW_SHA_100OHM_CONFIRMATION
 ```
