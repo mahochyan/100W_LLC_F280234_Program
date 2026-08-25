@@ -1,0 +1,2 @@
+timestamp,firmware_sha256,Vin_set_V,Vin_measured_V,Iin_A,Pin_W,Vout_DMM_V,Vout_raw,Iout_A,Pout_W,efficiency_percent,load_mode,load_setpoint,frequency_min_Hz,frequency_max_Hz,frequency_avg_Hz,fault_flags,TZ_count,ambient_temp_C,MOS_temp_C,transformer_temp_C,Lr_temp_C,rectifier_temp_C,notes
+2026-08-25T00:00:00Z,80E4647ACE6C0820F1B5460B361085C18A800FD4FB4857FB8C32ED9C0C4C5849,24.0,,0.0,,0.0,,0.0,0.0,0.0,CC,0.10,,,,,0,0,,,,,,
