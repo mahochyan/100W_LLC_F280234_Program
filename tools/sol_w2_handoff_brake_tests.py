@@ -41,6 +41,9 @@ def step(freq: int, error: int, integral: int) -> tuple[int, int, int]:
 def main() -> None:
     assert "#define CTRL_REDUCE_POWER_MAX_STEP_HZ   500" in CONTROL
     assert "#define CTRL_INCREASE_POWER_MAX_STEP_HZ 100" in CONTROL
+    assert "#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD" in CONTROL
+    assert "stale = (Uint16)(sample_valid == 0U);" in CONTROL
+    assert "g_adc_pwm_sync_consecutive_miss >= (Uint16)CTRL_ADC_STALE_LIMIT" in CONTROL
     assert "#define SS_HANDOFF_BRAKE_PERIOD       374U" in SOFT_H
     assert "#define SS_HANDOFF_BRAKE_HZ           160000UL" in SOFT_H
     assert "#define SS_HANDOFF_BRAKE_INTEGRAL_Q12 (-40960000L)" in SOFT_H

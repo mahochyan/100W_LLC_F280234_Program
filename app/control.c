@@ -174,8 +174,16 @@ Uint32 CTRL_ComputeFrequencyCommandFloat(Uint16 sample_valid, float vout_v)
     Uint16 stale, sat_high, sat_low, freeze;
     Uint32 new_hz;
 
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    /* The REAL split-pipeline caller derives sample_valid directly from the
+     * publication sequence and blocks every duplicate before this call. The
+     * global consecutive-miss read is therefore redundant on this timed path;
+     * the unchanged protection monitor still owns the three-miss hard fault. */
+    stale = (Uint16)(sample_valid == 0U);
+#else
     stale = (Uint16)((sample_valid == 0U) ||
                      (g_adc_pwm_sync_consecutive_miss >= (Uint16)CTRL_ADC_STALE_LIMIT));
+#endif
     g_control_sample_valid = sample_valid;
     g_control_adc_stale_inhibit = stale;
 
