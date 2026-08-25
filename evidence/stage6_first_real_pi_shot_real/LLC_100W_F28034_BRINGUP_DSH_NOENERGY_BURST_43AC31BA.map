@@ -1,0 +1,2689 @@
+******************************************************************************
+             TMS320C2000 Linker PC v25.11.1                    
+******************************************************************************
+>> Linked Tue Aug 25 15:22:32 2026
+
+OUTPUT FILE NAME:   <D:\ccs_build_test\Stage6_FLASH_SHOT_NOENERGY\LLC_100W_F28034_BRINGUP_DSH.out>
+ENTRY POINT SYMBOL: "code_start"  address: 003f7ff6
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+----------------------  --------  ---------  --------  --------  ----  --------
+PAGE 0:
+  RAML0                 00008000   00000800  00000021  000007df  RWIX
+  OTP                   003d7800   00000400  00000000  00000400  RWIX
+  FLASH                 003e8000   0000ff80  00003259  0000cd27  RWIX
+  CSM_RSVD              003f7f80   00000076  00000000  00000076  RWIX
+  BEGIN                 003f7ff6   00000002  00000002  00000000  RWIX
+  CSM_PWL_P0            003f7ff8   00000008  00000000  00000008  RWIX
+  IQTABLES              003fe000   00000b50  00000000  00000b50  RWIX
+  IQTABLES2             003feb50   0000008c  00000000  0000008c  RWIX
+  IQTABLES3             003febdc   000000aa  00000000  000000aa  RWIX
+  ROM                   003ff27c   00000d44  00000000  00000d44  RWIX
+  RESET                 003fffc0   00000002  00000000  00000002  RWIX
+  VECTORS               003fffc2   0000003e  00000000  0000003e  RWIX
+
+PAGE 1:
+  BOOT_RSVD             00000000   00000050  00000000  00000050  RWIX
+  RAMM0                 00000050   000003b0  00000000  000003b0  RWIX
+  RAMM1                 00000400   00000400  00000000  00000400  RWIX
+  DEV_EMU               00000880   00000105  00000004  00000101  RWIX
+  SYS_PWR_CTL           00000985   00000003  00000003  00000000  RWIX
+  FLASH_REGS            00000a80   00000060  00000008  00000058  RWIX
+  CSM                   00000ae0   00000010  00000010  00000000  RWIX
+  ADC_RESULT            00000b00   00000020  00000020  00000000  RWIX
+  CPU_TIMER0            00000c00   00000008  00000008  00000000  RWIX
+  CPU_TIMER1            00000c08   00000008  00000008  00000000  RWIX
+  CPU_TIMER2            00000c10   00000008  00000008  00000000  RWIX
+  PIE_CTRL              00000ce0   00000020  0000001a  00000006  RWIX
+  PIE_VECT              00000d00   00000100  00000100  00000000  RWIX
+  CLA1                  00001400   00000080  00000040  00000040  RWIX
+  ECANA                 00006000   00000040  00000034  0000000c  RWIX
+  ECANA_LAM             00006040   00000040  00000040  00000000  RWIX
+  ECANA_MOTS            00006080   00000040  00000040  00000000  RWIX
+  ECANA_MOTO            000060c0   00000040  00000040  00000000  RWIX
+  ECANA_MBOX            00006100   00000100  00000100  00000000  RWIX
+  COMP1                 00006400   00000020  00000014  0000000c  RWIX
+  COMP2                 00006420   00000020  00000014  0000000c  RWIX
+  COMP3                 00006440   00000020  00000014  0000000c  RWIX
+  EPWM1                 00006800   00000040  00000040  00000000  RWIX
+  EPWM2                 00006840   00000040  00000040  00000000  RWIX
+  EPWM3                 00006880   00000040  00000040  00000000  RWIX
+  EPWM4                 000068c0   00000040  00000040  00000000  RWIX
+  EPWM5                 00006900   00000040  00000040  00000000  RWIX
+  EPWM6                 00006940   00000040  00000040  00000000  RWIX
+  EPWM7                 00006980   00000040  00000040  00000000  RWIX
+  ECAP1                 00006a00   00000020  00000020  00000000  RWIX
+  HRCAP1                00006ac0   00000020  00000020  00000000  RWIX
+  HRCAP2                00006ae0   00000020  00000020  00000000  RWIX
+  EQEP1                 00006b00   00000040  00000040  00000000  RWIX
+  LINA                  00006c00   00000080  0000004a  00000036  RWIX
+  GPIOCTRL              00006f80   00000040  00000040  00000000  RWIX
+  GPIODAT               00006fc0   00000020  00000020  00000000  RWIX
+  GPIOINT               00006fe0   00000020  0000000c  00000014  RWIX
+  SYSTEM                00007010   00000020  00000020  00000000  RWIX
+  SPIA                  00007040   00000010  00000010  00000000  RWIX
+  SCIA                  00007050   00000010  00000010  00000000  RWIX
+  NMIINTRUPT            00007060   00000010  00000010  00000000  RWIX
+  XINTRUPT              00007070   00000010  00000010  00000000  RWIX
+  ADC                   00007100   00000080  00000050  00000030  RWIX
+  SPIB                  00007740   00000010  00000010  00000000  RWIX
+  I2CA                  00007900   00000040  00000022  0000001e  RWIX
+  RAML1                 00008800   00000400  000000c0  00000340  RWIX
+  RAML2                 00008c00   00000400  0000038e  00000072  RWIX
+  RAML3                 00009000   00001000  00000000  00001000  RWIX
+  PARTID                003d7e80   00000001  00000001  00000000  RWIX
+  CSM_PWL               003f7ff8   00000008  00000008  00000000  RWIX
+
+
+SECTION ALLOCATION MAP
+
+ output                                  attributes/
+section   page    origin      length       input sections
+--------  ----  ----------  ----------   ----------------
+.text      0    003e801d    00002e7f     
+                  003e801d    00000357     power_probe.obj (.text:_EPWM1_INT_ISR)
+                  003e8374    0000027d     power_probe.obj (.text:_MULTICYCLE_SlowTask)
+                  003e85f1    000001a8     soft_start.obj (.text:_SoftStart_FastUpdate)
+                  003e8799    00000184     control.obj (.text:_CTRL_OfflineSelfTest)
+                  003e891d    0000017e     protection.obj (.text:_TINT0_ISR)
+                  003e8a9b    00000155     cal_hold_burst.obj (.text:_CALHOLD_SlowTask)
+                  003e8bf0    00000149     cal_hold_burst.obj (.text:_CALHOLD_FastTask)
+                  003e8d39    00000108     protection.obj (.text:_PROT_SlowTask)
+                  003e8e41    000000fa     soft_start.obj (.text:_SoftStart_TransferToClosedLoop)
+                  003e8f3b    000000e9     protection.obj (.text:_EPWM1_TZINT_ISR)
+                  003e9024    000000dd     state_machine.obj (.text:_SM_HandleEnable$3)
+                  003e9101    000000d7     adc.obj (.text:_ADCINT1_ISR)
+                  003e91d8    000000d0     pwm.obj (.text:_LLC_SetFrequencyHz)
+                  003e92a8    000000ce     protection.obj (.text:_PROT_Init)
+                  003e9376    000000ca     control.obj (.text:_CTRL_SlowTask)
+                  003e9440    000000c3     soft_start.obj (.text:_SoftStart_Update5ms)
+                  003e9503    000000c1     comparator.obj (.text:_COMP_ArmInjectionTest)
+                  003e95c4    000000bf     power_probe.obj (.text:_TRUTH_CaptureImmediate)
+                  003e9683    000000be     comparator.obj (.text:_COMP_RunLoopbackDiagnostic)
+                  003e9741    000000ae     comparator.obj (.text:_COMP_ArmCommon)
+                  003e97ef    000000a4     control.obj (.text:_CTRL_PipelineApply$2)
+                  003e9893    000000a3     pwm.obj (.text:_PWM_Init)
+                  003e9936    000000a2     shot.obj (.text:_SHOT_Revoke)
+                  003e99d8    0000009c     rts2800_ml.lib : fd_add28.asm.obj (.text)
+                  003e9a74    00000099     soft_start.obj (.text:_SoftStart_StartPwmFormal)
+                  003e9b0d    00000096     comparator.obj (.text:_COMP_StaticCalibrationArm)
+                  003e9ba3    0000008b     rts2800_ml.lib : fd_div28.asm.obj (.text)
+                  003e9c2e    00000085     system.obj (.text:_System_Init)
+                  003e9cb3    00000083     control.obj (.text:_CTRL_ComputeFrequencyCommand)
+                  003e9d36    00000083     rts2800_ml.lib : fd_mpy28.asm.obj (.text)
+                  003e9db9    00000083                    : fs_div28.asm.obj (.text)
+                  003e9e3c    0000007a     power_probe.obj (.text:_ACCEL_FreezeStopSnapshot)
+                  003e9eb6    00000078     rts2800_ml.lib : fs_add28.asm.obj (.text)
+                  003e9f2e    00000073     state_machine.obj (.text:_SM_Run)
+                  003e9fa1    00000070     control.obj (.text:_CTRL_PipelineMakePending$2)
+                  003ea011    00000063     control.obj (.text:_CTRL_PipelineCompute$2)
+                  003ea074    0000005e     cal_hold_burst.obj (.text:_CALHOLD_PacketIsr)
+                  003ea0d2    0000005c     pwm.obj (.text:_PWM_StartDeterministic)
+                  003ea12e    0000005b     soft_start.obj (.text:_SS_EnterPfmWindow)
+                  003ea189    0000005a     shot.obj (.text:_SHOT_Init)
+                  003ea1e3    0000005a     rts2800_ml.lib : fs_mpy28.asm.obj (.text)
+                  003ea23d    00000054                    : boot28.asm.obj (.text)
+                  003ea291    0000004f     app.obj (.text:_APP_InitInterrupts)
+                  003ea2e0    0000004d     control.obj (.text:_CTRL_Init)
+                  003ea32d    00000047     shot.obj (.text:_SHOT_FastTask)
+                  003ea374    00000042     power_probe.obj (.text:_MULTICYCLE_AbortByFault)
+                  003ea3b6    00000041     comparator.obj (.text:_COMP_ApplyGlobals)
+                  003ea3f7    00000040     pwm.obj (.text:_LLC_ProtectionResetExplicit)
+                  003ea437    00000040     pwm.obj (.text:_PWM_RuntimeValuesValid)
+                  003ea477    00000040     state_machine.obj (.text:_SM_StageAllowsFrequency$3)
+                  003ea4b7    0000003e     pwm.obj (.text:_PWM_ConfigTopologyValid)
+                  003ea4f5    0000003d     control.obj (.text:_CTRL_VoltsToRaw$2)
+                  003ea532    0000003c     cal_hold_burst.obj (.text:_CALHOLD_StopPacket)
+                  003ea56e    0000003c     comparator.obj (.text:_COMP_StaticCalibrationFastTask)
+                  003ea5aa    00000038     power_probe.obj (.text:_MULTICYCLE_ConfigureAdcCapture)
+                  003ea5e2    00000036     control.obj (.text:_CTRL_ApplyFrequencyCommand)
+                  003ea618    00000035     control.obj (.text:_CTRL_FastTask)
+                  003ea64d    00000034     power_probe.obj (.text:_MULTICYCLE_RestoreInterrupts)
+                  003ea681    00000034     power_probe.obj (.text:_SINGLECYCLE_AbortByFault)
+                  003ea6b5    00000033     cal_hold_burst.obj (.text:_CALHOLD_End)
+                  003ea6e8    00000032     power_probe.obj (.text:_MULTICYCLE_IsolateInterrupts)
+                  003ea71a    00000032     pwm.obj (.text:_PWM_Trip)
+                  003ea74c    00000031     pwm.obj (.text:_PWM_ApplyPeriodDeadtime)
+                  003ea77d    00000031     soft_start.obj (.text:_SS_HardStop)
+                  003ea7ae    00000030     pwm.obj (.text:_PWM_PrepareStart)
+                  003ea7de    0000002f     shot.obj (.text:_SHOT_EnterTutorialBurst)
+                  003ea80d    0000002f     shot.obj (.text:_SHOT_PendingValid)
+                  003ea83c    0000002f     soft_start.obj (.text:_SS_End)
+                  003ea86b    0000002e     adc.obj (.text:_ADC_ConfigureSocs)
+                  003ea899    0000002d     shot.obj (.text:_SHOT_PendingCommit)
+                  003ea8c6    0000002b     adc.obj (.text:_ADC_UpdatePwmSyncPoint)
+                  003ea8f1    0000002b     gpio.obj (.text:_GPIO_Init)
+                  003ea91c    00000029     power_probe.obj (.text:_PRE_STOP_Capture)
+                  003ea945    00000029     soft_start.obj (.text:_SoftStart_Init)
+                  003ea96e    00000029     rts2800_ml.lib : exit.c.obj (.text)
+                  003ea997    00000027     adc.obj (.text:_ADC_Init)
+                  003ea9be    00000026     pwm.obj (.text:_LLC_PWM_Enable)
+                  003ea9e4    00000026     soft_start.obj (.text:_SoftStart_SelectProfile)
+                  003eaa0a    00000024     adc.obj (.text:_ADC_SetPwmSyncTriggerMode)
+                  003eaa2e    00000024     rts2800_ml.lib : cpy_tbl.c.obj (.text)
+                  003eaa52    00000023     power_probe.obj (.text:_MULTICYCLE_CaptureSample)
+                  003eaa75    00000022     comparator.obj (.text:_COMP_Init)
+                  003eaa97    00000022     pwm.obj (.text:_LLC_PWM_DisableSafe)
+                  003eaab9    00000022     shot.obj (.text:_SHOT_PermissionOk)
+                  003eaadb    00000021     adc.obj (.text:_ADC_SetClosedLoopSyncTriggerMode)
+                  003eaafc    00000021     comparator.obj (.text:_COMP_StaticCalibrationDisarm)
+                  003eab1d    00000021     rts2800_ml.lib : fs_toul28.asm.obj (.text)
+                  003eab3e    0000001f     app.obj (.text:_APP_Init)
+                  003eab5d    0000001f     DSP2803x_PieCtrl.obj (.text:_InitPieCtrl)
+                  003eab7c    0000001e     comparator.obj (.text:_COMP_DisarmInjectionTest)
+                  003eab9a    0000001e     DSP2803x_Adc.obj (.text:_InitAdc)
+                  003eabb8    0000001e     rts2800_ml.lib : memcpy.c.obj (.text)
+                  003eabd6    0000001d                    : fs_tou28.asm.obj (.text)
+                  003eabf3    0000001c     cal_hold_burst.obj (.text:_CALHOLD_StatsReset)
+                  003eac0f    0000001c     rts2800_ml.lib : l_tofd28.asm.obj (.text)
+                  003eac2b    0000001b                    : fd_toul28.asm.obj (.text)
+                  003eac46    0000001a                    : l_tofs28.asm.obj (.text)
+                  003eac60    00000019     adc.obj (.text:_ADC_CheckOverflow)
+                  003eac79    00000019     rts2800_ml.lib : prolog28.asm.obj (.text)
+                  003eac92    00000018     main.obj (.text:_main)
+                  003eacaa    00000017     adc.obj (.text:_ADC_UpdatePwmSyncPointKeepCadence)
+                  003eacc1    00000017     rts2800_ml.lib : fs_cmp28.asm.obj (.text)
+                  003eacd8    00000016     state_machine.obj (.text:_SM_Init)
+                  003eacee    00000016     rts2800_ml.lib : ul_tofd28.asm.obj (.text)
+                  003ead04    00000014     shot.obj (.text:_SHOT_WriteAllowed)
+                  003ead18    00000013     pwm.obj (.text:_PWM_SetDeadbandOnly)
+                  003ead2b    00000013     rts2800_ml.lib : ul_tofs28.asm.obj (.text)
+                  003ead3e    00000011     cal_hold_burst.obj (.text:_CALHOLD_HardStop)
+                  003ead4f    00000011     control.obj (.text:_CTRL_RunSteps$2)
+                  003ead60    00000011     DSP2803x_PieVect.obj (.text:_InitPieVectTable)
+                  003ead71    00000011     rts2800_ml.lib : args_main.c.obj (.text)
+                  003ead82    00000010     cal_hold_burst.obj (.text:_CALHOLD_AdcPollMode)
+                  003ead92    00000010     DSP2803x_SysCtrl.obj (.text:_IntOsc1Sel)
+                  003eada2    00000010     pwm.obj (.text:_LLC_ProtectionForceTrip)
+                  003eadb2    00000010     rts2800_ml.lib : u_tofs28.asm.obj (.text)
+                  003eadc2    0000000f     adc.obj (.text:_ADC_SetSoftwareTriggerMode)
+                  003eadd1    0000000f     control.obj (.text:_CTRL_PrimeHandoffReferenceRaw)
+                  003eade0    0000000f     shot.obj (.text:_SHOT_ClampFreq)
+                  003eadef    0000000e     rts2800_ml.lib : fd_sub28.asm.obj (.text)
+                  003eadfd    0000000d     comparator.obj (.text:_COMP_UpdateStatus)
+                  003eae0a    0000000d     control.obj (.text:_CTRL_SnapshotPwm$2)
+                  003eae17    0000000d     shot.obj (.text:_SHOT_PipelineApplyAuthorized)
+                  003eae24    0000000c     rts2800_ml.lib : epilog28.asm.obj (.text)
+                  003eae30    0000000b     soft_start.obj (.text:_SS_ApplyStage)
+                  003eae3b    0000000a     control.obj (.text:_CTRL_RunFastControl)
+                  003eae45    00000009     DSP2803x_PieCtrl.obj (.text:_EnableInterrupts)
+                  003eae4e    00000009     gpio.obj (.text:_LED_AllOff)
+                  003eae57    00000008     adc.obj (.text:_ADC_SoftwareTrigger)
+                  003eae5f    00000008     DSP2803x_SysCtrl.obj (.text:_DisableDog)
+                  003eae67    00000008     shot.obj (.text:_SHOT_OnTrip)
+                  003eae6f    00000005     gpio.obj (.text:_LED_GreenOn)
+                  003eae74    00000005     gpio.obj (.text:_LED_RedOn)
+                  003eae79    00000005     soft_start.obj (.text:_SoftStart_Begin)
+                  003eae7e    00000005     rts2800_ml.lib : fs_neg28.asm.obj (.text)
+                  003eae83    00000004     cal_hold_burst.obj (.text:_CALHOLD_Init)
+                  003eae87    00000004     comparator.obj (.text:_COMP_ArmForSingleCycleStart)
+                  003eae8b    00000004     default_isr.obj (.text:_rsvd_ISR)
+                  003eae8f    00000003     app.obj (.text:_APP_Run)
+                  003eae92    00000003     protection.obj (.text:_PROT_RequestFault)
+                  003eae95    00000002     shot.obj (.text:_SHOT_RealStage6AuthOk)
+                  003eae97    00000002     rts2800_ml.lib : pre_init.c.obj (.text)
+                  003eae99    00000001     soft_start.obj (.text:_SoftStart_ApplyLimits)
+                  003eae9a    00000001     rts2800_ml.lib : _lock.c.obj (.text)
+                  003eae9b    00000001                    : startup.c.obj (.text)
+
+.cinit     0    003eaea0    00000218     
+                  003eaea0    0000019b     <whole-program> (.cinit)
+                  003eb03b    0000003b     shot.obj (.cinit)
+                  003eb076    0000000e     protection.obj (.cinit)
+                  003eb084    0000000e     rts2800_ml.lib : exit.c.obj (.cinit)
+                  003eb092    0000000d     power_probe.obj (.cinit)
+                  003eb09f    00000008     cal_hold_burst.obj (.cinit)
+                  003eb0a7    00000005     <whole-program> (.cinit:__lock)
+                  003eb0ac    00000005     <whole-program> (.cinit:__unlock)
+                  003eb0b1    00000005     <whole-program> (.cinit:_g_stage6_multifresh_trace_freq)
+                  003eb0b6    00000002     --HOLE-- [fill = 0]
+
+codestart 
+*          0    003f7ff6    00000002     
+                  003f7ff6    00000002     2803x_CodeStartBranch.obj (codestart)
+
+.pinit     0    003e8000    00000000     UNINITIALIZED
+
+.econst    0    003eb0b8    000001a1     
+                  003eb0b8    00000100     DSP2803x_PieVect.obj (.econst:_PieVectTableInit)
+                  003eb1b8    0000007c     pwm.obj (.econst:_g_real_pi_actual_hz_table)
+                  003eb234    00000010     power_probe.obj (.econst)
+                  003eb244    00000010     system.obj (.econst)
+                  003eb254    00000005     power_probe.obj (.econst:_$P$T0$1)
+
+ramfuncs   0    003e8000    0000001d     RUN ADDR = 00008000
+                  003e8000    0000001d     DSP2803x_SysCtrl.obj (ramfuncs:_InitFlash)
+
+.TI.ramfunc 
+*          0    003eae9c    00000004     RUN ADDR = 0000801d
+                  003eae9c    00000004     DSP2803x_usDelay.obj (.TI.ramfunc)
+
+.reset     0    003fffc0    00000002     DSECT
+                  003fffc0    00000002     rts2800_ml.lib : boot28.asm.obj (.reset)
+
+vectors    0    003fffc2    00000000     DSECT
+
+.stack     1    00008800    000000c0     UNINITIALIZED
+                  00008800    000000c0     --HOLE--
+
+.ebss      1    00008c00    0000038e     UNINITIALIZED
+                  00008c00    000002b0     llc_globals.obj (.ebss)
+                  00008eb0    00000006     protection.obj (.ebss)
+                  00008eb6    00000006     rts2800_ml.lib : exit.c.obj (.ebss)
+                  00008ebc    00000004     power_probe.obj (.ebss)
+                  00008ec0    0000008c     shot.obj (.ebss)
+                  00008f4c    0000001a     llc_globals.obj (.ebss:_g_stage6_multifresh_trace_freq)
+                  00008f66    00000018     cal_hold_burst.obj (.ebss)
+                  00008f7e    00000002     rts2800_ml.lib : _lock.c.obj (.ebss:__lock)
+                  00008f80    00000005     llc_globals.obj (.ebss:_g_offline_pwm_post)
+                  00008f85    00000005     llc_globals.obj (.ebss:_g_offline_pwm_pre)
+                  00008f8a    00000002     rts2800_ml.lib : _lock.c.obj (.ebss:__unlock)
+                  00008f8c    00000001     llc_globals.obj (.ebss:_g_probe_vout_samples)
+                  00008f8d    00000001     state_machine.obj (.ebss)
+
+DevEmuRegsFile 
+*          1    00000880    00000004     UNINITIALIZED
+                  00000880    00000004     DSP2803x_GlobalVariableDefs.obj (DevEmuRegsFile)
+
+SysPwrCtrlRegsFile 
+*          1    00000985    00000003     UNINITIALIZED
+                  00000985    00000003     DSP2803x_GlobalVariableDefs.obj (SysPwrCtrlRegsFile)
+
+FlashRegsFile 
+*          1    00000a80    00000008     UNINITIALIZED
+                  00000a80    00000008     DSP2803x_GlobalVariableDefs.obj (FlashRegsFile)
+
+CsmRegsFile 
+*          1    00000ae0    00000010     UNINITIALIZED
+                  00000ae0    00000010     DSP2803x_GlobalVariableDefs.obj (CsmRegsFile)
+
+AdcResultFile 
+*          1    00000b00    00000020     UNINITIALIZED
+                  00000b00    00000020     DSP2803x_GlobalVariableDefs.obj (AdcResultFile)
+
+CpuTimer0RegsFile 
+*          1    00000c00    00000008     UNINITIALIZED
+                  00000c00    00000008     DSP2803x_GlobalVariableDefs.obj (CpuTimer0RegsFile)
+
+CpuTimer1RegsFile 
+*          1    00000c08    00000008     UNINITIALIZED
+                  00000c08    00000008     DSP2803x_GlobalVariableDefs.obj (CpuTimer1RegsFile)
+
+CpuTimer2RegsFile 
+*          1    00000c10    00000008     UNINITIALIZED
+                  00000c10    00000008     DSP2803x_GlobalVariableDefs.obj (CpuTimer2RegsFile)
+
+PieCtrlRegsFile 
+*          1    00000ce0    0000001a     UNINITIALIZED
+                  00000ce0    0000001a     DSP2803x_GlobalVariableDefs.obj (PieCtrlRegsFile)
+
+PieVectTableFile 
+*          1    00000d00    00000100     UNINITIALIZED
+                  00000d00    00000100     DSP2803x_GlobalVariableDefs.obj (PieVectTableFile)
+
+EmuKeyVar 
+*          1    00000d00    00000001     UNINITIALIZED
+                  00000d00    00000001     DSP2803x_GlobalVariableDefs.obj (EmuKeyVar)
+
+EmuBModeVar 
+*          1    00000d01    00000001     UNINITIALIZED
+                  00000d01    00000001     DSP2803x_GlobalVariableDefs.obj (EmuBModeVar)
+
+FlashCallbackVar 
+*          1    00000d02    00000002     UNINITIALIZED
+                  00000d02    00000002     DSP2803x_GlobalVariableDefs.obj (FlashCallbackVar)
+
+FlashScalingVar 
+*          1    00000d04    00000002     UNINITIALIZED
+                  00000d04    00000002     DSP2803x_GlobalVariableDefs.obj (FlashScalingVar)
+
+Cla1RegsFile 
+*          1    00001400    00000040     UNINITIALIZED
+                  00001400    00000040     DSP2803x_GlobalVariableDefs.obj (Cla1RegsFile)
+
+ECanaRegsFile 
+*          1    00006000    00000034     UNINITIALIZED
+                  00006000    00000034     DSP2803x_GlobalVariableDefs.obj (ECanaRegsFile)
+
+ECanaLAMRegsFile 
+*          1    00006040    00000040     UNINITIALIZED
+                  00006040    00000040     DSP2803x_GlobalVariableDefs.obj (ECanaLAMRegsFile)
+
+ECanaMOTSRegsFile 
+*          1    00006080    00000040     UNINITIALIZED
+                  00006080    00000040     DSP2803x_GlobalVariableDefs.obj (ECanaMOTSRegsFile)
+
+ECanaMOTORegsFile 
+*          1    000060c0    00000040     UNINITIALIZED
+                  000060c0    00000040     DSP2803x_GlobalVariableDefs.obj (ECanaMOTORegsFile)
+
+ECanaMboxesFile 
+*          1    00006100    00000100     UNINITIALIZED
+                  00006100    00000100     DSP2803x_GlobalVariableDefs.obj (ECanaMboxesFile)
+
+Comp1RegsFile 
+*          1    00006400    00000014     UNINITIALIZED
+                  00006400    00000014     DSP2803x_GlobalVariableDefs.obj (Comp1RegsFile)
+
+Comp2RegsFile 
+*          1    00006420    00000014     UNINITIALIZED
+                  00006420    00000014     DSP2803x_GlobalVariableDefs.obj (Comp2RegsFile)
+
+Comp3RegsFile 
+*          1    00006440    00000014     UNINITIALIZED
+                  00006440    00000014     DSP2803x_GlobalVariableDefs.obj (Comp3RegsFile)
+
+EPwm1RegsFile 
+*          1    00006800    00000040     UNINITIALIZED
+                  00006800    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm1RegsFile)
+
+EPwm2RegsFile 
+*          1    00006840    00000040     UNINITIALIZED
+                  00006840    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm2RegsFile)
+
+EPwm3RegsFile 
+*          1    00006880    00000040     UNINITIALIZED
+                  00006880    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm3RegsFile)
+
+EPwm4RegsFile 
+*          1    000068c0    00000040     UNINITIALIZED
+                  000068c0    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm4RegsFile)
+
+EPwm5RegsFile 
+*          1    00006900    00000040     UNINITIALIZED
+                  00006900    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm5RegsFile)
+
+EPwm6RegsFile 
+*          1    00006940    00000040     UNINITIALIZED
+                  00006940    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm6RegsFile)
+
+EPwm7RegsFile 
+*          1    00006980    00000040     UNINITIALIZED
+                  00006980    00000040     DSP2803x_GlobalVariableDefs.obj (EPwm7RegsFile)
+
+ECap1RegsFile 
+*          1    00006a00    00000020     UNINITIALIZED
+                  00006a00    00000020     DSP2803x_GlobalVariableDefs.obj (ECap1RegsFile)
+
+HRCap1RegsFile 
+*          1    00006ac0    00000020     UNINITIALIZED
+                  00006ac0    00000020     DSP2803x_GlobalVariableDefs.obj (HRCap1RegsFile)
+
+HRCap2RegsFile 
+*          1    00006ae0    00000020     UNINITIALIZED
+                  00006ae0    00000020     DSP2803x_GlobalVariableDefs.obj (HRCap2RegsFile)
+
+EQep1RegsFile 
+*          1    00006b00    00000040     UNINITIALIZED
+                  00006b00    00000040     DSP2803x_GlobalVariableDefs.obj (EQep1RegsFile)
+
+LinaRegsFile 
+*          1    00006c00    0000004a     UNINITIALIZED
+                  00006c00    0000004a     DSP2803x_GlobalVariableDefs.obj (LinaRegsFile)
+
+GpioCtrlRegsFile 
+*          1    00006f80    00000040     UNINITIALIZED
+                  00006f80    00000040     DSP2803x_GlobalVariableDefs.obj (GpioCtrlRegsFile)
+
+GpioDataRegsFile 
+*          1    00006fc0    00000020     UNINITIALIZED
+                  00006fc0    00000020     DSP2803x_GlobalVariableDefs.obj (GpioDataRegsFile)
+
+GpioIntRegsFile 
+*          1    00006fe0    0000000c     UNINITIALIZED
+                  00006fe0    0000000c     DSP2803x_GlobalVariableDefs.obj (GpioIntRegsFile)
+
+SysCtrlRegsFile 
+*          1    00007010    00000020     UNINITIALIZED
+                  00007010    00000020     DSP2803x_GlobalVariableDefs.obj (SysCtrlRegsFile)
+
+SpiaRegsFile 
+*          1    00007040    00000010     UNINITIALIZED
+                  00007040    00000010     DSP2803x_GlobalVariableDefs.obj (SpiaRegsFile)
+
+SciaRegsFile 
+*          1    00007050    00000010     UNINITIALIZED
+                  00007050    00000010     DSP2803x_GlobalVariableDefs.obj (SciaRegsFile)
+
+NmiIntruptRegsFile 
+*          1    00007060    00000010     UNINITIALIZED
+                  00007060    00000010     DSP2803x_GlobalVariableDefs.obj (NmiIntruptRegsFile)
+
+XIntruptRegsFile 
+*          1    00007070    00000010     UNINITIALIZED
+                  00007070    00000010     DSP2803x_GlobalVariableDefs.obj (XIntruptRegsFile)
+
+AdcRegsFile 
+*          1    00007100    00000050     UNINITIALIZED
+                  00007100    00000050     DSP2803x_GlobalVariableDefs.obj (AdcRegsFile)
+
+SpibRegsFile 
+*          1    00007740    00000010     UNINITIALIZED
+                  00007740    00000010     DSP2803x_GlobalVariableDefs.obj (SpibRegsFile)
+
+I2caRegsFile 
+*          1    00007900    00000022     UNINITIALIZED
+                  00007900    00000022     DSP2803x_GlobalVariableDefs.obj (I2caRegsFile)
+
+PartIdRegsFile 
+*          1    003d7e80    00000001     UNINITIALIZED
+                  003d7e80    00000001     DSP2803x_GlobalVariableDefs.obj (PartIdRegsFile)
+
+CsmPwlFile 
+*          1    003f7ff8    00000008     UNINITIALIZED
+                  003f7ff8    00000008     DSP2803x_GlobalVariableDefs.obj (CsmPwlFile)
+
+MODULE SUMMARY
+
+       Module                                   code    initialized data   uninitialized data
+       ------                                   ----    ----------------   ------------------
+    C:\Users\Bgin\AppData\Local\Temp\
+       {80056743-810A-4746-BDC9-3A2D92F57AA1}   0       426                0                 
+    +--+----------------------------------------+-------+------------------+--------------------+
+       Total:                                   0       426                0                 
+                                                                                             
+    D:\ccs_build_test\Stage6_FLASH_SHOT_NOENERGY\
+       power_probe.obj                          2157    34                 4                 
+       DSP2803x_GlobalVariableDefs.obj          0       0                  2024              
+       control.obj                              1396    0                  0                 
+       soft_start.obj                           1305    0                  0                 
+       protection.obj                           1088    14                 6                 
+       pwm.obj                                  907     124                0                 
+       cal_hold_burst.obj                       940     8                  24                
+       comparator.obj                           946     0                  0                 
+       shot.obj                                 554     59                 140               
+       llc_globals.obj                          0       0                  725               
+       adc.obj                                  483     0                  0                 
+       state_machine.obj                        422     0                  1                 
+       DSP2803x_PieVect.obj                     17      256                0                 
+       system.obj                               133     16                 0                 
+       app.obj                                  113     0                  0                 
+       DSP2803x_SysCtrl.obj                     82      0                  0                 
+       gpio.obj                                 62      0                  0                 
+       DSP2803x_PieCtrl.obj                     40      0                  0                 
+       DSP2803x_Adc.obj                         30      0                  0                 
+       main.obj                                 24      0                  0                 
+       DSP2803x_usDelay.obj                     8       0                  0                 
+       default_isr.obj                          4       0                  0                 
+       2803x_CodeStartBranch.obj                2       0                  0                 
+    +--+----------------------------------------+-------+------------------+--------------------+
+       Total:                                   10713   511                2924              
+                                                                                             
+    D:\CCS21\ccs\tools\compiler\ti-cgt-c2000_25.11.1.LTS\lib\rts2800_ml.lib
+       fd_add28.asm.obj                         156     0                  0                 
+       fd_div28.asm.obj                         139     0                  0                 
+       fd_mpy28.asm.obj                         131     0                  0                 
+       fs_div28.asm.obj                         131     0                  0                 
+       fs_add28.asm.obj                         120     0                  0                 
+       fs_mpy28.asm.obj                         90      0                  0                 
+       boot28.asm.obj                           84      0                  0                 
+       exit.c.obj                               41      14                 6                 
+       cpy_tbl.c.obj                            36      0                  0                 
+       fs_toul28.asm.obj                        33      0                  0                 
+       memcpy.c.obj                             30      0                  0                 
+       fs_tou28.asm.obj                         29      0                  0                 
+       l_tofd28.asm.obj                         28      0                  0                 
+       fd_toul28.asm.obj                        27      0                  0                 
+       l_tofs28.asm.obj                         26      0                  0                 
+       prolog28.asm.obj                         25      0                  0                 
+       fs_cmp28.asm.obj                         23      0                  0                 
+       ul_tofd28.asm.obj                        22      0                  0                 
+       ul_tofs28.asm.obj                        19      0                  0                 
+       args_main.c.obj                          17      0                  0                 
+       u_tofs28.asm.obj                         16      0                  0                 
+       fd_sub28.asm.obj                         14      0                  0                 
+       epilog28.asm.obj                         12      0                  0                 
+       _lock.c.obj                              1       0                  4                 
+       fs_neg28.asm.obj                         5       0                  0                 
+       pre_init.c.obj                           2       0                  0                 
+       startup.c.obj                            1       0                  0                 
+    +--+----------------------------------------+-------+------------------+--------------------+
+       Total:                                   1258    14                 10                
+                                                                                             
+       Stack:                                   0       0                  192               
+    +--+----------------------------------------+-------+------------------+--------------------+
+       Grand Total:                             11971   951                3126              
+
+
+GLOBAL DATA SYMBOLS: SORTED BY DATA PAGE
+
+address     data page           name
+--------    ----------------    ----
+00000880      22 (00000880)     _DevEmuRegs
+
+00000985      26 (00000980)     _SysPwrCtrlRegs
+
+00000a80      2a (00000a80)     _FlashRegs
+
+00000ae0      2b (00000ac0)     _CsmRegs
+
+00000b00      2c (00000b00)     _AdcResult
+
+00000c00      30 (00000c00)     _CpuTimer0Regs
+00000c08      30 (00000c00)     _CpuTimer1Regs
+00000c10      30 (00000c00)     _CpuTimer2Regs
+
+00000ce0      33 (00000cc0)     _PieCtrlRegs
+
+00000d00      34 (00000d00)     _EmuKey
+00000d00      34 (00000d00)     _PieVectTable
+00000d01      34 (00000d00)     _EmuBMode
+00000d02      34 (00000d00)     _Flash_CallbackPtr
+00000d04      34 (00000d00)     _Flash_CPUScaleFactor
+
+00001400      50 (00001400)     _Cla1Regs
+
+00006000     180 (00006000)     _ECanaRegs
+
+00006040     181 (00006040)     _ECanaLAMRegs
+
+00006080     182 (00006080)     _ECanaMOTSRegs
+
+000060c0     183 (000060c0)     _ECanaMOTORegs
+
+00006100     184 (00006100)     _ECanaMboxes
+
+00006400     190 (00006400)     _Comp1Regs
+00006420     190 (00006400)     _Comp2Regs
+
+00006440     191 (00006440)     _Comp3Regs
+
+00006800     1a0 (00006800)     _EPwm1Regs
+
+00006840     1a1 (00006840)     _EPwm2Regs
+
+00006880     1a2 (00006880)     _EPwm3Regs
+
+000068c0     1a3 (000068c0)     _EPwm4Regs
+
+00006900     1a4 (00006900)     _EPwm5Regs
+
+00006940     1a5 (00006940)     _EPwm6Regs
+
+00006980     1a6 (00006980)     _EPwm7Regs
+
+00006a00     1a8 (00006a00)     _ECap1Regs
+
+00006ac0     1ab (00006ac0)     _HRCap1Regs
+00006ae0     1ab (00006ac0)     _HRCap2Regs
+
+00006b00     1ac (00006b00)     _EQep1Regs
+
+00006c00     1b0 (00006c00)     _LinaRegs
+
+00006f80     1be (00006f80)     _GpioCtrlRegs
+
+00006fc0     1bf (00006fc0)     _GpioDataRegs
+00006fe0     1bf (00006fc0)     _GpioIntRegs
+
+00007010     1c0 (00007000)     _SysCtrlRegs
+
+00007040     1c1 (00007040)     _SpiaRegs
+00007050     1c1 (00007040)     _SciaRegs
+00007060     1c1 (00007040)     _NmiIntruptRegs
+00007070     1c1 (00007040)     _XIntruptRegs
+
+00007100     1c4 (00007100)     _AdcRegs
+
+00007740     1dd (00007740)     _SpibRegs
+
+00007900     1e4 (00007900)     _I2caRegs
+
+00008800     220 (00008800)     __stack
+
+00008c00     230 (00008c00)     _g_bringup_stage
+00008c01     230 (00008c00)     _g_active_bringup_stage
+00008c02     230 (00008c00)     _g_stage_confirm_request
+00008c03     230 (00008c00)     _g_stage_confirmed_mask
+00008c04     230 (00008c00)     _g_pwm_period
+00008c05     230 (00008c00)     _g_pwm_enabled
+00008c06     230 (00008c00)     _g_pwm_enable_request
+00008c07     230 (00008c00)     _g_pwm_enable_result
+00008c08     230 (00008c00)     _g_diag_frequency_override
+00008c09     230 (00008c00)     _g_adc_vout_raw
+00008c0a     230 (00008c00)     _g_adc_iout_raw
+00008c0b     230 (00008c00)     _g_adc_ipri_raw
+00008c0c     230 (00008c00)     _g_adc_vout_filtered_raw
+00008c0d     230 (00008c00)     _g_adc_iout_filtered_raw
+00008c0e     230 (00008c00)     _g_adc_ipri_filtered_raw
+00008c0f     230 (00008c00)     _g_adc_trigger_mode
+00008c10     230 (00008c00)     _g_system_state
+00008c11     230 (00008c00)     _g_trip_count
+00008c12     230 (00008c00)     _g_fast_fault_count
+00008c13     230 (00008c00)     _g_fault_reset_request
+00008c14     230 (00008c00)     _g_force_trip_request
+00008c15     230 (00008c00)     _g_pwm_fastpath_ready
+00008c16     230 (00008c00)     _g_softstart_autoramp_allowed
+00008c17     230 (00008c00)     _g_control_running
+00008c18     230 (00008c00)     _g_control_saturated_high
+00008c19     230 (00008c00)     _g_control_saturated_low
+00008c1a     230 (00008c00)     _g_control_integrator_frozen
+00008c1b     230 (00008c00)     _g_control_adc_stale_inhibit
+00008c1c     230 (00008c00)     _g_control_sample_valid
+00008c1d     230 (00008c00)     _g_offline_test_request
+00008c1e     230 (00008c00)     _g_offline_test_status
+00008c1f     230 (00008c00)     _g_offline_pwm_isolated
+00008c20     230 (00008c00)     _g_control_pi_virtual_only
+00008c21     230 (00008c00)     _g_control_vref_raw
+00008c22     230 (00008c00)     _g_control_vout_raw
+00008c23     230 (00008c00)     _g_control_error_raw
+00008c24     230 (00008c00)     _g_softstart_handoff_result
+00008c25     230 (00008c00)     _g_stage6_transfer_request
+00008c26     230 (00008c00)     _g_stage6_ref_prime_count
+00008c27     230 (00008c00)     _g_stage6_ref_prime_raw
+00008c28     230 (00008c00)     _g_stage6_ref_valid_at_run_entry
+00008c29     230 (00008c00)     _g_stage6_ref_prime_result
+00008c2a     230 (00008c00)     _g_control_reference_valid
+00008c2b     230 (00008c00)     _g_stage6_noenergy_test_enable
+00008c2c     230 (00008c00)     _g_stage6_synthetic_vout_raw
+00008c2d     230 (00008c00)     _g_stage6_synthetic_sequence
+00008c2e     230 (00008c00)     _g_stage6_noenergy_test_mode
+00008c2f     230 (00008c00)     _g_stage6_noenergy_step_req
+00008c30     230 (00008c00)     _g_stage6_closeloop_vout_inject
+00008c31     230 (00008c00)     _g_stage6_first_pi_sample_raw
+00008c32     230 (00008c00)     _g_stage6_first_pi_observed
+00008c33     230 (00008c00)     _g_stage6_multifresh_trace_count
+00008c34     230 (00008c00)     _g_stage6_actuator_test_arm
+00008c35     230 (00008c00)     _g_stage6_actuator_revoked
+00008c36     230 (00008c00)     _g_softstart_state
+00008c37     230 (00008c00)     _g_softstart_deadtime
+00008c38     230 (00008c00)     _g_softstart_deadtime_start
+00008c39     230 (00008c00)     _g_softstart_deadtime_final
+00008c3a     230 (00008c00)     _g_softstart_deadtime_step
+00008c3b     230 (00008c00)     _g_softstart_wait_5ms_ticks
+00008c3c     230 (00008c00)     _g_softstart_profile
+00008c3d     230 (00008c00)     _g_burst_enabled
+00008c3e     230 (00008c00)     _g_burst_active
+00008c3f     230 (00008c00)     _g_ocp_recovery_mode
+
+00008c40     231 (00008c40)     _g_softstart_abort_reason
+00008c41     231 (00008c40)     _g_softstart_ocp_dac_code
+00008c42     231 (00008c40)     _g_pwm_start_prepared
+00008c43     231 (00008c40)     _g_softstart_final_applied
+00008c44     231 (00008c40)     _g_softstart_final_apply_pending
+00008c45     231 (00008c40)     _g_no_energy_test_mode
+00008c46     231 (00008c40)     _g_first_start_seen
+00008c47     231 (00008c40)     _g_first_start_tbprd
+00008c48     231 (00008c40)     _g_first_start_cmpa
+00008c49     231 (00008c40)     _g_first_start_dbred
+00008c4a     231 (00008c40)     _g_first_start_dbfed
+00008c4b     231 (00008c40)     _g_first_start_dacval
+00008c4c     231 (00008c40)     _g_first_start_ost
+00008c4d     231 (00008c40)     _g_first_start_pwm
+00008c4e     231 (00008c40)     _g_pre_stop_tzflg
+00008c4f     231 (00008c40)     _g_pre_stop_ost
+00008c50     231 (00008c40)     _g_pre_stop_gpio15
+00008c51     231 (00008c40)     _g_pre_stop_compsts
+00008c52     231 (00008c40)     _g_pre_stop_tbctr
+00008c53     231 (00008c40)     _g_pre_stop_hardware_trip_seen
+00008c54     231 (00008c40)     _g_comp_dac_value
+00008c55     231 (00008c40)     _g_comp_polarity
+00008c56     231 (00008c40)     _g_comp_arm
+00008c57     231 (00008c40)     _g_loopback_diag_request
+00008c58     231 (00008c40)     _g_comp_tz_loopback_verified
+00008c59     231 (00008c40)     _g_loopback_diag_result
+00008c5a     231 (00008c40)     _g_loopback_read0
+00008c5b     231 (00008c40)     _g_loopback_read1
+00008c5c     231 (00008c40)     _g_loopback_read2
+00008c5d     231 (00008c40)     _g_comp_inject_test_request
+00008c5e     231 (00008c40)     _g_comp_inject_test_armed
+00008c5f     231 (00008c40)     _g_comp_inject_test_disarm_request
+00008c60     231 (00008c40)     _g_comp1_status
+00008c61     231 (00008c40)     _g_comp1_dac_code
+00008c62     231 (00008c40)     _g_comp_prestart_status
+00008c63     231 (00008c40)     _g_comp_prestart_gpio15
+00008c64     231 (00008c40)     _g_comp_prestart_tzflg
+00008c65     231 (00008c40)     _g_comp_prestart_reject
+00008c66     231 (00008c40)     _g_static_cal_request
+00008c67     231 (00008c40)     _g_static_cal_dac
+00008c68     231 (00008c40)     _g_static_cal_armed
+00008c69     231 (00008c40)     _g_static_cal_initial_compsts
+00008c6a     231 (00008c40)     _g_static_cal_initial_gpio15
+00008c6b     231 (00008c40)     _g_static_cal_transition_detected
+00008c6c     231 (00008c40)     _g_static_cal_compsts_before
+00008c6d     231 (00008c40)     _g_static_cal_compsts_after
+00008c6e     231 (00008c40)     _g_static_cal_gpio15_before
+00008c6f     231 (00008c40)     _g_static_cal_gpio15_after
+00008c70     231 (00008c40)     _g_static_cal_tzflg_after
+00008c71     231 (00008c40)     _g_static_cal_disarm_request
+00008c72     231 (00008c40)     _g_tz_ost_flag
+00008c73     231 (00008c40)     _g_tz_int_flag
+00008c74     231 (00008c40)     _g_software_ost_in_progress
+00008c75     231 (00008c40)     _g_tz_isr_tbctr
+00008c76     231 (00008c40)     _g_tz_isr_software_ost_flag
+00008c77     231 (00008c40)     _g_tz_isr_after_scheduled_ost
+00008c78     231 (00008c40)     _g_tz_isr_gpio15
+00008c79     231 (00008c40)     _g_tz_isr_compsts
+00008c7a     231 (00008c40)     _g_tz_isr_tzflg
+00008c7b     231 (00008c40)     _g_tz_event_phase
+00008c7c     231 (00008c40)     _g_power_window_state
+00008c7d     231 (00008c40)     _g_probe_scheduled_ost_occurred
+00008c7e     231 (00008c40)     _g_test_dac_snapshot
+00008c7f     231 (00008c40)     _g_test_tbprd_snapshot
+
+00008c80     232 (00008c80)     _g_test_cmpa_snapshot
+00008c81     232 (00008c80)     _g_power_probe_request
+00008c82     232 (00008c80)     _g_power_probe_result
+00008c83     232 (00008c80)     _g_power_probe_active
+00008c84     232 (00008c80)     _g_power_probe_adc_vout_before
+00008c85     232 (00008c80)     _g_power_probe_adc_vout_after
+00008c86     232 (00008c80)     _g_power_probe_adc_ipri_before
+00008c87     232 (00008c80)     _g_power_probe_adc_ipri_peak
+00008c88     232 (00008c80)     _g_power_probe_adc_iout_before
+00008c89     232 (00008c80)     _g_power_probe_adc_iout_after
+00008c8a     232 (00008c80)     _g_single_cycle_probe_request
+00008c8b     232 (00008c80)     _g_single_cycle_probe_result
+00008c8c     232 (00008c80)     _g_single_cycle_probe_active
+00008c8d     232 (00008c80)     _g_single_cycle_probe_adc_ipri_before
+00008c8e     232 (00008c80)     _g_single_cycle_probe_adc_ipri_peak
+00008c8f     232 (00008c80)     _g_single_cycle_probe_adc_vout_before
+00008c90     232 (00008c80)     _g_single_cycle_probe_adc_vout_after
+00008c91     232 (00008c80)     _g_single_cycle_probe_stop_tbctr
+00008c92     232 (00008c80)     _g_single_cycle_probe_deadtime
+00008c93     232 (00008c80)     _g_coldshot_vout_raw_before
+00008c94     232 (00008c80)     _g_coldshot_ipri_raw_before
+00008c95     232 (00008c80)     _g_coldshot_compsts_before
+00008c96     232 (00008c80)     _g_coldshot_gpio15_before
+00008c97     232 (00008c80)     _g_coldshot_tzflg_before
+00008c98     232 (00008c80)     _g_coldshot_vout_baseline_avg
+00008c99     232 (00008c80)     _g_coldshot_vout_baseline_samples
+00008c9a     232 (00008c80)     _g_coldshot_vin_actual_x10
+00008c9b     232 (00008c80)     _g_tz1_qualification_mode
+00008c9c     232 (00008c80)     _g_tz1_qualification_period
+00008c9d     232 (00008c80)     _g_comp_trip_dac_code
+00008c9e     232 (00008c80)     _g_comp_trip_tbctr
+00008c9f     232 (00008c80)     _g_comp_trip_vout_raw
+00008ca0     232 (00008c80)     _g_single_cycle_completed
+00008ca1     232 (00008c80)     _g_single_cycle_result
+00008ca2     232 (00008c80)     _g_multi_cycle_probe_request
+00008ca3     232 (00008c80)     _g_multi_cycle_probe_result
+00008ca4     232 (00008c80)     _g_multi_cycle_probe_active
+00008ca5     232 (00008c80)     _g_multi_cycle_probe_adc_vout_before
+00008ca6     232 (00008c80)     _g_multi_cycle_probe_adc_vout_after
+00008ca7     232 (00008c80)     _g_multi_cycle_probe_adc_ipri_before
+00008ca8     232 (00008c80)     _g_multi_cycle_probe_adc_ipri_peak
+00008ca9     232 (00008c80)     _g_multi_cycle_probe_stop_tbctr
+00008caa     232 (00008c80)     _g_multi_cycle_probe_stop_reason
+00008cab     232 (00008c80)     _g_accel_request
+00008cac     232 (00008c80)     _g_accel_active
+00008cad     232 (00008c80)     _g_accel_phase
+00008cae     232 (00008c80)     _g_accel_stop_reason
+00008caf     232 (00008c80)     _g_accel_trip_phase
+00008cb0     232 (00008c80)     _g_accel_trip_period
+00008cb1     232 (00008c80)     _g_accel_trip_cmpa
+00008cb2     232 (00008c80)     _g_accel_trip_db
+00008cb3     232 (00008c80)     _g_accel_current_db
+00008cb4     232 (00008c80)     _g_accel_current_period
+00008cb5     232 (00008c80)     _g_accel_current_cmpa
+00008cb6     232 (00008c80)     _g_accel_stage_index
+00008cb7     232 (00008c80)     _g_accel_last_tzflg
+00008cb8     232 (00008c80)     _g_accel_last_vout_raw
+00008cb9     232 (00008c80)     _g_accel_last_vout_max
+00008cba     232 (00008c80)     _g_accel_phase_c_cycles
+00008cbb     232 (00008c80)     _g_accel_phase_c_vout_start
+00008cbc     232 (00008c80)     _g_accel_phase_c_vout_max
+00008cbd     232 (00008c80)     _g_accel_phase_c_vout_stop
+00008cbe     232 (00008c80)     _g_accel_vout_target_raw
+00008cbf     232 (00008c80)     _g_accel_vout_hard_limit_raw
+
+00008cc0     233 (00008cc0)     _g_accel_target_rejected
+00008cc1     233 (00008cc0)     _g_accel_stop_target_raw
+00008cc2     233 (00008cc0)     _g_accel_stop_hard_limit_raw
+00008cc3     233 (00008cc0)     _g_accel_stop_raw
+00008cc4     233 (00008cc0)     _g_accel_stop_max_raw
+00008cc5     233 (00008cc0)     _g_accel_stop_phase
+00008cc6     233 (00008cc0)     _g_accel_stop_tbprd
+00008cc7     233 (00008cc0)     _g_accel_stop_cmpa
+00008cc8     233 (00008cc0)     _g_accel_stop_cmpb
+00008cc9     233 (00008cc0)     _g_accel_stop_dbred
+00008cca     233 (00008cc0)     _g_accel_stop_dbfed
+00008ccb     233 (00008cc0)     _g_accel_stop_dacval
+00008ccc     233 (00008cc0)     _g_accel_stop_tzflg
+00008ccd     233 (00008cc0)     _g_cal_hold_request
+00008cce     233 (00008cc0)     _g_cal_hold_duration_ms
+00008ccf     233 (00008cc0)     _g_cal_hold_state
+00008cd0     233 (00008cc0)     _g_cal_hold_stop_reason
+00008cd1     233 (00008cc0)     _g_cal_hold_charge_stop_raw
+00008cd2     233 (00008cc0)     _g_cal_hold_raw
+00008cd3     233 (00008cc0)     _g_cal_hold_min
+00008cd4     233 (00008cc0)     _g_cal_hold_max
+00008cd5     233 (00008cc0)     _g_cal_hold_steady_min
+00008cd6     233 (00008cc0)     _g_cal_hold_steady_max
+00008cd7     233 (00008cc0)     _g_cal_hold_packet_min_cycles
+00008cd8     233 (00008cc0)     _g_cal_hold_packet_max_cycles
+00008cd9     233 (00008cc0)     _g_cal_hold_packet_active
+00008cda     233 (00008cc0)     _g_cal_hold_packet_cycles
+00008cdb     233 (00008cc0)     _g_cal_hold_hard_limit_events
+00008cdc     233 (00008cc0)     _g_cal_hold_final_pwm
+00008cdd     233 (00008cc0)     _g_cal_hold_final_ost
+00008cde     233 (00008cc0)     _g_cal_hold_cal_raw_min
+00008cdf     233 (00008cc0)     _g_cal_hold_cal_raw_max
+00008ce0     233 (00008cc0)     _g_cal_hold_cal_raw_avg
+00008ce1     233 (00008cc0)     _g_cal_hold_zero_request
+00008ce2     233 (00008cc0)     _g_cal_hold_zero_raw_min
+00008ce3     233 (00008cc0)     _g_cal_hold_zero_raw_max
+00008ce4     233 (00008cc0)     _g_cal_hold_zero_raw_avg
+00008ce5     233 (00008cc0)     _g_cal_measure_request
+00008ce6     233 (00008cc0)     _g_cal_measure_done
+00008ce7     233 (00008cc0)     _g_cal_measure_ready
+00008ce8     233 (00008cc0)     _g_cal_measure_active
+00008ce9     233 (00008cc0)     _g_softstart_request
+00008cea     233 (00008cc0)     _g_softstart_acceptance_mode
+00008ceb     233 (00008cc0)     _g_softstart_accept_target_raw
+00008cec     233 (00008cc0)     _g_softstart_hard_ceiling_raw
+00008ced     233 (00008cc0)     _g_softstart_result
+00008cee     233 (00008cc0)     _g_softstart_stage
+00008cef     233 (00008cc0)     _g_softstart_stage_index
+00008cf0     233 (00008cc0)     _g_softstart_final_cycles
+00008cf1     233 (00008cc0)     _g_softstart_last_vout_raw
+00008cf2     233 (00008cc0)     _g_softstart_last_vout_max
+00008cf3     233 (00008cc0)     _g_softstart_stop_raw
+00008cf4     233 (00008cc0)     _g_softstart_final_pwm
+00008cf5     233 (00008cc0)     _g_softstart_final_ost
+00008cf6     233 (00008cc0)     _g_softstart_consecutive_miss
+00008cf7     233 (00008cc0)     _g_softstart_stale_abort
+00008cf8     233 (00008cc0)     _g_softstart_no_energy
+00008cf9     233 (00008cc0)     _g_board_vout_cal_valid
+00008cfa     233 (00008cc0)     _g_softstart_ramp_active
+00008cfb     233 (00008cc0)     _g_pfm_direction_test_mode
+00008cfc     233 (00008cc0)     _g_pfm_start_raw
+00008cfd     233 (00008cc0)     _g_pfm_end_raw
+00008cfe     233 (00008cc0)     _g_pfm_max_raw
+00008cff     233 (00008cc0)     _g_pfm_window_cycles
+
+00008d00     234 (00008d00)     _g_pfm_window_total
+00008d01     234 (00008d00)     _g_pfm_hard_vout_abort
+00008d02     234 (00008d00)     _g_pfm_tbprd
+00008d03     234 (00008d00)     _g_pfm_cmpa
+00008d04     234 (00008d00)     _g_pfm_cmpb
+00008d05     234 (00008d00)     _g_ipri_raw_before
+00008d06     234 (00008d00)     _g_ipri_raw_max
+00008d07     234 (00008d00)     _g_ipri_raw_at_stop
+00008d08     234 (00008d00)     _g_comp_arm_dacval
+00008d09     234 (00008d00)     _g_comp_arm_compdacen
+00008d0a     234 (00008d00)     _g_comp_arm_tzsel_osht1
+00008d0b     234 (00008d00)     _g_adc_pwm_sync_cmpb
+00008d0c     234 (00008d00)     _g_adc_pwm_sync_cmpa
+00008d0d     234 (00008d00)     _g_adc_pwm_sync_edge_distance
+00008d0e     234 (00008d00)     _g_vout_runtime_before_ost
+00008d0f     234 (00008d00)     _g_truth_runtime_raw
+00008d10     234 (00008d00)     _g_truth_runtime_tbctr
+00008d11     234 (00008d00)     _g_truth_runtime_cmpb
+00008d12     234 (00008d00)     _g_truth_post_5us
+00008d13     234 (00008d00)     _g_truth_post_10us
+00008d14     234 (00008d00)     _g_truth_post_20us
+00008d15     234 (00008d00)     _g_truth_post_50us
+00008d16     234 (00008d00)     _g_truth_post_100us
+00008d17     234 (00008d00)     _g_adc_vout_pwm_sync_raw
+00008d18     234 (00008d00)     _g_adc_pwm_sync_valid
+00008d19     234 (00008d00)     _g_adc_pwm_sync_consecutive_miss
+00008d1a     234 (00008d00)     _g_adc_pwm_sync_stale_abort
+00008d1b     234 (00008d00)     _g_poststop_vout_request
+00008d1c     234 (00008d00)     _g_poststop_vout_done
+00008d1d     234 (00008d00)     _g_poststop_vout_phase
+00008d1e     234 (00008d00)     _g_poststop_vout_min
+00008d1f     234 (00008d00)     _g_poststop_vout_max
+00008d20     234 (00008d00)     _g_poststop_vout_avg
+00008d21     234 (00008d00)     _g_poststop5ms_vout_avg
+00008d22     234 (00008d00)     _g_probe_isr_entry_tbctr
+00008d23     234 (00008d00)     _g_probe_ost_command_tbctr
+00008d24     234 (00008d00)     _g_probe_ost_after_tbctr
+00008d25     234 (00008d00)     _g_probe_irq_latency_ticks
+00008d26     234 (00008d00)     _g_probe_irq_to_ost_ticks
+00008d27     234 (00008d00)     _g_probe_tzflg_immediate
+00008d28     234 (00008d00)     _g_probe_tzflg_read2
+00008d29     234 (00008d00)     _g_probe_tzflg_read3
+00008d2a     234 (00008d00)     _g_probe_tzflg_after_state_update
+00008d2b     234 (00008d00)     _g_probe_saved_ier
+00008d2c     234 (00008d00)     _g_probe_saved_pieier1
+00008d2d     234 (00008d00)     _g_probe_saved_pieier3
+00008d2e     234 (00008d00)     _g_probe_interrupt_isolation_active
+00008d2f     234 (00008d00)     _g_probe_vout_min
+00008d30     234 (00008d00)     _g_probe_vout_max
+00008d31     234 (00008d00)     _g_probe_vout_first
+00008d32     234 (00008d00)     _g_probe_vout_last
+00008d33     234 (00008d00)     _g_probe_adc_sample_count
+00008d34     234 (00008d00)     _g_vout_probe_request
+00008d35     234 (00008d00)     _g_vout_probe_active
+00008d36     234 (00008d00)     _g_vout_probe_target_raw
+00008d37     234 (00008d00)     _g_vout_probe_stop_raw
+00008d38     234 (00008d00)     _g_vout_probe_max_raw
+00008d39     234 (00008d00)     _g_vout_probe_stop_reason
+00008d3a     234 (00008d00)     _g_vout_probe_dac_code
+00008d3b     234 (00008d00)     _g_vout_probe_hard_limit_raw
+00008d3c     234 (00008d00)     _g_vout_probe_pre_stop_max_raw
+00008d3d     234 (00008d00)     _g_vout_probe_post_first_raw
+00008d3e     234 (00008d00)     _g_vout_probe_post_max_raw
+00008d3f     234 (00008d00)     _g_vout_probe_post_last_raw
+
+00008d40     235 (00008d40)     _g_vout_probe_post_capture_active
+00008d41     235 (00008d40)     _g_vout_probe_post_capture_count
+00008d42     235 (00008d40)     _g_vout_probe_post_seen_active
+00008d43     235 (00008d40)     _g_cal_hold_active
+00008d44     235 (00008d40)     _g_cal_hold_charge_done
+00008d45     235 (00008d40)     _g_cal_hold_raw_min
+00008d46     235 (00008d40)     _g_cal_hold_raw_max
+00008d47     235 (00008d40)     _g_cal_hold_raw_average
+00008d48     235 (00008d40)     _g_cal_hold_fault
+00008d49     235 (00008d40)     _g_cal_hold_charge_seen
+00008d4a     235 (00008d40)     _g_cal_hold_last_vout_stop_reason
+00008d4b     235 (00008d40)     _g_cal_hold_last_vout_active
+00008d4c     235 (00008d40)     _g_cal_hold_initial_stop_raw
+00008d4d     235 (00008d40)     _g_cal_hold_packet_start_raw
+00008d4e     235 (00008d40)     _g_cal_hold_packet_stop_raw
+00008d4f     235 (00008d40)     _g_cal_hold_packet_post_max_raw
+00008d50     235 (00008d40)     _g_cal_hold_packet_post_last_raw
+00008d51     235 (00008d40)     _g_5ms_flag
+00008d52     235 (00008d40)     _g_adc_ovf_first_tbctr
+00008d53     235 (00008d40)     _g_adc_ovf_first_flag_was_set
+00008d54     235 (00008d40)     _g_adc_isr_last_tbctr
+00008d56     235 (00008d40)     _g_switching_frequency_hz
+00008d58     235 (00008d40)     _g_actual_switching_frequency_hz
+00008d5a     235 (00008d40)     _g_adc_vout_filter_acc
+00008d5c     235 (00008d40)     _g_adc_iout_filter_acc
+00008d5e     235 (00008d40)     _g_adc_ipri_filter_acc
+00008d60     235 (00008d40)     _g_vout_volts
+00008d62     235 (00008d40)     _g_iout_amps
+00008d64     235 (00008d40)     _g_ipri_amps
+00008d66     235 (00008d40)     _g_adc_sample_counter
+00008d68     235 (00008d40)     _g_adc_sample_sequence
+00008d6a     235 (00008d40)     _g_fault_flags
+00008d6c     235 (00008d40)     _g_fault_history
+00008d6e     235 (00008d40)     _g_softstart_frequency_hz
+00008d70     235 (00008d40)     _g_control_frequency_hz
+00008d72     235 (00008d40)     _g_voltage_reference
+00008d74     235 (00008d40)     _g_open_loop_target_frequency_hz
+00008d76     235 (00008d40)     _g_open_loop_min_frequency_hz
+00008d78     235 (00008d40)     _g_power_run_min_frequency_hz
+00008d7a     235 (00008d40)     _g_pi_integral
+00008d7c     235 (00008d40)     _g_pi_bias_frequency_hz
+00008d7e     235 (00008d40)     _g_control_shadow_frequency_hz
+
+00008d80     236 (00008d80)     _g_control_vref_volts
+00008d82     236 (00008d80)     _g_control_vout_volts
+00008d84     236 (00008d80)     _g_control_error_volts
+00008d86     236 (00008d80)     _g_control_p_term_hz
+00008d88     236 (00008d80)     _g_control_i_term_hz
+00008d8a     236 (00008d80)     _g_control_frequency_unsat_hz
+00008d8c     236 (00008d80)     _g_control_frequency_clamped_hz
+00008d8e     236 (00008d80)     _g_control_pi_profile_id
+00008d90     236 (00008d80)     _g_control_kp_hz_per_v
+00008d92     236 (00008d80)     _g_control_ki_step_hz_per_v_step
+00008d94     236 (00008d80)     _g_pi_integral_q12
+00008d96     236 (00008d80)     _g_control_p_term_q12
+00008d98     236 (00008d80)     _g_control_i_term_q12
+00008d9a     236 (00008d80)     _g_control_unsat_q12
+00008d9c     236 (00008d80)     _g_stage6_handoff_count
+00008d9e     236 (00008d80)     _g_stage6_run_entry_count
+00008da0     236 (00008d80)     _g_control_adc_sequence_last
+00008da2     236 (00008d80)     _g_control_adc_sequence_consumed
+00008da4     236 (00008d80)     _g_control_fresh_sample_count
+00008da6     236 (00008d80)     _g_control_duplicate_sample_block_count
+00008da8     236 (00008d80)     _g_control_stale_tick_count
+00008daa     236 (00008d80)     _g_control_pi_update_count
+00008dac     236 (00008d80)     _g_control_exec_cycles_last
+00008dae     236 (00008d80)     _g_control_exec_cycles_max
+00008db0     236 (00008d80)     _g_fast_isr_cycles_last
+00008db2     236 (00008d80)     _g_fast_isr_cycles_max
+00008db4     236 (00008d80)     _g_fast_isr_cycles_sum
+00008db6     236 (00008d80)     _g_fast_isr_cycles_count
+00008db8     236 (00008d80)     _g_adc_isr_cycles_sum
+00008dba     236 (00008d80)     _g_adc_isr_cycles_count
+00008dbc     236 (00008d80)     _g_fast_isr_overrun_count
+00008dbe     236 (00008d80)     _g_stage6_noenergy_test_ticks
+
+00008dc0     237 (00008dc0)     _g_stage6_synthetic_vout
+00008dc2     237 (00008dc0)     _g_stage6_noenergy_step_shadow_hz
+00008dc4     237 (00008dc0)     _g_stage6_noenergy_step_integral_hz
+00008dc6     237 (00008dc0)     _g_stage6_adc_isr_count
+00008dc8     237 (00008dc0)     _g_adc_isr_cycles_last
+00008dca     237 (00008dc0)     _g_adc_isr_cycles_max
+00008dcc     237 (00008dc0)     _g_stage6_first_pi_freq_hz
+00008dce     237 (00008dc0)     _g_stage6_cadence_test_freq
+00008dd0     237 (00008dc0)     _g_stage6_actuator_write_count
+00008dd2     237 (00008dc0)     _g_stage6_actuator_direct_cmd_hz
+00008dd4     237 (00008dc0)     _g_stage6_actuator_cycles_last
+00008dd6     237 (00008dc0)     _g_stage6_actuator_cycles_max
+00008dd8     237 (00008dc0)     _g_stage6_actuator_cycles_sum
+00008dda     237 (00008dc0)     _g_stage6_actuator_cycles_count
+00008ddc     237 (00008dc0)     _g_softstart_period_limit
+00008dde     237 (00008dc0)     _g_softstart_step_count
+00008de0     237 (00008dc0)     _g_softstart_elapsed_ms
+00008de2     237 (00008dc0)     _g_softstart_period_limit_start
+00008de4     237 (00008dc0)     _g_softstart_period_limit_final
+00008de6     237 (00008dc0)     _g_softstart_period_step
+00008de8     237 (00008dc0)     _g_period_request
+00008dea     237 (00008dc0)     _g_period_limit
+00008dec     237 (00008dc0)     _g_period_applied
+00008dee     237 (00008dc0)     _g_burst_enter_count
+00008df0     237 (00008dc0)     _g_burst_exit_count
+00008df2     237 (00008dc0)     _g_enable_rising_count
+00008df4     237 (00008dc0)     _g_softstart_final_apply_count
+00008df6     237 (00008dc0)     _g_pre_stop_timer2
+00008df8     237 (00008dc0)     _g_tz_isr_timer2
+00008dfa     237 (00008dc0)     _g_tz_software_ost_count
+00008dfc     237 (00008dc0)     _g_tz_hardware_trip_count
+00008dfe     237 (00008dc0)     _g_tz_noenergy_trip_count
+
+00008e00     238 (00008e00)     _g_tz_active_window_trip_count
+00008e02     238 (00008e00)     _g_tz_post_ost_trip_count
+00008e04     238 (00008e00)     _g_post_ost_trip_delay_ticks
+00008e06     238 (00008e00)     _g_test_run_id
+00008e08     238 (00008e00)     _g_test_run_id_at_arm
+00008e0a     238 (00008e00)     _g_test_run_id_at_tz_isr
+00008e0c     238 (00008e00)     _g_test_run_id_at_stop
+00008e0e     238 (00008e00)     _g_power_probe_duration_us
+00008e10     238 (00008e00)     _g_power_probe_count
+00008e12     238 (00008e00)     _g_single_cycle_probe_frequency_hz
+00008e14     238 (00008e00)     _g_single_cycle_probe_count
+00008e16     238 (00008e00)     _g_coldshot_timer2_start
+00008e18     238 (00008e00)     _g_single_cycle_probe_tick_count
+00008e1a     238 (00008e00)     _g_single_cycle_probe_safety_count
+00008e1c     238 (00008e00)     _g_single_cycle_probe_start_fast_tick
+00008e1e     238 (00008e00)     _g_multi_cycle_probe_cycles
+00008e20     238 (00008e00)     _g_multi_cycle_probe_completed_cycles
+00008e22     238 (00008e00)     _g_completed_cycles_at_trip
+00008e24     238 (00008e00)     _g_accel_trip_completed_cycles
+00008e26     238 (00008e00)     _g_accel_stage_start_cycle
+00008e28     238 (00008e00)     _g_accel_phase_c_start_cycle
+00008e2a     238 (00008e00)     _g_accel_stop_completed_cycles
+00008e2c     238 (00008e00)     _g_accel_stop_run_id_at_arm
+00008e2e     238 (00008e00)     _g_accel_stop_run_id_at_stop
+00008e30     238 (00008e00)     _g_accel_stop_run_id_at_tz_isr
+00008e32     238 (00008e00)     _g_accel_stop_fault_flags
+00008e34     238 (00008e00)     _g_accel_stop_soca_count
+00008e36     238 (00008e00)     _g_accel_stop_eoc_count
+00008e38     238 (00008e00)     _g_accel_stop_miss_count
+00008e3a     238 (00008e00)     _g_cal_hold_sum
+00008e3c     238 (00008e00)     _g_cal_hold_samples
+00008e3e     238 (00008e00)     _g_cal_hold_steady_sum
+
+00008e40     239 (00008e40)     _g_cal_hold_steady_samples
+00008e42     239 (00008e40)     _g_cal_hold_packet_count
+00008e44     239 (00008e40)     _g_cal_hold_total_packet_cycles
+00008e46     239 (00008e40)     _g_cal_hold_packet_cycles_sum
+00008e48     239 (00008e40)     _g_cal_hold_off_ticks
+00008e4a     239 (00008e40)     _g_cal_hold_elapsed_ticks
+00008e4c     239 (00008e40)     _g_cal_hold_hold_active_ticks
+00008e4e     239 (00008e40)     _g_cal_hold_run_id_at_arm
+00008e50     239 (00008e40)     _g_cal_hold_run_id_at_stop
+00008e52     239 (00008e40)     _g_cal_hold_run_id_at_tz_isr
+00008e54     239 (00008e40)     _g_cal_hold_cal_raw_sum
+00008e56     239 (00008e40)     _g_cal_hold_cal_raw_samples
+00008e58     239 (00008e40)     _g_softstart_cycle_count
+00008e5a     239 (00008e40)     _g_softstart_stage_cycles
+00008e5c     239 (00008e40)     _g_softstart_run_id_at_arm
+00008e5e     239 (00008e40)     _g_softstart_run_id_at_stop
+00008e60     239 (00008e40)     _g_softstart_run_id_at_tz_isr
+00008e62     239 (00008e40)     _g_softstart_soca_count
+00008e64     239 (00008e40)     _g_softstart_eoc_count
+00008e66     239 (00008e40)     _g_softstart_miss_count
+00008e68     239 (00008e40)     _g_pfm_start_timer2
+00008e6a     239 (00008e40)     _g_pfm_end_timer2
+00008e6c     239 (00008e40)     _g_pfm_frequency_hz
+00008e6e     239 (00008e40)     _g_truth_runtime_eoc_count
+00008e70     239 (00008e40)     _g_truth_ost_timer2
+00008e72     239 (00008e40)     _g_truth_post_timer2_5us
+00008e74     239 (00008e40)     _g_truth_post_timer2_10us
+00008e76     239 (00008e40)     _g_truth_post_timer2_20us
+00008e78     239 (00008e40)     _g_truth_post_timer2_50us
+00008e7a     239 (00008e40)     _g_truth_post_timer2_100us
+00008e7c     239 (00008e40)     _g_truth_ost_to_slow_timer2
+00008e7e     239 (00008e40)     _g_adc_pwm_sync_soca_count
+
+00008e80     23a (00008e80)     _g_adc_pwm_sync_eoc_count
+00008e82     23a (00008e80)     _g_adc_pwm_sync_miss_count
+00008e84     23a (00008e80)     _g_probe_isr_entry_timer2
+00008e86     23a (00008e80)     _g_probe_ost_command_timer2
+00008e88     23a (00008e80)     _g_probe_ost_after_timer2
+00008e8a     23a (00008e80)     _g_probe_tzclr_write_count
+00008e8c     23a (00008e80)     _g_vout_probe_completed_cycles
+00008e8e     23a (00008e80)     _g_vout_probe_max_cycles
+00008e90     23a (00008e80)     _g_vout_probe_post_tick_count
+00008e92     23a (00008e80)     _g_vout_probe_post_trigger_count
+00008e94     23a (00008e80)     _g_vout_probe_post_start_count
+00008e96     23a (00008e80)     _g_cal_hold_total_on_cycles
+00008e98     23a (00008e80)     _g_cal_hold_raw_sum
+00008e9a     23a (00008e80)     _g_cal_hold_raw_samples
+00008e9c     23a (00008e80)     _g_cal_hold_start_fast_tick
+00008e9e     23a (00008e80)     _g_cal_hold_slow_count
+00008ea0     23a (00008e80)     _g_cal_hold_packet_actual_cycles
+00008ea2     23a (00008e80)     _g_cal_hold_max_total_extra_cycles
+00008ea4     23a (00008e80)     _g_fast_tick
+00008ea6     23a (00008e80)     _g_timer0_entry_count
+00008ea8     23a (00008e80)     _g_timer0_last_entry
+00008eaa     23a (00008e80)     _g_timer0_entry_interval_min
+00008eac     23a (00008e80)     _g_timer0_entry_interval_max
+00008eae     23a (00008e80)     _g_adc_ovf_count
+00008eb6     23a (00008e80)     ___TI_enable_exit_profile_output
+00008eb8     23a (00008e80)     ___TI_cleanup_ptr
+00008eba     23a (00008e80)     ___TI_dtors_ptr
+
+00008ec0     23b (00008ec0)     _g_first_real_pi_shot_build
+00008ec1     23b (00008ec0)     _g_first_real_pi_shot_arm
+00008ec2     23b (00008ec0)     _g_first_real_pi_shot_state
+00008ec3     23b (00008ec0)     _g_first_real_pi_shot_tick
+00008ec4     23b (00008ec0)     _g_first_real_pi_shot_abort
+00008ec5     23b (00008ec0)     _g_first_real_pi_shot_power_writes
+00008ec6     23b (00008ec0)     _g_first_real_pi_shot_ok
+00008ec7     23b (00008ec0)     _g_first_real_pi_shot_abort_vout_raw
+00008ec8     23b (00008ec0)     _g_first_shot_debug_ticks
+00008ec9     23b (00008ec0)     _g_pipeline_phase
+00008eca     23b (00008ec0)     _g_pipeline_executed_phase
+00008ecc     23b (00008ec0)     _g_first_real_pi_shot_first_write_timer2
+00008ece     23b (00008ec0)     _g_first_real_pi_shot_ost_timer2
+00008ed0     23b (00008ec0)     _g_first_shot_debug_freq_hz
+00008ed2     23b (00008ec0)     _g_pipeline_pending
+
+00008f00     23c (00008f00)     _g_shot_summary
+
+00008f4c     23d (00008f40)     _g_stage6_multifresh_trace_freq
+00008f7e     23d (00008f40)     __lock
+
+00008f80     23e (00008f80)     _g_offline_pwm_post
+00008f85     23e (00008f80)     _g_offline_pwm_pre
+00008f8a     23e (00008f80)     __unlock
+00008f8c     23e (00008f80)     _g_probe_vout_samples
+
+003d7e80    f5fa (003d7e80)     _PartIdRegs
+
+003eb0b8    fac2 (003eb080)     _PieVectTableInit
+
+003eb1b8    fac6 (003eb180)     _g_real_pi_actual_hz_table
+
+003f7ff8    fdff (003f7fc0)     _CsmPwl
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+page  address   name                                    
+----  -------   ----                                    
+0     003e801d  .text                                   
+0     003ea96e  C$$EXIT                                 
+0     003e99d8  FD$$ADD                                 
+0     003e9ba3  FD$$DIV                                 
+0     003e9d36  FD$$MPY                                 
+0     003eadef  FD$$SUB                                 
+0     003eac2b  FD$$TOUL                                
+0     003e9ebb  FS$$ADD                                 
+0     003eacc1  FS$$CMP                                 
+0     003e9db9  FS$$DIV                                 
+0     003ea1e3  FS$$MPY                                 
+0     003eae7e  FS$$NEG                                 
+0     003e9eb6  FS$$SUB                                 
+0     003eabd6  FS$$TOU                                 
+0     003eab1d  FS$$TOUL                                
+0     003eac0f  L$$TOFD                                 
+0     003eac46  L$$TOFS                                 
+0     003eadb2  U$$TOFS                                 
+0     003eacee  UL$$TOFD                                
+0     003ead2b  UL$$TOFS                                
+0     003e9101  _ADCINT1_ISR                            
+0     003eac60  _ADC_CheckOverflow                      
+0     003ea997  _ADC_Init                               
+0     003eaadb  _ADC_SetClosedLoopSyncTriggerMode       
+0     003eaa0a  _ADC_SetPwmSyncTriggerMode              
+0     003eadc2  _ADC_SetSoftwareTriggerMode             
+0     003eae57  _ADC_SoftwareTrigger                    
+0     003ea8c6  _ADC_UpdatePwmSyncPoint                 
+0     003eacaa  _ADC_UpdatePwmSyncPointKeepCadence      
+0     003eab3e  _APP_Init                               
+0     003eae8f  _APP_Run                                
+1     00007100  _AdcRegs                                
+1     00000b00  _AdcResult                              
+0     003e8bf0  _CALHOLD_FastTask                       
+0     003eae83  _CALHOLD_Init                           
+0     003ea074  _CALHOLD_PacketIsr                      
+0     003e8a9b  _CALHOLD_SlowTask                       
+0     003ea3b6  _COMP_ApplyGlobals                      
+0     003eae87  _COMP_ArmForSingleCycleStart            
+0     003e9503  _COMP_ArmInjectionTest                  
+0     003eab7c  _COMP_DisarmInjectionTest               
+0     003eaa75  _COMP_Init                              
+0     003e9683  _COMP_RunLoopbackDiagnostic             
+0     003e9b0d  _COMP_StaticCalibrationArm              
+0     003eaafc  _COMP_StaticCalibrationDisarm           
+0     003ea56e  _COMP_StaticCalibrationFastTask         
+0     003eadfd  _COMP_UpdateStatus                      
+0     003ea5e2  _CTRL_ApplyFrequencyCommand             
+0     003e9cb3  _CTRL_ComputeFrequencyCommand           
+0     003ea618  _CTRL_FastTask                          
+0     003ea2e0  _CTRL_Init                              
+0     003e8799  _CTRL_OfflineSelfTest                   
+0     003eadd1  _CTRL_PrimeHandoffReferenceRaw          
+0     003eae3b  _CTRL_RunFastControl                    
+0     003e9376  _CTRL_SlowTask                          
+1     00001400  _Cla1Regs                               
+1     00006400  _Comp1Regs                              
+1     00006420  _Comp2Regs                              
+1     00006440  _Comp3Regs                              
+1     00000c00  _CpuTimer0Regs                          
+1     00000c08  _CpuTimer1Regs                          
+1     00000c10  _CpuTimer2Regs                          
+1     003f7ff8  _CsmPwl                                 
+1     00000ae0  _CsmRegs                                
+0     0000801d  _DSP28x_usDelay                         
+1     00000880  _DevEmuRegs                             
+0     003eae5f  _DisableDog                             
+1     00006040  _ECanaLAMRegs                           
+1     000060c0  _ECanaMOTORegs                          
+1     00006080  _ECanaMOTSRegs                          
+1     00006100  _ECanaMboxes                            
+1     00006000  _ECanaRegs                              
+1     00006a00  _ECap1Regs                              
+0     003e801d  _EPWM1_INT_ISR                          
+0     003e8f3b  _EPWM1_TZINT_ISR                        
+1     00006800  _EPwm1Regs                              
+1     00006840  _EPwm2Regs                              
+1     00006880  _EPwm3Regs                              
+1     000068c0  _EPwm4Regs                              
+1     00006900  _EPwm5Regs                              
+1     00006940  _EPwm6Regs                              
+1     00006980  _EPwm7Regs                              
+1     00006b00  _EQep1Regs                              
+1     00000d01  _EmuBMode                               
+1     00000d00  _EmuKey                                 
+0     003eae45  _EnableInterrupts                       
+1     00000a80  _FlashRegs                              
+1     00000d04  _Flash_CPUScaleFactor                   
+1     00000d02  _Flash_CallbackPtr                      
+0     003ea8f1  _GPIO_Init                              
+1     00006f80  _GpioCtrlRegs                           
+1     00006fc0  _GpioDataRegs                           
+1     00006fe0  _GpioIntRegs                            
+1     00006ac0  _HRCap1Regs                             
+1     00006ae0  _HRCap2Regs                             
+1     00007900  _I2caRegs                               
+0     003eab9a  _InitAdc                                
+0     00008000  _InitFlash                              
+0     003eab5d  _InitPieCtrl                            
+0     003ead60  _InitPieVectTable                       
+0     003ead92  _IntOsc1Sel                             
+0     003eae4e  _LED_AllOff                             
+0     003eae6f  _LED_GreenOn                            
+0     003eae74  _LED_RedOn                              
+0     003eaa97  _LLC_PWM_DisableSafe                    
+0     003ea9be  _LLC_PWM_Enable                         
+0     003eada2  _LLC_ProtectionForceTrip                
+0     003ea3f7  _LLC_ProtectionResetExplicit            
+0     003e91d8  _LLC_SetFrequencyHz                     
+1     00006c00  _LinaRegs                               
+0     003ea374  _MULTICYCLE_AbortByFault                
+0     003e8374  _MULTICYCLE_SlowTask                    
+1     00007060  _NmiIntruptRegs                         
+0     003e92a8  _PROT_Init                              
+0     003eae92  _PROT_RequestFault                      
+0     003e8d39  _PROT_SlowTask                          
+0     003ea74c  _PWM_ApplyPeriodDeadtime                
+0     003ea4b7  _PWM_ConfigMatchesFrozenBaseline        
+0     003ea4b7  _PWM_ConfigTopologyValid                
+0     003e9893  _PWM_Init                               
+0     003ea7ae  _PWM_PrepareStart                       
+0     003ea437  _PWM_RuntimeValuesValid                 
+0     003ead18  _PWM_SetDeadbandOnly                    
+0     003ea0d2  _PWM_StartDeterministic                 
+0     003ea71a  _PWM_Trip                               
+1     003d7e80  _PartIdRegs                             
+1     00000ce0  _PieCtrlRegs                            
+1     00000d00  _PieVectTable                           
+0     003eb0b8  _PieVectTableInit                       
+0     003e801d  _RamfuncsLoadEnd                        
+0     003e8000  _RamfuncsLoadStart                      
+0     00008000  _RamfuncsRunStart                       
+0     003eade0  _SHOT_ClampFreq                         
+0     003ea7de  _SHOT_EnterTutorialBurst                
+0     003ea32d  _SHOT_FastTask                          
+0     003ea189  _SHOT_Init                              
+0     003eae67  _SHOT_OnTrip                            
+0     003ea899  _SHOT_PendingCommit                     
+0     003ea80d  _SHOT_PendingValid                      
+0     003eaab9  _SHOT_PermissionOk                      
+0     003eae17  _SHOT_PipelineApplyAuthorized           
+0     003eae95  _SHOT_RealStage6AuthOk                  
+0     003e9936  _SHOT_Revoke                            
+0     003ead04  _SHOT_WriteAllowed                      
+0     003ea681  _SINGLECYCLE_AbortByFault               
+0     003eacd8  _SM_Init                                
+0     003e9f2e  _SM_Run                                 
+1     00007050  _SciaRegs                               
+0     003eae99  _SoftStart_ApplyLimits                  
+0     003eae79  _SoftStart_Begin                        
+0     003e85f1  _SoftStart_FastUpdate                   
+0     003ea945  _SoftStart_Init                         
+0     003ea9e4  _SoftStart_SelectProfile                
+0     003e9a74  _SoftStart_StartPwmFormal               
+0     003e8e41  _SoftStart_TransferToClosedLoop         
+0     003e9440  _SoftStart_Update5ms                    
+1     00007040  _SpiaRegs                               
+1     00007740  _SpibRegs                               
+1     00007010  _SysCtrlRegs                            
+1     00000985  _SysPwrCtrlRegs                         
+0     003e9c2e  _System_Init                            
+0     003e891d  _TINT0_ISR                              
+0     003eaea0  _TIRamfuncsLoadEnd                      
+0     003eae9c  _TIRamfuncsLoadStart                    
+0     0000801d  _TIRamfuncsRunStart                     
+1     00007070  _XIntruptRegs                           
+1     000088c0  __STACK_END                             
+abs   000000c0  __STACK_SIZE                            
+1     00008eb8  ___TI_cleanup_ptr                       
+1     00008eba  ___TI_dtors_ptr                         
+1     00008eb6  ___TI_enable_exit_profile_output        
+abs   ffffffff  ___TI_pprof_out_hndl                    
+abs   ffffffff  ___TI_prof_data_size                    
+abs   ffffffff  ___TI_prof_data_start                   
+abs   ffffffff  ___binit__                              
+abs   ffffffff  ___c_args__                             
+0     003eaea0  ___cinit__                              
+0     003eae9c  ___etext__                              
+abs   ffffffff  ___pinit__                              
+0     003e801d  ___text__                               
+0     003ead71  __args_main                             
+1     00008f7e  __lock                                  
+0     003eae9a  __nop                                   
+1     00008800  __stack                                 
+0     003eae9b  __system_post_cinit                     
+0     003eae97  __system_pre_init                       
+1     00008f8a  __unlock                                
+0     003ea96e  _abort                                  
+0     003ea23d  _c_int00                                
+0     003eaa2e  _copy_in                                
+0     003eae24  _epilog_c28x_1                          
+0     003eae28  _epilog_c28x_2                          
+0     003ea970  _exit                                   
+1     00008d51  _g_5ms_flag                             
+1     00008cac  _g_accel_active                         
+1     00008cb5  _g_accel_current_cmpa                   
+1     00008cb3  _g_accel_current_db                     
+1     00008cb4  _g_accel_current_period                 
+1     00008cb7  _g_accel_last_tzflg                     
+1     00008cb9  _g_accel_last_vout_max                  
+1     00008cb8  _g_accel_last_vout_raw                  
+1     00008cad  _g_accel_phase                          
+1     00008cba  _g_accel_phase_c_cycles                 
+1     00008e28  _g_accel_phase_c_start_cycle            
+1     00008cbc  _g_accel_phase_c_vout_max               
+1     00008cbb  _g_accel_phase_c_vout_start             
+1     00008cbd  _g_accel_phase_c_vout_stop              
+1     00008cab  _g_accel_request                        
+1     00008cb6  _g_accel_stage_index                    
+1     00008e26  _g_accel_stage_start_cycle              
+1     00008cc7  _g_accel_stop_cmpa                      
+1     00008cc8  _g_accel_stop_cmpb                      
+1     00008e2a  _g_accel_stop_completed_cycles          
+1     00008ccb  _g_accel_stop_dacval                    
+1     00008cca  _g_accel_stop_dbfed                     
+1     00008cc9  _g_accel_stop_dbred                     
+1     00008e36  _g_accel_stop_eoc_count                 
+1     00008e32  _g_accel_stop_fault_flags               
+1     00008cc2  _g_accel_stop_hard_limit_raw            
+1     00008cc4  _g_accel_stop_max_raw                   
+1     00008e38  _g_accel_stop_miss_count                
+1     00008cc5  _g_accel_stop_phase                     
+1     00008cc3  _g_accel_stop_raw                       
+1     00008cae  _g_accel_stop_reason                    
+1     00008e2c  _g_accel_stop_run_id_at_arm             
+1     00008e2e  _g_accel_stop_run_id_at_stop            
+1     00008e30  _g_accel_stop_run_id_at_tz_isr          
+1     00008e34  _g_accel_stop_soca_count                
+1     00008cc1  _g_accel_stop_target_raw                
+1     00008cc6  _g_accel_stop_tbprd                     
+1     00008ccc  _g_accel_stop_tzflg                     
+1     00008cc0  _g_accel_target_rejected                
+1     00008cb1  _g_accel_trip_cmpa                      
+1     00008e24  _g_accel_trip_completed_cycles          
+1     00008cb2  _g_accel_trip_db                        
+1     00008cb0  _g_accel_trip_period                    
+1     00008caf  _g_accel_trip_phase                     
+1     00008cbf  _g_accel_vout_hard_limit_raw            
+1     00008cbe  _g_accel_vout_target_raw                
+1     00008c01  _g_active_bringup_stage                 
+1     00008d58  _g_actual_switching_frequency_hz        
+1     00008d5c  _g_adc_iout_filter_acc                  
+1     00008c0d  _g_adc_iout_filtered_raw                
+1     00008c0a  _g_adc_iout_raw                         
+1     00008d5e  _g_adc_ipri_filter_acc                  
+1     00008c0e  _g_adc_ipri_filtered_raw                
+1     00008c0b  _g_adc_ipri_raw                         
+1     00008dba  _g_adc_isr_cycles_count                 
+1     00008dc8  _g_adc_isr_cycles_last                  
+1     00008dca  _g_adc_isr_cycles_max                   
+1     00008db8  _g_adc_isr_cycles_sum                   
+1     00008d54  _g_adc_isr_last_tbctr                   
+1     00008eae  _g_adc_ovf_count                        
+1     00008d53  _g_adc_ovf_first_flag_was_set           
+1     00008d52  _g_adc_ovf_first_tbctr                  
+1     00008d0c  _g_adc_pwm_sync_cmpa                    
+1     00008d0b  _g_adc_pwm_sync_cmpb                    
+1     00008d19  _g_adc_pwm_sync_consecutive_miss        
+1     00008d0d  _g_adc_pwm_sync_edge_distance           
+1     00008e80  _g_adc_pwm_sync_eoc_count               
+1     00008e82  _g_adc_pwm_sync_miss_count              
+1     00008e7e  _g_adc_pwm_sync_soca_count              
+1     00008d1a  _g_adc_pwm_sync_stale_abort             
+1     00008d18  _g_adc_pwm_sync_valid                   
+1     00008d66  _g_adc_sample_counter                   
+1     00008d68  _g_adc_sample_sequence                  
+1     00008c0f  _g_adc_trigger_mode                     
+1     00008d5a  _g_adc_vout_filter_acc                  
+1     00008c0c  _g_adc_vout_filtered_raw                
+1     00008d17  _g_adc_vout_pwm_sync_raw                
+1     00008c09  _g_adc_vout_raw                         
+1     00008cf9  _g_board_vout_cal_valid                 
+1     00008c00  _g_bringup_stage                        
+1     00008c3e  _g_burst_active                         
+1     00008c3d  _g_burst_enabled                        
+1     00008dee  _g_burst_enter_count                    
+1     00008df0  _g_burst_exit_count                     
+1     00008d43  _g_cal_hold_active                      
+1     00008ce0  _g_cal_hold_cal_raw_avg                 
+1     00008cdf  _g_cal_hold_cal_raw_max                 
+1     00008cde  _g_cal_hold_cal_raw_min                 
+1     00008e56  _g_cal_hold_cal_raw_samples             
+1     00008e54  _g_cal_hold_cal_raw_sum                 
+1     00008d44  _g_cal_hold_charge_done                 
+1     00008d49  _g_cal_hold_charge_seen                 
+1     00008cd1  _g_cal_hold_charge_stop_raw             
+1     00008cce  _g_cal_hold_duration_ms                 
+1     00008e4a  _g_cal_hold_elapsed_ticks               
+1     00008d48  _g_cal_hold_fault                       
+1     00008cdd  _g_cal_hold_final_ost                   
+1     00008cdc  _g_cal_hold_final_pwm                   
+1     00008cdb  _g_cal_hold_hard_limit_events           
+1     00008e4c  _g_cal_hold_hold_active_ticks           
+1     00008d4c  _g_cal_hold_initial_stop_raw            
+1     00008d4b  _g_cal_hold_last_vout_active            
+1     00008d4a  _g_cal_hold_last_vout_stop_reason       
+1     00008cd4  _g_cal_hold_max                         
+1     00008ea2  _g_cal_hold_max_total_extra_cycles      
+1     00008cd3  _g_cal_hold_min                         
+1     00008e48  _g_cal_hold_off_ticks                   
+1     00008cd9  _g_cal_hold_packet_active               
+1     00008ea0  _g_cal_hold_packet_actual_cycles        
+1     00008e42  _g_cal_hold_packet_count                
+1     00008cda  _g_cal_hold_packet_cycles               
+1     00008e46  _g_cal_hold_packet_cycles_sum           
+1     00008cd8  _g_cal_hold_packet_max_cycles           
+1     00008cd7  _g_cal_hold_packet_min_cycles           
+1     00008d50  _g_cal_hold_packet_post_last_raw        
+1     00008d4f  _g_cal_hold_packet_post_max_raw         
+1     00008d4d  _g_cal_hold_packet_start_raw            
+1     00008d4e  _g_cal_hold_packet_stop_raw             
+1     00008cd2  _g_cal_hold_raw                         
+1     00008d47  _g_cal_hold_raw_average                 
+1     00008d46  _g_cal_hold_raw_max                     
+1     00008d45  _g_cal_hold_raw_min                     
+1     00008e9a  _g_cal_hold_raw_samples                 
+1     00008e98  _g_cal_hold_raw_sum                     
+1     00008ccd  _g_cal_hold_request                     
+1     00008e4e  _g_cal_hold_run_id_at_arm               
+1     00008e50  _g_cal_hold_run_id_at_stop              
+1     00008e52  _g_cal_hold_run_id_at_tz_isr            
+1     00008e3c  _g_cal_hold_samples                     
+1     00008e9e  _g_cal_hold_slow_count                  
+1     00008e9c  _g_cal_hold_start_fast_tick             
+1     00008ccf  _g_cal_hold_state                       
+1     00008cd6  _g_cal_hold_steady_max                  
+1     00008cd5  _g_cal_hold_steady_min                  
+1     00008e40  _g_cal_hold_steady_samples              
+1     00008e3e  _g_cal_hold_steady_sum                  
+1     00008cd0  _g_cal_hold_stop_reason                 
+1     00008e3a  _g_cal_hold_sum                         
+1     00008e96  _g_cal_hold_total_on_cycles             
+1     00008e44  _g_cal_hold_total_packet_cycles         
+1     00008ce4  _g_cal_hold_zero_raw_avg                
+1     00008ce3  _g_cal_hold_zero_raw_max                
+1     00008ce2  _g_cal_hold_zero_raw_min                
+1     00008ce1  _g_cal_hold_zero_request                
+1     00008ce8  _g_cal_measure_active                   
+1     00008ce6  _g_cal_measure_done                     
+1     00008ce7  _g_cal_measure_ready                    
+1     00008ce5  _g_cal_measure_request                  
+1     00008c95  _g_coldshot_compsts_before              
+1     00008c96  _g_coldshot_gpio15_before               
+1     00008c94  _g_coldshot_ipri_raw_before             
+1     00008e16  _g_coldshot_timer2_start                
+1     00008c97  _g_coldshot_tzflg_before                
+1     00008c9a  _g_coldshot_vin_actual_x10              
+1     00008c98  _g_coldshot_vout_baseline_avg           
+1     00008c99  _g_coldshot_vout_baseline_samples       
+1     00008c93  _g_coldshot_vout_raw_before             
+1     00008c61  _g_comp1_dac_code                       
+1     00008c60  _g_comp1_status                         
+1     00008c56  _g_comp_arm                             
+1     00008d09  _g_comp_arm_compdacen                   
+1     00008d08  _g_comp_arm_dacval                      
+1     00008d0a  _g_comp_arm_tzsel_osht1                 
+1     00008c54  _g_comp_dac_value                       
+1     00008c5e  _g_comp_inject_test_armed               
+1     00008c5f  _g_comp_inject_test_disarm_request      
+1     00008c5d  _g_comp_inject_test_request             
+1     00008c55  _g_comp_polarity                        
+1     00008c63  _g_comp_prestart_gpio15                 
+1     00008c65  _g_comp_prestart_reject                 
+1     00008c62  _g_comp_prestart_status                 
+1     00008c64  _g_comp_prestart_tzflg                  
+1     00008c9d  _g_comp_trip_dac_code                   
+1     00008c9e  _g_comp_trip_tbctr                      
+1     00008c9f  _g_comp_trip_vout_raw                   
+1     00008c58  _g_comp_tz_loopback_verified            
+1     00008e22  _g_completed_cycles_at_trip             
+1     00008da2  _g_control_adc_sequence_consumed        
+1     00008da0  _g_control_adc_sequence_last            
+1     00008c1b  _g_control_adc_stale_inhibit            
+1     00008da6  _g_control_duplicate_sample_block_count 
+1     00008c23  _g_control_error_raw                    
+1     00008d84  _g_control_error_volts                  
+1     00008dac  _g_control_exec_cycles_last             
+1     00008dae  _g_control_exec_cycles_max              
+1     00008d8c  _g_control_frequency_clamped_hz         
+1     00008d70  _g_control_frequency_hz                 
+1     00008d8a  _g_control_frequency_unsat_hz           
+1     00008da4  _g_control_fresh_sample_count           
+1     00008d88  _g_control_i_term_hz                    
+1     00008d98  _g_control_i_term_q12                   
+1     00008c1a  _g_control_integrator_frozen            
+1     00008d92  _g_control_ki_step_hz_per_v_step        
+1     00008d90  _g_control_kp_hz_per_v                  
+1     00008d86  _g_control_p_term_hz                    
+1     00008d96  _g_control_p_term_q12                   
+1     00008d8e  _g_control_pi_profile_id                
+1     00008daa  _g_control_pi_update_count              
+1     00008c20  _g_control_pi_virtual_only              
+1     00008c2a  _g_control_reference_valid              
+1     00008c17  _g_control_running                      
+1     00008c1c  _g_control_sample_valid                 
+1     00008c18  _g_control_saturated_high               
+1     00008c19  _g_control_saturated_low                
+1     00008d7e  _g_control_shadow_frequency_hz          
+1     00008da8  _g_control_stale_tick_count             
+1     00008d9a  _g_control_unsat_q12                    
+1     00008c22  _g_control_vout_raw                     
+1     00008d82  _g_control_vout_volts                   
+1     00008c21  _g_control_vref_raw                     
+1     00008d80  _g_control_vref_volts                   
+1     00008c08  _g_diag_frequency_override              
+1     00008df2  _g_enable_rising_count                  
+1     00008c12  _g_fast_fault_count                     
+1     00008db6  _g_fast_isr_cycles_count                
+1     00008db0  _g_fast_isr_cycles_last                 
+1     00008db2  _g_fast_isr_cycles_max                  
+1     00008db4  _g_fast_isr_cycles_sum                  
+1     00008dbc  _g_fast_isr_overrun_count               
+1     00008ea4  _g_fast_tick                            
+1     00008d6a  _g_fault_flags                          
+1     00008d6c  _g_fault_history                        
+1     00008c13  _g_fault_reset_request                  
+1     00008ec4  _g_first_real_pi_shot_abort             
+1     00008ec7  _g_first_real_pi_shot_abort_vout_raw    
+1     00008ec1  _g_first_real_pi_shot_arm               
+1     00008ec0  _g_first_real_pi_shot_build             
+1     00008ecc  _g_first_real_pi_shot_first_write_timer2
+1     00008ec6  _g_first_real_pi_shot_ok                
+1     00008ece  _g_first_real_pi_shot_ost_timer2        
+1     00008ec5  _g_first_real_pi_shot_power_writes      
+1     00008ec2  _g_first_real_pi_shot_state             
+1     00008ec3  _g_first_real_pi_shot_tick              
+1     00008ed0  _g_first_shot_debug_freq_hz             
+1     00008ec8  _g_first_shot_debug_ticks               
+1     00008c48  _g_first_start_cmpa                     
+1     00008c4b  _g_first_start_dacval                   
+1     00008c4a  _g_first_start_dbfed                    
+1     00008c49  _g_first_start_dbred                    
+1     00008c4c  _g_first_start_ost                      
+1     00008c4d  _g_first_start_pwm                      
+1     00008c46  _g_first_start_seen                     
+1     00008c47  _g_first_start_tbprd                    
+1     00008c14  _g_force_trip_request                   
+1     00008d62  _g_iout_amps                            
+1     00008d64  _g_ipri_amps                            
+1     00008d07  _g_ipri_raw_at_stop                     
+1     00008d05  _g_ipri_raw_before                      
+1     00008d06  _g_ipri_raw_max                         
+1     00008c57  _g_loopback_diag_request                
+1     00008c59  _g_loopback_diag_result                 
+1     00008c5a  _g_loopback_read0                       
+1     00008c5b  _g_loopback_read1                       
+1     00008c5c  _g_loopback_read2                       
+1     00008ca4  _g_multi_cycle_probe_active             
+1     00008ca7  _g_multi_cycle_probe_adc_ipri_before    
+1     00008ca8  _g_multi_cycle_probe_adc_ipri_peak      
+1     00008ca6  _g_multi_cycle_probe_adc_vout_after     
+1     00008ca5  _g_multi_cycle_probe_adc_vout_before    
+1     00008e20  _g_multi_cycle_probe_completed_cycles   
+1     00008e1e  _g_multi_cycle_probe_cycles             
+1     00008ca2  _g_multi_cycle_probe_request            
+1     00008ca3  _g_multi_cycle_probe_result             
+1     00008caa  _g_multi_cycle_probe_stop_reason        
+1     00008ca9  _g_multi_cycle_probe_stop_tbctr         
+1     00008c45  _g_no_energy_test_mode                  
+1     00008c3f  _g_ocp_recovery_mode                    
+1     00008c1f  _g_offline_pwm_isolated                 
+1     00008f80  _g_offline_pwm_post                     
+1     00008f85  _g_offline_pwm_pre                      
+1     00008c1d  _g_offline_test_request                 
+1     00008c1e  _g_offline_test_status                  
+1     00008d76  _g_open_loop_min_frequency_hz           
+1     00008d74  _g_open_loop_target_frequency_hz        
+1     00008dec  _g_period_applied                       
+1     00008dea  _g_period_limit                         
+1     00008de8  _g_period_request                       
+1     00008d03  _g_pfm_cmpa                             
+1     00008d04  _g_pfm_cmpb                             
+1     00008cfb  _g_pfm_direction_test_mode              
+1     00008cfd  _g_pfm_end_raw                          
+1     00008e6a  _g_pfm_end_timer2                       
+1     00008e6c  _g_pfm_frequency_hz                     
+1     00008d01  _g_pfm_hard_vout_abort                  
+1     00008cfe  _g_pfm_max_raw                          
+1     00008cfc  _g_pfm_start_raw                        
+1     00008e68  _g_pfm_start_timer2                     
+1     00008d02  _g_pfm_tbprd                            
+1     00008cff  _g_pfm_window_cycles                    
+1     00008d00  _g_pfm_window_total                     
+1     00008d7c  _g_pi_bias_frequency_hz                 
+1     00008d7a  _g_pi_integral                          
+1     00008d94  _g_pi_integral_q12                      
+1     00008eca  _g_pipeline_executed_phase              
+1     00008ed2  _g_pipeline_pending                     
+1     00008ec9  _g_pipeline_phase                       
+1     00008e04  _g_post_ost_trip_delay_ticks            
+1     00008d21  _g_poststop5ms_vout_avg                 
+1     00008d20  _g_poststop_vout_avg                    
+1     00008d1c  _g_poststop_vout_done                   
+1     00008d1f  _g_poststop_vout_max                    
+1     00008d1e  _g_poststop_vout_min                    
+1     00008d1d  _g_poststop_vout_phase                  
+1     00008d1b  _g_poststop_vout_request                
+1     00008c83  _g_power_probe_active                   
+1     00008c89  _g_power_probe_adc_iout_after           
+1     00008c88  _g_power_probe_adc_iout_before          
+1     00008c86  _g_power_probe_adc_ipri_before          
+1     00008c87  _g_power_probe_adc_ipri_peak            
+1     00008c85  _g_power_probe_adc_vout_after           
+1     00008c84  _g_power_probe_adc_vout_before          
+1     00008e10  _g_power_probe_count                    
+1     00008e0e  _g_power_probe_duration_us              
+1     00008c81  _g_power_probe_request                  
+1     00008c82  _g_power_probe_result                   
+1     00008d78  _g_power_run_min_frequency_hz           
+1     00008c7c  _g_power_window_state                   
+1     00008c51  _g_pre_stop_compsts                     
+1     00008c50  _g_pre_stop_gpio15                      
+1     00008c53  _g_pre_stop_hardware_trip_seen          
+1     00008c4f  _g_pre_stop_ost                         
+1     00008c52  _g_pre_stop_tbctr                       
+1     00008df6  _g_pre_stop_timer2                      
+1     00008c4e  _g_pre_stop_tzflg                       
+1     00008d33  _g_probe_adc_sample_count               
+1     00008d2e  _g_probe_interrupt_isolation_active     
+1     00008d25  _g_probe_irq_latency_ticks              
+1     00008d26  _g_probe_irq_to_ost_ticks               
+1     00008d22  _g_probe_isr_entry_tbctr                
+1     00008e84  _g_probe_isr_entry_timer2               
+1     00008d24  _g_probe_ost_after_tbctr                
+1     00008e88  _g_probe_ost_after_timer2               
+1     00008d23  _g_probe_ost_command_tbctr              
+1     00008e86  _g_probe_ost_command_timer2             
+1     00008d2b  _g_probe_saved_ier                      
+1     00008d2c  _g_probe_saved_pieier1                  
+1     00008d2d  _g_probe_saved_pieier3                  
+1     00008c7d  _g_probe_scheduled_ost_occurred         
+1     00008e8a  _g_probe_tzclr_write_count              
+1     00008d2a  _g_probe_tzflg_after_state_update       
+1     00008d27  _g_probe_tzflg_immediate                
+1     00008d28  _g_probe_tzflg_read2                    
+1     00008d29  _g_probe_tzflg_read3                    
+1     00008d31  _g_probe_vout_first                     
+1     00008d32  _g_probe_vout_last                      
+1     00008d30  _g_probe_vout_max                       
+1     00008d2f  _g_probe_vout_min                       
+1     00008f8c  _g_probe_vout_samples                   
+1     00008c06  _g_pwm_enable_request                   
+1     00008c07  _g_pwm_enable_result                    
+1     00008c05  _g_pwm_enabled                          
+1     00008c15  _g_pwm_fastpath_ready                   
+1     00008c04  _g_pwm_period                           
+1     00008c42  _g_pwm_start_prepared                   
+0     003eb1b8  _g_real_pi_actual_hz_table              
+1     00008f00  _g_shot_summary                         
+1     00008ca0  _g_single_cycle_completed               
+1     00008c8c  _g_single_cycle_probe_active            
+1     00008c8d  _g_single_cycle_probe_adc_ipri_before   
+1     00008c8e  _g_single_cycle_probe_adc_ipri_peak     
+1     00008c90  _g_single_cycle_probe_adc_vout_after    
+1     00008c8f  _g_single_cycle_probe_adc_vout_before   
+1     00008e14  _g_single_cycle_probe_count             
+1     00008c92  _g_single_cycle_probe_deadtime          
+1     00008e12  _g_single_cycle_probe_frequency_hz      
+1     00008c8a  _g_single_cycle_probe_request           
+1     00008c8b  _g_single_cycle_probe_result            
+1     00008e1a  _g_single_cycle_probe_safety_count      
+1     00008e1c  _g_single_cycle_probe_start_fast_tick   
+1     00008c91  _g_single_cycle_probe_stop_tbctr        
+1     00008e18  _g_single_cycle_probe_tick_count        
+1     00008ca1  _g_single_cycle_result                  
+1     00008c40  _g_softstart_abort_reason               
+1     00008ceb  _g_softstart_accept_target_raw          
+1     00008cea  _g_softstart_acceptance_mode            
+1     00008c16  _g_softstart_autoramp_allowed           
+1     00008cf6  _g_softstart_consecutive_miss           
+1     00008e58  _g_softstart_cycle_count                
+1     00008c37  _g_softstart_deadtime                   
+1     00008c39  _g_softstart_deadtime_final             
+1     00008c38  _g_softstart_deadtime_start             
+1     00008c3a  _g_softstart_deadtime_step              
+1     00008de0  _g_softstart_elapsed_ms                 
+1     00008e64  _g_softstart_eoc_count                  
+1     00008c43  _g_softstart_final_applied              
+1     00008df4  _g_softstart_final_apply_count          
+1     00008c44  _g_softstart_final_apply_pending        
+1     00008cf0  _g_softstart_final_cycles               
+1     00008cf5  _g_softstart_final_ost                  
+1     00008cf4  _g_softstart_final_pwm                  
+1     00008d6e  _g_softstart_frequency_hz               
+1     00008c24  _g_softstart_handoff_result             
+1     00008cec  _g_softstart_hard_ceiling_raw           
+1     00008cf2  _g_softstart_last_vout_max              
+1     00008cf1  _g_softstart_last_vout_raw              
+1     00008e66  _g_softstart_miss_count                 
+1     00008cf8  _g_softstart_no_energy                  
+1     00008c41  _g_softstart_ocp_dac_code               
+1     00008ddc  _g_softstart_period_limit               
+1     00008de4  _g_softstart_period_limit_final         
+1     00008de2  _g_softstart_period_limit_start         
+1     00008de6  _g_softstart_period_step                
+1     00008c3c  _g_softstart_profile                    
+1     00008cfa  _g_softstart_ramp_active                
+1     00008ce9  _g_softstart_request                    
+1     00008ced  _g_softstart_result                     
+1     00008e5c  _g_softstart_run_id_at_arm              
+1     00008e5e  _g_softstart_run_id_at_stop             
+1     00008e60  _g_softstart_run_id_at_tz_isr           
+1     00008e62  _g_softstart_soca_count                 
+1     00008cee  _g_softstart_stage                      
+1     00008e5a  _g_softstart_stage_cycles               
+1     00008cef  _g_softstart_stage_index                
+1     00008cf7  _g_softstart_stale_abort                
+1     00008c36  _g_softstart_state                      
+1     00008dde  _g_softstart_step_count                 
+1     00008cf3  _g_softstart_stop_raw                   
+1     00008c3b  _g_softstart_wait_5ms_ticks             
+1     00008c74  _g_software_ost_in_progress             
+1     00008dda  _g_stage6_actuator_cycles_count         
+1     00008dd4  _g_stage6_actuator_cycles_last          
+1     00008dd6  _g_stage6_actuator_cycles_max           
+1     00008dd8  _g_stage6_actuator_cycles_sum           
+1     00008dd2  _g_stage6_actuator_direct_cmd_hz        
+1     00008c35  _g_stage6_actuator_revoked              
+1     00008c34  _g_stage6_actuator_test_arm             
+1     00008dd0  _g_stage6_actuator_write_count          
+1     00008dc6  _g_stage6_adc_isr_count                 
+1     00008dce  _g_stage6_cadence_test_freq             
+1     00008c30  _g_stage6_closeloop_vout_inject         
+1     00008dcc  _g_stage6_first_pi_freq_hz              
+1     00008c32  _g_stage6_first_pi_observed             
+1     00008c31  _g_stage6_first_pi_sample_raw           
+1     00008d9c  _g_stage6_handoff_count                 
+1     00008c33  _g_stage6_multifresh_trace_count        
+1     00008f4c  _g_stage6_multifresh_trace_freq         
+1     00008dc4  _g_stage6_noenergy_step_integral_hz     
+1     00008c2f  _g_stage6_noenergy_step_req             
+1     00008dc2  _g_stage6_noenergy_step_shadow_hz       
+1     00008c2b  _g_stage6_noenergy_test_enable          
+1     00008c2e  _g_stage6_noenergy_test_mode            
+1     00008dbe  _g_stage6_noenergy_test_ticks           
+1     00008c26  _g_stage6_ref_prime_count               
+1     00008c27  _g_stage6_ref_prime_raw                 
+1     00008c29  _g_stage6_ref_prime_result              
+1     00008c28  _g_stage6_ref_valid_at_run_entry        
+1     00008d9e  _g_stage6_run_entry_count               
+1     00008c2d  _g_stage6_synthetic_sequence            
+1     00008dc0  _g_stage6_synthetic_vout                
+1     00008c2c  _g_stage6_synthetic_vout_raw            
+1     00008c25  _g_stage6_transfer_request              
+1     00008c02  _g_stage_confirm_request                
+1     00008c03  _g_stage_confirmed_mask                 
+1     00008c68  _g_static_cal_armed                     
+1     00008c6d  _g_static_cal_compsts_after             
+1     00008c6c  _g_static_cal_compsts_before            
+1     00008c67  _g_static_cal_dac                       
+1     00008c71  _g_static_cal_disarm_request            
+1     00008c6f  _g_static_cal_gpio15_after              
+1     00008c6e  _g_static_cal_gpio15_before             
+1     00008c69  _g_static_cal_initial_compsts           
+1     00008c6a  _g_static_cal_initial_gpio15            
+1     00008c66  _g_static_cal_request                   
+1     00008c6b  _g_static_cal_transition_detected       
+1     00008c70  _g_static_cal_tzflg_after               
+1     00008d56  _g_switching_frequency_hz               
+1     00008c10  _g_system_state                         
+1     00008c80  _g_test_cmpa_snapshot                   
+1     00008c7e  _g_test_dac_snapshot                    
+1     00008e06  _g_test_run_id                          
+1     00008e08  _g_test_run_id_at_arm                   
+1     00008e0c  _g_test_run_id_at_stop                  
+1     00008e0a  _g_test_run_id_at_tz_isr                
+1     00008c7f  _g_test_tbprd_snapshot                  
+1     00008ea6  _g_timer0_entry_count                   
+1     00008eac  _g_timer0_entry_interval_max            
+1     00008eaa  _g_timer0_entry_interval_min            
+1     00008ea8  _g_timer0_last_entry                    
+1     00008c11  _g_trip_count                           
+1     00008e70  _g_truth_ost_timer2                     
+1     00008e7c  _g_truth_ost_to_slow_timer2             
+1     00008d16  _g_truth_post_100us                     
+1     00008d13  _g_truth_post_10us                      
+1     00008d14  _g_truth_post_20us                      
+1     00008d15  _g_truth_post_50us                      
+1     00008d12  _g_truth_post_5us                       
+1     00008e7a  _g_truth_post_timer2_100us              
+1     00008e74  _g_truth_post_timer2_10us               
+1     00008e76  _g_truth_post_timer2_20us               
+1     00008e78  _g_truth_post_timer2_50us               
+1     00008e72  _g_truth_post_timer2_5us                
+1     00008d11  _g_truth_runtime_cmpb                   
+1     00008e6e  _g_truth_runtime_eoc_count              
+1     00008d0f  _g_truth_runtime_raw                    
+1     00008d10  _g_truth_runtime_tbctr                  
+1     00008c9b  _g_tz1_qualification_mode               
+1     00008c9c  _g_tz1_qualification_period             
+1     00008e00  _g_tz_active_window_trip_count          
+1     00008c7b  _g_tz_event_phase                       
+1     00008dfc  _g_tz_hardware_trip_count               
+1     00008c73  _g_tz_int_flag                          
+1     00008c77  _g_tz_isr_after_scheduled_ost           
+1     00008c79  _g_tz_isr_compsts                       
+1     00008c78  _g_tz_isr_gpio15                        
+1     00008c76  _g_tz_isr_software_ost_flag             
+1     00008c75  _g_tz_isr_tbctr                         
+1     00008df8  _g_tz_isr_timer2                        
+1     00008c7a  _g_tz_isr_tzflg                         
+1     00008dfe  _g_tz_noenergy_trip_count               
+1     00008c72  _g_tz_ost_flag                          
+1     00008e02  _g_tz_post_ost_trip_count               
+1     00008dfa  _g_tz_software_ost_count                
+1     00008d72  _g_voltage_reference                    
+1     00008d35  _g_vout_probe_active                    
+1     00008e8c  _g_vout_probe_completed_cycles          
+1     00008d3a  _g_vout_probe_dac_code                  
+1     00008d3b  _g_vout_probe_hard_limit_raw            
+1     00008e8e  _g_vout_probe_max_cycles                
+1     00008d38  _g_vout_probe_max_raw                   
+1     00008d40  _g_vout_probe_post_capture_active       
+1     00008d41  _g_vout_probe_post_capture_count        
+1     00008d3d  _g_vout_probe_post_first_raw            
+1     00008d3f  _g_vout_probe_post_last_raw             
+1     00008d3e  _g_vout_probe_post_max_raw              
+1     00008d42  _g_vout_probe_post_seen_active          
+1     00008e94  _g_vout_probe_post_start_count          
+1     00008e90  _g_vout_probe_post_tick_count           
+1     00008e92  _g_vout_probe_post_trigger_count        
+1     00008d3c  _g_vout_probe_pre_stop_max_raw          
+1     00008d34  _g_vout_probe_request                   
+1     00008d37  _g_vout_probe_stop_raw                  
+1     00008d39  _g_vout_probe_stop_reason               
+1     00008d36  _g_vout_probe_target_raw                
+1     00008d0e  _g_vout_runtime_before_ost              
+1     00008d60  _g_vout_volts                           
+0     003eac92  _main                                   
+0     003eabb8  _memcpy                                 
+0     003eac79  _prolog_c28x_1                          
+0     003eac7d  _prolog_c28x_2                          
+0     003eac85  _prolog_c28x_3                          
+0     003eae8b  _rsvd_ISR                               
+abs   ffffffff  binit                                   
+0     003eaea0  cinit                                   
+0     003f7ff6  code_start                              
+0     003eae9c  etext                                   
+abs   ffffffff  pinit                                   
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+page  address   name                                    
+----  -------   ----                                    
+0     00008000  _InitFlash                              
+0     00008000  _RamfuncsRunStart                       
+0     0000801d  _DSP28x_usDelay                         
+0     0000801d  _TIRamfuncsRunStart                     
+0     003e8000  _RamfuncsLoadStart                      
+0     003e801d  .text                                   
+0     003e801d  _EPWM1_INT_ISR                          
+0     003e801d  _RamfuncsLoadEnd                        
+0     003e801d  ___text__                               
+0     003e8374  _MULTICYCLE_SlowTask                    
+0     003e85f1  _SoftStart_FastUpdate                   
+0     003e8799  _CTRL_OfflineSelfTest                   
+0     003e891d  _TINT0_ISR                              
+0     003e8a9b  _CALHOLD_SlowTask                       
+0     003e8bf0  _CALHOLD_FastTask                       
+0     003e8d39  _PROT_SlowTask                          
+0     003e8e41  _SoftStart_TransferToClosedLoop         
+0     003e8f3b  _EPWM1_TZINT_ISR                        
+0     003e9101  _ADCINT1_ISR                            
+0     003e91d8  _LLC_SetFrequencyHz                     
+0     003e92a8  _PROT_Init                              
+0     003e9376  _CTRL_SlowTask                          
+0     003e9440  _SoftStart_Update5ms                    
+0     003e9503  _COMP_ArmInjectionTest                  
+0     003e9683  _COMP_RunLoopbackDiagnostic             
+0     003e9893  _PWM_Init                               
+0     003e9936  _SHOT_Revoke                            
+0     003e99d8  FD$$ADD                                 
+0     003e9a74  _SoftStart_StartPwmFormal               
+0     003e9b0d  _COMP_StaticCalibrationArm              
+0     003e9ba3  FD$$DIV                                 
+0     003e9c2e  _System_Init                            
+0     003e9cb3  _CTRL_ComputeFrequencyCommand           
+0     003e9d36  FD$$MPY                                 
+0     003e9db9  FS$$DIV                                 
+0     003e9eb6  FS$$SUB                                 
+0     003e9ebb  FS$$ADD                                 
+0     003e9f2e  _SM_Run                                 
+0     003ea074  _CALHOLD_PacketIsr                      
+0     003ea0d2  _PWM_StartDeterministic                 
+0     003ea189  _SHOT_Init                              
+0     003ea1e3  FS$$MPY                                 
+0     003ea23d  _c_int00                                
+0     003ea2e0  _CTRL_Init                              
+0     003ea32d  _SHOT_FastTask                          
+0     003ea374  _MULTICYCLE_AbortByFault                
+0     003ea3b6  _COMP_ApplyGlobals                      
+0     003ea3f7  _LLC_ProtectionResetExplicit            
+0     003ea437  _PWM_RuntimeValuesValid                 
+0     003ea4b7  _PWM_ConfigMatchesFrozenBaseline        
+0     003ea4b7  _PWM_ConfigTopologyValid                
+0     003ea56e  _COMP_StaticCalibrationFastTask         
+0     003ea5e2  _CTRL_ApplyFrequencyCommand             
+0     003ea618  _CTRL_FastTask                          
+0     003ea681  _SINGLECYCLE_AbortByFault               
+0     003ea71a  _PWM_Trip                               
+0     003ea74c  _PWM_ApplyPeriodDeadtime                
+0     003ea7ae  _PWM_PrepareStart                       
+0     003ea7de  _SHOT_EnterTutorialBurst                
+0     003ea80d  _SHOT_PendingValid                      
+0     003ea899  _SHOT_PendingCommit                     
+0     003ea8c6  _ADC_UpdatePwmSyncPoint                 
+0     003ea8f1  _GPIO_Init                              
+0     003ea945  _SoftStart_Init                         
+0     003ea96e  C$$EXIT                                 
+0     003ea96e  _abort                                  
+0     003ea970  _exit                                   
+0     003ea997  _ADC_Init                               
+0     003ea9be  _LLC_PWM_Enable                         
+0     003ea9e4  _SoftStart_SelectProfile                
+0     003eaa0a  _ADC_SetPwmSyncTriggerMode              
+0     003eaa2e  _copy_in                                
+0     003eaa75  _COMP_Init                              
+0     003eaa97  _LLC_PWM_DisableSafe                    
+0     003eaab9  _SHOT_PermissionOk                      
+0     003eaadb  _ADC_SetClosedLoopSyncTriggerMode       
+0     003eaafc  _COMP_StaticCalibrationDisarm           
+0     003eab1d  FS$$TOUL                                
+0     003eab3e  _APP_Init                               
+0     003eab5d  _InitPieCtrl                            
+0     003eab7c  _COMP_DisarmInjectionTest               
+0     003eab9a  _InitAdc                                
+0     003eabb8  _memcpy                                 
+0     003eabd6  FS$$TOU                                 
+0     003eac0f  L$$TOFD                                 
+0     003eac2b  FD$$TOUL                                
+0     003eac46  L$$TOFS                                 
+0     003eac60  _ADC_CheckOverflow                      
+0     003eac79  _prolog_c28x_1                          
+0     003eac7d  _prolog_c28x_2                          
+0     003eac85  _prolog_c28x_3                          
+0     003eac92  _main                                   
+0     003eacaa  _ADC_UpdatePwmSyncPointKeepCadence      
+0     003eacc1  FS$$CMP                                 
+0     003eacd8  _SM_Init                                
+0     003eacee  UL$$TOFD                                
+0     003ead04  _SHOT_WriteAllowed                      
+0     003ead18  _PWM_SetDeadbandOnly                    
+0     003ead2b  UL$$TOFS                                
+0     003ead60  _InitPieVectTable                       
+0     003ead71  __args_main                             
+0     003ead92  _IntOsc1Sel                             
+0     003eada2  _LLC_ProtectionForceTrip                
+0     003eadb2  U$$TOFS                                 
+0     003eadc2  _ADC_SetSoftwareTriggerMode             
+0     003eadd1  _CTRL_PrimeHandoffReferenceRaw          
+0     003eade0  _SHOT_ClampFreq                         
+0     003eadef  FD$$SUB                                 
+0     003eadfd  _COMP_UpdateStatus                      
+0     003eae17  _SHOT_PipelineApplyAuthorized           
+0     003eae24  _epilog_c28x_1                          
+0     003eae28  _epilog_c28x_2                          
+0     003eae3b  _CTRL_RunFastControl                    
+0     003eae45  _EnableInterrupts                       
+0     003eae4e  _LED_AllOff                             
+0     003eae57  _ADC_SoftwareTrigger                    
+0     003eae5f  _DisableDog                             
+0     003eae67  _SHOT_OnTrip                            
+0     003eae6f  _LED_GreenOn                            
+0     003eae74  _LED_RedOn                              
+0     003eae79  _SoftStart_Begin                        
+0     003eae7e  FS$$NEG                                 
+0     003eae83  _CALHOLD_Init                           
+0     003eae87  _COMP_ArmForSingleCycleStart            
+0     003eae8b  _rsvd_ISR                               
+0     003eae8f  _APP_Run                                
+0     003eae92  _PROT_RequestFault                      
+0     003eae95  _SHOT_RealStage6AuthOk                  
+0     003eae97  __system_pre_init                       
+0     003eae99  _SoftStart_ApplyLimits                  
+0     003eae9a  __nop                                   
+0     003eae9b  __system_post_cinit                     
+0     003eae9c  _TIRamfuncsLoadStart                    
+0     003eae9c  ___etext__                              
+0     003eae9c  etext                                   
+0     003eaea0  _TIRamfuncsLoadEnd                      
+0     003eaea0  ___cinit__                              
+0     003eaea0  cinit                                   
+0     003eb0b8  _PieVectTableInit                       
+0     003eb1b8  _g_real_pi_actual_hz_table              
+0     003f7ff6  code_start                              
+1     00000880  _DevEmuRegs                             
+1     00000985  _SysPwrCtrlRegs                         
+1     00000a80  _FlashRegs                              
+1     00000ae0  _CsmRegs                                
+1     00000b00  _AdcResult                              
+1     00000c00  _CpuTimer0Regs                          
+1     00000c08  _CpuTimer1Regs                          
+1     00000c10  _CpuTimer2Regs                          
+1     00000ce0  _PieCtrlRegs                            
+1     00000d00  _EmuKey                                 
+1     00000d00  _PieVectTable                           
+1     00000d01  _EmuBMode                               
+1     00000d02  _Flash_CallbackPtr                      
+1     00000d04  _Flash_CPUScaleFactor                   
+1     00001400  _Cla1Regs                               
+1     00006000  _ECanaRegs                              
+1     00006040  _ECanaLAMRegs                           
+1     00006080  _ECanaMOTSRegs                          
+1     000060c0  _ECanaMOTORegs                          
+1     00006100  _ECanaMboxes                            
+1     00006400  _Comp1Regs                              
+1     00006420  _Comp2Regs                              
+1     00006440  _Comp3Regs                              
+1     00006800  _EPwm1Regs                              
+1     00006840  _EPwm2Regs                              
+1     00006880  _EPwm3Regs                              
+1     000068c0  _EPwm4Regs                              
+1     00006900  _EPwm5Regs                              
+1     00006940  _EPwm6Regs                              
+1     00006980  _EPwm7Regs                              
+1     00006a00  _ECap1Regs                              
+1     00006ac0  _HRCap1Regs                             
+1     00006ae0  _HRCap2Regs                             
+1     00006b00  _EQep1Regs                              
+1     00006c00  _LinaRegs                               
+1     00006f80  _GpioCtrlRegs                           
+1     00006fc0  _GpioDataRegs                           
+1     00006fe0  _GpioIntRegs                            
+1     00007010  _SysCtrlRegs                            
+1     00007040  _SpiaRegs                               
+1     00007050  _SciaRegs                               
+1     00007060  _NmiIntruptRegs                         
+1     00007070  _XIntruptRegs                           
+1     00007100  _AdcRegs                                
+1     00007740  _SpibRegs                               
+1     00007900  _I2caRegs                               
+1     00008800  __stack                                 
+1     000088c0  __STACK_END                             
+1     00008c00  _g_bringup_stage                        
+1     00008c01  _g_active_bringup_stage                 
+1     00008c02  _g_stage_confirm_request                
+1     00008c03  _g_stage_confirmed_mask                 
+1     00008c04  _g_pwm_period                           
+1     00008c05  _g_pwm_enabled                          
+1     00008c06  _g_pwm_enable_request                   
+1     00008c07  _g_pwm_enable_result                    
+1     00008c08  _g_diag_frequency_override              
+1     00008c09  _g_adc_vout_raw                         
+1     00008c0a  _g_adc_iout_raw                         
+1     00008c0b  _g_adc_ipri_raw                         
+1     00008c0c  _g_adc_vout_filtered_raw                
+1     00008c0d  _g_adc_iout_filtered_raw                
+1     00008c0e  _g_adc_ipri_filtered_raw                
+1     00008c0f  _g_adc_trigger_mode                     
+1     00008c10  _g_system_state                         
+1     00008c11  _g_trip_count                           
+1     00008c12  _g_fast_fault_count                     
+1     00008c13  _g_fault_reset_request                  
+1     00008c14  _g_force_trip_request                   
+1     00008c15  _g_pwm_fastpath_ready                   
+1     00008c16  _g_softstart_autoramp_allowed           
+1     00008c17  _g_control_running                      
+1     00008c18  _g_control_saturated_high               
+1     00008c19  _g_control_saturated_low                
+1     00008c1a  _g_control_integrator_frozen            
+1     00008c1b  _g_control_adc_stale_inhibit            
+1     00008c1c  _g_control_sample_valid                 
+1     00008c1d  _g_offline_test_request                 
+1     00008c1e  _g_offline_test_status                  
+1     00008c1f  _g_offline_pwm_isolated                 
+1     00008c20  _g_control_pi_virtual_only              
+1     00008c21  _g_control_vref_raw                     
+1     00008c22  _g_control_vout_raw                     
+1     00008c23  _g_control_error_raw                    
+1     00008c24  _g_softstart_handoff_result             
+1     00008c25  _g_stage6_transfer_request              
+1     00008c26  _g_stage6_ref_prime_count               
+1     00008c27  _g_stage6_ref_prime_raw                 
+1     00008c28  _g_stage6_ref_valid_at_run_entry        
+1     00008c29  _g_stage6_ref_prime_result              
+1     00008c2a  _g_control_reference_valid              
+1     00008c2b  _g_stage6_noenergy_test_enable          
+1     00008c2c  _g_stage6_synthetic_vout_raw            
+1     00008c2d  _g_stage6_synthetic_sequence            
+1     00008c2e  _g_stage6_noenergy_test_mode            
+1     00008c2f  _g_stage6_noenergy_step_req             
+1     00008c30  _g_stage6_closeloop_vout_inject         
+1     00008c31  _g_stage6_first_pi_sample_raw           
+1     00008c32  _g_stage6_first_pi_observed             
+1     00008c33  _g_stage6_multifresh_trace_count        
+1     00008c34  _g_stage6_actuator_test_arm             
+1     00008c35  _g_stage6_actuator_revoked              
+1     00008c36  _g_softstart_state                      
+1     00008c37  _g_softstart_deadtime                   
+1     00008c38  _g_softstart_deadtime_start             
+1     00008c39  _g_softstart_deadtime_final             
+1     00008c3a  _g_softstart_deadtime_step              
+1     00008c3b  _g_softstart_wait_5ms_ticks             
+1     00008c3c  _g_softstart_profile                    
+1     00008c3d  _g_burst_enabled                        
+1     00008c3e  _g_burst_active                         
+1     00008c3f  _g_ocp_recovery_mode                    
+1     00008c40  _g_softstart_abort_reason               
+1     00008c41  _g_softstart_ocp_dac_code               
+1     00008c42  _g_pwm_start_prepared                   
+1     00008c43  _g_softstart_final_applied              
+1     00008c44  _g_softstart_final_apply_pending        
+1     00008c45  _g_no_energy_test_mode                  
+1     00008c46  _g_first_start_seen                     
+1     00008c47  _g_first_start_tbprd                    
+1     00008c48  _g_first_start_cmpa                     
+1     00008c49  _g_first_start_dbred                    
+1     00008c4a  _g_first_start_dbfed                    
+1     00008c4b  _g_first_start_dacval                   
+1     00008c4c  _g_first_start_ost                      
+1     00008c4d  _g_first_start_pwm                      
+1     00008c4e  _g_pre_stop_tzflg                       
+1     00008c4f  _g_pre_stop_ost                         
+1     00008c50  _g_pre_stop_gpio15                      
+1     00008c51  _g_pre_stop_compsts                     
+1     00008c52  _g_pre_stop_tbctr                       
+1     00008c53  _g_pre_stop_hardware_trip_seen          
+1     00008c54  _g_comp_dac_value                       
+1     00008c55  _g_comp_polarity                        
+1     00008c56  _g_comp_arm                             
+1     00008c57  _g_loopback_diag_request                
+1     00008c58  _g_comp_tz_loopback_verified            
+1     00008c59  _g_loopback_diag_result                 
+1     00008c5a  _g_loopback_read0                       
+1     00008c5b  _g_loopback_read1                       
+1     00008c5c  _g_loopback_read2                       
+1     00008c5d  _g_comp_inject_test_request             
+1     00008c5e  _g_comp_inject_test_armed               
+1     00008c5f  _g_comp_inject_test_disarm_request      
+1     00008c60  _g_comp1_status                         
+1     00008c61  _g_comp1_dac_code                       
+1     00008c62  _g_comp_prestart_status                 
+1     00008c63  _g_comp_prestart_gpio15                 
+1     00008c64  _g_comp_prestart_tzflg                  
+1     00008c65  _g_comp_prestart_reject                 
+1     00008c66  _g_static_cal_request                   
+1     00008c67  _g_static_cal_dac                       
+1     00008c68  _g_static_cal_armed                     
+1     00008c69  _g_static_cal_initial_compsts           
+1     00008c6a  _g_static_cal_initial_gpio15            
+1     00008c6b  _g_static_cal_transition_detected       
+1     00008c6c  _g_static_cal_compsts_before            
+1     00008c6d  _g_static_cal_compsts_after             
+1     00008c6e  _g_static_cal_gpio15_before             
+1     00008c6f  _g_static_cal_gpio15_after              
+1     00008c70  _g_static_cal_tzflg_after               
+1     00008c71  _g_static_cal_disarm_request            
+1     00008c72  _g_tz_ost_flag                          
+1     00008c73  _g_tz_int_flag                          
+1     00008c74  _g_software_ost_in_progress             
+1     00008c75  _g_tz_isr_tbctr                         
+1     00008c76  _g_tz_isr_software_ost_flag             
+1     00008c77  _g_tz_isr_after_scheduled_ost           
+1     00008c78  _g_tz_isr_gpio15                        
+1     00008c79  _g_tz_isr_compsts                       
+1     00008c7a  _g_tz_isr_tzflg                         
+1     00008c7b  _g_tz_event_phase                       
+1     00008c7c  _g_power_window_state                   
+1     00008c7d  _g_probe_scheduled_ost_occurred         
+1     00008c7e  _g_test_dac_snapshot                    
+1     00008c7f  _g_test_tbprd_snapshot                  
+1     00008c80  _g_test_cmpa_snapshot                   
+1     00008c81  _g_power_probe_request                  
+1     00008c82  _g_power_probe_result                   
+1     00008c83  _g_power_probe_active                   
+1     00008c84  _g_power_probe_adc_vout_before          
+1     00008c85  _g_power_probe_adc_vout_after           
+1     00008c86  _g_power_probe_adc_ipri_before          
+1     00008c87  _g_power_probe_adc_ipri_peak            
+1     00008c88  _g_power_probe_adc_iout_before          
+1     00008c89  _g_power_probe_adc_iout_after           
+1     00008c8a  _g_single_cycle_probe_request           
+1     00008c8b  _g_single_cycle_probe_result            
+1     00008c8c  _g_single_cycle_probe_active            
+1     00008c8d  _g_single_cycle_probe_adc_ipri_before   
+1     00008c8e  _g_single_cycle_probe_adc_ipri_peak     
+1     00008c8f  _g_single_cycle_probe_adc_vout_before   
+1     00008c90  _g_single_cycle_probe_adc_vout_after    
+1     00008c91  _g_single_cycle_probe_stop_tbctr        
+1     00008c92  _g_single_cycle_probe_deadtime          
+1     00008c93  _g_coldshot_vout_raw_before             
+1     00008c94  _g_coldshot_ipri_raw_before             
+1     00008c95  _g_coldshot_compsts_before              
+1     00008c96  _g_coldshot_gpio15_before               
+1     00008c97  _g_coldshot_tzflg_before                
+1     00008c98  _g_coldshot_vout_baseline_avg           
+1     00008c99  _g_coldshot_vout_baseline_samples       
+1     00008c9a  _g_coldshot_vin_actual_x10              
+1     00008c9b  _g_tz1_qualification_mode               
+1     00008c9c  _g_tz1_qualification_period             
+1     00008c9d  _g_comp_trip_dac_code                   
+1     00008c9e  _g_comp_trip_tbctr                      
+1     00008c9f  _g_comp_trip_vout_raw                   
+1     00008ca0  _g_single_cycle_completed               
+1     00008ca1  _g_single_cycle_result                  
+1     00008ca2  _g_multi_cycle_probe_request            
+1     00008ca3  _g_multi_cycle_probe_result             
+1     00008ca4  _g_multi_cycle_probe_active             
+1     00008ca5  _g_multi_cycle_probe_adc_vout_before    
+1     00008ca6  _g_multi_cycle_probe_adc_vout_after     
+1     00008ca7  _g_multi_cycle_probe_adc_ipri_before    
+1     00008ca8  _g_multi_cycle_probe_adc_ipri_peak      
+1     00008ca9  _g_multi_cycle_probe_stop_tbctr         
+1     00008caa  _g_multi_cycle_probe_stop_reason        
+1     00008cab  _g_accel_request                        
+1     00008cac  _g_accel_active                         
+1     00008cad  _g_accel_phase                          
+1     00008cae  _g_accel_stop_reason                    
+1     00008caf  _g_accel_trip_phase                     
+1     00008cb0  _g_accel_trip_period                    
+1     00008cb1  _g_accel_trip_cmpa                      
+1     00008cb2  _g_accel_trip_db                        
+1     00008cb3  _g_accel_current_db                     
+1     00008cb4  _g_accel_current_period                 
+1     00008cb5  _g_accel_current_cmpa                   
+1     00008cb6  _g_accel_stage_index                    
+1     00008cb7  _g_accel_last_tzflg                     
+1     00008cb8  _g_accel_last_vout_raw                  
+1     00008cb9  _g_accel_last_vout_max                  
+1     00008cba  _g_accel_phase_c_cycles                 
+1     00008cbb  _g_accel_phase_c_vout_start             
+1     00008cbc  _g_accel_phase_c_vout_max               
+1     00008cbd  _g_accel_phase_c_vout_stop              
+1     00008cbe  _g_accel_vout_target_raw                
+1     00008cbf  _g_accel_vout_hard_limit_raw            
+1     00008cc0  _g_accel_target_rejected                
+1     00008cc1  _g_accel_stop_target_raw                
+1     00008cc2  _g_accel_stop_hard_limit_raw            
+1     00008cc3  _g_accel_stop_raw                       
+1     00008cc4  _g_accel_stop_max_raw                   
+1     00008cc5  _g_accel_stop_phase                     
+1     00008cc6  _g_accel_stop_tbprd                     
+1     00008cc7  _g_accel_stop_cmpa                      
+1     00008cc8  _g_accel_stop_cmpb                      
+1     00008cc9  _g_accel_stop_dbred                     
+1     00008cca  _g_accel_stop_dbfed                     
+1     00008ccb  _g_accel_stop_dacval                    
+1     00008ccc  _g_accel_stop_tzflg                     
+1     00008ccd  _g_cal_hold_request                     
+1     00008cce  _g_cal_hold_duration_ms                 
+1     00008ccf  _g_cal_hold_state                       
+1     00008cd0  _g_cal_hold_stop_reason                 
+1     00008cd1  _g_cal_hold_charge_stop_raw             
+1     00008cd2  _g_cal_hold_raw                         
+1     00008cd3  _g_cal_hold_min                         
+1     00008cd4  _g_cal_hold_max                         
+1     00008cd5  _g_cal_hold_steady_min                  
+1     00008cd6  _g_cal_hold_steady_max                  
+1     00008cd7  _g_cal_hold_packet_min_cycles           
+1     00008cd8  _g_cal_hold_packet_max_cycles           
+1     00008cd9  _g_cal_hold_packet_active               
+1     00008cda  _g_cal_hold_packet_cycles               
+1     00008cdb  _g_cal_hold_hard_limit_events           
+1     00008cdc  _g_cal_hold_final_pwm                   
+1     00008cdd  _g_cal_hold_final_ost                   
+1     00008cde  _g_cal_hold_cal_raw_min                 
+1     00008cdf  _g_cal_hold_cal_raw_max                 
+1     00008ce0  _g_cal_hold_cal_raw_avg                 
+1     00008ce1  _g_cal_hold_zero_request                
+1     00008ce2  _g_cal_hold_zero_raw_min                
+1     00008ce3  _g_cal_hold_zero_raw_max                
+1     00008ce4  _g_cal_hold_zero_raw_avg                
+1     00008ce5  _g_cal_measure_request                  
+1     00008ce6  _g_cal_measure_done                     
+1     00008ce7  _g_cal_measure_ready                    
+1     00008ce8  _g_cal_measure_active                   
+1     00008ce9  _g_softstart_request                    
+1     00008cea  _g_softstart_acceptance_mode            
+1     00008ceb  _g_softstart_accept_target_raw          
+1     00008cec  _g_softstart_hard_ceiling_raw           
+1     00008ced  _g_softstart_result                     
+1     00008cee  _g_softstart_stage                      
+1     00008cef  _g_softstart_stage_index                
+1     00008cf0  _g_softstart_final_cycles               
+1     00008cf1  _g_softstart_last_vout_raw              
+1     00008cf2  _g_softstart_last_vout_max              
+1     00008cf3  _g_softstart_stop_raw                   
+1     00008cf4  _g_softstart_final_pwm                  
+1     00008cf5  _g_softstart_final_ost                  
+1     00008cf6  _g_softstart_consecutive_miss           
+1     00008cf7  _g_softstart_stale_abort                
+1     00008cf8  _g_softstart_no_energy                  
+1     00008cf9  _g_board_vout_cal_valid                 
+1     00008cfa  _g_softstart_ramp_active                
+1     00008cfb  _g_pfm_direction_test_mode              
+1     00008cfc  _g_pfm_start_raw                        
+1     00008cfd  _g_pfm_end_raw                          
+1     00008cfe  _g_pfm_max_raw                          
+1     00008cff  _g_pfm_window_cycles                    
+1     00008d00  _g_pfm_window_total                     
+1     00008d01  _g_pfm_hard_vout_abort                  
+1     00008d02  _g_pfm_tbprd                            
+1     00008d03  _g_pfm_cmpa                             
+1     00008d04  _g_pfm_cmpb                             
+1     00008d05  _g_ipri_raw_before                      
+1     00008d06  _g_ipri_raw_max                         
+1     00008d07  _g_ipri_raw_at_stop                     
+1     00008d08  _g_comp_arm_dacval                      
+1     00008d09  _g_comp_arm_compdacen                   
+1     00008d0a  _g_comp_arm_tzsel_osht1                 
+1     00008d0b  _g_adc_pwm_sync_cmpb                    
+1     00008d0c  _g_adc_pwm_sync_cmpa                    
+1     00008d0d  _g_adc_pwm_sync_edge_distance           
+1     00008d0e  _g_vout_runtime_before_ost              
+1     00008d0f  _g_truth_runtime_raw                    
+1     00008d10  _g_truth_runtime_tbctr                  
+1     00008d11  _g_truth_runtime_cmpb                   
+1     00008d12  _g_truth_post_5us                       
+1     00008d13  _g_truth_post_10us                      
+1     00008d14  _g_truth_post_20us                      
+1     00008d15  _g_truth_post_50us                      
+1     00008d16  _g_truth_post_100us                     
+1     00008d17  _g_adc_vout_pwm_sync_raw                
+1     00008d18  _g_adc_pwm_sync_valid                   
+1     00008d19  _g_adc_pwm_sync_consecutive_miss        
+1     00008d1a  _g_adc_pwm_sync_stale_abort             
+1     00008d1b  _g_poststop_vout_request                
+1     00008d1c  _g_poststop_vout_done                   
+1     00008d1d  _g_poststop_vout_phase                  
+1     00008d1e  _g_poststop_vout_min                    
+1     00008d1f  _g_poststop_vout_max                    
+1     00008d20  _g_poststop_vout_avg                    
+1     00008d21  _g_poststop5ms_vout_avg                 
+1     00008d22  _g_probe_isr_entry_tbctr                
+1     00008d23  _g_probe_ost_command_tbctr              
+1     00008d24  _g_probe_ost_after_tbctr                
+1     00008d25  _g_probe_irq_latency_ticks              
+1     00008d26  _g_probe_irq_to_ost_ticks               
+1     00008d27  _g_probe_tzflg_immediate                
+1     00008d28  _g_probe_tzflg_read2                    
+1     00008d29  _g_probe_tzflg_read3                    
+1     00008d2a  _g_probe_tzflg_after_state_update       
+1     00008d2b  _g_probe_saved_ier                      
+1     00008d2c  _g_probe_saved_pieier1                  
+1     00008d2d  _g_probe_saved_pieier3                  
+1     00008d2e  _g_probe_interrupt_isolation_active     
+1     00008d2f  _g_probe_vout_min                       
+1     00008d30  _g_probe_vout_max                       
+1     00008d31  _g_probe_vout_first                     
+1     00008d32  _g_probe_vout_last                      
+1     00008d33  _g_probe_adc_sample_count               
+1     00008d34  _g_vout_probe_request                   
+1     00008d35  _g_vout_probe_active                    
+1     00008d36  _g_vout_probe_target_raw                
+1     00008d37  _g_vout_probe_stop_raw                  
+1     00008d38  _g_vout_probe_max_raw                   
+1     00008d39  _g_vout_probe_stop_reason               
+1     00008d3a  _g_vout_probe_dac_code                  
+1     00008d3b  _g_vout_probe_hard_limit_raw            
+1     00008d3c  _g_vout_probe_pre_stop_max_raw          
+1     00008d3d  _g_vout_probe_post_first_raw            
+1     00008d3e  _g_vout_probe_post_max_raw              
+1     00008d3f  _g_vout_probe_post_last_raw             
+1     00008d40  _g_vout_probe_post_capture_active       
+1     00008d41  _g_vout_probe_post_capture_count        
+1     00008d42  _g_vout_probe_post_seen_active          
+1     00008d43  _g_cal_hold_active                      
+1     00008d44  _g_cal_hold_charge_done                 
+1     00008d45  _g_cal_hold_raw_min                     
+1     00008d46  _g_cal_hold_raw_max                     
+1     00008d47  _g_cal_hold_raw_average                 
+1     00008d48  _g_cal_hold_fault                       
+1     00008d49  _g_cal_hold_charge_seen                 
+1     00008d4a  _g_cal_hold_last_vout_stop_reason       
+1     00008d4b  _g_cal_hold_last_vout_active            
+1     00008d4c  _g_cal_hold_initial_stop_raw            
+1     00008d4d  _g_cal_hold_packet_start_raw            
+1     00008d4e  _g_cal_hold_packet_stop_raw             
+1     00008d4f  _g_cal_hold_packet_post_max_raw         
+1     00008d50  _g_cal_hold_packet_post_last_raw        
+1     00008d51  _g_5ms_flag                             
+1     00008d52  _g_adc_ovf_first_tbctr                  
+1     00008d53  _g_adc_ovf_first_flag_was_set           
+1     00008d54  _g_adc_isr_last_tbctr                   
+1     00008d56  _g_switching_frequency_hz               
+1     00008d58  _g_actual_switching_frequency_hz        
+1     00008d5a  _g_adc_vout_filter_acc                  
+1     00008d5c  _g_adc_iout_filter_acc                  
+1     00008d5e  _g_adc_ipri_filter_acc                  
+1     00008d60  _g_vout_volts                           
+1     00008d62  _g_iout_amps                            
+1     00008d64  _g_ipri_amps                            
+1     00008d66  _g_adc_sample_counter                   
+1     00008d68  _g_adc_sample_sequence                  
+1     00008d6a  _g_fault_flags                          
+1     00008d6c  _g_fault_history                        
+1     00008d6e  _g_softstart_frequency_hz               
+1     00008d70  _g_control_frequency_hz                 
+1     00008d72  _g_voltage_reference                    
+1     00008d74  _g_open_loop_target_frequency_hz        
+1     00008d76  _g_open_loop_min_frequency_hz           
+1     00008d78  _g_power_run_min_frequency_hz           
+1     00008d7a  _g_pi_integral                          
+1     00008d7c  _g_pi_bias_frequency_hz                 
+1     00008d7e  _g_control_shadow_frequency_hz          
+1     00008d80  _g_control_vref_volts                   
+1     00008d82  _g_control_vout_volts                   
+1     00008d84  _g_control_error_volts                  
+1     00008d86  _g_control_p_term_hz                    
+1     00008d88  _g_control_i_term_hz                    
+1     00008d8a  _g_control_frequency_unsat_hz           
+1     00008d8c  _g_control_frequency_clamped_hz         
+1     00008d8e  _g_control_pi_profile_id                
+1     00008d90  _g_control_kp_hz_per_v                  
+1     00008d92  _g_control_ki_step_hz_per_v_step        
+1     00008d94  _g_pi_integral_q12                      
+1     00008d96  _g_control_p_term_q12                   
+1     00008d98  _g_control_i_term_q12                   
+1     00008d9a  _g_control_unsat_q12                    
+1     00008d9c  _g_stage6_handoff_count                 
+1     00008d9e  _g_stage6_run_entry_count               
+1     00008da0  _g_control_adc_sequence_last            
+1     00008da2  _g_control_adc_sequence_consumed        
+1     00008da4  _g_control_fresh_sample_count           
+1     00008da6  _g_control_duplicate_sample_block_count 
+1     00008da8  _g_control_stale_tick_count             
+1     00008daa  _g_control_pi_update_count              
+1     00008dac  _g_control_exec_cycles_last             
+1     00008dae  _g_control_exec_cycles_max              
+1     00008db0  _g_fast_isr_cycles_last                 
+1     00008db2  _g_fast_isr_cycles_max                  
+1     00008db4  _g_fast_isr_cycles_sum                  
+1     00008db6  _g_fast_isr_cycles_count                
+1     00008db8  _g_adc_isr_cycles_sum                   
+1     00008dba  _g_adc_isr_cycles_count                 
+1     00008dbc  _g_fast_isr_overrun_count               
+1     00008dbe  _g_stage6_noenergy_test_ticks           
+1     00008dc0  _g_stage6_synthetic_vout                
+1     00008dc2  _g_stage6_noenergy_step_shadow_hz       
+1     00008dc4  _g_stage6_noenergy_step_integral_hz     
+1     00008dc6  _g_stage6_adc_isr_count                 
+1     00008dc8  _g_adc_isr_cycles_last                  
+1     00008dca  _g_adc_isr_cycles_max                   
+1     00008dcc  _g_stage6_first_pi_freq_hz              
+1     00008dce  _g_stage6_cadence_test_freq             
+1     00008dd0  _g_stage6_actuator_write_count          
+1     00008dd2  _g_stage6_actuator_direct_cmd_hz        
+1     00008dd4  _g_stage6_actuator_cycles_last          
+1     00008dd6  _g_stage6_actuator_cycles_max           
+1     00008dd8  _g_stage6_actuator_cycles_sum           
+1     00008dda  _g_stage6_actuator_cycles_count         
+1     00008ddc  _g_softstart_period_limit               
+1     00008dde  _g_softstart_step_count                 
+1     00008de0  _g_softstart_elapsed_ms                 
+1     00008de2  _g_softstart_period_limit_start         
+1     00008de4  _g_softstart_period_limit_final         
+1     00008de6  _g_softstart_period_step                
+1     00008de8  _g_period_request                       
+1     00008dea  _g_period_limit                         
+1     00008dec  _g_period_applied                       
+1     00008dee  _g_burst_enter_count                    
+1     00008df0  _g_burst_exit_count                     
+1     00008df2  _g_enable_rising_count                  
+1     00008df4  _g_softstart_final_apply_count          
+1     00008df6  _g_pre_stop_timer2                      
+1     00008df8  _g_tz_isr_timer2                        
+1     00008dfa  _g_tz_software_ost_count                
+1     00008dfc  _g_tz_hardware_trip_count               
+1     00008dfe  _g_tz_noenergy_trip_count               
+1     00008e00  _g_tz_active_window_trip_count          
+1     00008e02  _g_tz_post_ost_trip_count               
+1     00008e04  _g_post_ost_trip_delay_ticks            
+1     00008e06  _g_test_run_id                          
+1     00008e08  _g_test_run_id_at_arm                   
+1     00008e0a  _g_test_run_id_at_tz_isr                
+1     00008e0c  _g_test_run_id_at_stop                  
+1     00008e0e  _g_power_probe_duration_us              
+1     00008e10  _g_power_probe_count                    
+1     00008e12  _g_single_cycle_probe_frequency_hz      
+1     00008e14  _g_single_cycle_probe_count             
+1     00008e16  _g_coldshot_timer2_start                
+1     00008e18  _g_single_cycle_probe_tick_count        
+1     00008e1a  _g_single_cycle_probe_safety_count      
+1     00008e1c  _g_single_cycle_probe_start_fast_tick   
+1     00008e1e  _g_multi_cycle_probe_cycles             
+1     00008e20  _g_multi_cycle_probe_completed_cycles   
+1     00008e22  _g_completed_cycles_at_trip             
+1     00008e24  _g_accel_trip_completed_cycles          
+1     00008e26  _g_accel_stage_start_cycle              
+1     00008e28  _g_accel_phase_c_start_cycle            
+1     00008e2a  _g_accel_stop_completed_cycles          
+1     00008e2c  _g_accel_stop_run_id_at_arm             
+1     00008e2e  _g_accel_stop_run_id_at_stop            
+1     00008e30  _g_accel_stop_run_id_at_tz_isr          
+1     00008e32  _g_accel_stop_fault_flags               
+1     00008e34  _g_accel_stop_soca_count                
+1     00008e36  _g_accel_stop_eoc_count                 
+1     00008e38  _g_accel_stop_miss_count                
+1     00008e3a  _g_cal_hold_sum                         
+1     00008e3c  _g_cal_hold_samples                     
+1     00008e3e  _g_cal_hold_steady_sum                  
+1     00008e40  _g_cal_hold_steady_samples              
+1     00008e42  _g_cal_hold_packet_count                
+1     00008e44  _g_cal_hold_total_packet_cycles         
+1     00008e46  _g_cal_hold_packet_cycles_sum           
+1     00008e48  _g_cal_hold_off_ticks                   
+1     00008e4a  _g_cal_hold_elapsed_ticks               
+1     00008e4c  _g_cal_hold_hold_active_ticks           
+1     00008e4e  _g_cal_hold_run_id_at_arm               
+1     00008e50  _g_cal_hold_run_id_at_stop              
+1     00008e52  _g_cal_hold_run_id_at_tz_isr            
+1     00008e54  _g_cal_hold_cal_raw_sum                 
+1     00008e56  _g_cal_hold_cal_raw_samples             
+1     00008e58  _g_softstart_cycle_count                
+1     00008e5a  _g_softstart_stage_cycles               
+1     00008e5c  _g_softstart_run_id_at_arm              
+1     00008e5e  _g_softstart_run_id_at_stop             
+1     00008e60  _g_softstart_run_id_at_tz_isr           
+1     00008e62  _g_softstart_soca_count                 
+1     00008e64  _g_softstart_eoc_count                  
+1     00008e66  _g_softstart_miss_count                 
+1     00008e68  _g_pfm_start_timer2                     
+1     00008e6a  _g_pfm_end_timer2                       
+1     00008e6c  _g_pfm_frequency_hz                     
+1     00008e6e  _g_truth_runtime_eoc_count              
+1     00008e70  _g_truth_ost_timer2                     
+1     00008e72  _g_truth_post_timer2_5us                
+1     00008e74  _g_truth_post_timer2_10us               
+1     00008e76  _g_truth_post_timer2_20us               
+1     00008e78  _g_truth_post_timer2_50us               
+1     00008e7a  _g_truth_post_timer2_100us              
+1     00008e7c  _g_truth_ost_to_slow_timer2             
+1     00008e7e  _g_adc_pwm_sync_soca_count              
+1     00008e80  _g_adc_pwm_sync_eoc_count               
+1     00008e82  _g_adc_pwm_sync_miss_count              
+1     00008e84  _g_probe_isr_entry_timer2               
+1     00008e86  _g_probe_ost_command_timer2             
+1     00008e88  _g_probe_ost_after_timer2               
+1     00008e8a  _g_probe_tzclr_write_count              
+1     00008e8c  _g_vout_probe_completed_cycles          
+1     00008e8e  _g_vout_probe_max_cycles                
+1     00008e90  _g_vout_probe_post_tick_count           
+1     00008e92  _g_vout_probe_post_trigger_count        
+1     00008e94  _g_vout_probe_post_start_count          
+1     00008e96  _g_cal_hold_total_on_cycles             
+1     00008e98  _g_cal_hold_raw_sum                     
+1     00008e9a  _g_cal_hold_raw_samples                 
+1     00008e9c  _g_cal_hold_start_fast_tick             
+1     00008e9e  _g_cal_hold_slow_count                  
+1     00008ea0  _g_cal_hold_packet_actual_cycles        
+1     00008ea2  _g_cal_hold_max_total_extra_cycles      
+1     00008ea4  _g_fast_tick                            
+1     00008ea6  _g_timer0_entry_count                   
+1     00008ea8  _g_timer0_last_entry                    
+1     00008eaa  _g_timer0_entry_interval_min            
+1     00008eac  _g_timer0_entry_interval_max            
+1     00008eae  _g_adc_ovf_count                        
+1     00008eb6  ___TI_enable_exit_profile_output        
+1     00008eb8  ___TI_cleanup_ptr                       
+1     00008eba  ___TI_dtors_ptr                         
+1     00008ec0  _g_first_real_pi_shot_build             
+1     00008ec1  _g_first_real_pi_shot_arm               
+1     00008ec2  _g_first_real_pi_shot_state             
+1     00008ec3  _g_first_real_pi_shot_tick              
+1     00008ec4  _g_first_real_pi_shot_abort             
+1     00008ec5  _g_first_real_pi_shot_power_writes      
+1     00008ec6  _g_first_real_pi_shot_ok                
+1     00008ec7  _g_first_real_pi_shot_abort_vout_raw    
+1     00008ec8  _g_first_shot_debug_ticks               
+1     00008ec9  _g_pipeline_phase                       
+1     00008eca  _g_pipeline_executed_phase              
+1     00008ecc  _g_first_real_pi_shot_first_write_timer2
+1     00008ece  _g_first_real_pi_shot_ost_timer2        
+1     00008ed0  _g_first_shot_debug_freq_hz             
+1     00008ed2  _g_pipeline_pending                     
+1     00008f00  _g_shot_summary                         
+1     00008f4c  _g_stage6_multifresh_trace_freq         
+1     00008f7e  __lock                                  
+1     00008f80  _g_offline_pwm_post                     
+1     00008f85  _g_offline_pwm_pre                      
+1     00008f8a  __unlock                                
+1     00008f8c  _g_probe_vout_samples                   
+1     003d7e80  _PartIdRegs                             
+1     003f7ff8  _CsmPwl                                 
+abs   000000c0  __STACK_SIZE                            
+abs   ffffffff  ___TI_pprof_out_hndl                    
+abs   ffffffff  ___TI_prof_data_size                    
+abs   ffffffff  ___TI_prof_data_start                   
+abs   ffffffff  ___binit__                              
+abs   ffffffff  ___c_args__                             
+abs   ffffffff  ___pinit__                              
+abs   ffffffff  binit                                   
+abs   ffffffff  pinit                                   
+
+[739 symbols]

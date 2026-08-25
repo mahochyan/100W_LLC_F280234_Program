@@ -123,3 +123,17 @@ Evidence:
 - `evidence/stage6_first_real_pi_shot_real/BURST_ENTRY_REAL_CR100_773252E4_RESULT.json`
 
 No retry, no further power.
+
+## Threshold correction per user decision
+
+User selected: **TBPRD < 400 (task C literal)**.
+
+- Burst condition is now `p->period < TUTORIAL_MIN_BURST` (i.e., TBPRD < 400).
+- NOENERGY negative: Burst entry PASS.
+- NOENERGY positive: also enters Burst at first 149900 Hz step because TBPRD=399 < 400. This is accepted under the selected representation, but conflicts with the original H positive no-Burst expectation.
+
+## Restart status
+
+**NOT IMPLEMENTED** in this session. The full Burst deterministic restart state machine
+(BURST_ON → BURST_OFF_WAIT → BURST_RESTART_ARMED → BURST_RESTARTED → BURST_FINAL_SAFE_STOP)
+is still pending. Therefore `TUTORIAL_BURST_RESTART_NOENERGY_PASS` is not yet achieved.

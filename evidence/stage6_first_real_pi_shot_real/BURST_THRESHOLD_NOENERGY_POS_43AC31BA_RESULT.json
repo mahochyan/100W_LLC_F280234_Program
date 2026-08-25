@@ -1,0 +1,17 @@
+{
+  "milestone": "BURST_THRESHOLD_NOENERGY_POS",
+  "noenergy_out_sha256": "43AC31BA50422A0F3E15A0F517B029797D11D0A6A331B88298589585935BC141",
+  "verdict": "PASS_UNDER_SELECTED_THRESHOLD",
+  "note": "Positive first step TBPRD=399<400, so Burst entry occurs under the user-selected TBPRD<400 rule.",
+  "state": 3,
+  "abort": 9,
+  "ok": 1,
+  "burst_active": 1,
+  "burst_enter_count": 1,
+  "power_writes": 0,
+  "pending_valid": 0,
+  "pwm": 0,
+  "ost": 1,
+  "power_window_state": 2,
+  "fault": 0
+}

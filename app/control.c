@@ -642,7 +642,7 @@ static void CTRL_PipelineApply(void)
      * Tutorial-style Burst entry: if the PI requests a period below
      * TUTORIAL_MIN_BURST (frequency above ~150 kHz), enter Burst and stop
      * safely instead of writing the high-frequency PWM command. */
-    if (g_burst_enabled != 0U && p->period < (TUTORIAL_MIN_BURST - 1U))
+    if (g_burst_enabled != 0U && p->period < TUTORIAL_MIN_BURST)
     {
         SHOT_EnterTutorialBurst();
         return;
