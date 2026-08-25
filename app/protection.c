@@ -353,9 +353,25 @@ __interrupt void TINT0_ISR(void)
             Uint32 tb, tx;
             if (g_stage6_noenergy_test_mode == 1U ||
                 (g_stage6_noenergy_test_mode == 5U &&
-                 g_shot_summary.fresh_compute_count < 13U))
+                 g_shot_summary.fresh_compute_count < 13U) ||
+                (g_stage6_noenergy_test_mode == 6U &&
+                 g_burst_state != BURST_STATE_FINAL_SAFE_STOP))
             {
                 g_stage6_synthetic_sequence++;   /* new sample every 20 us tick */
+                if (g_stage6_noenergy_test_mode == 6U)
+                {
+                    g_burst_test_fresh_count++;
+                    if (g_burst_state == BURST_STATE_OFF_WAIT &&
+                        g_burst_test_low_count == 0UL)
+                    {
+                        g_stage6_synthetic_vout_raw = 1126U;   /* switch to low VOUT */
+                        g_burst_test_low_count = 1UL;
+                    }
+                    if (g_stage6_synthetic_vout_raw == 1362U)
+                        g_burst_test_high_count++;
+                    else
+                        g_burst_test_low_count++;
+                }
             }
             g_adc_sample_sequence    = g_stage6_synthetic_sequence;
             g_adc_vout_filtered_raw  = g_stage6_synthetic_vout_raw;

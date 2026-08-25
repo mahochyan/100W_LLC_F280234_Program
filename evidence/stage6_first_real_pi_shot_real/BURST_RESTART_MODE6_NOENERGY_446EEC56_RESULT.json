@@ -1,0 +1,26 @@
+{
+  "milestone": "BURST_RESTART_MODE6_NOENERGY",
+  "noenergy_out_sha256": "446EEC56FE9AD4A18AAB1C8BDC04D8E46024D7697A8135E9BCBF76E1DEE984C1",
+  "verdict": "FAIL",
+  "failure_reason": "RESTART_NOT_TRIGGERED_BEFORE_500US_TIMEOUT",
+  "values": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "burst_enter_count": 1,
+    "burst_exit_count": 0,
+    "restart_attempt_count": 0,
+    "restart_success_count": 0,
+    "restart_fail_count": 0,
+    "burst_test_high_count": 1786,
+    "burst_test_low_count": 1029308416,
+    "burst_test_fresh_count": 1786,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "restart_pre_ost": 0,
+    "restart_post_ost": 0
+  }
+}

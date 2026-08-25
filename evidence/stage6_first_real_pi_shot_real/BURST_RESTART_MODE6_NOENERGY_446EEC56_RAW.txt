@@ -1,0 +1,6 @@
+state=3 abort=1 ok=1
+enter=1 exit=0 attempt=0 success=0 fail=0
+high=1786 low=1029308416 fresh=1786
+pending=0 pwm=0 ost=1 pws=2 fault=0
+pre_ost=0 post_ost=0
+BURST_RESTART_NOENERGY_PASS=false

@@ -40,3 +40,18 @@ FAILED_GATE=RESTART_NOT_TRIGGERED
 REAL_POWER_NOT_EXECUTED
 STOPPED_AWAITING_REVIEW
 ```
+
+## Mode6 activation attempt
+
+- Added Mode 6 on-chip stimulus: high VOUT 1362 -> Burst OFF -> auto switch to 1126.
+- Burst entry occurred (`enter=1`).
+- Restart did **not** trigger before the 500us cage TIMEOUT:
+  - `exit=0`, `attempt=0`, `success=0`
+  - final abort=1 (TIMEOUT), not RESTART_DONE
+- The shadow-control path still did not produce `period >= 400` before the cage ended.
+
+Evidence:
+- `evidence/stage6_first_real_pi_shot_real/BURST_RESTART_MODE6_NOENERGY_446EEC56_RAW.txt`
+- `evidence/stage6_first_real_pi_shot_real/BURST_RESTART_MODE6_NOENERGY_446EEC56_RESULT.json`
+
+Status: **FAIL**

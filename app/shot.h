@@ -161,6 +161,7 @@ void   SHOT_OnTrip(void);            /* called from real TZ ISR (G): revoke on r
 void   SHOT_EnterTutorialBurst(void);  /* normal stop: tutorial light-load Burst entry */
 void   SHOT_BurstEnter(void);         /* enter Burst OFF, keep control running */
 void   SHOT_BurstRestart(void);       /* one deterministic restart, then final safe stop */
+Uint16 SHOT_BurstShadowControlAllowed(void);  /* Burst OFF shadow-control gate */
 
 /* Non-static shot globals (CCS-visible by name). */
 extern volatile Uint16 g_first_real_pi_shot_build;

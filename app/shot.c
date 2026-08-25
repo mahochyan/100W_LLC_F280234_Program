@@ -487,6 +487,30 @@ void SHOT_EnterTutorialBurst(void)
     g_power_window_state       = POWER_WINDOW_POST_OST;
 }
 
+/* STAGE6_TUTORIAL_BURST_RESTART_PATH_ACTIVATION_FIX_V1_2:
+ * Strict gate allowing shadow PI/control to keep running during Burst OFF
+ * even though g_pwm_enabled==0. */
+Uint16 SHOT_BurstShadowControlAllowed(void)
+{
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    if (g_burst_enabled == 0U) return 0U;
+    if (g_burst_active == 0U) return 0U;
+    if (g_burst_state != BURST_STATE_OFF_WAIT &&
+        g_burst_state != BURST_STATE_RESTART_ARMED) return 0U;
+    if (g_ost_owner != OST_OWNER_BURST_SOFTWARE) return 0U;
+    if (g_first_real_pi_shot_arm == 0U) return 0U;
+    if (g_system_state != SYS_STATE_RUN) return 0U;
+    if (g_fault_flags != 0UL) return 0U;
+    if (g_board_vout_cal_valid == 0U) return 0U;
+    if (g_comp_tz_loopback_verified == 0U) return 0U;
+    if (EPwm1Regs.TZFLG.bit.OST == 0U) return 0U;
+    if (g_pipeline_pending.valid != 0U) return 0U;
+    return 1U;
+#else
+    return 0U;
+#endif
+}
+
 /* STAGE6_TUTORIAL_BURST_RESTART_NOENERGY_CLOSURE_V1_1:
  * Enter Burst OFF but keep the control task running (not COMPLETE). */
 void SHOT_BurstEnter(void)
@@ -505,7 +529,9 @@ void SHOT_BurstEnter(void)
     g_pipeline_executed_phase   = 0xFFU;
     g_pipeline_phase            = PIPELINE_PHASE_COMPUTE;
     LLC_PWM_DisableSafe();
-    /* Keep shot ACTIVE; supervisor continues, ADC/PI keep running. */
+    /* Keep shot ACTIVE and keep the 500us safety cage alive. */
+    g_first_real_pi_shot_state = SHOT_STATE_ACTIVE;
+    g_first_real_pi_shot_first_write_timer2 = g_burst_entry_timer2;
 }
 
 /* STAGE6_TUTORIAL_BURST_RESTART_NOENERGY_CLOSURE_V1_1:
@@ -548,22 +574,14 @@ void SHOT_BurstRestart(void)
         return;
     }
 
-    /* One short NOENERGY validation window is represented by this immediate
-     * final safe stop in the minimal implementation. */
+    /* Keep the restart alive for one full TINT0 interval so the NOENERGY
+     * evidence can show OST 1 -> 0 -> 1. The final safe stop happens at the
+     * next CTRL_FastTask entry. */
     g_pipeline_pending.valid = 0U;
     g_pipeline_executed_phase = 0xFFU;
     g_pipeline_phase = PIPELINE_PHASE_COMPUTE;
-    LLC_PWM_DisableSafe();
-    g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
-    g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
-    g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
-    g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
-    g_first_real_pi_shot_ok    = 1U;
-    g_first_real_pi_shot_arm   = 0U;
-    g_pwm_enabled              = 0U;
-    g_pwm_enable_result        = 0U;
-    g_system_state             = SYS_STATE_IDLE;
-    g_power_window_state       = POWER_WINDOW_POST_OST;
+    g_burst_state = BURST_STATE_RESTARTED;
+    g_first_real_pi_shot_arm = 1U;
 }
 
 /* ------------------------------------------------------------------ */

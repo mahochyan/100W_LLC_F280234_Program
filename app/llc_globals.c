@@ -224,6 +224,9 @@ volatile Uint16 g_burst_restart_post_ost;
 volatile Uint16 g_burst_restart_tbctr;
 volatile Uint16 g_burst_restart_tbprd;
 volatile Uint32 g_burst_restart_actual_frequency_hz;
+volatile Uint32 g_burst_test_fresh_count;
+volatile Uint32 g_burst_test_high_count;
+volatile Uint32 g_burst_test_low_count;
 volatile Uint16 g_ocp_recovery_mode;   /* 0 = LOCKED, 1 = TUTORIAL_HICCUP */
 volatile Uint16 g_softstart_abort_reason;
 volatile Uint16 g_softstart_ocp_dac_code;

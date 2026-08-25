@@ -735,11 +735,34 @@ void CTRL_RunFastControl(void)
 void CTRL_FastTask(void)
 {
     g_pipeline_executed_phase = 0xFFU;   /* default: no phase executed this tick */
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    /* STAGE6_TUTORIAL_BURST_RESTART_PATH_ACTIVATION_FIX_V1_2:
+     * After one deterministic restart, the next TINT0 entry performs the
+     * final safe stop BEFORE any PI/apply. This gives OST 1->0->1 evidence. */
+    if (g_burst_state == BURST_STATE_RESTARTED)
+    {
+        LLC_PWM_DisableSafe();
+        g_burst_state = BURST_STATE_FINAL_SAFE_STOP;
+        g_first_real_pi_shot_abort = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+        g_shot_summary.abort_reason = SHOT_ABORT_TUTORIAL_BURST_RESTART_DONE;
+        g_first_real_pi_shot_state = SHOT_STATE_COMPLETE;
+        g_first_real_pi_shot_ok    = 1U;
+        g_first_real_pi_shot_arm   = 0U;
+        g_pipeline_pending.valid   = 0U;
+        g_pipeline_executed_phase  = 0xFFU;
+        g_pipeline_phase           = PIPELINE_PHASE_COMPUTE;
+        g_pwm_enabled              = 0U;
+        g_pwm_enable_result        = 0U;
+        g_system_state             = SYS_STATE_IDLE;
+        g_power_window_state       = POWER_WINDOW_POST_OST;
+        return;
+    }
+#endif
     if (g_system_state != SYS_STATE_RUN)
     {
         return;
     }
-    if (g_pwm_enabled == 0U)
+    if (g_pwm_enabled == 0U && SHOT_BurstShadowControlAllowed() == 0U)
     {
         return;
     }
