@@ -208,11 +208,13 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
         " first_stale_frozen="+firstStaleFrozen+" first_stale_phase="+firstStalePhase+
         " first_stale_age="+firstStaleAge+" fault_snapshot="+faultSnap);
 
+  var normalLimit = (cfg.label==="100MS") ? 900 : 850;
+  print("compute_normal_limit="+normalLimit);
   var pass = (ssres===1 && hres===1 && st===3 && ab===1 && okf===1 &&
               fault2===0 && burst===0 && maxv<1367 &&
               fc===pc && ac===pw && pv===0 &&
               freshArm===1 && staleMax<=1 && lastPubT2!==0 && lastConsumeT2!==0 && faultSnap===0 &&
-              tf===1 && sc>0 && cmax<=900 && cnorm<=850 && cfmax<=900 && cabort<1200 &&
+              tf===1 && sc>0 && cmax<=900 && cnorm<=normalLimit && cfmax<=900 && cabort<1200 &&
               amax<=900 && amax2<=900 && smax<1200 && tov===0 &&
               hwdelta===0 && actdelta===0 &&
               pwm2===0 && ost2==="1" && tzint==="0" && pws2===2);

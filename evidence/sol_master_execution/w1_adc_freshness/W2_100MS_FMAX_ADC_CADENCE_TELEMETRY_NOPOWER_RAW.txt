@@ -1,0 +1,13 @@
+OUT=D:\CCS21_workspace\Codex_Project\evidence\sol_master_execution\w1_adc_freshness\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_100MS.out
+OUT_SHA256=84348E3F10AB3B680777EE80E7B247273E280352D85769D4D5C1F1A8B646A51C
+INIT pwm=0 ost=1 fault=0
+RESULT seq=7322 consumed=5186 fresh=2409 pi=2409 stale=1
+RESULT ovf_count=62 ovf_first_tbctr=316 ovf_first_flag=0
+RESULT ovf_active_count=62
+RESULT int1cont=1
+RESULT compute_max=968 apply_max=873 active_max=0 overrun=0
+RESULT compute_normal_max=968 compute_fmax_max=861 compute_abort_max=0
+FINAL pwm=0 ost=1 tzint=0 fault=4
+SOL_W1_ADCINT_OVERFLOW_REPRODUCED
+SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY
+js: "tools\sol_w1_adc_cadence_nopower.js", line 199: exception from uncaught JavaScript throw: ADC_ACTIVE_CADENCE_GATE_FAIL

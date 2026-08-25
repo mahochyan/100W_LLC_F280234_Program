@@ -15,6 +15,8 @@ var EXPECTED = java.lang.System.getenv("SOL_W1_EXPECTED_SHA") ||
 var INT1CONT = parseInt(java.lang.System.getenv("SOL_W1_INT1CONT") || "0", 10);
 var FAULTS_ACTIVE = (java.lang.System.getenv("SOL_W1_FAULTS_ACTIVE") || "0") === "1";
 var RUN_MS = parseInt(java.lang.System.getenv("SOL_W1_RUN_MS") || "10", 10);
+var VREF_RAW = parseInt(java.lang.System.getenv("SOL_W1_VREF_RAW") || "1244", 10);
+var INITIAL_VOUT_RAW = parseInt(java.lang.System.getenv("SOL_W1_INITIAL_VOUT_RAW") || "1244", 10);
 
 function sha256File(path) {
   var md = MessageDigest.getInstance("SHA-256");
@@ -122,9 +124,9 @@ wv32("g_control_frequency_hz", 170000);
 wv32("g_control_shadow_frequency_hz", 170000);
 wv32("g_switching_frequency_hz", 170000);
 wv("g_pwm_period", 352);
-wv("g_control_vref_raw", 1244);
-wv("g_adc_vout_filtered_raw", 1244);
-wv32("g_adc_vout_filter_acc", 1244 * 16);
+wv("g_control_vref_raw", VREF_RAW);
+wv("g_adc_vout_filtered_raw", INITIAL_VOUT_RAW);
+wv32("g_adc_vout_filter_acc", INITIAL_VOUT_RAW * 16);
 wv32("g_adc_sample_sequence", 0);
 wv32("g_control_adc_sequence_last", 0);
 wv32("g_control_adc_sequence_consumed", 0);
@@ -170,6 +172,9 @@ var finalOst = regn("EPwm1Regs.TZFLG.bit.OST");
 var finalTzint = regn("EPwm1Regs.TZFLG.bit.INT");
 var finalFault = rv32("g_fault_flags");
 var computeMax = rv32("g_timing_compute_max");
+var computeNormalMax = rv32("g_timing_compute_normal_max");
+var computeFmaxMax = rv32("g_timing_compute_fmax_max");
+var computeAbortMax = rv32("g_timing_compute_abort_max");
 var applyMax = rv32("g_timing_apply_max");
 var activeMax = rv32("g_timing_active_isr_max");
 var overrun = rv32("g_timing_overrun_count");
@@ -178,6 +183,7 @@ print("RESULT ovf_count=" + ovf + " ovf_first_tbctr=" + ovfTbctr + " ovf_first_f
 print("RESULT ovf_active_count=" + ovfActive);
 print("RESULT int1cont=" + regn("AdcRegs.INTSEL1N2.bit.INT1CONT"));
 print("RESULT compute_max=" + computeMax + " apply_max=" + applyMax + " active_max=" + activeMax + " overrun=" + overrun);
+print("RESULT compute_normal_max=" + computeNormalMax + " compute_fmax_max=" + computeFmaxMax + " compute_abort_max=" + computeAbortMax);
 print("FINAL pwm=" + finalPwm + " ost=" + finalOst + " tzint=" + finalTzint + " fault=" + finalFault);
 print(ovf > 0 ? "SOL_W1_ADCINT_OVERFLOW_REPRODUCED" : "SOL_W1_ADCINT_OVERFLOW_NOT_REPRODUCED");
 if (ovfActive === 0) print("SOL_W1_ACTIVE_ADCINT_OVERFLOW_CLEAR");

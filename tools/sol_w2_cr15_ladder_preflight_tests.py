@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LADDER = (ROOT / "tools" / "stage6_cr15_real_ladder.js").read_text(encoding="utf-8")
+NOPOWER_LADDER = (ROOT / "tools" / "stage6_cr15_timing_nopower_ladder_all.js").read_text(encoding="utf-8")
 SHOT = (ROOT / "app" / "shot.c").read_text(encoding="utf-8")
 CADENCE = (ROOT / "tools" / "sol_w1_adc_cadence_nopower.js").read_text(encoding="utf-8")
 
@@ -37,6 +38,8 @@ def main() -> None:
         "LAST50_FMAX_COUNT=",
     ):
         require(token, LADDER)
+    require('(cfg.label==="100MS") ? 900 : 850', LADDER)
+    require('(cfg.label==="100MS") ? 900 : 850', NOPOWER_LADDER)
 
     # Telemetry is passive and restricted to the >=100 ms real-shot build.
     require("FIRST_REAL_PI_DURATION_CYCLES >= 6000000UL", SHOT)
@@ -52,6 +55,7 @@ def main() -> None:
     require("SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY", CADENCE)
     require("SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS", CADENCE)
     require('getenv("SOL_W1_RUN_MS")', CADENCE)
+    require('getenv("SOL_W1_VREF_RAW")', CADENCE)
     require("SOL_W2_100MS_TELEMETRY_NOPOWER_HARD_GATES_PASS", CADENCE)
 
     print("SOL_W2_CR15_LADDER_PREFLIGHT_TESTS_PASS")

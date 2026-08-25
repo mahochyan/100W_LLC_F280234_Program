@@ -1,0 +1,17 @@
+=== FMAX_STRESS FMAX_SAT_0 ===
+FMAX_SAT_0 timing_frozen=1 samples=100 compute=825 normal=0 fmax=825 abort=0 apply=775 active=0 shutdown=0 overrun=0
+FMAX_SAT_0 fmax_sat=1 burst=0 state=3 abort=1 ok=1 pending=0 pwm=0 ost=1 tzint=0 pws=2 fault=0
+FMAX_STRESS_FMAX_SAT_0_PASS=PASS
+=== FMAX_STRESS FMAX_SAT_1 ===
+FMAX_SAT_1 timing_frozen=1 samples=101 compute=825 normal=0 fmax=825 abort=0 apply=771 active=0 shutdown=0 overrun=0
+FMAX_SAT_1 fmax_sat=2 burst=0 state=3 abort=1 ok=1 pending=0 pwm=0 ost=1 tzint=0 pws=2 fault=0
+FMAX_STRESS_FMAX_SAT_1_PASS=PASS
+=== FMAX_STRESS FMAX_SAT_2 ===
+FMAX_SAT_2 timing_frozen=1 samples=100 compute=825 normal=0 fmax=825 abort=0 apply=775 active=0 shutdown=0 overrun=0
+FMAX_SAT_2 fmax_sat=3 burst=0 state=3 abort=1 ok=1 pending=0 pwm=0 ost=1 tzint=0 pws=2 fault=0
+FMAX_STRESS_FMAX_SAT_2_PASS=PASS
+=== FMAX_STRESS FMAX_SAT_3 ===
+FMAX_SAT_3 timing_frozen=1 samples=1 compute=0 normal=0 fmax=0 abort=0 apply=0 active=0 shutdown=0 overrun=0
+FMAX_SAT_3 fmax_sat=4 burst=1 state=3 abort=1 ok=1 pending=0 pwm=0 ost=1 tzint=0 pws=2 fault=0
+FMAX_STRESS_FMAX_SAT_3_PASS=PASS
+STAGE6_CR15_FMAX_STRESS_NOENERGY_PASS

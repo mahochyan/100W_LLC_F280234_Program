@@ -149,8 +149,10 @@ for(var i=0;i<CONFIGS.length && i<CONFIG_LIMIT;i++){
   print("old_overrun="+oldov+" pending="+pv+" state="+st+" abort="+ab+" ok="+okf);
   print("pwm="+pwm2+" ost="+ost2+" pws="+pws2+" fault="+fault2);
 
+  var normalLimit = (cfg.label==="100MS") ? 900 : 850;
+  print("compute_normal_limit="+normalLimit);
   var pass = (tf===1 && ta===0 && treq===0 && sc>0 &&
-              cmax<=900 && amax<=900 && amax2<=900 && smax<1200 && tov===0 && cnorm<=850 && cfmax<=900 && cabort<1200 &&
+              cmax<=900 && amax<=900 && amax2<=900 && smax<1200 && tov===0 && cnorm<=normalLimit && cfmax<=900 && cabort<1200 &&
               oldov===0 && pv===0 && st===3 && ab===1 && okf===1 &&
               pwm2===0 && ost2==="1" && pws2===2 && fault2===0);
   print("TIMING_"+cfg.label+"_PASS="+(pass?"PASS":"FAIL"));

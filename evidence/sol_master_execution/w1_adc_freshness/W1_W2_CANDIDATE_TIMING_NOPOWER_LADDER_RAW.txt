@@ -1,0 +1,54 @@
+CNT34 permanent connected: true operator present: true no-switching auth: true
+=== LADDER STEP 1: 2MS ===
+REAL OUT host SHA256: 68A148A26C4E57923255C0436E4DC07002B2A592E82C042695F4E43295625E76
+Expected SHA       : 68A148A26C4E57923255C0436E4DC07002B2A592E82C042695F4E43295625E76
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+Running no-power timing window for 2MS, waitMs=10
+timing_frozen=1 active=0 request=0 epoch=1 samples=103
+compute_normal_max=842 compute_fmax_max=0 compute_abort_max=0
+compute_max=842 apply_max=831 active_isr_max=842 shutdown_max=533 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+compute_normal_limit=850
+TIMING_2MS_PASS=PASS
+TIMING_2MS_DONE
+=== LADDER STEP 2: 10MS ===
+REAL OUT host SHA256: E9FF7794FAFF54093213DB9E21EE17D682E1B9619A95D5D040D64289491C3CA4
+Expected SHA       : E9FF7794FAFF54093213DB9E21EE17D682E1B9619A95D5D040D64289491C3CA4
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+Running no-power timing window for 10MS, waitMs=25
+timing_frozen=1 active=0 request=0 epoch=1 samples=502
+compute_normal_max=842 compute_fmax_max=0 compute_abort_max=0
+compute_max=842 apply_max=831 active_isr_max=842 shutdown_max=533 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+compute_normal_limit=850
+TIMING_10MS_PASS=PASS
+TIMING_10MS_DONE
+=== LADDER STEP 3: 100MS ===
+REAL OUT host SHA256: 84348E3F10AB3B680777EE80E7B247273E280352D85769D4D5C1F1A8B646A51C
+Expected SHA       : 84348E3F10AB3B680777EE80E7B247273E280352D85769D4D5C1F1A8B646A51C
+TIMING_HOST_SHA256_HARD_GATE_PASS
+GATE FAULT_ZERO: PASS
+GATE OST_LATCHED: PASS
+GATE PWM_OFF: PASS
+GATE AQCSFRC_FORCE_LOW: PASS
+Running no-power timing window for 100MS, waitMs=130
+timing_frozen=1 active=0 request=0 epoch=1 samples=4999
+compute_normal_max=853 compute_fmax_max=0 compute_abort_max=0
+compute_max=853 apply_max=866 active_isr_max=866 shutdown_max=537 overrun=0
+old_overrun=0 pending=0 state=3 abort=1 ok=1
+pwm=0 ost=1 pws=2 fault=0
+compute_normal_limit=900
+TIMING_100MS_PASS=PASS
+TIMING_100MS_DONE
+STAGE6_ONCHIP_TIMING_FREEZE_PASS
+STAGE6_ONCHIP_TIMING_FREEZE_NOPOWER_LADDER_ALL_PASS

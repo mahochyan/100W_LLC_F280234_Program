@@ -1,0 +1,14 @@
+OUT=D:\CCS21_workspace\Codex_Project\evidence\sol_master_execution\w1_adc_freshness\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_100MS.out
+OUT_SHA256=84348E3F10AB3B680777EE80E7B247273E280352D85769D4D5C1F1A8B646A51C
+INIT pwm=0 ost=1 fault=0
+RESULT seq=7118 consumed=4872 fresh=2463 pi=2463 stale=1
+RESULT ovf_count=5 ovf_first_tbctr=300 ovf_first_flag=0
+RESULT ovf_active_count=5
+RESULT int1cont=1
+RESULT compute_max=885 apply_max=855 active_max=0 overrun=0
+FINAL pwm=0 ost=1 tzint=0 fault=0
+SOL_W1_ADCINT_OVERFLOW_REPRODUCED
+SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY
+SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS
+W2_100MS_STATS counts vout=304 freq=304 tbprd=304 pi=304 tbprd_min=413 tbprd_max=413 fmax_count=0
+SOL_W2_100MS_TELEMETRY_NOPOWER_HARD_GATES_PASS

@@ -1,9 +1,9 @@
 ******************************************************************************
              TMS320C2000 Linker PC v25.11.1                    
 ******************************************************************************
->> Linked Tue Aug 25 22:37:25 2026
+>> Linked Tue Aug 25 23:03:45 2026
 
-OUTPUT FILE NAME:   <D:\CCS21_workspace\Codex_Project\Stage6_FLASH_SHOT_REAL_CR15_100MS\LLC_100W_F28034_BRINGUP_DSH_REAL_CR15_100MS.out>
+OUTPUT FILE NAME:   <D:\CCS21_workspace\Codex_Project\Stage6_FLASH_SHOT_REAL_100MS\LLC_100W_F28034_BRINGUP_DSH_REAL_100MS.out>
 ENTRY POINT SYMBOL: "code_start"  address: 003f7ff6
 
 
@@ -14,7 +14,7 @@ MEMORY CONFIGURATION
 PAGE 0:
   RAML0                 00008000   00000800  00000021  000007df  RWIX
   OTP                   003d7800   00000400  00000000  00000400  RWIX
-  FLASH                 003e8000   0000ff80  00003849  0000c737  RWIX
+  FLASH                 003e8000   0000ff80  00003922  0000c65e  RWIX
   CSM_RSVD              003f7f80   00000076  00000000  00000076  RWIX
   BEGIN                 003f7ff6   00000002  00000002  00000000  RWIX
   CSM_PWL_P0            003f7ff8   00000008  00000000  00000008  RWIX
@@ -73,7 +73,7 @@ PAGE 1:
   I2CA                  00007900   00000040  00000022  0000001e  RWIX
   RAML1                 00008800   00000400  000000c0  00000340  RWIX
   RAML2                 00008c00   00000400  000003e6  0000001a  RWIX
-  RAML3                 00009000   00001000  0000002e  00000fd2  RWIX
+  RAML3                 00009000   00001000  00000040  00000fc0  RWIX
   PARTID                003d7e80   00000001  00000001  00000000  RWIX
   CSM_PWL               003f7ff8   00000008  00000008  00000000  RWIX
 
@@ -83,7 +83,7 @@ SECTION ALLOCATION MAP
  output                                  attributes/
 section   page    origin      length       input sections
 --------  ----  ----------  ----------   ----------------
-.text      0    003e801d    000033c7     
+.text      0    003e801d    00003469     
                   003e801d    00000357     power_probe.obj (.text:_EPWM1_INT_ISR)
                   003e8374    0000027d     power_probe.obj (.text:_MULTICYCLE_SlowTask)
                   003e85f1    0000018c     shot.obj (.text:_SHOT_BurstRestart)
@@ -93,156 +93,156 @@ section   page    origin      length       input sections
                   003e8bc7    00000152     cal_hold_burst.obj (.text:_CALHOLD_FastTask)
                   003e8d19    0000014e     protection.obj (.text:_TINT0_ISR)
                   003e8e67    00000131     protection.obj (.text:_PROT_SlowTask)
-                  003e8f98    00000114     shot.obj (.text:_SHOT_Revoke)
-                  003e90ac    00000111     state_machine.obj (.text:_SM_Run)
-                  003e91bd    00000102     soft_start.obj (.text:_SoftStart_TransferToClosedLoop)
-                  003e92bf    000000ff     control.obj (.text:_CTRL_PipelineApply$2)
-                  003e93be    000000ee     shot.obj (.text:_SHOT_Init)
-                  003e94ac    000000dd     state_machine.obj (.text:_SM_HandleEnable$4)
-                  003e9589    000000d3     adc.obj (.text:_ADCINT1_ISR)
-                  003e965c    000000d0     pwm.obj (.text:_LLC_SetFrequencyHz)
-                  003e972c    000000c5     protection.obj (.text:_EPWM1_TZINT_ISR)
-                  003e97f1    000000c3     soft_start.obj (.text:_SoftStart_Update5ms)
-                  003e98b4    000000c1     comparator.obj (.text:_COMP_ArmInjectionTest)
-                  003e9975    000000bf     power_probe.obj (.text:_TRUTH_CaptureImmediate)
-                  003e9a34    000000be     comparator.obj (.text:_COMP_RunLoopbackDiagnostic)
-                  003e9af2    000000b2     control.obj (.text:_CTRL_ComputeFrequencyCommand)
-                  003e9ba4    000000ae     comparator.obj (.text:_COMP_ArmCommon)
-                  003e9c52    000000a3     pwm.obj (.text:_PWM_Init)
-                  003e9cf5    0000009c     rts2800_ml.lib : fd_add28.asm.obj (.text)
-                  003e9d91    00000098     shot.obj (.text:_SHOT_FastTask)
-                  003e9e29    00000097     control.obj (.text:_CTRL_FastTask)
-                  003e9ec0    00000096     comparator.obj (.text:_COMP_StaticCalibrationArm)
-                  003e9f56    00000095     protection.obj (.text:_PROT_Init)
-                  003e9feb    0000008b     rts2800_ml.lib : fd_div28.asm.obj (.text)
-                  003ea076    00000085     control.obj (.text:_CTRL_PipelineCompute$2)
-                  003ea0fb    00000085     system.obj (.text:_System_Init)
-                  003ea180    00000083     shot.obj (.text:_SHOT_BurstEnter)
-                  003ea203    00000083     rts2800_ml.lib : fd_mpy28.asm.obj (.text)
-                  003ea286    00000083                    : fs_div28.asm.obj (.text)
-                  003ea309    00000081     soft_start.obj (.text:_SoftStart_StartPwmFormal)
-                  003ea38a    0000007a     power_probe.obj (.text:_ACCEL_FreezeStopSnapshot)
-                  003ea404    00000078     rts2800_ml.lib : fs_add28.asm.obj (.text)
-                  003ea47c    00000070     control.obj (.text:_CTRL_PipelineMakePending$2)
-                  003ea4ec    00000065     adc.obj (.text:_ADC_FreezeFirstStale)
-                  003ea551    00000062     adc.obj (.text:_ADC_ResetFreshnessBlackbox)
-                  003ea5b3    0000005f     pwm.obj (.text:_PWM_StartDeterministic)
-                  003ea612    0000005e     cal_hold_burst.obj (.text:_CALHOLD_PacketIsr)
-                  003ea670    0000005b     soft_start.obj (.text:_SS_EnterPfmWindow)
-                  003ea6cb    0000005a     rts2800_ml.lib : fs_mpy28.asm.obj (.text)
-                  003ea725    00000054                    : boot28.asm.obj (.text)
-                  003ea779    0000004f     app.obj (.text:_APP_InitInterrupts)
-                  003ea7c8    00000047     control.obj (.text:_CTRL_Init)
-                  003ea80f    00000042     power_probe.obj (.text:_MULTICYCLE_AbortByFault)
-                  003ea851    00000041     comparator.obj (.text:_COMP_ApplyGlobals)
-                  003ea892    00000040     pwm.obj (.text:_LLC_ProtectionResetExplicit)
-                  003ea8d2    00000040     state_machine.obj (.text:_SM_StageAllowsFrequency$4)
-                  003ea912    0000003f     pwm.obj (.text:_PWM_RuntimeValuesValid)
-                  003ea951    0000003f     soft_start.obj (.text:_SS_End)
-                  003ea990    0000003e     adc.obj (.text:_ADC_FreezeFaultSnapshot)
-                  003ea9ce    0000003e     pwm.obj (.text:_PWM_ConfigTopologyValid)
-                  003eaa0c    0000003d     control.obj (.text:_CTRL_VoltsToRaw$2)
-                  003eaa49    0000003c     cal_hold_burst.obj (.text:_CALHOLD_StopPacket)
-                  003eaa85    0000003c     comparator.obj (.text:_COMP_StaticCalibrationFastTask)
-                  003eaac1    00000038     power_probe.obj (.text:_MULTICYCLE_ConfigureAdcCapture)
-                  003eaaf9    00000036     pwm.obj (.text:_LLC_PWM_DisableSafe)
-                  003eab2f    00000035     pwm.obj (.text:_PWM_ApplyPeriodDeadtime)
-                  003eab64    00000034     power_probe.obj (.text:_MULTICYCLE_RestoreInterrupts)
-                  003eab98    00000034     power_probe.obj (.text:_SINGLECYCLE_AbortByFault)
-                  003eabcc    00000033     cal_hold_burst.obj (.text:_CALHOLD_End)
-                  003eabff    00000032     power_probe.obj (.text:_MULTICYCLE_IsolateInterrupts)
-                  003eac31    00000032     pwm.obj (.text:_PWM_Trip)
-                  003eac63    00000032     shot.obj (.text:_SHOT_BurstShadowControlAllowed)
-                  003eac95    00000031     soft_start.obj (.text:_SS_HardStop)
-                  003eacc6    00000030     control.obj (.text:_CTRL_ApplyFrequencyCommand)
-                  003eacf6    00000030     pwm.obj (.text:_PWM_PrepareStart)
-                  003ead26    0000002f     shot.obj (.text:_SHOT_PendingCommit)
-                  003ead55    0000002f     shot.obj (.text:_SHOT_PendingValid)
-                  003ead84    0000002e     adc.obj (.text:_ADC_ConfigureSocs)
-                  003eadb2    0000002b     adc.obj (.text:_ADC_UpdatePwmSyncPoint)
-                  003eaddd    0000002b     gpio.obj (.text:_GPIO_Init)
-                  003eae08    00000029     power_probe.obj (.text:_PRE_STOP_Capture)
-                  003eae31    00000029     soft_start.obj (.text:_SoftStart_Init)
-                  003eae5a    00000029     rts2800_ml.lib : exit.c.obj (.text)
-                  003eae83    00000027     adc.obj (.text:_ADC_Init)
-                  003eaeaa    00000027     shot.obj (.text:_SHOT_RealBoundedPiAuthOk)
-                  003eaed1    00000026     adc.obj (.text:_ADC_SetPwmSyncTriggerMode)
-                  003eaef7    00000026     pwm.obj (.text:_LLC_PWM_Enable)
-                  003eaf1d    00000026     shot.obj (.text:_SHOT_RealSoftStartAuthOk)
-                  003eaf43    00000026     soft_start.obj (.text:_SoftStart_SelectProfile)
-                  003eaf69    00000024     rts2800_ml.lib : cpy_tbl.c.obj (.text)
-                  003eaf8d    00000023     adc.obj (.text:_ADC_SetClosedLoopSyncTriggerMode)
-                  003eafb0    00000023     power_probe.obj (.text:_MULTICYCLE_CaptureSample)
-                  003eafd3    00000022     comparator.obj (.text:_COMP_Init)
-                  003eaff5    00000022     shot.obj (.text:_SHOT_PermissionOk)
-                  003eb017    00000021     comparator.obj (.text:_COMP_StaticCalibrationDisarm)
-                  003eb038    00000021     shot.obj (.text:_SHOT_RealStage6AuthOk)
-                  003eb059    00000021     rts2800_ml.lib : fs_toul28.asm.obj (.text)
-                  003eb07a    00000020     adc.obj (.text:_ADC_CheckOverflow)
-                  003eb09a    0000001f     app.obj (.text:_APP_Init)
-                  003eb0b9    0000001f     DSP2803x_PieCtrl.obj (.text:_InitPieCtrl)
-                  003eb0d8    0000001e     comparator.obj (.text:_COMP_DisarmInjectionTest)
-                  003eb0f6    0000001e     DSP2803x_Adc.obj (.text:_InitAdc)
-                  003eb114    0000001e     rts2800_ml.lib : memcpy.c.obj (.text)
-                  003eb132    0000001d                    : fs_tou28.asm.obj (.text)
-                  003eb14f    0000001c     cal_hold_burst.obj (.text:_CALHOLD_StatsReset)
-                  003eb16b    0000001c     rts2800_ml.lib : l_tofd28.asm.obj (.text)
-                  003eb187    0000001b                    : fd_toul28.asm.obj (.text)
-                  003eb1a2    0000001a                    : l_tofs28.asm.obj (.text)
-                  003eb1bc    00000019                    : prolog28.asm.obj (.text)
-                  003eb1d5    00000018     main.obj (.text:_main)
-                  003eb1ed    00000017     adc.obj (.text:_ADC_UpdatePwmSyncPointKeepCadence)
-                  003eb204    00000017     rts2800_ml.lib : fs_cmp28.asm.obj (.text)
-                  003eb21b    00000016     pwm.obj (.text:_PWM_SetDeadbandOnly)
-                  003eb231    00000016     state_machine.obj (.text:_SM_Init)
-                  003eb247    00000016     rts2800_ml.lib : ul_tofd28.asm.obj (.text)
-                  003eb25d    00000014     shot.obj (.text:_SHOT_WriteAllowed)
-                  003eb271    00000013     rts2800_ml.lib : ul_tofs28.asm.obj (.text)
-                  003eb284    00000011     adc.obj (.text:_ADC_SetSoftwareTriggerMode)
-                  003eb295    00000011     cal_hold_burst.obj (.text:_CALHOLD_HardStop)
-                  003eb2a6    00000011     control.obj (.text:_CTRL_RunSteps$2)
-                  003eb2b7    00000011     DSP2803x_PieVect.obj (.text:_InitPieVectTable)
-                  003eb2c8    00000011     rts2800_ml.lib : args_main.c.obj (.text)
-                  003eb2d9    00000010     cal_hold_burst.obj (.text:_CALHOLD_AdcPollMode)
-                  003eb2e9    00000010     DSP2803x_SysCtrl.obj (.text:_IntOsc1Sel)
-                  003eb2f9    00000010     pwm.obj (.text:_LLC_ProtectionForceTrip)
-                  003eb309    00000010     rts2800_ml.lib : u_tofs28.asm.obj (.text)
-                  003eb319    0000000f     control.obj (.text:_CTRL_PrimeHandoffReferenceRaw)
-                  003eb328    0000000f     shot.obj (.text:_SHOT_ClampFreq)
-                  003eb337    0000000f     shot.obj (.text:_SHOT_OnTrip)
-                  003eb346    0000000e     rts2800_ml.lib : fd_sub28.asm.obj (.text)
-                  003eb354    0000000d     comparator.obj (.text:_COMP_UpdateStatus)
-                  003eb361    0000000d     control.obj (.text:_CTRL_SnapshotPwm$2)
-                  003eb36e    0000000d     shot.obj (.text:_SHOT_PipelineApplyAuthorized)
-                  003eb37b    0000000c     rts2800_ml.lib : epilog28.asm.obj (.text)
-                  003eb387    0000000b     soft_start.obj (.text:_SS_ApplyStage)
-                  003eb392    00000009     DSP2803x_PieCtrl.obj (.text:_EnableInterrupts)
-                  003eb39b    00000009     gpio.obj (.text:_LED_AllOff)
-                  003eb3a4    00000008     adc.obj (.text:_ADC_SoftwareTrigger)
-                  003eb3ac    00000008     DSP2803x_SysCtrl.obj (.text:_DisableDog)
-                  003eb3b4    00000008     shot.obj (.text:_SHOT_TimingFreeze)
-                  003eb3bc    00000005     gpio.obj (.text:_LED_GreenOn)
-                  003eb3c1    00000005     gpio.obj (.text:_LED_RedOn)
-                  003eb3c6    00000005     soft_start.obj (.text:_SoftStart_Begin)
-                  003eb3cb    00000005     rts2800_ml.lib : fs_neg28.asm.obj (.text)
-                  003eb3d0    00000004     cal_hold_burst.obj (.text:_CALHOLD_Init)
-                  003eb3d4    00000004     comparator.obj (.text:_COMP_ArmForSingleCycleStart)
-                  003eb3d8    00000004     default_isr.obj (.text:_rsvd_ISR)
-                  003eb3dc    00000003     app.obj (.text:_APP_Run)
-                  003eb3df    00000002     rts2800_ml.lib : pre_init.c.obj (.text)
-                  003eb3e1    00000001     soft_start.obj (.text:_SoftStart_ApplyLimits)
-                  003eb3e2    00000001     rts2800_ml.lib : _lock.c.obj (.text)
-                  003eb3e3    00000001                    : startup.c.obj (.text)
+                  003e8f98    00000128     shot.obj (.text:_SHOT_FastTask)
+                  003e90c0    00000114     shot.obj (.text:_SHOT_Revoke)
+                  003e91d4    00000111     state_machine.obj (.text:_SM_Run)
+                  003e92e5    00000102     soft_start.obj (.text:_SoftStart_TransferToClosedLoop)
+                  003e93e7    000000ff     control.obj (.text:_CTRL_PipelineApply$2)
+                  003e94e6    000000ee     shot.obj (.text:_SHOT_Init)
+                  003e95d4    000000dd     state_machine.obj (.text:_SM_HandleEnable$4)
+                  003e96b1    000000d3     adc.obj (.text:_ADCINT1_ISR)
+                  003e9784    000000d0     pwm.obj (.text:_LLC_SetFrequencyHz)
+                  003e9854    000000c5     protection.obj (.text:_EPWM1_TZINT_ISR)
+                  003e9919    000000c3     soft_start.obj (.text:_SoftStart_Update5ms)
+                  003e99dc    000000c1     comparator.obj (.text:_COMP_ArmInjectionTest)
+                  003e9a9d    000000bf     power_probe.obj (.text:_TRUTH_CaptureImmediate)
+                  003e9b5c    000000be     comparator.obj (.text:_COMP_RunLoopbackDiagnostic)
+                  003e9c1a    000000b2     control.obj (.text:_CTRL_ComputeFrequencyCommand)
+                  003e9ccc    000000ae     comparator.obj (.text:_COMP_ArmCommon)
+                  003e9d7a    000000a7     protection.obj (.text:_PROT_Init)
+                  003e9e21    000000a3     pwm.obj (.text:_PWM_Init)
+                  003e9ec4    0000009c     rts2800_ml.lib : fd_add28.asm.obj (.text)
+                  003e9f60    00000097     control.obj (.text:_CTRL_FastTask)
+                  003e9ff7    00000096     comparator.obj (.text:_COMP_StaticCalibrationArm)
+                  003ea08d    0000008b     rts2800_ml.lib : fd_div28.asm.obj (.text)
+                  003ea118    00000085     control.obj (.text:_CTRL_PipelineCompute$2)
+                  003ea19d    00000085     system.obj (.text:_System_Init)
+                  003ea222    00000083     shot.obj (.text:_SHOT_BurstEnter)
+                  003ea2a5    00000083     rts2800_ml.lib : fd_mpy28.asm.obj (.text)
+                  003ea328    00000083                    : fs_div28.asm.obj (.text)
+                  003ea3ab    00000081     soft_start.obj (.text:_SoftStart_StartPwmFormal)
+                  003ea42c    0000007a     power_probe.obj (.text:_ACCEL_FreezeStopSnapshot)
+                  003ea4a6    00000078     rts2800_ml.lib : fs_add28.asm.obj (.text)
+                  003ea51e    00000070     control.obj (.text:_CTRL_PipelineMakePending$2)
+                  003ea58e    00000065     adc.obj (.text:_ADC_FreezeFirstStale)
+                  003ea5f3    00000062     adc.obj (.text:_ADC_ResetFreshnessBlackbox)
+                  003ea655    0000005f     pwm.obj (.text:_PWM_StartDeterministic)
+                  003ea6b4    0000005e     cal_hold_burst.obj (.text:_CALHOLD_PacketIsr)
+                  003ea712    0000005b     soft_start.obj (.text:_SS_EnterPfmWindow)
+                  003ea76d    0000005a     rts2800_ml.lib : fs_mpy28.asm.obj (.text)
+                  003ea7c7    00000054                    : boot28.asm.obj (.text)
+                  003ea81b    0000004f     app.obj (.text:_APP_InitInterrupts)
+                  003ea86a    00000047     control.obj (.text:_CTRL_Init)
+                  003ea8b1    00000042     power_probe.obj (.text:_MULTICYCLE_AbortByFault)
+                  003ea8f3    00000041     comparator.obj (.text:_COMP_ApplyGlobals)
+                  003ea934    00000040     pwm.obj (.text:_LLC_ProtectionResetExplicit)
+                  003ea974    00000040     state_machine.obj (.text:_SM_StageAllowsFrequency$4)
+                  003ea9b4    0000003f     pwm.obj (.text:_PWM_RuntimeValuesValid)
+                  003ea9f3    0000003f     soft_start.obj (.text:_SS_End)
+                  003eaa32    0000003e     adc.obj (.text:_ADC_FreezeFaultSnapshot)
+                  003eaa70    0000003e     pwm.obj (.text:_PWM_ConfigTopologyValid)
+                  003eaaae    0000003d     control.obj (.text:_CTRL_VoltsToRaw$2)
+                  003eaaeb    0000003c     cal_hold_burst.obj (.text:_CALHOLD_StopPacket)
+                  003eab27    0000003c     comparator.obj (.text:_COMP_StaticCalibrationFastTask)
+                  003eab63    00000038     power_probe.obj (.text:_MULTICYCLE_ConfigureAdcCapture)
+                  003eab9b    00000036     pwm.obj (.text:_LLC_PWM_DisableSafe)
+                  003eabd1    00000035     pwm.obj (.text:_PWM_ApplyPeriodDeadtime)
+                  003eac06    00000034     power_probe.obj (.text:_MULTICYCLE_RestoreInterrupts)
+                  003eac3a    00000034     power_probe.obj (.text:_SINGLECYCLE_AbortByFault)
+                  003eac6e    00000033     cal_hold_burst.obj (.text:_CALHOLD_End)
+                  003eaca1    00000032     power_probe.obj (.text:_MULTICYCLE_IsolateInterrupts)
+                  003eacd3    00000032     pwm.obj (.text:_PWM_Trip)
+                  003ead05    00000032     shot.obj (.text:_SHOT_BurstShadowControlAllowed)
+                  003ead37    00000031     soft_start.obj (.text:_SS_HardStop)
+                  003ead68    00000030     control.obj (.text:_CTRL_ApplyFrequencyCommand)
+                  003ead98    00000030     pwm.obj (.text:_PWM_PrepareStart)
+                  003eadc8    0000002f     shot.obj (.text:_SHOT_PendingCommit)
+                  003eadf7    0000002f     shot.obj (.text:_SHOT_PendingValid)
+                  003eae26    0000002e     adc.obj (.text:_ADC_ConfigureSocs)
+                  003eae54    0000002b     adc.obj (.text:_ADC_UpdatePwmSyncPoint)
+                  003eae7f    0000002b     gpio.obj (.text:_GPIO_Init)
+                  003eaeaa    00000029     power_probe.obj (.text:_PRE_STOP_Capture)
+                  003eaed3    00000029     soft_start.obj (.text:_SoftStart_Init)
+                  003eaefc    00000029     rts2800_ml.lib : exit.c.obj (.text)
+                  003eaf25    00000027     adc.obj (.text:_ADC_Init)
+                  003eaf4c    00000027     shot.obj (.text:_SHOT_RealBoundedPiAuthOk)
+                  003eaf73    00000026     adc.obj (.text:_ADC_SetPwmSyncTriggerMode)
+                  003eaf99    00000026     pwm.obj (.text:_LLC_PWM_Enable)
+                  003eafbf    00000026     shot.obj (.text:_SHOT_RealSoftStartAuthOk)
+                  003eafe5    00000026     soft_start.obj (.text:_SoftStart_SelectProfile)
+                  003eb00b    00000024     rts2800_ml.lib : cpy_tbl.c.obj (.text)
+                  003eb02f    00000023     adc.obj (.text:_ADC_SetClosedLoopSyncTriggerMode)
+                  003eb052    00000023     power_probe.obj (.text:_MULTICYCLE_CaptureSample)
+                  003eb075    00000022     comparator.obj (.text:_COMP_Init)
+                  003eb097    00000022     shot.obj (.text:_SHOT_PermissionOk)
+                  003eb0b9    00000021     comparator.obj (.text:_COMP_StaticCalibrationDisarm)
+                  003eb0da    00000021     shot.obj (.text:_SHOT_RealStage6AuthOk)
+                  003eb0fb    00000021     rts2800_ml.lib : fs_toul28.asm.obj (.text)
+                  003eb11c    00000020     adc.obj (.text:_ADC_CheckOverflow)
+                  003eb13c    0000001f     app.obj (.text:_APP_Init)
+                  003eb15b    0000001f     DSP2803x_PieCtrl.obj (.text:_InitPieCtrl)
+                  003eb17a    0000001e     comparator.obj (.text:_COMP_DisarmInjectionTest)
+                  003eb198    0000001e     DSP2803x_Adc.obj (.text:_InitAdc)
+                  003eb1b6    0000001e     rts2800_ml.lib : memcpy.c.obj (.text)
+                  003eb1d4    0000001d                    : fs_tou28.asm.obj (.text)
+                  003eb1f1    0000001c     cal_hold_burst.obj (.text:_CALHOLD_StatsReset)
+                  003eb20d    0000001c     rts2800_ml.lib : l_tofd28.asm.obj (.text)
+                  003eb229    0000001b                    : fd_toul28.asm.obj (.text)
+                  003eb244    0000001a                    : l_tofs28.asm.obj (.text)
+                  003eb25e    00000019                    : prolog28.asm.obj (.text)
+                  003eb277    00000018     main.obj (.text:_main)
+                  003eb28f    00000017     adc.obj (.text:_ADC_UpdatePwmSyncPointKeepCadence)
+                  003eb2a6    00000017     rts2800_ml.lib : fs_cmp28.asm.obj (.text)
+                  003eb2bd    00000016     pwm.obj (.text:_PWM_SetDeadbandOnly)
+                  003eb2d3    00000016     state_machine.obj (.text:_SM_Init)
+                  003eb2e9    00000016     rts2800_ml.lib : ul_tofd28.asm.obj (.text)
+                  003eb2ff    00000014     shot.obj (.text:_SHOT_WriteAllowed)
+                  003eb313    00000013     rts2800_ml.lib : ul_tofs28.asm.obj (.text)
+                  003eb326    00000011     adc.obj (.text:_ADC_SetSoftwareTriggerMode)
+                  003eb337    00000011     cal_hold_burst.obj (.text:_CALHOLD_HardStop)
+                  003eb348    00000011     control.obj (.text:_CTRL_RunSteps$2)
+                  003eb359    00000011     DSP2803x_PieVect.obj (.text:_InitPieVectTable)
+                  003eb36a    00000011     rts2800_ml.lib : args_main.c.obj (.text)
+                  003eb37b    00000010     cal_hold_burst.obj (.text:_CALHOLD_AdcPollMode)
+                  003eb38b    00000010     DSP2803x_SysCtrl.obj (.text:_IntOsc1Sel)
+                  003eb39b    00000010     pwm.obj (.text:_LLC_ProtectionForceTrip)
+                  003eb3ab    00000010     rts2800_ml.lib : u_tofs28.asm.obj (.text)
+                  003eb3bb    0000000f     control.obj (.text:_CTRL_PrimeHandoffReferenceRaw)
+                  003eb3ca    0000000f     shot.obj (.text:_SHOT_ClampFreq)
+                  003eb3d9    0000000f     shot.obj (.text:_SHOT_OnTrip)
+                  003eb3e8    0000000e     rts2800_ml.lib : fd_sub28.asm.obj (.text)
+                  003eb3f6    0000000d     comparator.obj (.text:_COMP_UpdateStatus)
+                  003eb403    0000000d     control.obj (.text:_CTRL_SnapshotPwm$2)
+                  003eb410    0000000d     shot.obj (.text:_SHOT_PipelineApplyAuthorized)
+                  003eb41d    0000000c     rts2800_ml.lib : epilog28.asm.obj (.text)
+                  003eb429    0000000b     soft_start.obj (.text:_SS_ApplyStage)
+                  003eb434    00000009     DSP2803x_PieCtrl.obj (.text:_EnableInterrupts)
+                  003eb43d    00000009     gpio.obj (.text:_LED_AllOff)
+                  003eb446    00000008     adc.obj (.text:_ADC_SoftwareTrigger)
+                  003eb44e    00000008     DSP2803x_SysCtrl.obj (.text:_DisableDog)
+                  003eb456    00000008     shot.obj (.text:_SHOT_TimingFreeze)
+                  003eb45e    00000005     gpio.obj (.text:_LED_GreenOn)
+                  003eb463    00000005     gpio.obj (.text:_LED_RedOn)
+                  003eb468    00000005     soft_start.obj (.text:_SoftStart_Begin)
+                  003eb46d    00000005     rts2800_ml.lib : fs_neg28.asm.obj (.text)
+                  003eb472    00000004     cal_hold_burst.obj (.text:_CALHOLD_Init)
+                  003eb476    00000004     comparator.obj (.text:_COMP_ArmForSingleCycleStart)
+                  003eb47a    00000004     default_isr.obj (.text:_rsvd_ISR)
+                  003eb47e    00000003     app.obj (.text:_APP_Run)
+                  003eb481    00000002     rts2800_ml.lib : pre_init.c.obj (.text)
+                  003eb483    00000001     soft_start.obj (.text:_SoftStart_ApplyLimits)
+                  003eb484    00000001     rts2800_ml.lib : _lock.c.obj (.text)
+                  003eb485    00000001                    : startup.c.obj (.text)
 
-.cinit     0    003eb3e8    000002c0     
-                  003eb3e8    0000025f     <whole-program> (.cinit)
-                  003eb647    00000032     shot.obj (.cinit)
-                  003eb679    0000000e     rts2800_ml.lib : exit.c.obj (.cinit)
-                  003eb687    0000000d     power_probe.obj (.cinit)
-                  003eb694    00000008     cal_hold_burst.obj (.cinit)
-                  003eb69c    00000005     <whole-program> (.cinit:__lock)
-                  003eb6a1    00000005     <whole-program> (.cinit:__unlock)
-                  003eb6a6    00000002     --HOLE-- [fill = 0]
+.cinit     0    003eb48a    000002f7     
+                  003eb48a    00000296     <whole-program> (.cinit)
+                  003eb720    00000032     shot.obj (.cinit)
+                  003eb752    0000000e     rts2800_ml.lib : exit.c.obj (.cinit)
+                  003eb760    0000000d     power_probe.obj (.cinit)
+                  003eb76d    00000008     cal_hold_burst.obj (.cinit)
+                  003eb775    00000005     <whole-program> (.cinit:__lock)
+                  003eb77a    00000005     <whole-program> (.cinit:__unlock)
+                  003eb77f    00000002     --HOLE-- [fill = 0]
 
 codestart 
 *          0    003f7ff6    00000002     
@@ -250,19 +250,19 @@ codestart
 
 .pinit     0    003e8000    00000000     UNINITIALIZED
 
-.econst    0    003eb6a8    000001a1     
-                  003eb6a8    00000100     DSP2803x_PieVect.obj (.econst:_PieVectTableInit)
-                  003eb7a8    0000007c     pwm.obj (.econst:_g_real_pi_actual_hz_table)
-                  003eb824    00000010     power_probe.obj (.econst)
-                  003eb834    00000010     system.obj (.econst)
-                  003eb844    00000005     power_probe.obj (.econst:_$P$T0$1)
+.econst    0    003eb782    000001a1     
+                  003eb782    00000100     DSP2803x_PieVect.obj (.econst:_PieVectTableInit)
+                  003eb882    0000007c     pwm.obj (.econst:_g_real_pi_actual_hz_table)
+                  003eb8fe    00000010     power_probe.obj (.econst)
+                  003eb90e    00000010     system.obj (.econst)
+                  003eb91e    00000005     power_probe.obj (.econst:_$P$T0$1)
 
 ramfuncs   0    003e8000    0000001d     RUN ADDR = 00008000
                   003e8000    0000001d     DSP2803x_SysCtrl.obj (ramfuncs:_InitFlash)
 
 .TI.ramfunc 
-*          0    003eb3e4    00000004     RUN ADDR = 0000801d
-                  003eb3e4    00000004     DSP2803x_usDelay.obj (.TI.ramfunc)
+*          0    003eb486    00000004     RUN ADDR = 0000801d
+                  003eb486    00000004     DSP2803x_usDelay.obj (.TI.ramfunc)
 
 .reset     0    003fffc0    00000002     DSECT
                   003fffc0    00000002     rts2800_ml.lib : boot28.asm.obj (.reset)
@@ -386,8 +386,8 @@ AdcRegsFile
                   00008fe4    00000001     llc_globals.obj (.ebss:_g_probe_vout_samples)
                   00008fe5    00000001     state_machine.obj (.ebss)
 
-shot_ram   1    00009000    0000002e     UNINITIALIZED
-                  00009000    0000002e     llc_globals.obj (shot_ram)
+shot_ram   1    00009000    00000040     UNINITIALIZED
+                  00009000    00000040     llc_globals.obj (shot_ram)
 
 PieVectTableFile 
 *          1    00000d00    00000100     UNINITIALIZED
@@ -486,21 +486,21 @@ MODULE SUMMARY
        Module                                   code    initialized data   uninitialized data
        ------                                   ----    ----------------   ------------------
     C:\Users\lapyin\AppData\Local\Temp\
-       {BBC91365-389F-47B0-9675-4A82C49CECA2}   0       617                0                 
+       {8180FF2C-3AAD-40F9-902C-5713B7F59C89}   0       672                0                 
     +--+----------------------------------------+-------+------------------+--------------------+
-       Total:                                   0       617                0                 
+       Total:                                   0       672                0                 
                                                                                              
-    D:\CCS21_workspace\Codex_Project\Stage6_FLASH_SHOT_REAL_CR15_100MS\
+    D:\CCS21_workspace\Codex_Project\Stage6_FLASH_SHOT_REAL_100MS\
        power_probe.obj                          2157    34                 4                 
        DSP2803x_GlobalVariableDefs.obj          0       0                  2024              
-       shot.obj                                 1552    50                 140               
+       shot.obj                                 1696    50                 140               
        control.obj                              1430    0                  0                 
        soft_start.obj                           1262    0                  0                 
        pwm.obj                                  936     124                0                 
-       protection.obj                           985     0                  6                 
+       protection.obj                           1003    0                  6                 
        cal_hold_burst.obj                       949     8                  24                
        comparator.obj                           946     0                  0                 
-       llc_globals.obj                          0       0                  859               
+       llc_globals.obj                          0       0                  877               
        adc.obj                                  753     0                  0                 
        state_machine.obj                        580     0                  1                 
        DSP2803x_PieVect.obj                     17      256                0                 
@@ -515,7 +515,7 @@ MODULE SUMMARY
        default_isr.obj                          4       0                  0                 
        2803x_CodeStartBranch.obj                2       0                  0                 
     +--+----------------------------------------+-------+------------------+--------------------+
-       Total:                                   12065   488                3058              
+       Total:                                   12227   488                3076              
                                                                                              
     D:\CCS21\ccs\tools\compiler\ti-cgt-c2000_25.11.1.LTS\lib\rts2800_ml.lib
        fd_add28.asm.obj                         156     0                  0                 
@@ -550,7 +550,7 @@ MODULE SUMMARY
                                                                                              
        Stack:                                   0       0                  192               
     +--+----------------------------------------+-------+------------------+--------------------+
-       Grand Total:                             13323   1119               3260              
+       Grand Total:                             13485   1174               3278              
 
 
 GLOBAL DATA SYMBOLS: SORTED BY DATA PAGE
@@ -1275,25 +1275,37 @@ address     data page           name
 00009010     240 (00009000)     _g_adc_fault_snapshot_intovf
 00009011     240 (00009000)     _g_adc_fault_snapshot_socflg
 00009012     240 (00009000)     _g_adc_fault_snapshot_socovf
-00009014     240 (00009000)     _g_adc_last_publish_timer2
-00009016     240 (00009000)     _g_control_last_consume_timer2
-00009018     240 (00009000)     _g_adc_stale_total
-0000901a     240 (00009000)     _g_adc_first_stale_fast_tick
-0000901c     240 (00009000)     _g_adc_first_stale_timer2
-0000901e     240 (00009000)     _g_adc_first_stale_publish_sequence
-00009020     240 (00009000)     _g_adc_first_stale_consume_sequence
-00009022     240 (00009000)     _g_adc_first_stale_sample_age_cycles
-00009024     240 (00009000)     _g_adc_fault_snapshot_timer2
-00009026     240 (00009000)     _g_adc_fault_snapshot_flags
-00009028     240 (00009000)     _g_adc_fault_snapshot_publish_sequence
-0000902a     240 (00009000)     _g_adc_fault_snapshot_consume_sequence
-0000902c     240 (00009000)     _g_adc_ovf_active_count
+00009013     240 (00009000)     _g_timing_last50_vout_first
+00009014     240 (00009000)     _g_timing_last50_vout_last
+00009015     240 (00009000)     _g_timing_last50_tbprd_min
+00009016     240 (00009000)     _g_timing_last50_tbprd_max
+00009017     240 (00009000)     _g_timing_last50_sample_phase
+00009018     240 (00009000)     _g_adc_last_publish_timer2
+0000901a     240 (00009000)     _g_control_last_consume_timer2
+0000901c     240 (00009000)     _g_adc_stale_total
+0000901e     240 (00009000)     _g_adc_first_stale_fast_tick
+00009020     240 (00009000)     _g_adc_first_stale_timer2
+00009022     240 (00009000)     _g_adc_first_stale_publish_sequence
+00009024     240 (00009000)     _g_adc_first_stale_consume_sequence
+00009026     240 (00009000)     _g_adc_first_stale_sample_age_cycles
+00009028     240 (00009000)     _g_adc_fault_snapshot_timer2
+0000902a     240 (00009000)     _g_adc_fault_snapshot_flags
+0000902c     240 (00009000)     _g_adc_fault_snapshot_publish_sequence
+0000902e     240 (00009000)     _g_adc_fault_snapshot_consume_sequence
+00009030     240 (00009000)     _g_adc_ovf_active_count
+00009032     240 (00009000)     _g_timing_last50_tbprd_sum
+00009034     240 (00009000)     _g_timing_last50_tbprd_count
+00009036     240 (00009000)     _g_timing_last50_pi_q12_min
+00009038     240 (00009000)     _g_timing_last50_pi_q12_max
+0000903a     240 (00009000)     _g_timing_last50_pi_hz_sum
+0000903c     240 (00009000)     _g_timing_last50_pi_count
+0000903e     240 (00009000)     _g_timing_last50_fmax_count
 
 003d7e80    f5fa (003d7e80)     _PartIdRegs
 
-003eb6a8    fada (003eb680)     _PieVectTableInit
+003eb782    fade (003eb780)     _PieVectTableInit
 
-003eb7a8    fade (003eb780)     _g_real_pi_actual_hz_table
+003eb882    fae2 (003eb880)     _g_real_pi_actual_hz_table
 
 003f7ff8    fdff (003f7fc0)     _CsmPwl
 
@@ -1303,61 +1315,61 @@ GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name
 page  address   name                                    
 ----  -------   ----                                    
 0     003e801d  .text                                   
-0     003eae5a  C$$EXIT                                 
-0     003e9cf5  FD$$ADD                                 
-0     003e9feb  FD$$DIV                                 
-0     003ea203  FD$$MPY                                 
-0     003eb346  FD$$SUB                                 
-0     003eb187  FD$$TOUL                                
-0     003ea409  FS$$ADD                                 
-0     003eb204  FS$$CMP                                 
-0     003ea286  FS$$DIV                                 
-0     003ea6cb  FS$$MPY                                 
-0     003eb3cb  FS$$NEG                                 
-0     003ea404  FS$$SUB                                 
-0     003eb132  FS$$TOU                                 
-0     003eb059  FS$$TOUL                                
-0     003eb16b  L$$TOFD                                 
-0     003eb1a2  L$$TOFS                                 
-0     003eb309  U$$TOFS                                 
-0     003eb247  UL$$TOFD                                
-0     003eb271  UL$$TOFS                                
-0     003e9589  _ADCINT1_ISR                            
-0     003eb07a  _ADC_CheckOverflow                      
-0     003ea990  _ADC_FreezeFaultSnapshot                
-0     003ea4ec  _ADC_FreezeFirstStale                   
-0     003eae83  _ADC_Init                               
-0     003ea551  _ADC_ResetFreshnessBlackbox             
-0     003eaf8d  _ADC_SetClosedLoopSyncTriggerMode       
-0     003eaed1  _ADC_SetPwmSyncTriggerMode              
-0     003eb284  _ADC_SetSoftwareTriggerMode             
-0     003eb3a4  _ADC_SoftwareTrigger                    
-0     003eadb2  _ADC_UpdatePwmSyncPoint                 
-0     003eb1ed  _ADC_UpdatePwmSyncPointKeepCadence      
-0     003eb09a  _APP_Init                               
-0     003eb3dc  _APP_Run                                
+0     003eaefc  C$$EXIT                                 
+0     003e9ec4  FD$$ADD                                 
+0     003ea08d  FD$$DIV                                 
+0     003ea2a5  FD$$MPY                                 
+0     003eb3e8  FD$$SUB                                 
+0     003eb229  FD$$TOUL                                
+0     003ea4ab  FS$$ADD                                 
+0     003eb2a6  FS$$CMP                                 
+0     003ea328  FS$$DIV                                 
+0     003ea76d  FS$$MPY                                 
+0     003eb46d  FS$$NEG                                 
+0     003ea4a6  FS$$SUB                                 
+0     003eb1d4  FS$$TOU                                 
+0     003eb0fb  FS$$TOUL                                
+0     003eb20d  L$$TOFD                                 
+0     003eb244  L$$TOFS                                 
+0     003eb3ab  U$$TOFS                                 
+0     003eb2e9  UL$$TOFD                                
+0     003eb313  UL$$TOFS                                
+0     003e96b1  _ADCINT1_ISR                            
+0     003eb11c  _ADC_CheckOverflow                      
+0     003eaa32  _ADC_FreezeFaultSnapshot                
+0     003ea58e  _ADC_FreezeFirstStale                   
+0     003eaf25  _ADC_Init                               
+0     003ea5f3  _ADC_ResetFreshnessBlackbox             
+0     003eb02f  _ADC_SetClosedLoopSyncTriggerMode       
+0     003eaf73  _ADC_SetPwmSyncTriggerMode              
+0     003eb326  _ADC_SetSoftwareTriggerMode             
+0     003eb446  _ADC_SoftwareTrigger                    
+0     003eae54  _ADC_UpdatePwmSyncPoint                 
+0     003eb28f  _ADC_UpdatePwmSyncPointKeepCadence      
+0     003eb13c  _APP_Init                               
+0     003eb47e  _APP_Run                                
 1     00007100  _AdcRegs                                
 1     00000b00  _AdcResult                              
 0     003e8bc7  _CALHOLD_FastTask                       
-0     003eb3d0  _CALHOLD_Init                           
-0     003ea612  _CALHOLD_PacketIsr                      
+0     003eb472  _CALHOLD_Init                           
+0     003ea6b4  _CALHOLD_PacketIsr                      
 0     003e8a72  _CALHOLD_SlowTask                       
-0     003ea851  _COMP_ApplyGlobals                      
-0     003eb3d4  _COMP_ArmForSingleCycleStart            
-0     003e98b4  _COMP_ArmInjectionTest                  
-0     003eb0d8  _COMP_DisarmInjectionTest               
-0     003eafd3  _COMP_Init                              
-0     003e9a34  _COMP_RunLoopbackDiagnostic             
-0     003e9ec0  _COMP_StaticCalibrationArm              
-0     003eb017  _COMP_StaticCalibrationDisarm           
-0     003eaa85  _COMP_StaticCalibrationFastTask         
-0     003eb354  _COMP_UpdateStatus                      
-0     003eacc6  _CTRL_ApplyFrequencyCommand             
-0     003e9af2  _CTRL_ComputeFrequencyCommand           
-0     003e9e29  _CTRL_FastTask                          
-0     003ea7c8  _CTRL_Init                              
+0     003ea8f3  _COMP_ApplyGlobals                      
+0     003eb476  _COMP_ArmForSingleCycleStart            
+0     003e99dc  _COMP_ArmInjectionTest                  
+0     003eb17a  _COMP_DisarmInjectionTest               
+0     003eb075  _COMP_Init                              
+0     003e9b5c  _COMP_RunLoopbackDiagnostic             
+0     003e9ff7  _COMP_StaticCalibrationArm              
+0     003eb0b9  _COMP_StaticCalibrationDisarm           
+0     003eab27  _COMP_StaticCalibrationFastTask         
+0     003eb3f6  _COMP_UpdateStatus                      
+0     003ead68  _CTRL_ApplyFrequencyCommand             
+0     003e9c1a  _CTRL_ComputeFrequencyCommand           
+0     003e9f60  _CTRL_FastTask                          
+0     003ea86a  _CTRL_Init                              
 0     003e88fa  _CTRL_OfflineSelfTest                   
-0     003eb319  _CTRL_PrimeHandoffReferenceRaw          
+0     003eb3bb  _CTRL_PrimeHandoffReferenceRaw          
 1     00001400  _Cla1Regs                               
 1     00006400  _Comp1Regs                              
 1     00006420  _Comp2Regs                              
@@ -1369,7 +1381,7 @@ page  address   name
 1     00000ae0  _CsmRegs                                
 0     0000801d  _DSP28x_usDelay                         
 1     00000880  _DevEmuRegs                             
-0     003eb3ac  _DisableDog                             
+0     003eb44e  _DisableDog                             
 1     00006040  _ECanaLAMRegs                           
 1     000060c0  _ECanaMOTORegs                          
 1     00006080  _ECanaMOTSRegs                          
@@ -1377,7 +1389,7 @@ page  address   name
 1     00006000  _ECanaRegs                              
 1     00006a00  _ECap1Regs                              
 0     003e801d  _EPWM1_INT_ISR                          
-0     003e972c  _EPWM1_TZINT_ISR                        
+0     003e9854  _EPWM1_TZINT_ISR                        
 1     00006800  _EPwm1Regs                              
 1     00006840  _EPwm2Regs                              
 1     00006880  _EPwm3Regs                              
@@ -1388,89 +1400,89 @@ page  address   name
 1     00006b00  _EQep1Regs                              
 1     00000d01  _EmuBMode                               
 1     00000d00  _EmuKey                                 
-0     003eb392  _EnableInterrupts                       
+0     003eb434  _EnableInterrupts                       
 1     00000a80  _FlashRegs                              
 1     00000d04  _Flash_CPUScaleFactor                   
 1     00000d02  _Flash_CallbackPtr                      
-0     003eaddd  _GPIO_Init                              
+0     003eae7f  _GPIO_Init                              
 1     00006f80  _GpioCtrlRegs                           
 1     00006fc0  _GpioDataRegs                           
 1     00006fe0  _GpioIntRegs                            
 1     00006ac0  _HRCap1Regs                             
 1     00006ae0  _HRCap2Regs                             
 1     00007900  _I2caRegs                               
-0     003eb0f6  _InitAdc                                
+0     003eb198  _InitAdc                                
 0     00008000  _InitFlash                              
-0     003eb0b9  _InitPieCtrl                            
-0     003eb2b7  _InitPieVectTable                       
-0     003eb2e9  _IntOsc1Sel                             
-0     003eb39b  _LED_AllOff                             
-0     003eb3bc  _LED_GreenOn                            
-0     003eb3c1  _LED_RedOn                              
-0     003eaaf9  _LLC_PWM_DisableSafe                    
-0     003eaef7  _LLC_PWM_Enable                         
-0     003eb2f9  _LLC_ProtectionForceTrip                
-0     003ea892  _LLC_ProtectionResetExplicit            
-0     003e965c  _LLC_SetFrequencyHz                     
+0     003eb15b  _InitPieCtrl                            
+0     003eb359  _InitPieVectTable                       
+0     003eb38b  _IntOsc1Sel                             
+0     003eb43d  _LED_AllOff                             
+0     003eb45e  _LED_GreenOn                            
+0     003eb463  _LED_RedOn                              
+0     003eab9b  _LLC_PWM_DisableSafe                    
+0     003eaf99  _LLC_PWM_Enable                         
+0     003eb39b  _LLC_ProtectionForceTrip                
+0     003ea934  _LLC_ProtectionResetExplicit            
+0     003e9784  _LLC_SetFrequencyHz                     
 1     00006c00  _LinaRegs                               
-0     003ea80f  _MULTICYCLE_AbortByFault                
+0     003ea8b1  _MULTICYCLE_AbortByFault                
 0     003e8374  _MULTICYCLE_SlowTask                    
 1     00007060  _NmiIntruptRegs                         
-0     003e9f56  _PROT_Init                              
+0     003e9d7a  _PROT_Init                              
 0     003e8e67  _PROT_SlowTask                          
-0     003eab2f  _PWM_ApplyPeriodDeadtime                
-0     003ea9ce  _PWM_ConfigMatchesFrozenBaseline        
-0     003ea9ce  _PWM_ConfigTopologyValid                
-0     003e9c52  _PWM_Init                               
-0     003eacf6  _PWM_PrepareStart                       
-0     003ea912  _PWM_RuntimeValuesValid                 
-0     003eb21b  _PWM_SetDeadbandOnly                    
-0     003ea5b3  _PWM_StartDeterministic                 
-0     003eac31  _PWM_Trip                               
+0     003eabd1  _PWM_ApplyPeriodDeadtime                
+0     003eaa70  _PWM_ConfigMatchesFrozenBaseline        
+0     003eaa70  _PWM_ConfigTopologyValid                
+0     003e9e21  _PWM_Init                               
+0     003ead98  _PWM_PrepareStart                       
+0     003ea9b4  _PWM_RuntimeValuesValid                 
+0     003eb2bd  _PWM_SetDeadbandOnly                    
+0     003ea655  _PWM_StartDeterministic                 
+0     003eacd3  _PWM_Trip                               
 1     003d7e80  _PartIdRegs                             
 1     00000ce0  _PieCtrlRegs                            
 1     00000d00  _PieVectTable                           
-0     003eb6a8  _PieVectTableInit                       
+0     003eb782  _PieVectTableInit                       
 0     003e801d  _RamfuncsLoadEnd                        
 0     003e8000  _RamfuncsLoadStart                      
 0     00008000  _RamfuncsRunStart                       
-0     003ea180  _SHOT_BurstEnter                        
+0     003ea222  _SHOT_BurstEnter                        
 0     003e85f1  _SHOT_BurstRestart                      
-0     003eac63  _SHOT_BurstShadowControlAllowed         
-0     003eb328  _SHOT_ClampFreq                         
-0     003e9d91  _SHOT_FastTask                          
-0     003e93be  _SHOT_Init                              
-0     003eb337  _SHOT_OnTrip                            
-0     003ead26  _SHOT_PendingCommit                     
-0     003ead55  _SHOT_PendingValid                      
-0     003eaff5  _SHOT_PermissionOk                      
-0     003eb36e  _SHOT_PipelineApplyAuthorized           
-0     003eaeaa  _SHOT_RealBoundedPiAuthOk               
-0     003eaf1d  _SHOT_RealSoftStartAuthOk               
-0     003eb038  _SHOT_RealStage6AuthOk                  
-0     003e8f98  _SHOT_Revoke                            
-0     003eb3b4  _SHOT_TimingFreeze                      
-0     003eb25d  _SHOT_WriteAllowed                      
-0     003eab98  _SINGLECYCLE_AbortByFault               
-0     003eb231  _SM_Init                                
-0     003e90ac  _SM_Run                                 
+0     003ead05  _SHOT_BurstShadowControlAllowed         
+0     003eb3ca  _SHOT_ClampFreq                         
+0     003e8f98  _SHOT_FastTask                          
+0     003e94e6  _SHOT_Init                              
+0     003eb3d9  _SHOT_OnTrip                            
+0     003eadc8  _SHOT_PendingCommit                     
+0     003eadf7  _SHOT_PendingValid                      
+0     003eb097  _SHOT_PermissionOk                      
+0     003eb410  _SHOT_PipelineApplyAuthorized           
+0     003eaf4c  _SHOT_RealBoundedPiAuthOk               
+0     003eafbf  _SHOT_RealSoftStartAuthOk               
+0     003eb0da  _SHOT_RealStage6AuthOk                  
+0     003e90c0  _SHOT_Revoke                            
+0     003eb456  _SHOT_TimingFreeze                      
+0     003eb2ff  _SHOT_WriteAllowed                      
+0     003eac3a  _SINGLECYCLE_AbortByFault               
+0     003eb2d3  _SM_Init                                
+0     003e91d4  _SM_Run                                 
 1     00007050  _SciaRegs                               
-0     003eb3e1  _SoftStart_ApplyLimits                  
-0     003eb3c6  _SoftStart_Begin                        
+0     003eb483  _SoftStart_ApplyLimits                  
+0     003eb468  _SoftStart_Begin                        
 0     003e877d  _SoftStart_FastUpdate                   
-0     003eae31  _SoftStart_Init                         
-0     003eaf43  _SoftStart_SelectProfile                
-0     003ea309  _SoftStart_StartPwmFormal               
-0     003e91bd  _SoftStart_TransferToClosedLoop         
-0     003e97f1  _SoftStart_Update5ms                    
+0     003eaed3  _SoftStart_Init                         
+0     003eafe5  _SoftStart_SelectProfile                
+0     003ea3ab  _SoftStart_StartPwmFormal               
+0     003e92e5  _SoftStart_TransferToClosedLoop         
+0     003e9919  _SoftStart_Update5ms                    
 1     00007040  _SpiaRegs                               
 1     00007740  _SpibRegs                               
 1     00007010  _SysCtrlRegs                            
 1     00000985  _SysPwrCtrlRegs                         
-0     003ea0fb  _System_Init                            
+0     003ea19d  _System_Init                            
 0     003e8d19  _TINT0_ISR                              
-0     003eb3e8  _TIRamfuncsLoadEnd                      
-0     003eb3e4  _TIRamfuncsLoadStart                    
+0     003eb48a  _TIRamfuncsLoadEnd                      
+0     003eb486  _TIRamfuncsLoadStart                    
 0     0000801d  _TIRamfuncsRunStart                     
 1     00007070  _XIntruptRegs                           
 1     000088c0  __STACK_END                             
@@ -1483,23 +1495,23 @@ abs   ffffffff  ___TI_prof_data_size
 abs   ffffffff  ___TI_prof_data_start                   
 abs   ffffffff  ___binit__                              
 abs   ffffffff  ___c_args__                             
-0     003eb3e8  ___cinit__                              
-0     003eb3e4  ___etext__                              
+0     003eb48a  ___cinit__                              
+0     003eb486  ___etext__                              
 abs   ffffffff  ___pinit__                              
 0     003e801d  ___text__                               
-0     003eb2c8  __args_main                             
+0     003eb36a  __args_main                             
 1     00008fe0  __lock                                  
-0     003eb3e2  __nop                                   
+0     003eb484  __nop                                   
 1     00008800  __stack                                 
-0     003eb3e3  __system_post_cinit                     
-0     003eb3df  __system_pre_init                       
+0     003eb485  __system_post_cinit                     
+0     003eb481  __system_pre_init                       
 1     00008fe2  __unlock                                
-0     003eae5a  _abort                                  
-0     003ea725  _c_int00                                
-0     003eaf69  _copy_in                                
-0     003eb37b  _epilog_c28x_1                          
-0     003eb37f  _epilog_c28x_2                          
-0     003eae5c  _exit                                   
+0     003eaefc  _abort                                  
+0     003ea7c7  _c_int00                                
+0     003eb00b  _copy_in                                
+0     003eb41d  _epilog_c28x_1                          
+0     003eb421  _epilog_c28x_2                          
+0     003eaefe  _exit                                   
 1     00008d61  _g_5ms_flag                             
 1     00008cbc  _g_accel_active                         
 1     00008cc5  _g_accel_current_cmpa                   
@@ -1548,31 +1560,31 @@ abs   ffffffff  ___pinit__
 1     00008cce  _g_accel_vout_target_raw                
 1     00008c01  _g_active_bringup_stage                 
 1     00008d68  _g_actual_switching_frequency_hz        
-1     0000902a  _g_adc_fault_snapshot_consume_sequence  
-1     00009026  _g_adc_fault_snapshot_flags             
+1     0000902e  _g_adc_fault_snapshot_consume_sequence  
+1     0000902a  _g_adc_fault_snapshot_flags             
 1     0000900d  _g_adc_fault_snapshot_frozen            
 1     0000900f  _g_adc_fault_snapshot_intflg            
 1     00009010  _g_adc_fault_snapshot_intovf            
 1     0000900e  _g_adc_fault_snapshot_phase             
-1     00009028  _g_adc_fault_snapshot_publish_sequence  
+1     0000902c  _g_adc_fault_snapshot_publish_sequence  
 1     00009011  _g_adc_fault_snapshot_socflg            
 1     00009012  _g_adc_fault_snapshot_socovf            
-1     00009024  _g_adc_fault_snapshot_timer2            
+1     00009028  _g_adc_fault_snapshot_timer2            
 1     00009005  _g_adc_first_stale_consecutive          
-1     00009020  _g_adc_first_stale_consume_sequence     
-1     0000901a  _g_adc_first_stale_fast_tick            
+1     00009024  _g_adc_first_stale_consume_sequence     
+1     0000901e  _g_adc_first_stale_fast_tick            
 1     00009003  _g_adc_first_stale_frozen               
 1     00009006  _g_adc_first_stale_intflg               
 1     00009007  _g_adc_first_stale_intovf               
 1     00009004  _g_adc_first_stale_phase                
-1     0000901e  _g_adc_first_stale_publish_sequence     
-1     00009022  _g_adc_first_stale_sample_age_cycles    
+1     00009022  _g_adc_first_stale_publish_sequence     
+1     00009026  _g_adc_first_stale_sample_age_cycles    
 1     0000900b  _g_adc_first_stale_soca_enable          
 1     0000900a  _g_adc_first_stale_soca_flag            
 1     0000900c  _g_adc_first_stale_soca_period          
 1     00009008  _g_adc_first_stale_socflg               
 1     00009009  _g_adc_first_stale_socovf               
-1     0000901c  _g_adc_first_stale_timer2               
+1     00009020  _g_adc_first_stale_timer2               
 1     00009001  _g_adc_freshness_monitor_armed          
 1     00009000  _g_adc_freshness_wait_first_publish     
 1     00008d6c  _g_adc_iout_filter_acc                  
@@ -1582,8 +1594,8 @@ abs   ffffffff  ___pinit__
 1     00008c0d  _g_adc_ipri_filtered_raw                
 1     00008c0a  _g_adc_ipri_raw                         
 1     00008d64  _g_adc_isr_last_tbctr                   
-1     00009014  _g_adc_last_publish_timer2              
-1     0000902c  _g_adc_ovf_active_count                 
+1     00009018  _g_adc_last_publish_timer2              
+1     00009030  _g_adc_ovf_active_count                 
 1     00008f20  _g_adc_ovf_count                        
 1     00008d63  _g_adc_ovf_first_flag_was_set           
 1     00008d62  _g_adc_ovf_first_tbctr                  
@@ -1599,7 +1611,7 @@ abs   ffffffff  ___pinit__
 1     00008d76  _g_adc_sample_counter                   
 1     00008d78  _g_adc_sample_sequence                  
 1     00009002  _g_adc_stale_consecutive_max            
-1     00009018  _g_adc_stale_total                      
+1     0000901c  _g_adc_stale_total                      
 1     00008c0e  _g_adc_trigger_mode                     
 1     00008d6a  _g_adc_vout_filter_acc                  
 1     00008c0b  _g_adc_vout_filtered_raw                
@@ -1771,7 +1783,7 @@ abs   ffffffff  ___pinit__
 1     00008c19  _g_control_integrator_frozen            
 1     00008da2  _g_control_ki_step_hz_per_v_step        
 1     00008da0  _g_control_kp_hz_per_v                  
-1     00009016  _g_control_last_consume_timer2          
+1     0000901a  _g_control_last_consume_timer2          
 1     00008d96  _g_control_p_term_hz                    
 1     00008da6  _g_control_p_term_q12                   
 1     00008d9e  _g_control_pi_profile_id                
@@ -1935,7 +1947,7 @@ abs   ffffffff  ___pinit__
 1     00008dbe  _g_real_isr_cycles_max                  
 1     00008dc0  _g_real_isr_cycles_sum                  
 1     00008dc4  _g_real_isr_overrun_count               
-0     003eb7a8  _g_real_pi_actual_hz_table              
+0     003eb882  _g_real_pi_actual_hz_table              
 1     00008dd4  _g_real_shutdown_isr_cycles_max         
 1     00008dc6  _g_real_timer0_entry_count              
 1     00008dcc  _g_real_timer0_entry_interval_max       
@@ -2060,11 +2072,23 @@ abs   ffffffff  ___pinit__
 1     00008df2  _g_timing_compute_normal_max            
 1     00008de6  _g_timing_epoch                         
 1     00008c2c  _g_timing_frozen                        
+1     0000903e  _g_timing_last50_fmax_count             
 1     00008e04  _g_timing_last50_freq_count             
 1     00008e00  _g_timing_last50_freq_max               
 1     00008dfe  _g_timing_last50_freq_min               
 1     00008e02  _g_timing_last50_freq_sum               
+1     0000903c  _g_timing_last50_pi_count               
+1     0000903a  _g_timing_last50_pi_hz_sum              
+1     00009038  _g_timing_last50_pi_q12_max             
+1     00009036  _g_timing_last50_pi_q12_min             
+1     00009017  _g_timing_last50_sample_phase           
+1     00009034  _g_timing_last50_tbprd_count            
+1     00009016  _g_timing_last50_tbprd_max              
+1     00009015  _g_timing_last50_tbprd_min              
+1     00009032  _g_timing_last50_tbprd_sum              
 1     00008dfc  _g_timing_last50_vout_count             
+1     00009013  _g_timing_last50_vout_first             
+1     00009014  _g_timing_last50_vout_last              
 1     00008c2e  _g_timing_last50_vout_max               
 1     00008c2d  _g_timing_last50_vout_min               
 1     00008dfa  _g_timing_last50_vout_sum               
@@ -2129,16 +2153,16 @@ abs   ffffffff  ___pinit__
 1     00008d46  _g_vout_probe_target_raw                
 1     00008d1e  _g_vout_runtime_before_ost              
 1     00008d70  _g_vout_volts                           
-0     003eb1d5  _main                                   
-0     003eb114  _memcpy                                 
-0     003eb1bc  _prolog_c28x_1                          
-0     003eb1c0  _prolog_c28x_2                          
-0     003eb1c8  _prolog_c28x_3                          
-0     003eb3d8  _rsvd_ISR                               
+0     003eb277  _main                                   
+0     003eb1b6  _memcpy                                 
+0     003eb25e  _prolog_c28x_1                          
+0     003eb262  _prolog_c28x_2                          
+0     003eb26a  _prolog_c28x_3                          
+0     003eb47a  _rsvd_ISR                               
 abs   ffffffff  binit                                   
-0     003eb3e8  cinit                                   
+0     003eb48a  cinit                                   
 0     003f7ff6  code_start                              
-0     003eb3e4  etext                                   
+0     003eb486  etext                                   
 abs   ffffffff  pinit                                   
 
 
@@ -2163,134 +2187,134 @@ page  address   name
 0     003e8bc7  _CALHOLD_FastTask                       
 0     003e8d19  _TINT0_ISR                              
 0     003e8e67  _PROT_SlowTask                          
-0     003e8f98  _SHOT_Revoke                            
-0     003e90ac  _SM_Run                                 
-0     003e91bd  _SoftStart_TransferToClosedLoop         
-0     003e93be  _SHOT_Init                              
-0     003e9589  _ADCINT1_ISR                            
-0     003e965c  _LLC_SetFrequencyHz                     
-0     003e972c  _EPWM1_TZINT_ISR                        
-0     003e97f1  _SoftStart_Update5ms                    
-0     003e98b4  _COMP_ArmInjectionTest                  
-0     003e9a34  _COMP_RunLoopbackDiagnostic             
-0     003e9af2  _CTRL_ComputeFrequencyCommand           
-0     003e9c52  _PWM_Init                               
-0     003e9cf5  FD$$ADD                                 
-0     003e9d91  _SHOT_FastTask                          
-0     003e9e29  _CTRL_FastTask                          
-0     003e9ec0  _COMP_StaticCalibrationArm              
-0     003e9f56  _PROT_Init                              
-0     003e9feb  FD$$DIV                                 
-0     003ea0fb  _System_Init                            
-0     003ea180  _SHOT_BurstEnter                        
-0     003ea203  FD$$MPY                                 
-0     003ea286  FS$$DIV                                 
-0     003ea309  _SoftStart_StartPwmFormal               
-0     003ea404  FS$$SUB                                 
-0     003ea409  FS$$ADD                                 
-0     003ea4ec  _ADC_FreezeFirstStale                   
-0     003ea551  _ADC_ResetFreshnessBlackbox             
-0     003ea5b3  _PWM_StartDeterministic                 
-0     003ea612  _CALHOLD_PacketIsr                      
-0     003ea6cb  FS$$MPY                                 
-0     003ea725  _c_int00                                
-0     003ea7c8  _CTRL_Init                              
-0     003ea80f  _MULTICYCLE_AbortByFault                
-0     003ea851  _COMP_ApplyGlobals                      
-0     003ea892  _LLC_ProtectionResetExplicit            
-0     003ea912  _PWM_RuntimeValuesValid                 
-0     003ea990  _ADC_FreezeFaultSnapshot                
-0     003ea9ce  _PWM_ConfigMatchesFrozenBaseline        
-0     003ea9ce  _PWM_ConfigTopologyValid                
-0     003eaa85  _COMP_StaticCalibrationFastTask         
-0     003eaaf9  _LLC_PWM_DisableSafe                    
-0     003eab2f  _PWM_ApplyPeriodDeadtime                
-0     003eab98  _SINGLECYCLE_AbortByFault               
-0     003eac31  _PWM_Trip                               
-0     003eac63  _SHOT_BurstShadowControlAllowed         
-0     003eacc6  _CTRL_ApplyFrequencyCommand             
-0     003eacf6  _PWM_PrepareStart                       
-0     003ead26  _SHOT_PendingCommit                     
-0     003ead55  _SHOT_PendingValid                      
-0     003eadb2  _ADC_UpdatePwmSyncPoint                 
-0     003eaddd  _GPIO_Init                              
-0     003eae31  _SoftStart_Init                         
-0     003eae5a  C$$EXIT                                 
-0     003eae5a  _abort                                  
-0     003eae5c  _exit                                   
-0     003eae83  _ADC_Init                               
-0     003eaeaa  _SHOT_RealBoundedPiAuthOk               
-0     003eaed1  _ADC_SetPwmSyncTriggerMode              
-0     003eaef7  _LLC_PWM_Enable                         
-0     003eaf1d  _SHOT_RealSoftStartAuthOk               
-0     003eaf43  _SoftStart_SelectProfile                
-0     003eaf69  _copy_in                                
-0     003eaf8d  _ADC_SetClosedLoopSyncTriggerMode       
-0     003eafd3  _COMP_Init                              
-0     003eaff5  _SHOT_PermissionOk                      
-0     003eb017  _COMP_StaticCalibrationDisarm           
-0     003eb038  _SHOT_RealStage6AuthOk                  
-0     003eb059  FS$$TOUL                                
-0     003eb07a  _ADC_CheckOverflow                      
-0     003eb09a  _APP_Init                               
-0     003eb0b9  _InitPieCtrl                            
-0     003eb0d8  _COMP_DisarmInjectionTest               
-0     003eb0f6  _InitAdc                                
-0     003eb114  _memcpy                                 
-0     003eb132  FS$$TOU                                 
-0     003eb16b  L$$TOFD                                 
-0     003eb187  FD$$TOUL                                
-0     003eb1a2  L$$TOFS                                 
-0     003eb1bc  _prolog_c28x_1                          
-0     003eb1c0  _prolog_c28x_2                          
-0     003eb1c8  _prolog_c28x_3                          
-0     003eb1d5  _main                                   
-0     003eb1ed  _ADC_UpdatePwmSyncPointKeepCadence      
-0     003eb204  FS$$CMP                                 
-0     003eb21b  _PWM_SetDeadbandOnly                    
-0     003eb231  _SM_Init                                
-0     003eb247  UL$$TOFD                                
-0     003eb25d  _SHOT_WriteAllowed                      
-0     003eb271  UL$$TOFS                                
-0     003eb284  _ADC_SetSoftwareTriggerMode             
-0     003eb2b7  _InitPieVectTable                       
-0     003eb2c8  __args_main                             
-0     003eb2e9  _IntOsc1Sel                             
-0     003eb2f9  _LLC_ProtectionForceTrip                
-0     003eb309  U$$TOFS                                 
-0     003eb319  _CTRL_PrimeHandoffReferenceRaw          
-0     003eb328  _SHOT_ClampFreq                         
-0     003eb337  _SHOT_OnTrip                            
-0     003eb346  FD$$SUB                                 
-0     003eb354  _COMP_UpdateStatus                      
-0     003eb36e  _SHOT_PipelineApplyAuthorized           
-0     003eb37b  _epilog_c28x_1                          
-0     003eb37f  _epilog_c28x_2                          
-0     003eb392  _EnableInterrupts                       
-0     003eb39b  _LED_AllOff                             
-0     003eb3a4  _ADC_SoftwareTrigger                    
-0     003eb3ac  _DisableDog                             
-0     003eb3b4  _SHOT_TimingFreeze                      
-0     003eb3bc  _LED_GreenOn                            
-0     003eb3c1  _LED_RedOn                              
-0     003eb3c6  _SoftStart_Begin                        
-0     003eb3cb  FS$$NEG                                 
-0     003eb3d0  _CALHOLD_Init                           
-0     003eb3d4  _COMP_ArmForSingleCycleStart            
-0     003eb3d8  _rsvd_ISR                               
-0     003eb3dc  _APP_Run                                
-0     003eb3df  __system_pre_init                       
-0     003eb3e1  _SoftStart_ApplyLimits                  
-0     003eb3e2  __nop                                   
-0     003eb3e3  __system_post_cinit                     
-0     003eb3e4  _TIRamfuncsLoadStart                    
-0     003eb3e4  ___etext__                              
-0     003eb3e4  etext                                   
-0     003eb3e8  _TIRamfuncsLoadEnd                      
-0     003eb3e8  ___cinit__                              
-0     003eb3e8  cinit                                   
-0     003eb6a8  _PieVectTableInit                       
-0     003eb7a8  _g_real_pi_actual_hz_table              
+0     003e8f98  _SHOT_FastTask                          
+0     003e90c0  _SHOT_Revoke                            
+0     003e91d4  _SM_Run                                 
+0     003e92e5  _SoftStart_TransferToClosedLoop         
+0     003e94e6  _SHOT_Init                              
+0     003e96b1  _ADCINT1_ISR                            
+0     003e9784  _LLC_SetFrequencyHz                     
+0     003e9854  _EPWM1_TZINT_ISR                        
+0     003e9919  _SoftStart_Update5ms                    
+0     003e99dc  _COMP_ArmInjectionTest                  
+0     003e9b5c  _COMP_RunLoopbackDiagnostic             
+0     003e9c1a  _CTRL_ComputeFrequencyCommand           
+0     003e9d7a  _PROT_Init                              
+0     003e9e21  _PWM_Init                               
+0     003e9ec4  FD$$ADD                                 
+0     003e9f60  _CTRL_FastTask                          
+0     003e9ff7  _COMP_StaticCalibrationArm              
+0     003ea08d  FD$$DIV                                 
+0     003ea19d  _System_Init                            
+0     003ea222  _SHOT_BurstEnter                        
+0     003ea2a5  FD$$MPY                                 
+0     003ea328  FS$$DIV                                 
+0     003ea3ab  _SoftStart_StartPwmFormal               
+0     003ea4a6  FS$$SUB                                 
+0     003ea4ab  FS$$ADD                                 
+0     003ea58e  _ADC_FreezeFirstStale                   
+0     003ea5f3  _ADC_ResetFreshnessBlackbox             
+0     003ea655  _PWM_StartDeterministic                 
+0     003ea6b4  _CALHOLD_PacketIsr                      
+0     003ea76d  FS$$MPY                                 
+0     003ea7c7  _c_int00                                
+0     003ea86a  _CTRL_Init                              
+0     003ea8b1  _MULTICYCLE_AbortByFault                
+0     003ea8f3  _COMP_ApplyGlobals                      
+0     003ea934  _LLC_ProtectionResetExplicit            
+0     003ea9b4  _PWM_RuntimeValuesValid                 
+0     003eaa32  _ADC_FreezeFaultSnapshot                
+0     003eaa70  _PWM_ConfigMatchesFrozenBaseline        
+0     003eaa70  _PWM_ConfigTopologyValid                
+0     003eab27  _COMP_StaticCalibrationFastTask         
+0     003eab9b  _LLC_PWM_DisableSafe                    
+0     003eabd1  _PWM_ApplyPeriodDeadtime                
+0     003eac3a  _SINGLECYCLE_AbortByFault               
+0     003eacd3  _PWM_Trip                               
+0     003ead05  _SHOT_BurstShadowControlAllowed         
+0     003ead68  _CTRL_ApplyFrequencyCommand             
+0     003ead98  _PWM_PrepareStart                       
+0     003eadc8  _SHOT_PendingCommit                     
+0     003eadf7  _SHOT_PendingValid                      
+0     003eae54  _ADC_UpdatePwmSyncPoint                 
+0     003eae7f  _GPIO_Init                              
+0     003eaed3  _SoftStart_Init                         
+0     003eaefc  C$$EXIT                                 
+0     003eaefc  _abort                                  
+0     003eaefe  _exit                                   
+0     003eaf25  _ADC_Init                               
+0     003eaf4c  _SHOT_RealBoundedPiAuthOk               
+0     003eaf73  _ADC_SetPwmSyncTriggerMode              
+0     003eaf99  _LLC_PWM_Enable                         
+0     003eafbf  _SHOT_RealSoftStartAuthOk               
+0     003eafe5  _SoftStart_SelectProfile                
+0     003eb00b  _copy_in                                
+0     003eb02f  _ADC_SetClosedLoopSyncTriggerMode       
+0     003eb075  _COMP_Init                              
+0     003eb097  _SHOT_PermissionOk                      
+0     003eb0b9  _COMP_StaticCalibrationDisarm           
+0     003eb0da  _SHOT_RealStage6AuthOk                  
+0     003eb0fb  FS$$TOUL                                
+0     003eb11c  _ADC_CheckOverflow                      
+0     003eb13c  _APP_Init                               
+0     003eb15b  _InitPieCtrl                            
+0     003eb17a  _COMP_DisarmInjectionTest               
+0     003eb198  _InitAdc                                
+0     003eb1b6  _memcpy                                 
+0     003eb1d4  FS$$TOU                                 
+0     003eb20d  L$$TOFD                                 
+0     003eb229  FD$$TOUL                                
+0     003eb244  L$$TOFS                                 
+0     003eb25e  _prolog_c28x_1                          
+0     003eb262  _prolog_c28x_2                          
+0     003eb26a  _prolog_c28x_3                          
+0     003eb277  _main                                   
+0     003eb28f  _ADC_UpdatePwmSyncPointKeepCadence      
+0     003eb2a6  FS$$CMP                                 
+0     003eb2bd  _PWM_SetDeadbandOnly                    
+0     003eb2d3  _SM_Init                                
+0     003eb2e9  UL$$TOFD                                
+0     003eb2ff  _SHOT_WriteAllowed                      
+0     003eb313  UL$$TOFS                                
+0     003eb326  _ADC_SetSoftwareTriggerMode             
+0     003eb359  _InitPieVectTable                       
+0     003eb36a  __args_main                             
+0     003eb38b  _IntOsc1Sel                             
+0     003eb39b  _LLC_ProtectionForceTrip                
+0     003eb3ab  U$$TOFS                                 
+0     003eb3bb  _CTRL_PrimeHandoffReferenceRaw          
+0     003eb3ca  _SHOT_ClampFreq                         
+0     003eb3d9  _SHOT_OnTrip                            
+0     003eb3e8  FD$$SUB                                 
+0     003eb3f6  _COMP_UpdateStatus                      
+0     003eb410  _SHOT_PipelineApplyAuthorized           
+0     003eb41d  _epilog_c28x_1                          
+0     003eb421  _epilog_c28x_2                          
+0     003eb434  _EnableInterrupts                       
+0     003eb43d  _LED_AllOff                             
+0     003eb446  _ADC_SoftwareTrigger                    
+0     003eb44e  _DisableDog                             
+0     003eb456  _SHOT_TimingFreeze                      
+0     003eb45e  _LED_GreenOn                            
+0     003eb463  _LED_RedOn                              
+0     003eb468  _SoftStart_Begin                        
+0     003eb46d  FS$$NEG                                 
+0     003eb472  _CALHOLD_Init                           
+0     003eb476  _COMP_ArmForSingleCycleStart            
+0     003eb47a  _rsvd_ISR                               
+0     003eb47e  _APP_Run                                
+0     003eb481  __system_pre_init                       
+0     003eb483  _SoftStart_ApplyLimits                  
+0     003eb484  __nop                                   
+0     003eb485  __system_post_cinit                     
+0     003eb486  _TIRamfuncsLoadStart                    
+0     003eb486  ___etext__                              
+0     003eb486  etext                                   
+0     003eb48a  _TIRamfuncsLoadEnd                      
+0     003eb48a  ___cinit__                              
+0     003eb48a  cinit                                   
+0     003eb782  _PieVectTableInit                       
+0     003eb882  _g_real_pi_actual_hz_table              
 0     003f7ff6  code_start                              
 1     00000880  _DevEmuRegs                             
 1     00000985  _SysPwrCtrlRegs                         
@@ -2960,19 +2984,31 @@ page  address   name
 1     00009010  _g_adc_fault_snapshot_intovf            
 1     00009011  _g_adc_fault_snapshot_socflg            
 1     00009012  _g_adc_fault_snapshot_socovf            
-1     00009014  _g_adc_last_publish_timer2              
-1     00009016  _g_control_last_consume_timer2          
-1     00009018  _g_adc_stale_total                      
-1     0000901a  _g_adc_first_stale_fast_tick            
-1     0000901c  _g_adc_first_stale_timer2               
-1     0000901e  _g_adc_first_stale_publish_sequence     
-1     00009020  _g_adc_first_stale_consume_sequence     
-1     00009022  _g_adc_first_stale_sample_age_cycles    
-1     00009024  _g_adc_fault_snapshot_timer2            
-1     00009026  _g_adc_fault_snapshot_flags             
-1     00009028  _g_adc_fault_snapshot_publish_sequence  
-1     0000902a  _g_adc_fault_snapshot_consume_sequence  
-1     0000902c  _g_adc_ovf_active_count                 
+1     00009013  _g_timing_last50_vout_first             
+1     00009014  _g_timing_last50_vout_last              
+1     00009015  _g_timing_last50_tbprd_min              
+1     00009016  _g_timing_last50_tbprd_max              
+1     00009017  _g_timing_last50_sample_phase           
+1     00009018  _g_adc_last_publish_timer2              
+1     0000901a  _g_control_last_consume_timer2          
+1     0000901c  _g_adc_stale_total                      
+1     0000901e  _g_adc_first_stale_fast_tick            
+1     00009020  _g_adc_first_stale_timer2               
+1     00009022  _g_adc_first_stale_publish_sequence     
+1     00009024  _g_adc_first_stale_consume_sequence     
+1     00009026  _g_adc_first_stale_sample_age_cycles    
+1     00009028  _g_adc_fault_snapshot_timer2            
+1     0000902a  _g_adc_fault_snapshot_flags             
+1     0000902c  _g_adc_fault_snapshot_publish_sequence  
+1     0000902e  _g_adc_fault_snapshot_consume_sequence  
+1     00009030  _g_adc_ovf_active_count                 
+1     00009032  _g_timing_last50_tbprd_sum              
+1     00009034  _g_timing_last50_tbprd_count            
+1     00009036  _g_timing_last50_pi_q12_min             
+1     00009038  _g_timing_last50_pi_q12_max             
+1     0000903a  _g_timing_last50_pi_hz_sum              
+1     0000903c  _g_timing_last50_pi_count               
+1     0000903e  _g_timing_last50_fmax_count             
 1     003d7e80  _PartIdRegs                             
 1     003f7ff8  _CsmPwl                                 
 abs   000000c0  __STACK_SIZE                            
@@ -2985,4 +3021,4 @@ abs   ffffffff  ___pinit__
 abs   ffffffff  binit                                   
 abs   ffffffff  pinit                                   
 
-[838 symbols]
+[850 symbols]

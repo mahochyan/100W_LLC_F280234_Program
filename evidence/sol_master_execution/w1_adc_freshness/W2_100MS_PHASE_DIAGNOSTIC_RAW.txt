@@ -1,0 +1,14 @@
+OUT=D:\CCS21_workspace\Codex_Project\Stage6_FLASH_SHOT_REAL_100MS\LLC_100W_F28034_BRINGUP_DSH_REAL_100MS.out
+OUT_SHA256=C8192E4D0437B555A267E72F3F88F93E538A667AC6D2990420DE8F6A612D67CB
+INIT pwm=0 ost=1 fault=0
+RESULT seq=7543 consumed=5182 fresh=2380 pi=2380 stale=1
+RESULT ovf_count=64 ovf_first_tbctr=291 ovf_first_flag=0
+RESULT ovf_active_count=64
+RESULT int1cont=1
+RESULT compute_max=983 apply_max=878 active_max=0 overrun=0
+RESULT compute_normal_max=983 compute_fmax_max=864 compute_abort_max=0
+RESULT compute_normal_max_sample_phase_after_tick=6
+FINAL pwm=0 ost=1 tzint=0 fault=4
+SOL_W1_ADCINT_OVERFLOW_REPRODUCED
+SOL_W1_CONTINUOUS_OVERLAP_TELEMETRY_ONLY
+js: "tools\sol_w1_adc_cadence_nopower.js", line 201: exception from uncaught JavaScript throw: ADC_ACTIVE_CADENCE_GATE_FAIL
