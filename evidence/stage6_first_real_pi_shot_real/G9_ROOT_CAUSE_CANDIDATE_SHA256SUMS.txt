@@ -1,0 +1,9 @@
+# G9 root-cause closure candidate REAL build (no-power candidate)
+# This is NOT the frozen 80E4647A production/real-shot binary.
+# It is the new REAL candidate with freshness telemetry + stale-write closure.
+branch=stage6/first-real-pi-shot-real-binary-hardening-v1-1
+source_baseline=6a42692
+old_frozen_REAL_OUT_SHA256=80E4647ACE6C0820F1B5460B361085C18A800FD4FB4857FB8C32ED9C0C4C5849
+old_frozen_REAL_MAP_SHA256=93C2B5584387FFFCD9DC1929F92BE747EC62A0AD853710684D5E9CB6A37599F5
+new_candidate_REAL_OUT_SHA256=4448F6C055E6A2600DA1079B6B0CDFE5856266D5D2DDF891D9836E717431AF5E
+new_candidate_REAL_MAP_SHA256=740EA2C6D4FEFB096E2E9FF277AC4F5CB66A3FB0AC721563C8853E99735954D2

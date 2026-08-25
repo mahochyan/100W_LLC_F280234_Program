@@ -76,6 +76,28 @@ void SHOT_Init(void)
     g_shot_summary.last_error_raw     = 0;
     g_shot_summary.min_error_raw      = 0;
     g_shot_summary.max_error_raw      = 0;
+    g_shot_summary.fresh_compute_count = 0UL;
+    g_shot_summary.stale_compute_count = 0UL;
+    g_shot_summary.consecutive_stale_count = 0U;
+    g_shot_summary.first_adc_sample_sequence = 0UL;
+    g_shot_summary.last_adc_sample_sequence = 0UL;
+    g_shot_summary.first_consumed_sequence = 0UL;
+    g_shot_summary.last_consumed_sequence = 0UL;
+    g_shot_summary.first_control_vout_raw = 0U;
+    g_shot_summary.last_control_vout_raw = 0U;
+    g_shot_summary.min_control_vout_raw = 0U;
+    g_shot_summary.max_control_vout_raw = 0U;
+    g_shot_summary.first_vref_raw = 0U;
+    g_shot_summary.last_vref_raw = 0U;
+    g_shot_summary.abort_adc_vout_raw = 0U;
+    g_shot_summary.abort_filtered_vout_raw = 0U;
+    g_shot_summary.abort_control_vout_raw = 0U;
+    g_shot_summary.abort_control_error_raw = 0;
+    g_shot_summary.abort_frequency_hz = 0UL;
+    g_shot_summary.abort_pipeline_phase = 0U;
+    g_shot_summary.abort_adc_sequence = 0UL;
+    g_shot_summary.abort_consumed_sequence = 0UL;
+    g_shot_summary.abort_timer2 = 0UL;
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     g_shot_entry_interval_max = 0UL;
     g_shot_entry_last         = 0UL;
@@ -350,10 +372,27 @@ void SHOT_Revoke(Uint16 reason)
 
     /* Abort paths -> FAULT (OST + PWM disabled + fault flag). */
     g_first_real_pi_shot_state = SHOT_STATE_ABORTED;
+
+    /* Freeze abort-instant telemetry BEFORE latching the fault. */
+#if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
+    g_shot_summary.entry_interval_max_shot = g_shot_entry_interval_max;
+#endif
+    g_shot_summary.abort_adc_vout_raw       = g_adc_vout_raw;
+    g_shot_summary.abort_filtered_vout_raw  = g_adc_vout_filtered_raw;
+    g_shot_summary.abort_control_vout_raw   = g_control_vout_raw;
+    g_shot_summary.abort_control_error_raw  = g_control_error_raw;
+    g_shot_summary.abort_frequency_hz       = g_control_frequency_hz;
+    g_shot_summary.abort_pipeline_phase     = g_pipeline_phase;
+    g_shot_summary.abort_adc_sequence       = g_adc_sample_sequence;
+    g_shot_summary.abort_consumed_sequence  = g_control_adc_sequence_consumed;
+    g_shot_summary.abort_timer2             = CpuTimer2Regs.TIM.all;
+
     if (reason == SHOT_ABORT_VOUT_11V)
     {
-        /* F: 11 V fast VOUT abort. Record FIRST_SHOT_ABORT_VOUT. */
+        /* F: 11 V fast VOUT abort. Record FIRST_SHOT_ABORT_VOUT and close the
+         * power window as POST_OST so the abort is not misread as ACTIVE_TZ. */
         PWM_Trip(FAULT_FIRST_SHOT_ABORT, 0U);
+        g_power_window_state = POWER_WINDOW_POST_OST;
     }
     else if (reason == SHOT_ABORT_TZ)
     {

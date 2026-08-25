@@ -1,9 +1,11 @@
 # STAGE6 1ms Light-Load Real PI Shot Report
 
-Status: **FAIL** — `STAGE6_1MS_LIGHTLOAD_REAL_SHOT_FAIL`
+Status: **FAIL / ROOT CAUSE UNRESOLVED** — `STAGE6_1MS_LIGHTLOAD_REAL_SHOT_FAIL`
 Branch: `stage6/first-real-pi-shot-real-binary-hardening-v1-1`
-Git HEAD: `006772e5659ca9670beed5374524767d0658a69f`
+Git HEAD: `6a42692`
 Date: 2026-08-25
+Classification: `VOUT_11V_ABORT_CONFIRMED`, `ROOT_CAUSE_UNRESOLVED`,
+`LIGHT_LOAD_CONTROL_RANGE_INSUFFICIENT_NOT_YET_PROVEN`
 
 ## Result summary
 
@@ -60,6 +62,20 @@ Date: 2026-08-25
 | power_window_state | 1 (not POST_OST) |
 | system_state | 4 (FAULT) |
 
+## Telemetry interpretation corrections
+
+- `shot_entry_max=0` in G9 is **not** proof that the abort happened before the
+  first apply. In the abort path the shot-local entry-interval telemetry was
+  not frozen (`entry_interval_max_shot` remained 0). This is an abort-path
+  telemetry gap, not an actuator-sequence fact.
+- `pi_compute_count=15` is **not** a count of fresh PI updates. In the G9
+  firmware path, repeated/stale ADC samples could still create same-frequency
+  pendings and increment `pi_compute_count`/`power_writes`. Therefore it cannot
+  be used to conclude that 15 real fresh PI computations occurred.
+- The G9 result confirms the 11 V abort but does **not** yet prove whether the
+  root cause is ADC freshness, a sudden VOUT step, or insufficient control
+  authority.
+
 ## Interpretation
 
 Even with a fixed ~1 W light load, the 1 ms bounded PI shot again hit the 11 V
@@ -92,3 +108,13 @@ threshold during the 1 ms window under this light load.
 Stop and await human review. Do not raise the 11 V threshold, do not modify PI,
 do not retry automatically, do not enter continuous closed-loop or high-power
 testing.
+
+## New root-cause closure candidate
+
+A new REAL candidate was built for no-power freshness/stale-write validation:
+
+- New REAL OUT SHA256: `4448F6C055E6A2600DA1079B6B0CDFE5856266D5D2DDF891D9836E717431AF5E`
+- New REAL MAP SHA256: `740EA2C6D4FEFB096E2E9FF277AC4F5CB66A3FB0AC721563C8853E99735954D2`
+- It is **not** the frozen `80E4647A` real-shot binary.
+- It adds fresh/stale compute telemetry and closes the stale same-frequency write path.
+- No-power RAW/JSON are pending CNT3/CNT4 OPEN confirmation.

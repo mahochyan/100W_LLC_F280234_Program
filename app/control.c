@@ -505,7 +505,15 @@ static Uint16 CTRL_PipelineMakePending(Uint32 target)
     return 1U;
 }
 
-/* PHASE_COMPUTE: fresh-sample selection + PI + pending build. */
+/* PHASE_COMPUTE: fresh-sample selection + PI + pending build.
+ * STAGE6_1MS_LIGHTLOAD_ADC_FRESHNESS_AND_CONTROL_AUTHORITY_CLOSURE_V1:
+ *   - A repeated/stale ADC sample no longer creates a same-frequency pending
+ *     and no longer causes a PWM apply / power_writes increment.
+ *   - stale_compute_count tracks every blocked stale sample.
+ *   - consecutive_stale_count is the shot-local stale gate (reset on fresh).
+ *   - Any uncommitted pending is discarded on stale so an old pending can
+ *     never be applied after ADC freshness is lost.
+ *   - pi_compute_count counts only fresh-sample pending creations. */
 static void CTRL_PipelineCompute(void)
 {
     Uint32 fresh_seq; Uint16 sample_valid, vout_raw;
@@ -518,16 +526,48 @@ static void CTRL_PipelineCompute(void)
         g_control_stale_tick_count++;
         sample_valid = 0U;
         vout_raw = g_control_vout_raw;   /* hold last consumed */
+
+        /* Shot-local stale bookkeeping. */
+        g_shot_summary.stale_compute_count++;
+        if (g_shot_summary.consecutive_stale_count < 0xFFFFU)
+            g_shot_summary.consecutive_stale_count++;
+
+        /* Close the stale same-frequency fake-write path: no pending, no
+         * apply, no power_writes. Also discard any old pending. */
+        g_pipeline_pending.valid = 0U;
+        (void)CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
+        g_pipeline_executed_phase = 0xFFU;   /* no phase executed */
+        return;
     }
-    else
+
+    /* Fresh sample: consume exactly once. */
+    g_control_adc_sequence_last = fresh_seq;
+    g_control_adc_sequence_consumed = fresh_seq;
+    g_control_fresh_sample_count++;
+    g_control_pi_update_count++;
+    g_shot_summary.fresh_compute_count++;
+    g_shot_summary.consecutive_stale_count = 0U;
+    sample_valid = 1U;
+    vout_raw = g_adc_vout_filtered_raw;  /* latest, consumed once */
+
+    /* Shot-local fresh sample / VOUT / Vref telemetry. */
+    if (g_shot_summary.fresh_compute_count == 1UL)
     {
-        g_control_adc_sequence_last = fresh_seq;
-        g_control_adc_sequence_consumed = fresh_seq;
-        g_control_fresh_sample_count++;
-        g_control_pi_update_count++;
-        sample_valid = 1U;
-        vout_raw = g_adc_vout_filtered_raw;  /* latest, consumed once */
+        g_shot_summary.first_adc_sample_sequence = fresh_seq;
+        g_shot_summary.first_consumed_sequence   = g_control_adc_sequence_consumed;
+        g_shot_summary.first_control_vout_raw    = vout_raw;
+        g_shot_summary.min_control_vout_raw      = vout_raw;
+        g_shot_summary.max_control_vout_raw      = vout_raw;
+        g_shot_summary.first_vref_raw            = g_control_vref_raw;
     }
+    g_shot_summary.last_adc_sample_sequence  = fresh_seq;
+    g_shot_summary.last_consumed_sequence    = g_control_adc_sequence_consumed;
+    g_shot_summary.last_control_vout_raw     = vout_raw;
+    if (vout_raw < g_shot_summary.min_control_vout_raw)
+        g_shot_summary.min_control_vout_raw = vout_raw;
+    if (vout_raw > g_shot_summary.max_control_vout_raw)
+        g_shot_summary.max_control_vout_raw = vout_raw;
+    g_shot_summary.last_vref_raw = g_control_vref_raw;
 
     target = CTRL_ComputeFrequencyCommand(sample_valid, vout_raw);
 
@@ -535,7 +575,7 @@ static void CTRL_PipelineCompute(void)
     /* STAGE6 handoff: capture the FIRST post-handoff fresh closed-loop sample
      * and the resulting command for the bumpless gate (FIRST_CLOSED_LOOP_
      * SAMPLE_BUMPLESS_PASS). Only the first fresh sample is recorded. */
-    if (g_stage6_first_pi_observed == 0U && sample_valid != 0U)
+    if (g_stage6_first_pi_observed == 0U)
     {
         g_stage6_first_pi_observed = 1U;
         g_stage6_first_pi_sample_raw = vout_raw;

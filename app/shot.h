@@ -84,7 +84,7 @@ typedef struct {
     Uint32 min_command_hz;
     Uint16 max_vout_raw;
     Uint32 fast_ticks;         /* 20 us ticks from first apply to cage (D) */
-    Uint32 pi_compute_count;   /* PHASE_COMPUTE successes (expected 5) */
+    Uint32 pi_compute_count;   /* PHASE_COMPUTE successes on FRESH samples only */
     Uint32 pwm_apply_count;    /* PHASE_APPLY commits (expected 5) */
     Uint16 abort_reason;
     Uint32 first_apply_timer2;
@@ -94,6 +94,30 @@ typedef struct {
     int16  last_error_raw;           /* signed PI error, last compute before termination */
     int16  min_error_raw;            /* signed PI error, minimum (most negative) observed */
     int16  max_error_raw;            /* signed PI error, maximum (most positive) observed */
+    /* --- STAGE6_1MS_LIGHTLOAD_ADC_FRESHNESS_AND_CONTROL_AUTHORITY_CLOSURE_V1 --- */
+    Uint32 fresh_compute_count;      /* fresh ADC PI computations */
+    Uint32 stale_compute_count;      /* repeated/stale ADC samples that did NOT produce a pending */
+    Uint16 consecutive_stale_count;  /* shot-local consecutive stale counter, reset on fresh */
+    Uint32 first_adc_sample_sequence;
+    Uint32 last_adc_sample_sequence;
+    Uint32 first_consumed_sequence;
+    Uint32 last_consumed_sequence;
+    Uint16 first_control_vout_raw;
+    Uint16 last_control_vout_raw;
+    Uint16 min_control_vout_raw;
+    Uint16 max_control_vout_raw;
+    Uint16 first_vref_raw;
+    Uint16 last_vref_raw;
+    /* Abort instant telemetry (frozen in SHOT_Revoke for non-timeout aborts). */
+    Uint16 abort_adc_vout_raw;
+    Uint16 abort_filtered_vout_raw;
+    Uint16 abort_control_vout_raw;
+    int16  abort_control_error_raw;
+    Uint32 abort_frequency_hz;
+    Uint16 abort_pipeline_phase;
+    Uint32 abort_adc_sequence;
+    Uint32 abort_consumed_sequence;
+    Uint32 abort_timer2;
 } SHOT_ShotSummary;
 
 void   SHOT_Init(void);
