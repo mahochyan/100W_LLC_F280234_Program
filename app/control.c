@@ -147,6 +147,19 @@ void CTRL_Reset(void)
     g_control_running = 0U;
 }
 
+/* STAGE6_HANDOFF_REFERENCE_ATOMIC_PUBLICATION_CLOSURE_V1:
+ * Integer, no-division, no-float publication of the calibrated PI reference.
+ * Called from SoftStart_TransferToClosedLoop() before RUN/handoff is published.
+ * Returns 1 only after BOTH raw and valid are written. */
+Uint16 CTRL_PrimeHandoffReferenceRaw(Uint16 reference_raw)
+{
+    if (reference_raw == 0U) return 0U;
+    if (g_board_vout_cal_valid == 0U) return 0U;
+    g_control_vref_raw = reference_raw;
+    g_control_reference_valid = 1U;   /* publish valid last */
+    return 1U;
+}
+
 /*
  * Core controller step. Pure computation; does NOT write ePWM registers.
  *   sample_valid : ADC sample validity (1 = fresh). If 0, or the ADC stale
@@ -753,11 +766,17 @@ void CTRL_SlowTask(void)
 {
     /* Reference engineering value -> raw (slow path, float allowed).
      * Only ever sourced from g_voltage_reference; the production conversion
-     * path (CTRL_VoltsToRaw) is the one under test. Gate PI on validity. */
-    g_control_reference_valid = (g_voltage_reference > 0.5f) ? 1U : 0U;
-    if (g_control_reference_valid != 0U)
+     * path (CTRL_VoltsToRaw) is the one under test. Publish raw BEFORE valid
+     * so a concurrent ISR never sees valid=1 with a stale raw. */
+    if (g_voltage_reference > 0.5f)
     {
-        g_control_vref_raw = CTRL_VoltsToRaw(g_voltage_reference);
+        Uint16 new_raw = CTRL_VoltsToRaw(g_voltage_reference);
+        g_control_vref_raw = new_raw;
+        g_control_reference_valid = 1U;
+    }
+    else
+    {
+        g_control_reference_valid = 0U;
     }
     /* Telemetry AFTER reference/data sync. g_control_vout_raw holds the last
      * sample the fast PI consumed (owned by the fast path). */

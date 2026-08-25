@@ -97,6 +97,11 @@ volatile Uint32 g_stage6_handoff_count        = 0UL;
 volatile Uint16 g_softstart_handoff_result    = 0U;
 volatile Uint32 g_stage6_run_entry_count      = 0UL;
 volatile Uint16 g_stage6_transfer_request     = 0U;
+/* STAGE6_HANDOFF_REFERENCE_ATOMIC_PUBLICATION_CLOSURE_V1 */
+volatile Uint16 g_stage6_ref_prime_count      = 0U;
+volatile Uint16 g_stage6_ref_prime_raw        = 0U;
+volatile Uint16 g_stage6_ref_valid_at_run_entry = 0U;
+volatile Uint16 g_stage6_ref_prime_result     = 0U;
 
 /* STAGE6_REALTIME_CONTROL_INPUT_BINDING_CLOSURE_V1 - input-binding runtime state. */
 volatile Uint16  g_control_reference_valid          = 0U;

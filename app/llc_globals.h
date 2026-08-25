@@ -178,6 +178,11 @@ extern volatile Uint32 g_stage6_handoff_count;
 extern volatile Uint16 g_softstart_handoff_result;
 extern volatile Uint32 g_stage6_run_entry_count;
 extern volatile Uint16 g_stage6_transfer_request;
+/* STAGE6_HANDOFF_REFERENCE_ATOMIC_PUBLICATION_CLOSURE_V1 */
+extern volatile Uint16 g_stage6_ref_prime_count;
+extern volatile Uint16 g_stage6_ref_prime_raw;
+extern volatile Uint16 g_stage6_ref_valid_at_run_entry;
+extern volatile Uint16 g_stage6_ref_prime_result;
 
 /* Tutorial SoftStart Engine */
 extern volatile Uint16 g_softstart_state;

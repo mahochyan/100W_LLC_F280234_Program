@@ -23,6 +23,7 @@
 #include "adc.h"
 #include "soft_start.h"
 #include "board_calibration.h"
+#include "control.h"
 #include "shot.h"
 
 /* STAGE5A PFM direction: 170 kHz window configuration, computed at compile
@@ -769,6 +770,22 @@ Uint16 SoftStart_TransferToClosedLoop(void)
     /* H) - first real-PI reference target = 10V. Production slow path derives
      * g_control_vref_raw (~1244) and reference_valid=1 from this only. */
     g_voltage_reference = 10.0f;
+
+    /* STAGE6_HANDOFF_REFERENCE_ATOMIC_PUBLICATION_CLOSURE_V1:
+     * Atomically publish the calibrated raw reference BEFORE any RUN/handoff
+     * publication, eliminating the one-slow-tick CAL_MISSING authorization gap. */
+    g_stage6_ref_prime_raw = g_softstart_accept_target_raw;
+    if (CTRL_PrimeHandoffReferenceRaw(g_softstart_accept_target_raw) == 0U)
+    {
+        g_stage6_ref_prime_result = 0U;
+        g_softstart_handoff_result = HANDOFF_GATE_FAIL;
+        LLC_PWM_DisableSafe();
+        g_softstart_state = SOFTSTART_ABORTED;
+        return 0U;
+    }
+    g_stage6_ref_prime_count++;
+    g_stage6_ref_prime_result = 1U;
+    g_stage6_ref_valid_at_run_entry = g_control_reference_valid;
 
     /* Complete SoftStart exactly once, then enter RUN. */
     g_softstart_state    = SOFTSTART_COMPLETE;

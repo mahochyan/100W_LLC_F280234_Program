@@ -1,0 +1,10 @@
+{
+  "milestone": "HANDOFF_FIX_NOENERGY_TWO_SLOW_TICK",
+  "noenergy_out_sha256": "A54C117A2C0EE14518ED6DCA6B8CE7BCAC2335C267B0BB41F92E4B9A9971BB73",
+  "verdict": "PASS",
+  "values": {
+    "ref_raw": 1244,
+    "ref_valid": 1,
+    "fault": 0
+  }
+}

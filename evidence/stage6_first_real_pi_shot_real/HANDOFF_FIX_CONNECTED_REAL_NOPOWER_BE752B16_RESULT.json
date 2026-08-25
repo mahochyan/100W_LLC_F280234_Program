@@ -1,0 +1,25 @@
+{
+  "milestone": "HANDOFF_FIX_CONNECTED_NO_SWITCHING_REAL",
+  "real_out_sha256": "BE752B16020DE9764361829943CD0178ABDC0BAA108E03D8FD3504B63115DF94",
+  "verdict": "PASS",
+  "values": {
+    "state": 3,
+    "abort": 1,
+    "ok": 1,
+    "timer2_delta": 30943,
+    "fresh_compute_count": 1,
+    "stale_compute_count": 25,
+    "pi_compute_count": 1,
+    "pwm_apply_count": 1,
+    "power_writes": 1,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "isr_max": 798,
+    "compute_max": 752,
+    "apply_max": 798,
+    "overrun": 0
+  }
+}

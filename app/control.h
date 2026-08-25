@@ -36,4 +36,8 @@ void   CTRL_ApplyFrequencyCommand(void);
 void   CTRL_OfflineSelfTest(void);
 void   CTRL_UpdateTelemetrySlow(void);
 
+/* STAGE6_HANDOFF_REFERENCE_ATOMIC_PUBLICATION_CLOSURE_V1:
+ * Atomically publish the calibrated raw PI reference before RUN entry. */
+Uint16 CTRL_PrimeHandoffReferenceRaw(Uint16 reference_raw);
+
 #endif /* APP_CONTROL_H */
