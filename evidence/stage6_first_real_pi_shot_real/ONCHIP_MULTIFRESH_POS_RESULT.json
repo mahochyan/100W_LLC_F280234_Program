@@ -1,0 +1,32 @@
+{
+  "milestone": "ONCHIP_MULTIFRESH_POSITIVE",
+  "noenergy_out_sha256": "1CBDBE67C44B406F6167012E152DBE8EDC3E53EB7826085354932BFE432869A2",
+  "vout_raw": 1126,
+  "error_raw": 118,
+  "verdict": "TRAJECTORY_PASS_ISR_OVER_BUDGET",
+  "trace": [
+    {"freq":149900,"err":118,"seq":2,"period":399,"actual":150000},
+    {"freq":149800,"err":118,"seq":4,"period":400,"actual":149625},
+    {"freq":149700,"err":118,"seq":6,"period":400,"actual":149625},
+    {"freq":149600,"err":118,"seq":8,"period":400,"actual":149625},
+    {"freq":149500,"err":118,"seq":10,"period":400,"actual":149625},
+    {"freq":149400,"err":118,"seq":12,"period":401,"actual":149253},
+    {"freq":149300,"err":118,"seq":14,"period":401,"actual":149253},
+    {"freq":149200,"err":118,"seq":16,"period":401,"actual":149253},
+    {"freq":149100,"err":118,"seq":18,"period":401,"actual":149253},
+    {"freq":149000,"err":118,"seq":20,"period":402,"actual":148883},
+    {"freq":148900,"err":118,"seq":22,"period":402,"actual":148883},
+    {"freq":148800,"err":118,"seq":24,"period":402,"actual":148883},
+    {"freq":148700,"err":118,"seq":26,"period":402,"actual":148883}
+  ],
+  "isr_max": 1020,
+  "compute_max": 555,
+  "apply_max": 555,
+  "overrun": 0,
+  "fresh_compute_count": 592,
+  "pi_compute_count": 591,
+  "pwm_apply_count": 591,
+  "power_writes": 591,
+  "stale_compute_count": 0,
+  "note": "Trajectory PASS; whole-ISR >900 in NOENERGY test build."
+}

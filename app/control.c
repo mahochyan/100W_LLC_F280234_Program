@@ -498,8 +498,19 @@ static Uint16 CTRL_PipelineMakePending(Uint32 target)
     {
         sum    = LLC_TBCLK_HZ + (target / 2UL);
         clocks = (Uint32)g_pwm_period + 1UL;
-        if ((clocks + 1UL) * target <= sum) clocks++;
-        else if (clocks * target > sum) clocks--;
+        /* STAGE6_ASYMMETRIC_POWER_REDUCTION_AUTHORITY_RECOVERY_V1:
+         * allow multi-period steps (+500 Hz/fresh) by walking to the nearest
+         * consistent clocks value. The walk is bounded and small (<= a few
+         * iterations for 145..170 kHz / 352..413 periods). */
+        {
+            Uint16 guard;
+            for (guard = 0U; guard < 8U; guard++)
+            {
+                if ((clocks + 1UL) * target <= sum) { clocks++; continue; }
+                if (clocks * target > sum) { clocks--; continue; }
+                break;
+            }
+        }
         if (clocks * target > sum || (clocks + 1UL) * target <= sum) return 0U;
         period = clocks - 1UL;
         if (period < 352UL || period > 413UL) return 0U;

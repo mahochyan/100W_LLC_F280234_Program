@@ -351,7 +351,8 @@ __interrupt void TINT0_ISR(void)
              *   mode 3 = HELD  (sequence held; first tick consumes once, then freeze)
              * PWM stays 0 / OST stays 1; no real power. */
             Uint32 tb, tx;
-            if (g_stage6_noenergy_test_mode == 1U)
+            if (g_stage6_noenergy_test_mode == 1U ||
+                g_stage6_noenergy_test_mode == 5U)
             {
                 g_stage6_synthetic_sequence++;   /* new sample every 20 us tick */
             }
@@ -366,6 +367,25 @@ __interrupt void TINT0_ISR(void)
             g_control_exec_cycles_last = (Uint32)((Uint32)(tb - tx) & 0xFFFFFFFFUL);
             if (g_control_exec_cycles_last > g_control_exec_cycles_max)
                 g_control_exec_cycles_max = g_control_exec_cycles_last;
+            /* NOENERGY hook drives the split pipeline alone (CTRL_FastTask is
+             * bypassed by pwm_enabled=0), so advance the phase here exactly
+             * like SHOT_FastTask would in the real path. */
+            if (g_pipeline_executed_phase != 0xFFU)
+                g_pipeline_phase = (Uint16)(1U - g_pipeline_executed_phase);
+            /* STAGE6_ONCHIP_MULTIFRESH_NOENERGY (mode 5): record the committed
+             * trajectory on each APPLY phase, up to 13 samples. */
+            if (g_stage6_noenergy_test_mode == 5U &&
+                g_pipeline_executed_phase == PIPELINE_PHASE_APPLY &&
+                g_stage6_multifresh_trace_count < 13U)
+            {
+                Uint16 idx = g_stage6_multifresh_trace_count;
+                g_stage6_multifresh_trace_freq[idx]    = g_control_frequency_hz;
+                g_stage6_multifresh_trace_error[idx]   = (Uint16)g_control_error_raw;
+                g_stage6_multifresh_trace_seq[idx]     = g_adc_sample_sequence;
+                g_stage6_multifresh_trace_period[idx]  = g_pwm_period;
+                g_stage6_multifresh_trace_actual[idx]  = g_actual_switching_frequency_hz;
+                g_stage6_multifresh_trace_count++;
+            }
         }
     }
 #endif

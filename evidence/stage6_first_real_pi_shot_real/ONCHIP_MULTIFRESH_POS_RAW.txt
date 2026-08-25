@@ -1,0 +1,21 @@
+HOST_SHA256_PASS
+MULTIFRESH_VOUT_RAW=1126
+state=2 abort=0 ok=0 t2d=4275993140
+fresh=592 stale=0 pi=591 apply=591 pw=591
+pwm=0 ost=1 pws=0 fault=0
+ISR max=1020 compute=555 apply=555 overrun=0
+trace_count=13
+TRACE[0] freq=149900 err=118 seq=2 period=399 actual=150000
+TRACE[1] freq=149800 err=118 seq=4 period=400 actual=149625
+TRACE[2] freq=149700 err=118 seq=6 period=400 actual=149625
+TRACE[3] freq=149600 err=118 seq=8 period=400 actual=149625
+TRACE[4] freq=149500 err=118 seq=10 period=400 actual=149625
+TRACE[5] freq=149400 err=118 seq=12 period=401 actual=149253
+TRACE[6] freq=149300 err=118 seq=14 period=401 actual=149253
+TRACE[7] freq=149200 err=118 seq=16 period=401 actual=149253
+TRACE[8] freq=149100 err=118 seq=18 period=401 actual=149253
+TRACE[9] freq=149000 err=118 seq=20 period=402 actual=148883
+TRACE[10] freq=148900 err=118 seq=22 period=402 actual=148883
+TRACE[11] freq=148800 err=118 seq=24 period=402 actual=148883
+TRACE[12] freq=148700 err=118 seq=26 period=402 actual=148883
+ONCHIP_MULTIFRESH_DONE

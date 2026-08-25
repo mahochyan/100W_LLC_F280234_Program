@@ -1,6 +1,6 @@
 # STAGE6 Asymmetric Power Reduction Authority Report
 
-Status: **NO REAL POWER EXECUTED — no-power multi-fresh gate not completed**
+Status: **NO REAL POWER EXECUTED — on-chip multifresh trajectory PASS, whole-ISR >900 in NOENERGY test build**
 Branch: `stage6/first-real-pi-shot-real-binary-hardening-v1-1`
 Baseline: `c650201`
 Date: 2026-08-25
@@ -52,24 +52,38 @@ ISR max=837 compute=837 apply=759 overrun=0
 TIMING_500US_PASS=PASS
 ```
 
-## 5. Multi-fresh negative-error no-power
+## 5. On-chip multifresh no-energy trajectory
 
-**NOT COMPLETED**
+Implemented `STAGE6_NOENERGY_MODE_ASYMMETRIC_MULTIFRESH = 5` in the NOENERGY
+build only. The TINT0 hook auto-advances the ADC sequence and records a
+13-point trajectory.
 
-Attempted to force multiple fresh negative-error samples on the target by
-injecting ADC sequence numbers between short run pulses. With the 500 us
-Timer2 cage, the host `runAsynch`/`halt` cycle always allowed the full 500 us
-to elapse before a second fresh sample could be injected, so every attempt
-timed out after the first fresh compute:
+### Negative error (VOUT=1362, error=-118)
 
 ```text
-attempt 1..8: state=3 abort=1 ok=1 fresh=1 freq=150500
+150500 → 151000 → ... → 156500 Hz
+每步 +500 Hz
+trace_count=13
 ```
 
-This is a host/harness granularity limitation, not a firmware failure.
-Because task E requires continuous fresh negative-error trajectory with
-multiple period changes before real power, and that gate could not be
-demonstrated on target, **real power was not executed**.
+### Positive error (VOUT=1126, error=+118)
+
+```text
+149900 → 149800 → ... → 148700 Hz
+每步 -100 Hz
+trace_count=13
+```
+
+Both directions are correct. However, the NOENERGY test-build whole-ISR max is:
+
+```text
+negative: ISR max = 1057 (>900)
+positive: ISR max = 1020 (>900)
+```
+
+Because task F requires `ISR max <=900` before real power, and the NOENERGY
+test instrumentation/trace path exceeds this budget, **real power was not
+executed**.
 
 ## 6. Entry interval re-quantification
 
@@ -90,10 +104,10 @@ the real run. The real run was not executed, so this remains pending.
 ## 7. Final output
 
 ```text
-STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_FAIL  (not attempted)
-FAILED_GATE=MULTIFRESH_NOPOWER_NOT_COMPLETED
+STAGE6_500US_ASYMMETRIC_AUTHORITY_REAL_NOT_EXECUTED
+BLOCKED_GATE=NOENERGY_ISR_MAX_GT_900
+NO_REAL_POWER_EXECUTED
 BOARD_LEFT_SAFE_PWM0_OST1
-NO_RETRY_EXECUTED
 STOPPED_AWAITING_REVIEW
 ```
 
