@@ -64,3 +64,29 @@ Status: **FAIL**
 - `burst_off_fresh_compute_count=1`, `last_shadow=150400`, restart not triggered.
 
 Status: **FAIL**
+
+## V1_4 Closure - PASS
+
+Root cause fixed: Burst OFF APPLY now marks `PIPELINE_PHASE_APPLY` and increments `g_burst_off_apply_discard_count`, so COMPUTE/APPLY alternation continues.
+
+Mode6 NOENERGY result:
+
+```text
+state=3 abort=10 ok=1
+enter=1 exit=1 attempt=1 success=1 fail=0
+high=2 low=15 fresh=16
+offFresh=7 offApply=6
+firstShadow=150500 lastShadow=149800 minShadow=149800
+firstPeriod=398
+pending=0 pwm=0 ost=1 pws=2 fault=0
+pre_ost=1 post_ost=0
+BURST_RESTART_NOENERGY_PASS=true
+```
+
+Builds:
+```text
+REAL OUT    = 9794211DE6081F1EE2FD2EA7C83454BBFD76ADAEB2281308B00BF0510C886B77
+REAL MAP    = BAD6CF0140FB652B4FBAC3565F2D317CDC73346BA6BED31C54B1B5C58AE2C25C
+NOENERGY OUT= 04E3CA30D7DAA58C633359FD0E9512DF758E7F37959AD485E975485908738344
+NOENERGY MAP= 3D76E37073265F0CD336DE996FEA5CEF3D63CA902ED5D36C21EB4048FE4675E9
+```
