@@ -55,3 +55,12 @@ Evidence:
 - `evidence/stage6_first_real_pi_shot_real/BURST_RESTART_MODE6_NOENERGY_446EEC56_RESULT.json`
 
 Status: **FAIL**
+
+## Shadow-base attempt (V1_3)
+
+- Added `g_burst_shadow_base_frequency_hz` and used it as slew base during Burst OFF.
+- Mode6 now advances VOUT switch on-chip and counts Burst-OFF compute/apply.
+- Result: shadow base advanced from 150500 to 150400 (one step), then did not continue to 149800.
+- `burst_off_fresh_compute_count=1`, `last_shadow=150400`, restart not triggered.
+
+Status: **FAIL**

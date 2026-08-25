@@ -134,6 +134,20 @@ void SHOT_Init(void)
     g_burst_restart_success_count = 0UL;
     g_burst_restart_fail_count = 0UL;
     g_burst_stale_restart_count = 0UL;
+    g_burst_test_fresh_count = 0UL;
+    g_burst_test_high_count = 0UL;
+    g_burst_test_low_count = 0UL;
+    g_burst_shadow_base_frequency_hz = 0UL;
+    g_burst_off_fresh_compute_count = 0UL;
+    g_burst_off_apply_count = 0UL;
+    g_burst_off_first_shadow_hz = 0UL;
+    g_burst_off_last_shadow_hz = 0UL;
+    g_burst_off_min_shadow_hz = 0UL;
+    g_burst_off_first_period = 0U;
+    g_burst_off_last_period = 0U;
+    g_burst_timeout_shadow_hz = 0UL;
+    g_burst_timeout_period = 0U;
+    g_burst_timeout_error_raw = 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -493,6 +507,9 @@ void SHOT_EnterTutorialBurst(void)
 Uint16 SHOT_BurstShadowControlAllowed(void)
 {
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_stage6_noenergy_test_mode == 6U) return 0U;  /* Mode6 hook drives alone */
+#endif
     if (g_burst_enabled == 0U) return 0U;
     if (g_burst_active == 0U) return 0U;
     if (g_burst_state != BURST_STATE_OFF_WAIT &&
@@ -525,6 +542,10 @@ void SHOT_BurstEnter(void)
     g_burst_entry_frequency_hz  = g_pipeline_pending.command_hz;
     g_burst_entry_adc_sequence  = g_adc_sample_sequence;
     g_burst_entry_timer2        = CpuTimer2Regs.TIM.all;
+    g_burst_shadow_base_frequency_hz = g_pipeline_pending.command_hz;
+    g_burst_off_first_shadow_hz = g_pipeline_pending.command_hz;
+    g_burst_off_min_shadow_hz   = g_pipeline_pending.command_hz;
+    g_burst_off_first_period    = g_pipeline_pending.period;
     g_pipeline_pending.valid    = 0U;
     g_pipeline_executed_phase   = 0xFFU;
     g_pipeline_phase            = PIPELINE_PHASE_COMPUTE;

@@ -227,6 +227,17 @@ volatile Uint32 g_burst_restart_actual_frequency_hz;
 volatile Uint32 g_burst_test_fresh_count;
 volatile Uint32 g_burst_test_high_count;
 volatile Uint32 g_burst_test_low_count;
+volatile Uint32 g_burst_shadow_base_frequency_hz;
+volatile Uint32 g_burst_off_fresh_compute_count;
+volatile Uint32 g_burst_off_apply_count;
+volatile Uint32 g_burst_off_first_shadow_hz;
+volatile Uint32 g_burst_off_last_shadow_hz;
+volatile Uint32 g_burst_off_min_shadow_hz;
+volatile Uint16 g_burst_off_first_period;
+volatile Uint16 g_burst_off_last_period;
+volatile Uint32 g_burst_timeout_shadow_hz;
+volatile Uint16 g_burst_timeout_period;
+volatile int16  g_burst_timeout_error_raw;
 volatile Uint16 g_ocp_recovery_mode;   /* 0 = LOCKED, 1 = TUTORIAL_HICCUP */
 volatile Uint16 g_softstart_abort_reason;
 volatile Uint16 g_softstart_ocp_dac_code;

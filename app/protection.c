@@ -394,6 +394,26 @@ __interrupt void TINT0_ISR(void)
                  * like SHOT_FastTask would in the real path. */
                 if (g_pipeline_executed_phase != 0xFFU)
                     g_pipeline_phase = (Uint16)(1U - g_pipeline_executed_phase);
+                /* STAGE6_TUTORIAL_BURST_SHADOW_BASE_CLOSURE_V1_3 (mode 6):
+                 * count Burst-OFF compute/apply and stop stimulus on terminal. */
+                if (g_stage6_noenergy_test_mode == 6U)
+                {
+                    if (g_burst_state == BURST_STATE_OFF_WAIT)
+                    {
+                        if (g_pipeline_executed_phase == PIPELINE_PHASE_COMPUTE)
+                            g_burst_off_fresh_compute_count++;
+                        else if (g_pipeline_executed_phase == PIPELINE_PHASE_APPLY)
+                            g_burst_off_apply_count++;
+                    }
+                    if (g_first_real_pi_shot_state == SHOT_STATE_COMPLETE ||
+                        g_first_real_pi_shot_state == SHOT_STATE_ABORTED ||
+                        g_burst_state == BURST_STATE_FINAL_SAFE_STOP ||
+                        g_first_real_pi_shot_arm == 0U ||
+                        g_fault_flags != 0UL)
+                    {
+                        g_stage6_noenergy_test_enable = 0U;
+                    }
+                }
                 /* STAGE6_ONCHIP_MULTIFRESH_NOENERGY (mode 5): record only the
                  * committed frequency on each APPLY phase, up to 13 samples. */
                 if (g_stage6_noenergy_test_mode == 5U &&

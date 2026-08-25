@@ -1,0 +1,33 @@
+{
+  "milestone": "BURST_SHADOW_BASE_NOENERGY",
+  "noenergy_out_sha256": "6650B546DA281F12151724FBA376E6FFA2965EAD960408B881006BB872F11D02",
+  "verdict": "FAIL",
+  "failure_reason": "SHADOW_BASE_ADVANCED_ONLY_ONE_STEP",
+  "values": {
+    "state": 2,
+    "abort": 0,
+    "ok": 0,
+    "burst_enter_count": 1,
+    "burst_exit_count": 0,
+    "restart_attempt_count": 0,
+    "restart_success_count": 0,
+    "restart_fail_count": 0,
+    "burst_test_high_count": 2,
+    "burst_test_low_count": 1231,
+    "burst_test_fresh_count": 1232,
+    "burst_off_fresh_compute_count": 1,
+    "burst_off_apply_count": 0,
+    "burst_off_first_shadow_hz": 150500,
+    "burst_off_last_shadow_hz": 150400,
+    "burst_off_min_shadow_hz": 150400,
+    "burst_off_first_period": 398,
+    "burst_off_last_period": 0,
+    "pending_valid": 0,
+    "pwm": 0,
+    "ost": 1,
+    "power_window_state": 2,
+    "fault": 0,
+    "restart_pre_ost": 0,
+    "restart_post_ost": 0
+  }
+}

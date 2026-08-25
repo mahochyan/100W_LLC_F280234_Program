@@ -1,0 +1,9 @@
+state=2 abort=0 ok=0
+enter=1 exit=0 attempt=0 success=0 fail=0
+high=2 low=1231 fresh=1232
+pending=0 pwm=0 ost=1 pws=2 fault=0
+pre_ost=0 post_ost=0
+offFresh=1 offApply=0
+firstShadow=150500 lastShadow=150400 minShadow=150400
+firstPeriod=398 lastPeriod=0
+BURST_RESTART_NOENERGY_PASS=false

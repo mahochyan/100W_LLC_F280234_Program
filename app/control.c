@@ -340,7 +340,15 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
     if (unsat_q12 < CTRL_CLAMP_MIN_Q12) unsat_q12 = CTRL_CLAMP_MIN_Q12;
     if (unsat_q12 > CTRL_CLAMP_MAX_Q12) unsat_q12 = CTRL_CLAMP_MAX_Q12;
 
-    base_q12 = (int32)g_control_frequency_hz << CTRL_Q_SHIFT;
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    if (g_burst_active != 0U &&
+        (g_burst_state == BURST_STATE_OFF_WAIT ||
+         g_burst_state == BURST_STATE_RESTART_ARMED) &&
+        g_burst_shadow_base_frequency_hz != 0UL)
+        base_q12 = (int32)g_burst_shadow_base_frequency_hz << CTRL_Q_SHIFT;
+    else
+#endif
+        base_q12 = (int32)g_control_frequency_hz << CTRL_Q_SHIFT;
     step_q12 = unsat_q12 - base_q12;
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     /* Asymmetric authority: +500 Hz/fresh compute for power reduction
@@ -357,6 +365,17 @@ Uint32 CTRL_ComputeFrequencyCommand(Uint16 sample_valid, Uint16 vout_raw)
 
     new_hz = (Uint32)(out_q12 >> CTRL_Q_SHIFT);
     g_control_shadow_frequency_hz = new_hz;
+#if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
+    if (g_burst_active != 0U &&
+        (g_burst_state == BURST_STATE_OFF_WAIT ||
+         g_burst_state == BURST_STATE_RESTART_ARMED))
+    {
+        g_burst_shadow_base_frequency_hz = new_hz;
+        g_burst_off_last_shadow_hz = new_hz;
+        if (new_hz < g_burst_off_min_shadow_hz)
+            g_burst_off_min_shadow_hz = new_hz;
+    }
+#endif
     return new_hz;
 }
 
