@@ -261,6 +261,34 @@ olExit();
 check("S10_STOP_HOST",rw("g_open_loop_stop_reason")==1);
 endState("S10");
 
+// ---------------- S10B: firmware-latched stop at takeover (W2_BURST_PACKET_CHARACTERIZATION_V1) ----
+// When g_open_loop_stop_on_takeover is set, the takeover tick must itself
+// perform a planned host stop: no in-band slew, PWM=0/OST=1, SYS_IDLE.
+wv32("g_fault_flags",0);
+wv("g_open_loop_stop_reason",0);
+wv("g_open_loop_steady_active",0);
+wv("g_open_loop_takeover_armed",1);
+wv("g_open_loop_takeover_done",0);
+wv("g_open_loop_stop_on_takeover",1);
+wv("g_system_state",2);            // SYS_STATE_SOFT_START
+wv("g_pwm_enabled",1);             // trajectory released outputs (host fake)
+wv("g_softstart_state",8);         // SOFTSTART_PHASE_B
+wv("g_softstart_stage_index",10);  // period 239 + 10*10 = 339
+wv("g_pwm_period",339);
+wv32("g_switching_frequency_hz",176470);
+wv("g_open_loop_ne_raw",1050);
+run(10);
+check("S10B_TAKEONE_DONE",rw("g_open_loop_takeover_done")==1);
+check("S10B_ARM_CLEARED",rw("g_open_loop_takeover_armed")==0);
+check("S10B_STOP_HOST",rw("g_open_loop_stop_reason")==1);
+check("S10B_SYS_IDLE",rw("g_system_state")==1);
+check("S10B_PWM0",rw("g_pwm_enabled")==0);
+check("S10B_INACTIVE",rw("g_open_loop_steady_active")==0);
+check("S10B_OST1",reg("EPwm1Regs.TZFLG.bit.OST")==1);
+check("S10B_TZINT0",reg("EPwm1Regs.TZFLG.bit.INT")==0);
+wv("g_open_loop_stop_on_takeover",0);
+endState("S10B");
+
 // ---------------- S11: extended characterization band (W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1) ----------------
 // S11a: authorization bit 0 -> command 190000 clamps onto the production 170k
 wv32("g_fault_flags",0);

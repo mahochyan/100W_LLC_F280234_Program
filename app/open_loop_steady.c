@@ -168,6 +168,8 @@ volatile Uint32 g_open_loop_stop_timer2          = 0UL;
 volatile Uint16 g_open_loop_takeover_armed       = 0U;
 #pragma DATA_SECTION(g_open_loop_takeover_done, "ol_ram");
 volatile Uint16 g_open_loop_takeover_done        = 0U;
+#pragma DATA_SECTION(g_open_loop_stop_on_takeover, "ol_ram");
+volatile Uint16 g_open_loop_stop_on_takeover     = 0U;
 #pragma DATA_SECTION(g_open_loop_takeover_freq_hz, "ol_ram");
 volatile Uint32 g_open_loop_takeover_freq_hz     = 0UL;
 #pragma DATA_SECTION(g_open_loop_takeover_raw, "ol_ram");
@@ -595,6 +597,7 @@ void OPENLOOP_Init(void)
     s_win_fresh_count = 0UL; s_win_tick_count = 0UL;
     s_steady_window_count = 0UL;
     s_last_adc_sequence = 0UL;
+    g_open_loop_stop_on_takeover = 0U;
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     g_open_loop_ne_test_enable  = 0U;
     g_open_loop_ne_entry_request = 0U;
@@ -713,6 +716,19 @@ static void OL_TakeoverPoll(void)
         g_open_loop_takeover_armed = 0U;
 
         OL_SessionInit(applied);   /* phase = SLEWING toward the host command */
+        if (g_open_loop_stop_on_takeover != 0U)
+        {
+            /* W2_BURST_PACKET_CHARACTERIZATION_V1: firmware-latched planned
+             * stop at the takeover instant. This guarantees the 5.83V plateau
+             * is a clean post-SoftStart, pre-in-band-slew state: continuous
+             * PWM is fully stopped before any packet request. */
+            LLC_PWM_DisableSafe();
+            g_system_state = SYS_STATE_IDLE;
+            g_pwm_enable_result = 0U;
+            g_softstart_state = SOFTSTART_INIT;
+            OPENLOOP_NotifyExit();
+            return;
+        }
         g_system_state = SYS_STATE_RUN;
     }
     else if ((g_softstart_state == SOFTSTART_PHASE_B &&

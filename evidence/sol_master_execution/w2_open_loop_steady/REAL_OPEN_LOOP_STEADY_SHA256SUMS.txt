@@ -58,3 +58,17 @@ REAL_V2.4_SOURCE_COMMIT=a1614af
 REAL_V2.4_CGT=25.11.1.LTS
 REAL_V2.4_BUILD_LOG=evidence/sol_master_execution/w2_open_loop_steady/build_real_packet_v2.4.log
 REAL_V2.4_MAP=evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_LOOP_STEADY_REAL_v2.4.map
+
+# ---- v2.5 (W2_BURST_PACKET_CHARACTERIZATION_V1, stop-on-takeover) ----
+# New REAL instance for clean 5.83V pre-charge: g_open_loop_stop_on_takeover
+# performs a firmware-latched planned stop at the takeover instant, before
+# any in-band slew. NE S10B verifies: takeover_done=1, stop_reason=1,
+# sys=IDLE, PWM=0, OST=1, TZINT=0, inactive.
+NE_OPEN_LOOP_STEADY_OUT_SHA256=39f79c14d464254323c2d1e1269425be140e5e752f8d38fbc7b03db7bc64a7fe
+NE_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=3bc6ba07637f5ccc53d961982a6b17f772473b8b1e2e6ee0feb063cd77433384
+REAL_OPEN_LOOP_STEADY_OUT_SHA256=ef607cce24b8399632538e40e9b93c44586f1c0d2140e496c1010c38a9db961d
+REAL_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=d1e25b217a1085afa9414c39535ef5b4e70c5f2147918835ae0017cfbf7ac914
+REAL_V2.5_SOURCE_COMMIT=PENDING (commit after this change)
+REAL_V2.5_CGT=25.11.1.LTS
+REAL_V2.5_BUILD_LOG=evidence/sol_master_execution/w2_open_loop_steady/build_real_packet_v2.5_stop_on_takeover.log
+REAL_V2.5_MAP=evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_LOOP_STEADY_REAL_v2.5_stop_on_takeover.map

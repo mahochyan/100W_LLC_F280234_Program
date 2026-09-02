@@ -141,6 +141,11 @@ extern volatile Uint16 g_open_loop_phase;
 /* formal-trajectory takeover observability */
 extern volatile Uint16 g_open_loop_takeover_armed;   /* set by SM enable; cleared at takeover/stop */
 extern volatile Uint16 g_open_loop_takeover_done;    /* 1 once the OL session owns the actuator */
+/* W2_BURST_PACKET_CHARACTERIZATION_V1: when set, firmware performs a planned
+ * host stop immediately at takeover (before any in-band slew). This is the
+ * clean 5.83V pre-charge point for a single packet. Default 0 keeps normal
+ * open-loop matrix behavior unchanged. */
+extern volatile Uint16 g_open_loop_stop_on_takeover;
 extern volatile Uint32 g_open_loop_takeover_freq_hz; /* plant frequency at the takeover tick */
 extern volatile Uint16 g_open_loop_takeover_raw;     /* Vout raw at the takeover tick */
 /* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: 170..190 kHz band unlock bit */

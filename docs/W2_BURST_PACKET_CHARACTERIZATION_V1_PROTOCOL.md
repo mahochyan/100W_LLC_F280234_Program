@@ -49,18 +49,22 @@ shot an audit, then final
 
 ## 4. REAL instance identity (frozen once)
 
-Built from commit **a1614af** (source commit for REAL v2.4) and frozen in
-commit **08f75d0**.
+REAL v2.5 is the current authorized instance for 1C. It adds the
+`g_open_loop_stop_on_takeover` flag: the firmware performs a planned stop at
+the SoftStart/OL takeover instant (~176.47 kHz / ~5.83 V) before any in-band
+slew, which is required so the 1C packet is not glued to the SoftStart tail.
 
 - Whole-file SHA256 (physical instance):
-  `4fec970e3a050da6f60f3bc4d6a35dde9a2ab06bd74e031c485b13f9b9a307c9`
+  `ef607cce24b8399632538e40e9b93c44586f1c0d2140e496c1010c38a9db961d`
 - Loadable-image HEX SHA256 (semantic fingerprint):
-  `de71cce3bc244014403466163cd320944558974a9aed0f9332ae634958f16404`
+  `d1e25b217a1085afa9414c39535ef5b4e70c5f2147918835ae0017cfbf7ac914`
 - CGT: `25.11.1.LTS`
-- Build log: `evidence/sol_master_execution/w2_open_loop_steady/build_real_packet_v2.4.log`
-- Map: `evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_LOOP_STEADY_REAL_v2.4.map`
-- NE whole SHA: `7a0491a24bafb821a95814bc271e2eb2da75f9c1b19698a18250a16a7c9dc88a`
-- NE HEX SHA: `0ca08db48d652a02e966d9b0d1272d9652227611c18b30a55ff9a18fc35d0ea1`
+- Build log: `evidence/sol_master_execution/w2_open_loop_steady/build_real_packet_v2.5_stop_on_takeover.log`
+- Map: `evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_LOOP_STEADY_REAL_v2.5_stop_on_takeover.map`
+- NE whole SHA: `39f79c14d464254323c2d1e1269425be140e5e752f8d38fbc7b03db7bc64a7fe`
+- NE HEX SHA: `3bc6ba07637f5ccc53d961982a6b17f772473b8b1e2e6ee0feb063cd77433384`
+- NE S10B proves stop-on-takeover: takeover_done=1, stop_reason=1, sys=IDLE,
+  PWM=0/OST=1/TZINT=0, inactive.
 
 No other REAL rebuild/impersonation is permitted for this order.
 
@@ -68,7 +72,7 @@ No other REAL rebuild/impersonation is permitted for this order.
 
 Check all before any shot:
 
-- [ ] Branch `stage6/sol-one-shot-to-100w-v1`, commit `08f75d0` / REAL v2.4 frozen
+- [ ] Branch `stage6/sol-one-shot-to-100w-v1`, REAL v2.5 frozen (SHA in section 4); operator has approved the v2.5 identity
 - [ ] `DSH_*` environment set as required by session
 - [ ] `DSH_LOAD_OHM` and `DSH_LOAD_OHM_CONFIRMED` set for **CR15**
 - [ ] Vin = **24 V**, PSU input current limit = **0.5 A**
