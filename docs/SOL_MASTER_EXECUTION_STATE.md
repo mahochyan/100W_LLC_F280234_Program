@@ -367,3 +367,14 @@ CSV=open_loop_load_boundary_matrix.csv (2 rows, both fault-free)
 NEXT=READY_FOR_CR10 (10 W @ 10 V; PSU input ~0.49 A vs the 0.5 A limit -
         operator decides: raise the limit or accept limit-clamp as a stop)
 ```
+
+## LOAD_BOUNDARY CR10 checkpoint
+
+```text
+CR10=NOT_FOUND (CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN at 190 kHz, escape-proven, fault-free)
+GAIN_SHAPE=fr_eff~160-175k (M rises 150k->170k, flat to 190k); M_eff(190k)~1.09-1.10
+        for CR15/CR12.5/CR10; Vout=9.6*M_eff (Np5T:Ns4T, 24V); 10V needs M_eff=1.042
+        -> above 190k on the falling side for these loads
+PREDICTION=CR7.5 (Q~2x CR15) may open the in-band map at 190k per FHA
+NEXT=READY_FOR_CR7P5 (13.3 W @ 10 V; PSU limit >=0.8 A required; resistor >=20 W)
+```

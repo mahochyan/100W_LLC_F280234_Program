@@ -1,3 +1,4 @@
 load_ohm,vin_V,command_frequency_hz,actual_frequency_hz,TBPRD,CMPA,CMPB,DBRED,DBFED,vout_mean_V,vout_min_V,vout_max_V,vout_raw_mean,vout_raw_max,dVout_dt_V_per_s,settling_time_ms,ipri_raw_mean,ipri_raw_max,ipri_raw_min,ipri_deferred,adc_fresh_delta,adc_stale_ticks,adc_ovf_delta,COMP_event,TZ_event,fault_flags,ss_abort_reason,stop_reason,upper_gain_boundary,pwm_enable,pwm_ost,pwm_tzint,reached_tier,classification
 12.5,24,190000,189873,315,158,79,36,36,6.246,0.405,9.579,780,1192,0.00,0,0,0,0,1,3775,2,0,56,0,0x0,0,2,1,0,1,0,A_60MS,COARSE_190K
 12.5,24,190000,189873,315,158,79,36,36,6.432,0.405,9.643,803,1200,0.00,0,0,0,0,1,3696,1,0,64,0,0x0,0,2,1,0,1,0,A_60MS,COARSE_190K
+10,24,190000,189873,315,158,79,36,36,6.553,0.414,9.676,818,1204,0.00,0,0,0,0,1,4071,2,0,64,0,0x0,0,2,1,0,1,0,A_60MS,COARSE_190K

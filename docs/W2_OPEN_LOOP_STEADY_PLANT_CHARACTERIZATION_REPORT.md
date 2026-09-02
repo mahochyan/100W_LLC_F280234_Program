@@ -580,3 +580,39 @@ Load points completed: CR15 NOT_FOUND (>190k), CR12.5 NOT_FOUND
 (TOO_HIGH_GAIN at 190k, escape-proven). Next per the work order ladder: CR10
 (10 W @ 10 V; PSU input ~0.49 A - at the 0.5 A bench limit, see the operator
 checklist).
+
+## 15. Load-boundary: CR10 result + the real gain-curve shape reconciliation
+
+Run `load_boundary_CR10_r1.log` (protocol v4.1, slew 5000, 5 s coarse hold):
+190 kHz crossed the guard, fault-free (TBPRD 315, actual 189873, OVF 0,
+COMP/TZ 0, planned OST, ub=1). Same signature as CR12.5-r2 -> GENUINE.
+
+**Classification CR10: CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN**
+**natural Vout(190 kHz, CR10, Vin 24 V) > 10.49 V.**
+
+### 15.1 Reconciliation with the historical anchors (FHA vs the real plant)
+
+Known real-board anchors at Vin 24 V:
+- 150 kHz: 10.02 V (M_eff = 1.044) [closed-loop era, TRANSFORMER_GAIN_AUDIT]
+- 170 kHz: > 10.49 V (M_eff > 1.092) [CR15 WARNING crossing, section 10]
+- 190 kHz: > 10.49 V (M_eff > 1.092) [CR15/CR12.5/CR10 crossings, r8-proven]
+
+The gain RISES from 150k to 170k and stays ~flat to 190k -> the effective
+resonant frequency fr_eff is ~160-175 kHz (NOT the nominal fr=49.9 kHz model
+and at/above the fr=150 kHz Scenario-B guess), with the whole characterized
+band sitting on the flat top of the gain curve (M_eff ~ 1.09-1.10). The FHA
+underpredicts the real gain by ~4-9 % (the known non-FHA effects: effective
+duty/DB, magnetizing contribution, rectifier conduction).
+
+Implication: Vout = 9.6 x M_eff (Np 5T : Ns_half 4T, Vin 24 V). The 10 V
+target needs M_eff = 1.042, which sits ABOVE 190 kHz on the falling side of
+the gain curve for CR15/CR12.5/CR10 - the prohibited region. Heavier load
+(higher Q) bends the above-resonance gain down faster: CR7.5 (13.3 W @ 10 V,
+Q ~ 2x CR15) is the first load where the FHA predicts M_eff(190 kHz) may
+drop below 1.092 -> the in-band map may OPEN at CR7.5.
+
+Load ladder status: CR15 NOT_FOUND, CR12.5 NOT_FOUND, CR10 NOT_FOUND
+(all TOO_HIGH_GAIN at 190 kHz, escape-proven, fault-free). Next: CR7.5.
+If CR7.5 also crosses => CONTINUOUS_PFM_PLANT_RANGE_MISMATCH per the work
+order section 11, and the tank re-audit (5T:4T, Cr, Lr, Lm, Vin, rectifier
+drop, fr_eff, FHA deviation) becomes the deliverable.
