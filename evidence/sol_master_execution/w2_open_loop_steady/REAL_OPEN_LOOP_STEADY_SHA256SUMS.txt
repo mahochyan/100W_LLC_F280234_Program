@@ -15,3 +15,22 @@ NE_OPEN_LOOP_STEADY_OUT_SHA256=4da6ddf9e65253eb3f833528ee36a51efd97fd96eaf8c4d2b
 #   untouched; NE r8 PASS incl. S11 a/b/c/d)
 REAL_OPEN_LOOP_STEADY_OUT_SHA256=61636d058972c40b20801bea7a4333e239386ef8429712370de090a509f7d857
 NE_OPEN_LOOP_STEADY_OUT_SHA256=354c7499ab41e4afc8a09e9a0e99ec72a812cde7c4e30aa5a23586f11851d14e
+
+# ---- v2.3 (W2_CONTROL_REGION_REDESIGN_V1) ----
+# NE: Burst-region NE model added (app/burst_region.c, NE build list only).
+# NE_OPEN_LOOP_STEADY_OUT_SHA256=4A2215CEDEE09F405FD51BCAD6DDC9AFC19E5655B9F74F37E1EFC77C300753BC
+#
+# REAL instance note (honest incident record):
+# The v2.2 REAL instance (61636D05...) was overwritten during a rebuild
+# verification on this date. The REAL-visible source delta of this work order
+# is provably zero (protection.c edit is entirely inside
+# #if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST;
+# burst_region.h expands empty in REAL). Two rebuilds of identical REAL sources
+# produced different SHAs (E3BEA920.../17956153...), confirming the TI COFF
+# header embeds a link timestamp: .out instances are NOT byte-reproducible.
+# The completed load-ladder evidence remains valid: every run log contains the
+# run-time SHA hard gate PASS against the audited v2.2 instance.
+# The on-disk REAL .out is now an UNAUDITED rebuild instance
+# (17956153C376FE3D...): NO real firing is permitted against it until the next
+# real-firing work order re-freezes a fresh instance and runs the full proof
+# chain (static audit -> NE -> no-energy -> real hardware).

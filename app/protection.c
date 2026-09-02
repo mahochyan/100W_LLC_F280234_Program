@@ -18,6 +18,7 @@
 #include "soft_start.h"
 #include "shot.h"
 #include "open_loop_steady.h"
+#include "burst_region.h"
 #include "protection.h"
 
 static Uint32 s_last_adc_counter = 0UL;
@@ -355,6 +356,7 @@ __interrupt void TINT0_ISR(void)
     PROT_FastTask();
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     OPENLOOP_NoEnergyTick();   /* NE harness: synthetic raw, logic-only */
+    BR_NeTick();               /* Burst region model (NE-only, counters) */
 #elif STAGE6_OPEN_LOOP_STEADY_BUILD
     OPENLOOP_FastTask();       /* open-loop steady: PI fully bypassed */
 #else

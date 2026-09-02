@@ -593,16 +593,20 @@ COMP/TZ 0, planned OST, ub=1). Same signature as CR12.5-r2 -> GENUINE.
 ### 15.1 Reconciliation with the historical anchors (FHA vs the real plant)
 
 Known real-board anchors at Vin 24 V:
-- 150 kHz: 10.02 V (M_eff = 1.044) [closed-loop era, TRANSFORMER_GAIN_AUDIT]
+- 150 kHz: 10.02 V (M_eff = 1.044) [closed-loop era, TRANSFORMER_GAIN_AUDIT; DIFFERENT conditions - not combinable with the open-loop lower bounds below (CORRECTED, section 17)]
 - 170 kHz: > 10.49 V (M_eff > 1.092) [CR15 WARNING crossing, section 10]
 - 190 kHz: > 10.49 V (M_eff > 1.092) [CR15/CR12.5/CR10 crossings, r8-proven]
 
-The gain RISES from 150k to 170k and stays ~flat to 190k -> the effective
-resonant frequency fr_eff is ~160-175 kHz (NOT the nominal fr=49.9 kHz model
-and at/above the fr=150 kHz Scenario-B guess), with the whole characterized
-band sitting on the flat top of the gain curve (M_eff ~ 1.09-1.10). The FHA
-underpredicts the real gain by ~4-9 % (the known non-FHA effects: effective
-duty/DB, magnetizing contribution, rectifier conduction).
+[CORRECTED - see section 17. The following shape claim is RETRACTED:
+"the gain rises 150k->170k and stays flat; fr_eff ~ 160-175 kHz". It was an
+over-inference from heterogeneous anchors. Corrected statements: the series
+resonance fr ~ 49.9 kHz (from actual Lr/Cr) stands as the design value;
+150-190 kHz is simply the current real-board high-frequency regulation
+region; the 150k/10.02 V anchor is a closed-loop-era equilibrium measured
+under different conditions and MUST NOT be combined with the open-loop 190k
+lower bounds to infer any curve shape; the earlier MEASURED direction
+"frequency up -> output down" stands. M_eff(190 kHz) > 1.093 is a LOWER
+BOUND, not an estimate.]
 
 Implication: Vout = 9.6 x M_eff (Np 5T : Ns_half 4T, Vin 24 V). The 10 V
 target needs M_eff = 1.042, which sits ABOVE 190 kHz on the falling side of
@@ -646,22 +650,32 @@ extension; the tank re-audit follows.
 1. **Transformer ratio**: documented `Ns1:Np:Ns2 = 4:5:4` (center-tap), n =
    Np/Ns_half = 1.25 -> Vout = 9.6 x M_eff at 24 V. The 10 V target needs
    M_eff = 1.042.
-2. **Cr / fr**: the nominal model (fr = 49.9 kHz) is already falsified by the
-   bench (TRANSFORMER_GAIN_AUDIT); the bench behaves as fr_eff ~ 160-175 kHz
-   (the gain RISES 150k -> 170k and stays ~flat to 190k).
+2. **Cr / fr**: [CORRECTED - section 17] the series resonance fr ~ 49.9 kHz
+   (from actual Lr/Cr) stands as the design value; it is NOT falsified.
+   150-190 kHz is the current real-board high-frequency regulation region;
+   the curve shape (any apparent gain knee) is an OPEN question requiring a
+   same-condition open-loop scan, which the WARNING guard currently forbids
+   in-band for these loads.
 3. **Lr / Lm**: not directly measurable in-band from this data; the
    load-INSENSITIVITY of the gain (all four loads above the guard, FHA
    predicts a clear CR7.5 drop) indicates an Lm-dominated, low-effective-Q
    transfer - a dedicated LCR/ring-down bench measurement (user-side) is
    needed to quantify Lr/Lm.
 4. **Vin**: 24 V confirmed by the operator gates in every run.
-5. **Rectifier drop**: the FHA-vs-bench gap of +4-9 % (M_eff 1.044 at 150k vs
-   the FHA 1.00) is consistent with the output rectifier drop (~0.5-0.7 V ~
-   5-7 % of the 9.6 V scale) - a significant, quantified contributor.
+5. **Rectifier drop**: [CORRECTED - section 17] the rectifier drop is NOT
+   accepted as an explanation of any FHA-vs-bench gap; that comparison mixed
+   anchors of different conditions and eras. The rectifier drop remains a
+   real physical term in the Vout = 9.6 x M_eff scale, of unknown magnitude
+   on this board (OPEN).
 6. **Actual switching frequency**: proven per point (TBPRD 315 / actual
    189873 cross-checked; the frequency chain is NOT the problem).
-7. **FHA deviation**: +4-9 % offset AND load-insensitive in the band - the
-   FHA Q-dependence overestimates the load effect at these operating points.
+7. **FHA deviation**: [CORRECTED - section 17] the numeric +4-9 % gap claim
+   is RETRACTED (it compared a closed-loop-era anchor against the FHA).
+   What stands (lower bounds only): natural Vout(190 kHz) > 10.49 V at all
+   four loads, i.e. M_eff(190 kHz) > 1.093 at CR15/CR12.5/CR10/CR7.5; the
+   apparent load-insensitivity of that lower bound is an OPEN question for a
+   dedicated same-condition experiment (above the guard, hence blocked
+   in-band).
 
 ### 16.3 Deliverables for the control-region decision (work order section 12)
 
@@ -671,13 +685,18 @@ extension; the tank re-audit follows.
 2. **Continuous PFM first-valid load**: NOT FOUND within the authorized
    loads (heavier loads are outside this work order by definition - CR7.5 at
    13.3 W is already ~2x the CR15 6.67 W).
-3. **Burst candidate region**: the ENTIRE CR7.5..CR15 x [145k, 190k] x 24 V
-   region - continuous PFM cannot regulate to 10 V anywhere in it; Burst
-   must own these operating points.
+3. **Burst candidate region**: [CORRECTED - section 17, scope fix] the
+   evidence covers ONLY Vin=24 V, Vref=10 V, CR7.5..CR15, f in [145k, 190k]:
+   in that region continuous PFM cannot regulate to 10 V and Burst is the
+   required owner. It is NOT a product-wide Burst region: Vref=12 V and
+   other loads/lines are untested (see the 12 V sanity plan).
 4. **Recommended production Fmax**: KEEP 170 kHz (frozen). Extending toward
-   190 kHz does not reach 10 V at any authorized load (M_eff(190k) ~ 1.09 >
-   1.042); the 10 V point lies above 190 kHz on the falling side (~200-230k
-   by the curve shape) - outside every authorized envelope.
+   190 kHz does not reach 10 V at any authorized load (the MEASURED lower
+   bound M_eff(190 kHz) > 1.093 exceeds the 10 V target 1.042). The 10 V
+   continuous-PFM operating point, if it exists, lies above the authorized
+   190 kHz characterization ceiling [INFERRED - no measurement claims where
+   it lies]. [CORRECTED - section 17: the earlier 200-230k estimate is
+   withdrawn.]
 5. **Recommended Burst entry/exit region**: by VOUT proximity to the guard
    (the plant is gain-rich everywhere): entry when Vout >= ~9.5-9.8 V
    (raw >= ~1175-1200) at any frequency; the exit boundary belongs to the
@@ -700,3 +719,43 @@ Deferred (section 13); the load ladder ran with IPRI columns = 0 +
 **Work order final status: LOAD_BOUNDARY_CHARACTERIZATION_PASS**
 (all four loads classified, zero faults, zero protection events, zero OVF;
 the mismatch is the FINDING, not a blocker).
+
+## 17. Physics statement corrections (W2_CONTROL_REGION_REDESIGN_V1 section 0)
+
+Retraction ledger - what was written before, what is corrected, and why:
+
+1. **fr_eff = 160-175 kHz / "49.9 kHz series resonance falsified" - RETRACTED.**
+   The series resonance fr ~ 49.9 kHz comes from the actual Lr/Cr and stands
+   as the design value [MEASURED design parameter]. 150-190 kHz is the
+   current real-board high-frequency regulation region. If a curve knee is
+   ever observed it must be called an "apparent gain knee / regulation-region
+   feature", not a resonant-frequency estimate [PROPOSED terminology]. The
+   shape claim originated from combining a closed-loop-era 150 k equilibrium
+   with open-loop 190 k lower bounds - different conditions, not combinable.
+2. **M_eff(190 kHz)**: the experiment proves ONLY natural Vout(190 kHz) >
+   10.49 V, hence M_eff(190 kHz) > 1.093 [MEASURED, lower bound]. Any "about
+   1.09" phrasing was an over-reading of a lower bound and is withdrawn.
+3. **10 V operating point location**: the only supportable statement is "the
+   10 V continuous-PFM operating point, if it exists, lies above the
+   authorized 190 kHz characterization ceiling" [INFERRED from the measured
+   lower bounds plus the MEASURED direction frequency-up -> output-down].
+   The earlier 200-230 kHz estimate is withdrawn [was INFERRED, now removed].
+4. **Burst region scope**: the CR7.5-CR15 Burst-ownership conclusion applies
+   to Vin=24 V, Vref=10 V, CR7.5..CR15 only. It is NOT a product-wide Burst
+   region and must not be quoted as one.
+5. **"150k->170k gain rising" vs "frequency up -> output down"**: these ARE
+   contradictory under a same-condition assumption. Resolution: the direction
+   evidence is MEASURED (open-loop PFM direction tests) and stands; the
+   "rising" claim came from mixing the closed-loop-era 150 k equilibrium
+   (different conditions) with open-loop lower bounds - a definition-level
+   error in my reconciliation, now retracted. The 150 k anchor requires a
+   same-condition re-measurement before any further use (currently blocked
+   in-band by the frozen WARNING guard for these loads).
+6. **Rectifier-drop explanation of the FHA gap - RETRACTED** as an
+   explanation. The rectifier drop is a real physical term of unknown
+   magnitude here; no gap quantification survives the same-condition review.
+
+Label discipline for all downstream documents: MEASURED (a bench observation
+with an evidence pointer), INFERRED (a logical consequence of MEASURED items,
+labeled as such), PROPOSED (a design value awaiting verification). Nothing
+may migrate between labels without an evidence pointer.

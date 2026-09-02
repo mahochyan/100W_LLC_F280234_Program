@@ -398,3 +398,30 @@ DELIVERABLES=map empty in-band (CR7.5..CR15 x 145..190k x 24V); Burst owns the
 NEXT=await operator confirmation -> W2_CONTROL_REGION_REDESIGN_V1
         (NO automatic PI/Burst/envelope changes in this work order)
 ```
+
+## CONTROL_REGION_REDESIGN checkpoint (W2_CONTROL_REGION_REDESIGN_V1)
+
+```text
+STATUS=CONTROL_REGION_REDESIGN_READY_FOR_BURST_CHARACTERIZATION
+PHASE1=design + host/NE model + NE verification ONLY (no real Burst fired)
+NE_MODEL=app/burst_region.{c,h} (NE build list only; ol_ram placement;
+        states IDLE/RUN_PFM/BURST_PREP/BURST_ON/BURST_OFF/FAULT; Vref generic;
+        entry = Fmax saturation + Vout>Vref+hyst + N fresh + min dwell;
+        packets-only v1 at a fixed safe frequency; fault passthrough)
+NE_PROOF=burst_region_ne_r5.log 21 PASS / 0 FALSE
+OL_REGRESSION=ne_harness_console9.log PASS=TRUE, 0 FALSE
+NE_SHA=4A2215CEDEE09F405FD51BCAD6DDC9AFC19E5655B9F74F37E1EFC77C300753BC (frozen)
+REAL=semantic delta zero (all additions #if NE-gated); incident recorded in
+        the SHA manifest: the v2.2 .out instance was overwritten during a
+        rebuild verification; TI COFF embeds a link timestamp so .out
+        instances are not byte-reproducible; the on-disk REAL .out is an
+        UNAUDITED rebuild instance -> NO real firing until the next real
+        work order re-freezes + full proof chain
+PHYSICS=corrections executed (report sections 15-17): fr~49.9kHz stands;
+        M_eff(190k)>1.093 lower bounds only; 10V point above the 190k ceiling
+        if it exists; Burst scope Vin24/Vref10/CR7.5-CR15 only; rectifier-gap
+        explanation retracted; 12V plan DESIGN-ONLY (frozen guards are BELOW
+        a 12V target -> needs an explicit guard requalification first)
+NEXT=W2_BURST_PACKET_CHARACTERIZATION_V1 (operator approval required):
+        fresh REAL freeze + full proof chain, then 1/2/3/5-cycle packet ladder
+```
