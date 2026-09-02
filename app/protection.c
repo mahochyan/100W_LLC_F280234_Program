@@ -806,8 +806,20 @@ void PROT_SlowTask(void)
     else if (g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL ||
              g_bringup_stage == BRINGUP_STAGE_5B_SOFT_START_TEST)
     {
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+        /* W2_OPEN_LOOP_STEADY: this experimental build's actuator
+         * envelope is 145..170 kHz (compile-time frozen in
+         * open_loop_steady.h). The legacy window
+         * (g_open_loop_min_frequency_hz..LLC_HARD_MAX_HZ=150 kHz) would
+         * self-trip FAULT_ILLEGAL_FREQUENCY for every experimental point
+         * above 150 kHz. Protection logic is otherwise unchanged and all
+         * other builds keep the legacy window. */
+        if (g_switching_frequency_hz < OPEN_LOOP_FREQ_MIN_HZ ||
+            g_switching_frequency_hz > OPEN_LOOP_FREQ_MAX_HZ)
+#else
         if (g_switching_frequency_hz < g_open_loop_min_frequency_hz ||
             g_switching_frequency_hz > LLC_HARD_MAX_HZ)
+#endif
         {
             PROT_RequestFault(FAULT_ILLEGAL_FREQUENCY, 0U);
             return;

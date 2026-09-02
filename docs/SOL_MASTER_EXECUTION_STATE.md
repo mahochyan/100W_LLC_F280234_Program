@@ -215,7 +215,7 @@ control code must not be transplanted directly.
 |---|---|---|
 | W0 | PASS | `W0_IDENTITY_RESTORED` |
 | W1 | PASS | `SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS` |
-| W2 | BLOCKED | Candidate4 REAL 2MS failed four times (CR15/500mA CC/load off/CNT34 open); no retry; next load NONE |
+| W2 | BLOCKED + EXPERIMENT | Candidate4 closed (4 same-SHA failures, no retry). OPEN_LOOP_STEADY plant characterization active: builds frozen, NE proof PASS, REAL matrix armed awaiting operator physical authorization |
 | W3 | NOT STARTED | 10V 500ms -> 60s |
 | W4 | NOT STARTED | 10V PI/PFM quality |
 | W5 | NOT STARTED | 10V -> 12V reference transition |
@@ -241,3 +241,26 @@ control code must not be transplanted directly.
 - Real ladder stops on the first failed gate; no automatic repeat.
 - Every W2 duration must independently prove nonzero compute/apply, advancing
   ADC publication/consumption, 145..170 kHz commands and TBPRD 352..413.
+
+## W2_OPEN_LOOP_STEADY checkpoint (2026-09-02)
+
+Authoritative report: `docs/W2_OPEN_LOOP_STEADY_PLANT_CHARACTERIZATION_REPORT.md`.
+
+```text
+TASK=W2_OPEN_LOOP_STEADY_PLANT_CHARACTERIZATION_V1 (operator approved)
+CANDIDATE4=CLOSED (4 same-SHA real failures, W2_REAL_ATTEMPT_COUNT=7)
+FIRMWARE=STAGE6_OPEN_LOOP_STEADY_BUILD frozen (PI bypassed, envelope 145..170k compile-time)
+REAL_OUT_SHA256=c524f10c7d65ee99f660b147c100f84fcdfc85442e4d48d411e8b1381c45aeab
+NE_OUT_SHA256=4d96f1da455386f4115205b961adb55f283229725e1e6d908179aa5170ac0f99
+NE_PROOF=SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE (95 checks TRUE / 0 FALSE)
+TINT0_BUDGET=interval_max=1233c(20.6us) whole_ISR_max=1062c(17.7us) PASS
+SLOWTASK_5A_WINDOW=145..170k under STAGE6_OPEN_LOOP_STEADY_BUILD (legacy window kept for all other builds)
+REAL_MATRIX=ARMED_NOT_FIRED (SHA+env hard gates; descending 170k->150k; warning=upper-gain-boundary; fault=no-retry)
+NEXT_GATE=operator physical authorization (CR15 15ohm, Vin 24V, 0.5A input limit, CNT3/4 connected)
+HANDOFF_MODS=PAUSED (SoftStart->PI candidate work suspended during the experiment)
+```
+
+- Every OPEN_LOOP_STEADY run (NE or REAL) ends PWM=0/OST=1/TZINT=0; verified
+  after every scenario/point; any fault stops the matrix with NO retry.
+- The REAL matrix script refuses to touch the target unless all six human
+  gates are 1 and the frozen REAL OUT SHA256 matches.
