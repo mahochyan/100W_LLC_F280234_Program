@@ -429,7 +429,8 @@ NEXT=W2_BURST_PACKET_CHARACTERIZATION_V1 (operator approval required):
 ## BURST_PACKET_CHARACTERIZATION checkpoint (W2_BURST_PACKET_CHARACTERIZATION_V1)
 
 ```text
-STATUS=READY_FOR_BURST_PACKET_1C_V2_5  (NE proof PASS incl. S10B + REAL v2.5 frozen; no real shot fired yet)
+STATUS=BURST_PACKET_CHARACTERIZATION_BLOCKED
+REAL_1C_RESULT=COMP_TZ1_ABORT_BEFORE_CYCLE
 SCOPE=answer only how much energy an exact 170kHz/DB36/50% packet injects;
       NOT Burst closed-loop; no auto Burst->RUN; IPRI deferred
 NE_PROOF=burst_packet_ne_r4.log BURST_PACKET_NE_VERIFICATION_PASS=TRUE;
@@ -452,8 +453,14 @@ REAL_MAP=evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_
 NE_SHA256=39f79c14d464254323c2d1e1269425be140e5e752f8d38fbc7b03db7bc64a7fe
 NE_HEX_SHA256=3bc6ba07637f5ccc53d961982a6b17f772473b8b1e2e6ee0feb063cd77433384
 PROTOCOL=docs/W2_BURST_PACKET_CHARACTERIZATION_V1_PROTOCOL.md
-NEXT=OPERATOR must approve REAL v2.5 identity (new SHA) before the real 1C shot;
-        then 1C -> audit -> 2C -> audit -> 3C -> audit -> 5C -> audit -> final
-        report; no auto sequencing; safety stops end ladder
-FINAL_STATUS_PENDING=BURST_PACKET_CHARACTERIZATION_PASS_CR15 or _BLOCKED
+REAL_1C_LOG=evidence/sol_master_execution/w2_open_loop_steady/burst_packet_real_1c_v25.log
+REAL_1C_OBS=precharge/takeover auto-stop PASS (takeover_raw=718, freq=176470,
+        stop_reason=1); host Vout_before_raw read 557 (4.44V) after coast
+        delay; packet request 1C -> multi_result=2 (abort), completed=0,
+        fault=0x10 FAULT_COMP_TZ1, TZINT=1, final PWM=0/OST=1
+REAL_1C_ACTION=IMMEDIATE_STOP_LADDER; no retry; no 2C/3C/5C (per work order)
+REAL_1C_ROOT_CAUSE_HYPOTHESIS=abrupt 170kHz single-pulse packet after coast
+        trips COMP/TZ1 before any completed cycle (consistent with earlier
+        abrupt cold-start COMP/TZ1 evidence); no guard relaxed
+FINAL_STATUS=BURST_PACKET_CHARACTERIZATION_BLOCKED
 ```

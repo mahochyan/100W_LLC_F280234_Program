@@ -147,3 +147,14 @@ Do NOT include MOS/transformer/input energy in this report.
 - If PASS, recommend `W2_BURST_ENVELOPE_CONTROL_V1`.
 - IPRI deferred -> also report `PRIMARY_CURRENT_NOT_YET_QUANTIFIED`.
 - Stale-freq Burst→RUN path remains `OPEN_CONTROL_DESIGN_QUESTION`; not in REAL.
+
+
+## 11. REAL 1C result (v2.5, CR15)
+
+- Precharge/takeover auto-stop PASS: takeover_raw=718 (~5.74 V),
+  freq=176470 Hz, stop_reason=1, PWM=0/OST=1.
+- Host read Vout_before after coast delay: raw 557 (~4.44 V).
+- 1C packet request: `multi_result=2`, `completed_cycles=0`, `fault=0x10`
+  (`FAULT_COMP_TZ1`), `TZINT=1`, final `PWM=0/OST=1`.
+- No energy injected; ladder stopped immediately; no retry, no 2C.
+- Final status: `BURST_PACKET_CHARACTERIZATION_BLOCKED`.

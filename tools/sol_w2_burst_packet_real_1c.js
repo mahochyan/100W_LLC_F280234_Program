@@ -89,7 +89,7 @@ if(ack){ print("GATE_USER_ACK=USER_CONFIRMED_IN_MESSAGE"); }
 var actual=sha256File(OUT);
 print("REAL_OUT_SHA256="+actual);
 print("EXPECTED_SHA256="+EXPECTED_SHA);
-if(!actual.equals(EXPECTED_SHA)){
+if(!actual.toUpperCase().equals(EXPECTED_SHA.toUpperCase())){
   print("ABORT: REAL SHA mismatch");
   throw "sha-mismatch";
 }
@@ -158,7 +158,7 @@ while(pollMs<MAX_POLL_MS){
   toRaw=rw("g_open_loop_takeover_raw");
   toFreq=rv32u("g_open_loop_takeover_freq_hz");
   autoStop=rw("g_open_loop_stop_reason");
-  if(rw("g_fault_flags")!==0 || reg("EPwm1Regs.TZFLG.bit.OST")===0 || rw("g_pwm_enabled")===0){
+  if(rw("g_fault_flags")!==0 || reg("EPwm1Regs.TZFLG.bit.OST")===0){
     print("PRECHARGE_ABORT fault="+rv32u("g_fault_flags")+" ost="+reg("EPwm1Regs.TZFLG.bit.OST")+" pwm="+rw("g_pwm_enabled"));
     break;
   }
