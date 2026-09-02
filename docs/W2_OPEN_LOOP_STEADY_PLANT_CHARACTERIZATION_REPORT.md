@@ -139,3 +139,60 @@ Input-power sanity: CR15 at ≤10.5 V → ≈0.33-0.4 A at 24 V input < 0.5 A li
   (CR15 15 Ω load connected, Vin 24 V verified, 0.5 A input limit set,
   CNT3/4 connected) — to be granted via the authorization question.
 - W2 SoftStart→PI handoff modifications remain PAUSED.
+
+## 7. REAL fire attempt #1 (170 kHz entry, CR15, Vin 24 V / 0.5 A limit) — COMP/TZ1 trip, NO retry
+
+Operator-authorized. SHA hard gate PASS (`c524f10c…aeab`), all six human gates PASS, boot gates
+PASS, COMP/TZ loopback PASS, stage confirms 1..5 PASS, preflight PASS.
+
+First point = 170 000 Hz (lowest gain inside the experimental envelope). The actuator path
+succeeded and then the hardware protection tripped:
+
+| Observation | Value |
+|---|---|
+| `LLC_SetFrequencyHz(170000)` | succeeded, `TBPRD` 399 → 352 |
+| `LLC_PWM_Enable()` | armed TZ (`TZEINT=0x4`), released OST |
+| Trip | `TZFLG=0x5` (OST re-latched + TZ INT), `TZSEL=0x100` (OSHT1 = TZ1) |
+| `g_fault_flags` | `0x00000010` = `FAULT_COMP_TZ1` |
+| `g_system_state` | 4 (`SYS_STATE_FAULT`) |
+| Vout / IPRI | raw 14..16 (≈0.05 V) / 0..3 — the trip preceded any meaningful energy transfer |
+| Module behaviour | froze `stop_reason=5` (`OL_STOP_FAULT_EXTERNAL`), no slew, no auto retry |
+| End state | PWM=0 / OST=1, board SAFE |
+
+Interpretation: the COMP/TZ1 event is **not** produced by the SoftStart→PI handoff (that path is
+bypassed and PAUSED in this build). It occurs with a static 170 kHz / 50 % duty command on the
+first switching cycles, i.e. a start-up inrush seen by the primary-current comparator.
+
+Per work-order rule: **any fault → STOP, NO automatic retry.** A further real fire requires either
+a new proven change or a new physical condition, plus a fresh operator authorization.
+
+Evidence: `matrix_real_console_r1.log`, `real_point1_trip_console.log`.
+
+## 8. REAL attempts #2/#3 (15 ohm load ON): load-independent COMP/TZ1, zero ticks processed
+
+Standing power-run authority granted by the operator; electronic load ON (CR 15 ohm) for #2/#3
+(it had been OFF for attempt #1).
+
+| Observation | r2 (matrix re-run) | r3 (forensic capture) |
+|---|---|---|
+| SHA hard gate | PASS (same binary) | PASS (same binary) |
+| Enable gate | `POINT_170000_ENABLE: FAIL` | same, instrumented |
+| `g_fault_flags` | (RAM state lost before forensics) | `0x00000010` = `FAULT_COMP_TZ1` |
+| Stop snapshot | — | `reason=5`, `freq_applied=170000`, `freq_actual=169971`, `TBPRD=352`, `CMPA=176` |
+| Control ticks processed | — | **0** (all window accumulators 0, `ipri_mean/max=0`, `compsts_high=0`) |
+| TZ events | — | 1 (single `TZ1` one-shot) |
+| End state | PWM=0/OST=1 | PWM=0/OST=1 |
+
+**Load-independent**: the trip reproduces with the load OFF (#1) and ON (#2/#3). The module
+freezes before processing a single control tick — the hardware `TZ1` one-shot fires within the
+first switching cycles (< ~20 µs) of an abrupt 170 kHz / 50 % duty start into a discharged
+output capacitor. `LLC_SetFrequencyHz` and the actuator path are fully valid; the defect is the
+**entry strategy**, not the command path, and the protection is working correctly (candidate4's
+real runs climbed to 10.9 V before any trip because the formal SoftStart ramp was active).
+
+Conclusion for the experiment: an abrupt cold start cannot pass the frozen OCP. Open-loop plant
+characterization requires a controlled charge-up (formal SoftStart charge → open-loop takeover at
+the handoff point, or an open-loop-internal start-up ramp) — a NEW proven SHA plus a fresh
+operator gate before the next real fire.
+
+Evidence: `matrix_real_console_r2.log`, `real_trip_forensics_15ohm.log`.

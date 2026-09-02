@@ -1,0 +1,2 @@
+Vin_V,Load,Frequency_Hz,TBPRD,Vout_mean_V,Vout_min_V,Vout_max_V,Vout_ripple_V,IPRI_mean_raw,IPRI_max_raw,COMP_event,TZ_event,settling_time_ms,steady_state_valid,stop_reason,upper_gain_boundary,fault_flags
+Vin_V,Load,Frequency_Hz,TBPRD,Vout_mean_V,Vout_min_V,Vout_max_V,Vout_ripple_V,IPRI_mean_raw,IPRI_max_raw,COMP_event,TZ_event,settling_time_ms,steady_state_valid,stop_reason,upper_gain_boundary,fault_flags

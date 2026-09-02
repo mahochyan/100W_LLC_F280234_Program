@@ -70,7 +70,10 @@ try{
 var actual=sha256File(OUT);
 print("REAL OUT SHA256 host = "+actual);
 print("SHA manifest expect  = "+expected);
-if(!actual.equals(expected)){ print("ABORT: REAL binary SHA mismatch"); throw "sha-mismatch"; }
+/* The hash helper emits UPPERCASE hex while the frozen manifest was written by
+ * certutil in lowercase. Compare case-insensitively (same 64 hex digits); the
+ * gate itself is unchanged. */
+if(!actual.equals(expected.toUpperCase())){ print("ABORT: REAL binary SHA mismatch"); throw "sha-mismatch"; }
 print("REAL_OPEN_LOOP_STEADY_SHA256_HARD_GATE_PASS");
 
 // ---------- DSS session ----------
