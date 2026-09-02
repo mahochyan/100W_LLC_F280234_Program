@@ -52,5 +52,9 @@ NE_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=0ca08db48d652a02e966d9b0d1272d9652227611
 # differs (TI COFF link timestamp), loadable HEX SHA remains 0ca08db4...
 # => whole-file SHA identifies physical instance; HEX fingerprint identifies
 #   semantic/loadable content.
-REAL_OPEN_LOOP_STEADY_OUT_SHA256=<PENDING_NEW_REAL_INSTANCE>
-REAL_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=<PENDING_NEW_REAL_INSTANCE>
+REAL_OPEN_LOOP_STEADY_OUT_SHA256=4fec970e3a050da6f60f3bc4d6a35dde9a2ab06bd74e031c485b13f9b9a307c9
+REAL_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=de71cce3bc244014403466163cd320944558974a9aed0f9332ae634958f16404
+REAL_V2.4_SOURCE_COMMIT=a1614af
+REAL_V2.4_CGT=25.11.1.LTS
+REAL_V2.4_BUILD_LOG=evidence/sol_master_execution/w2_open_loop_steady/build_real_packet_v2.4.log
+REAL_V2.4_MAP=evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_LOOP_STEADY_REAL_v2.4.map
