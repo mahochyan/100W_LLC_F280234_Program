@@ -483,3 +483,70 @@ guards. Options (user decision):
    deliverable and move to the next work-order phase.
 No guard changes were made and none are proposed; the production envelope
 (PI/Burst 145..170 kHz) remains frozen and untouched.
+
+## 13. W2_OPEN_LOOP_LOAD_BOUNDARY_CHARACTERIZATION_V1 - Phase 1: IPRI telemetry audit
+
+Baseline: 32368b7. Goal: heavier loads (LOWER resistance = heavier load; CR12.5
+= 8 W@10 V, CR10 = 10 W, CR7.5 = 13.3 W; 30/45 ohm are LIGHTER loads and are
+NOT part of this work order) to find the first load where a ~10 V continuous
+PFM steady point exists inside 145..190 kHz.
+
+### 13.1 Software sampling path audit (static, no hardware touched)
+
+Chain under audit: T1/CT -> MB10S -> R32 -> IPRI node -> ADCINA2/COMP1A ->
+SOC1 -> ADCRESULT1 -> ADCINT1_ISR -> g_adc_ipri_raw.
+
+Findings (adc.c):
+1. `ADC_ConfigureSocs` configures ALL THREE SOCs UNCONDITIONALLY, every call:
+   SOC0 CHSEL=1 (ADCINA1 Vout), **SOC1 CHSEL=2 (ADCINA2/COMP1A Ipri)**,
+   SOC2 CHSEL=3 (ADCINA3 Iout); all three get the SAME TRIGSEL
+   (5 = ePWM1 SOCA) and the same ACQPS. No build conditional anywhere.
+2. `ADC_Init`: INT1SEL=2 (EOC2, last of the three conversions) -> one INT per
+   complete 3-SOC frame; `ADC_SOC_MASK=0x0007` includes SOC1 in software
+   forced bursts; SOCPRIORITY=0 (round robin, ordering only).
+3. `ADCINT1_ISR` publishes RESULT0/1/2 verbatim (no calibration, no clamping,
+   no zeroing): `g_adc_ipri_raw = ipri` at adc.c line 317, plus the 1/16 IIR
+   accumulator, the OL window stats, and the power-probe peak capture.
+4. `g_adc_ipri_raw` has EXACTLY ONE writer (the ISR). No other writer zeroes
+   it. SOC1 is never reconfigured anywhere else in the tree.
+5. The OL build uses the same functions (`ADC_SetPwmSyncTriggerMode` /
+   `ADC_SetClosedLoopSyncTriggerMode` -> ConfigureSocs(5)); the takeover path
+   re-arms PIEIER1.INTx1.
+
+**Verdict: the IPRI software telemetry path is COMPLETE and unconditional in
+every build, including the current v2.2 REAL binary. There is nothing to
+"add" - SOC1 is configured, triggered, converted and published end-to-end.**
+
+### 13.2 Empirical evidence
+
+- The chain is PROVEN LIVE on the real bench: trip-era forensics
+  (`real_trip_forensics_15ohm.log` line 15) published `ipri_raw=3` (nonzero)
+  during real switching of the abrupt-start era.
+- In the OL runs (r6/r7/r8) Vout (SOC0, same trigger, same ISR, same burst)
+  updates correctly while `g_adc_ipri_raw` reads EXACTLY 0 across windows,
+  stop snapshots and probes.
+- Since SOC0/SOC1/SOC2 are configured identically and the same ISR publishes
+  all three, a zero on RESULT1 means the ADCINA2 ANALOG NODE sits at ~0 V at
+  the CMPB sampling phase during OL operation.
+
+### 13.3 Classification: IPRI_TELEMETRY_DEFERRED
+
+Reason: the deficit is NOT a software gap - the observation path already
+exists end-to-end and has published nonzero data on this bench before. The
+zero is an analog-node-level fact. Candidate physical causes (user-side bench
+inspection, outside this work order's no-hardware-touch boundary): CT ratio /
+R32 burden scale (mV-per-amp too small for 12-bit resolution at the operating
+current - the trip-era value 3 counts ~ 2.4 mV supports this), the CMPB fixed
+sampling phase landing near a tank-current zero-crossing, or a physical
+connection issue in the T1/CT -> MB10S -> R32 -> CNT -> ADCINA2 chain.
+Adding redundant software sampling paths would NOT establish telemetry and
+would only perturb the proven SOC/ISR timing (ET_3RD, ISR budget, OVF,
+stale) for zero benefit - therefore deferred, not attempted.
+
+The hardware Comparator/TZ OCP fast protection shares the ADCINA2 pin, is
+UNAFFECTED by this audit, and remains armed (COMP_event/TZ_event columns stay
+in every CSV row and read 0 in all runs so far).
+
+The load-boundary sweep proceeds with the IPRI columns recorded as 0 and the
+deferred flag; if the bench chain is repaired later, no software change is
+required to populate them.

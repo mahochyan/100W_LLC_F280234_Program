@@ -343,3 +343,15 @@ KNOWN_LIMIT=g_adc_ipri_raw reads 0 in the OL sampling set (IPRI columns
         unpopulated; Vout map unaffected; fix belongs to the load-variation phase)
 PRODUCTION=PI/Burst 145..170k envelope FROZEN and untouched (per work order)
 ```
+
+## LOAD_BOUNDARY checkpoint (W2_OPEN_LOOP_LOAD_BOUNDARY_CHARACTERIZATION_V1)
+
+```text
+BASELINE=32368b7 (CR15 closed: natural Vout(f,CR15,24V) > 10.49V for f in 145..190k)
+PHASE1_IPRI_AUDIT=software path COMPLETE + unconditional (SOC1 ADCINA2/SOCA ->
+        RESULT1 -> ISR -> g_adc_ipri_raw, no build conditional, single writer);
+        chain proven live on bench (trip-era ipri_raw=3); OL reads exactly 0 =>
+        analog-node-level fact; IPRI_TELEMETRY_DEFERRED (no redundant software
+        path; protects SOC/ISR timing); Comparator/TZ OCP untouched + armed
+NEXT=matrix v4 (load-boundary protocol) then READY_FOR_CR12P5 (user swaps load)
+```
