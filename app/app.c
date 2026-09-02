@@ -18,6 +18,7 @@
 #include "soft_start.h"
 #include "cal_hold_burst.h"
 #include "open_loop_steady.h"
+#include "burst_packet.h"
 #include "app.h"
 #include "shot.h"
 
@@ -88,6 +89,7 @@ void APP_Init(void)
 #endif
 #if STAGE6_OPEN_LOOP_STEADY_BUILD
     OPENLOOP_Init();   /* W2 open-loop steady module (this build only) */
+    BURSTPACKET_Init();  /* W2_BURST_PACKET_CHARACTERIZATION_V1 packet layer */
 #endif
     APP_InitInterrupts();
 

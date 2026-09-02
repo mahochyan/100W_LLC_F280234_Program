@@ -29,6 +29,7 @@ echo === CGT 25.11.1.LTS clean Stage6_OL_STEADY compile (COFF, W2_OPEN_LOOP_STEA
     "%PROJ%\app\default_isr.c" ^
     "%PROJ%\app\comparator.c" ^
     "%PROJ%\app\power_probe.c" ^
+    "%PROJ%\app\burst_packet.c" ^
     "%PROJ%\app\cal_hold_burst.c" ^
     "%PROJ%\app\open_loop_steady.c" ^
     "%PROJ%\driver\gpio.c" ^
@@ -78,6 +79,7 @@ echo === link (FLASH) ===
     "%BUILD%\default_isr.obj" ^
     "%BUILD%\comparator.obj" ^
     "%BUILD%\power_probe.obj" ^
+    "%BUILD%\burst_packet.obj" ^
     "%BUILD%\cal_hold_burst.obj" ^
     "%BUILD%\open_loop_steady.obj" ^
     "%BUILD%\soft_start.obj" ^

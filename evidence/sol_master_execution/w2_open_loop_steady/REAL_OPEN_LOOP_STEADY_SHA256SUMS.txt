@@ -34,3 +34,23 @@ NE_OPEN_LOOP_STEADY_OUT_SHA256=354c7499ab41e4afc8a09e9a0e99ec72a812cde7c4e30aa5a
 # (17956153C376FE3D...): NO real firing is permitted against it until the next
 # real-firing work order re-freezes a fresh instance and runs the full proof
 # chain (static audit -> NE -> no-energy -> real hardware).
+
+# ---- v2.4 (W2_BURST_PACKET_CHARACTERIZATION_V1) ----
+# NE packet characterization harness PASS:
+#   BURST_PACKET_NE_VERIFICATION_PASS=TRUE
+#   1C/2C/3C/5C exact, 0C/6C reject, fault-before reject,
+#   no-request no-fire, mid-packet fault abort, OST=1/PWM=0,
+#   TBPRD=352/CMPA=176/DB=36/actual~169971Hz, control Fmax frozen.
+# Source deltas: burst_packet.*, MULTICYCLE Stage5A entry, NE-only TZ1
+#   simulation for the no-energy path (REAL compiles out), and OL steady
+#   PWM_RuntimeValuesValid 145..170k band for PrepareStart.
+# Regressions: SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE,
+#   BURST_REGION_NE_VERIFICATION_PASS (PASS=21 FALSE=0).
+NE_OPEN_LOOP_STEADY_OUT_SHA256=7a0491a24bafb821a95814bc271e2eb2da75f9c1b19698a18250a16a7c9dc88a
+NE_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=0ca08db48d652a02e966d9b0d1272d9652227611c18b30a55ff9a18fc35d0ea1
+# Fingerprint validation: identical-source rebuild r8 whole-SHA de02fe10...
+# differs (TI COFF link timestamp), loadable HEX SHA remains 0ca08db4...
+# => whole-file SHA identifies physical instance; HEX fingerprint identifies
+#   semantic/loadable content.
+REAL_OPEN_LOOP_STEADY_OUT_SHA256=<PENDING_NEW_REAL_INSTANCE>
+REAL_OPEN_LOOP_STEADY_LOADABLE_HEX_SHA256=<PENDING_NEW_REAL_INSTANCE>

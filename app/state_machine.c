@@ -13,6 +13,7 @@
 #include "control.h"
 #include "protection.h"
 #include "power_probe.h"
+#include "burst_packet.h"
 #include "soft_start.h"
 #include "shot.h"
 #include "open_loop_steady.h"
@@ -398,6 +399,10 @@ void SM_Run(void)
     /* Stage 4D one-shot power probe (only in Stage 4, IDLE, PWM OFF). */
     /* Bring-up probes are historical tools; the formal path does not call
      * them. MULTICYCLE stays wired for CAL_HOLD's PASSed Profile C charge. */
+    /* W2_BURST_PACKET_CHARACTERIZATION_V1 packet request layer. It is
+     * deliberately BEFORE MULTICYCLE_SlowTask so a validated request is
+     * forwarded to the proven cycle-level engine in the same slow pass. */
+    BURSTPACKET_SlowTask();
     MULTICYCLE_SlowTask();
     CALHOLD_SlowTask();
 

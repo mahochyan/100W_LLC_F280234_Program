@@ -196,6 +196,16 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
         {
             /* FORMAL SoftStart trajectory write: allowed. */
         }
+        else if (period >= 352UL && period <= 413UL &&
+                 deadtime >= 36U && deadtime <= 190U)
+        {
+            /* W2_BURST_PACKET_CHARACTERIZATION_V1: OL steady / packet path
+             * authorized production-envelope band 145..170 kHz (60 MHz =>
+             * TBPRD 413..352). This is the same band LLC_SetFrequencyHz already
+             * accepts in this build; it lets the proven MULTICYCLE packet engine
+             * PrepareStart at 170 kHz. Production builds do not compile this
+             * branch. */
+        }
         else
 #endif
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD

@@ -32,6 +32,7 @@ echo === CGT 25.11.1.LTS clean Stage6_OL_STEADY_NE compile (COFF, W2_OPEN_LOOP_S
     "%PROJ%\app\cal_hold_burst.c" ^
     "%PROJ%\app\open_loop_steady.c" ^
     "%PROJ%\app\burst_region.c" ^
+    "%PROJ%\app\burst_packet.c" ^
     "%PROJ%\driver\gpio.c" ^
     "%PROJ%\driver\pwm.c" ^
     "%PROJ%\device\system.c" ^
@@ -82,6 +83,7 @@ echo === link (FLASH) ===
     "%BUILD%\cal_hold_burst.obj" ^
     "%BUILD%\open_loop_steady.obj" ^
     "%BUILD%\burst_region.obj" ^
+    "%BUILD%\burst_packet.obj" ^
     "%BUILD%\soft_start.obj" ^
     "%BUILD%\gpio.obj" ^
     "%BUILD%\pwm.obj" ^

@@ -327,6 +327,17 @@ static Uint16 COMP_ArmCommon(Uint16 requested_dac, Uint16 require_softstart)
     g_comp_prestart_gpio15 = GpioDataRegs.GPADAT.bit.GPIO15;
     g_comp_prestart_tzflg = EPwm1Regs.TZFLG.all;
 
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* NE no-energy harness: the COMP1OUT->GPIO15/TZ1 loopback has already been
+     * proven on the real board and remains armed. In the no-energy shadow test
+     * there is no real comparator output, so simulate the proved loopback-high
+     * state only under g_no_energy_test_mode. Real builds compile this out. */
+    if (g_no_energy_test_mode != 0U)
+    {
+        g_comp_prestart_gpio15 = 1U;
+    }
+#endif
+
     if (g_comp_prestart_gpio15 == 0U)
     {
         g_comp_prestart_reject = 1U;

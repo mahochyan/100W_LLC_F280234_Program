@@ -411,6 +411,20 @@ __interrupt void EPWM1_INT_ISR(void)
         {
             g_multi_cycle_probe_completed_cycles++;
 
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+            extern volatile Uint16 g_burst_packet_ne_fault_inject_cycle;
+            /* NE-only fault-injection prove: when a fault appears after the
+             * packet has begun, the next period-boundary check aborts the
+             * packet immediately. Real builds compile this block out. */
+            if (g_no_energy_test_mode != 0U &&
+                g_burst_packet_ne_fault_inject_cycle != 0U &&
+                g_multi_cycle_probe_completed_cycles ==
+                    (Uint32)g_burst_packet_ne_fault_inject_cycle)
+            {
+                g_fault_flags |= (1UL << 30U);
+            }
+#endif
+
             /* PWM-sync ADC fresh sample read. PIE Group1 stays masked; we poll
              * ADCINT1/EOC0 flag here as hardware conversion-complete evidence.
              * vout_fresh_this_cycle marks that THIS cycle produced a fresh
@@ -726,7 +740,11 @@ void SINGLECYCLE_AbortByFault(void)
 
 static Uint16 MULTICYCLE_CheckEntry(void)
 {
-    if (g_bringup_stage != BRINGUP_STAGE_4_PROTECTION_TEST) return 0U;
+    /* W2_BURST_PACKET_CHARACTERIZATION_V1: the packet path is a formal
+     * Stage 5A (open-loop steady) capability, so Stage 5A is now legal.
+     * All safety gates below remain unchanged. */
+    if (g_bringup_stage != BRINGUP_STAGE_4_PROTECTION_TEST &&
+        g_bringup_stage != BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL) return 0U;
     if (g_system_state != SYS_STATE_IDLE) return 0U;
     if (g_pwm_enable_request != 0U) return 0U;
     if (g_pwm_enabled != 0U) return 0U;
@@ -780,6 +798,16 @@ static void MULTICYCLE_RestoreInterrupts(void)
     EDIS;
 
     g_probe_interrupt_isolation_active = 0U;
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U)
+    {
+        /* Restore the real armed TZ1 topology for the next NE entry gate. */
+        EALLOW;
+        EPwm1Regs.TZSEL.bit.OSHT1 = 1U;
+        EDIS;
+    }
+#endif
 }
 
 void MULTICYCLE_SlowTask(void)
@@ -1019,6 +1047,18 @@ void MULTICYCLE_SlowTask(void)
         MULTICYCLE_RestoreInterrupts();
         return;
     }
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* NE no-energy simulation: there is no physical COMP1OUT->GPIO15/TZ1
+     * loopback, so a real TZ1 would falsely trip the moment PWM starts. In NE
+     * only, disconnect the TZ1 source for the duration of the cycle-count test;
+     * the REAL build keeps OSHT1 armed throughout (this block compiles out). */
+    if (g_no_energy_test_mode != 0U)
+    {
+        EALLOW;
+        EPwm1Regs.TZSEL.bit.OSHT1 = 0U;
+        EDIS;
+    }
+#endif
     PWM_StartDeterministic();
 
     /* Arm ePWM1 interrupt after deterministic start (avoid TBCTR=0 false hit). */
