@@ -225,6 +225,42 @@ olExit();
 wv("g_stage6_noenergy_test_enable",0);
 endState("S8");
 
+// ---------------- S10: formal-trajectory takeover (W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1) ----------------
+// Host fakes the SM 5A enable aftermath: the FORMAL SoftStart trajectory is
+// parked in PHASE_B at the takeover stage (period 339 = ~176.47 kHz, DB=36),
+// PWM "running", sys=SOFT_START, takeover armed. The OL module must park the
+// engine (ABORTED, no SS_HardStop), restore the OL cadence, and start the
+// session from the ACTUAL plant frequency, then slew/clamp onto the envelope.
+wv32("g_fault_flags",0);
+wv("g_system_state",2);            // SYS_STATE_SOFT_START
+wv("g_pwm_enabled",1);             // trajectory released the outputs (host fake)
+wv("g_softstart_state",8);         // SOFTSTART_PHASE_B
+wv("g_softstart_stage_index",10);  // period 239 + 10*10 = 339
+wv("g_pwm_period",339);
+wv32("g_switching_frequency_hz",176470);
+wv("g_open_loop_takeover_armed",1);
+wv("g_open_loop_takeover_done",0);
+wv("g_open_loop_ne_raw",1050);     // synthetic, safely below WARNING
+run(10);
+check("S10_TAKEN",rw("g_open_loop_takeover_done")==1);
+check("S10_ARM_CLEARED",rw("g_open_loop_takeover_armed")==0);
+check("S10_SS_ABORTED",rw("g_softstart_state")==4);
+check("S10_RAMP_INACTIVE",rw("g_softstart_ramp_active")==0);
+check("S10_SYS_RUN",rw("g_system_state")==3);
+check("S10_SESSION_ACTIVE",rw("g_open_loop_steady_active")==1);
+check("S10_PHASE_SLEW_OR_SETTLE",rw("g_open_loop_phase")==1||rw("g_open_loop_phase")==2);
+check("S10_TAKEOVER_FREQ_176K",Math.abs(rv32u("g_open_loop_takeover_freq_hz")-176470)<=60);
+check("S10_ENTRY_EQ_TAKEOVER",rv32u("g_open_loop_entry_hz")==rv32u("g_open_loop_takeover_freq_hz"));
+run(20);
+/* slew output must clamp onto the envelope edge: no out-of-band write ever
+ * reaches LLC_SetFrequencyHz (first step lands exactly on 170000) */
+check("S10_SLEW_CLAMP_170K",rv32u("g_open_loop_applied_hz")==170000);
+check("S10_CMD_EFFECTIVE_170K",rv32u("g_open_loop_cmd_effective_hz")==170000);
+wv("g_pwm_enabled",0);             // undo the host fake for endState semantics
+olExit();
+check("S10_STOP_HOST",rw("g_open_loop_stop_reason")==1);
+endState("S10");
+
 // ---------------- final sanity ----------------
 check("FINAL_NO_FAULT",rv32u("g_fault_flags")==0);
 check("FINAL_TBPRD_386",reg("EPwm1Regs.TBPRD")==386);

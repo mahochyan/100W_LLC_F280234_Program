@@ -33,7 +33,7 @@ importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
 var MANIFEST="D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\w2_open_loop_steady\\REAL_OPEN_LOOP_STEADY_SHA256SUMS.txt";
-var CSV="D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\w2_open_loop_steady\\open_loop_matrix_real.csv";
+var CSV="D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\w2_open_loop_steady\\open_loop_matrix_real_v2.csv";
 var POINTS=[170000,165000,160000,157500,155000,152500,150000];
 var VOUT_GAIN=0.008089325, VOUT_OFF=-0.063715;
 
@@ -127,7 +127,7 @@ gate("PREFLIGHT_OL_IDLE", rw("g_open_loop_steady_active")===0);
 
 // ---------- CSV header ----------
 var fw=new BufferedWriter(new FileWriter(CSV,true));
-fw.write("Vin_V,Load,Frequency_Hz,TBPRD,Vout_mean_V,Vout_min_V,Vout_max_V,Vout_ripple_V,IPRI_mean_raw,IPRI_max_raw,COMP_event,TZ_event,settling_time_ms,steady_state_valid,stop_reason,upper_gain_boundary,fault_flags");
+fw.write("Vin_V,Load,Frequency_Hz,TBPRD,Takeover_Hz,Vout_mean_V,Vout_min_V,Vout_max_V,Vout_ripple_V,IPRI_mean_raw,IPRI_max_raw,COMP_event,TZ_event,settling_time_ms,steady_state_valid,stop_reason,upper_gain_boundary,fault_flags");
 fw.newLine();
 
 var matrixAborted=false, pointsDone=0, boundaryHit=0;
@@ -147,7 +147,8 @@ for(var p=0;p<POINTS.length;p++){
   wv32("g_open_loop_freq_slew_hz_per_sample",500);
   wv("g_pwm_enable_request",1);
   run(60);
-  var en_ok = rw("g_pwm_enable_result")===1 && rw("g_system_state")===3 && rw("g_open_loop_steady_active")===1;
+  var tk=rw("g_open_loop_takeover_done");
+  var en_ok = rw("g_pwm_enable_result")===1 && rw("g_system_state")===3 && rw("g_open_loop_steady_active")===1 && tk===1;
   print("GATE POINT_"+target+"_ENABLE: "+(en_ok?"PASS":"FAIL"));
   if(!en_ok){ matrixAborted=true; hardFail=true; break; }
 
@@ -185,14 +186,14 @@ for(var p=0;p<POINTS.length;p++){
   // stop snapshot
   var reason=rw("g_open_loop_stop_reason");
   var ub2=rw("g_open_loop_upper_gain_boundary");
-  var snap={ freq:target, tbprd:rw("g_open_loop_stop_tbprd"),
+  var snap={ freq:target, tk:rv32u("g_open_loop_takeover_freq_hz"), tbprd:rw("g_open_loop_stop_tbprd"),
     mean:rw("g_open_loop_stop_mean_raw"), min:rw("g_open_loop_stop_min_raw"), max:rw("g_open_loop_stop_max_raw"),
     ipm:rw("g_open_loop_stop_ipri_mean_raw"), ipx:rw("g_open_loop_stop_ipri_max_raw"),
     comp:rv32u("g_open_loop_stop_compsts_high"), tz:rv32u("g_open_loop_stop_tz_events"),
     settle:rw("g_open_loop_settle_ms"), stk:rv32u("g_open_loop_steady_ticks"),
     fa:rv32u("g_open_loop_stop_freq_applied"), cmd:rv32u("g_open_loop_stop_cmd"),
     reason:reason, ub:ub2, fault:rv32u("g_fault_flags"), steady:rw("g_open_loop_steady_reached") };
-  var row="24,CR15,"+target+","+snap.tbprd+","+voutV(snap.mean).toFixed(3)+","+voutV(snap.min).toFixed(3)+","+
+  var row="24,CR15,"+target+","+snap.tbprd+","+snap.tk+","+voutV(snap.mean).toFixed(3)+","+voutV(snap.min).toFixed(3)+","+
           voutV(snap.max).toFixed(3)+","+voutV(snap.max-snap.min).toFixed(3)+","+snap.ipm+","+snap.ipx+","+
           snap.comp+","+snap.tz+","+snap.settle+","+(snap.reason===1?(snap.steady===1?1:0):0)+","+snap.reason+","+snap.ub+",0x"+(snap.fault>>>0).toString(16);
   fw.write(row); fw.newLine(); fw.flush();

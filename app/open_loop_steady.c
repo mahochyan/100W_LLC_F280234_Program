@@ -28,8 +28,10 @@
 #include "DSP2803x_Examples.h"
 #include "llc_config.h"
 #include "llc_globals.h"
+#include "soft_start.h"      /* formal-trajectory states (takeover source) */
 #include "board_calibration.h"
 #include "pwm.h"
+#include "adc.h"        /* takeover cadence restore (closed-loop sync mode) */
 #include "open_loop_steady.h"
 
 #if STAGE6_OPEN_LOOP_STEADY_BUILD
@@ -141,6 +143,14 @@ volatile Uint16 g_open_loop_stop_tzint           = 0U;
 volatile Uint32 g_open_loop_stop_fault           = 0UL;
 #pragma DATA_SECTION(g_open_loop_stop_timer2, "ol_ram");
 volatile Uint32 g_open_loop_stop_timer2          = 0UL;
+#pragma DATA_SECTION(g_open_loop_takeover_armed, "ol_ram");
+volatile Uint16 g_open_loop_takeover_armed       = 0U;
+#pragma DATA_SECTION(g_open_loop_takeover_done, "ol_ram");
+volatile Uint16 g_open_loop_takeover_done        = 0U;
+#pragma DATA_SECTION(g_open_loop_takeover_freq_hz, "ol_ram");
+volatile Uint32 g_open_loop_takeover_freq_hz     = 0UL;
+#pragma DATA_SECTION(g_open_loop_takeover_raw, "ol_ram");
+volatile Uint16 g_open_loop_takeover_raw         = 0U;
 
 /* ---- module-private state ---- */
 #pragma DATA_SECTION(s_win_vout_sum, "ol_ram");
@@ -450,6 +460,16 @@ static void OPENLOOP_Step(Uint16 raw_protect, Uint16 raw_stat, Uint16 fresh)
         step = (diff < slew) ? diff : slew;
         applied -= step;
     }
+    /* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1: after the trajectory takeover the
+     * applied frequency starts ABOVE the envelope (~176.5 kHz transition
+     * band). Clamp every slew output onto the envelope so no
+     * LLC_SetFrequencyHz call is ever issued out-of-band; the first write
+     * lands exactly on the envelope edge (a ~6.5 kHz step, same magnitude as
+     * the trajectory's own 10-period/5 kHz stage steps). In-band sessions
+     * are unaffected: every normal applied value already satisfies the
+     * clamp. */
+    if (applied > OPEN_LOOP_FREQ_MAX_HZ) applied = OPEN_LOOP_FREQ_MAX_HZ;
+    if (applied < OPEN_LOOP_FREQ_MIN_HZ) applied = OPEN_LOOP_FREQ_MIN_HZ;
     g_open_loop_applied_hz = applied;
     g_open_loop_slew_steps++;
     /* Arrival marker is statistics, not actuator: set it before the NE
@@ -547,11 +567,11 @@ void OPENLOOP_Init(void)
 #endif
 }
 
-void OPENLOOP_NotifyEntry(void)
+/* Session init shared by the host enable path (entry = envelope max) and
+ * the formal-trajectory takeover (entry = the actual plant frequency). */
+static void OL_SessionInit(Uint32 entry_hz)
 {
     Uint32 eff;
-
-    if (g_open_loop_steady_active != 0U) return;
 
     g_open_loop_win_mean_raw = 0U;
     g_open_loop_win_prev_mean_raw = 0U;
@@ -580,12 +600,12 @@ void OPENLOOP_NotifyEntry(void)
     s_steady_window_count = 0UL;
     s_last_adc_sequence = g_adc_sample_sequence;
 
-    g_open_loop_entry_hz   = OPEN_LOOP_ENTRY_FREQ_HZ;
-    g_open_loop_applied_hz = OPEN_LOOP_ENTRY_FREQ_HZ;
+    g_open_loop_entry_hz   = entry_hz;
+    g_open_loop_applied_hz = entry_hz;
     eff = OL_ClampHz(g_open_loop_frequency_command_hz);
     g_open_loop_cmd_effective_hz = eff;
     g_open_loop_steady_active = 1U;
-    if (OPEN_LOOP_ENTRY_FREQ_HZ == eff)
+    if (entry_hz == eff)
     {
         g_open_loop_phase = OL_PHASE_SETTLING;
     }
@@ -595,16 +615,89 @@ void OPENLOOP_NotifyEntry(void)
     }
 }
 
+void OPENLOOP_NotifyEntry(void)
+{
+    if (g_open_loop_steady_active != 0U) return;
+    OL_SessionInit(OPEN_LOOP_ENTRY_FREQ_HZ);
+}
+
 void OPENLOOP_NotifyExit(void)
 {
     if (g_open_loop_steady_active == 0U) return;
     OL_FreezeStop(OL_STOP_HOST);
 }
 
+/* ------------------------------------------------------------------ */
+/* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1                                   */
+/* Formal-trajectory takeover (OL builds only). Called from the TINT0   */
+/* dispatch (both REAL FastTask and NE tick) BEFORE the active-session  */
+/* gate. The SM 5A enable armed the poll; the FORMAL SoftStart engine   */
+/* runs its proven staged-DB charge-up (250 kHz/DB110 -> DB36 ->        */
+/* 250..150 kHz period ramp). At PHASE_B stage 10 the DB is already 36  */
+/* and the plant is at ~176.5 kHz with Vout far below the WARNING       */
+/* ceiling: park the engine WITHOUT SS_HardStop (PWM keeps running),    */
+/* restore the OL ADC cadence + ADCINT1 vector, and start the session   */
+/* from the actual plant frequency. soft_start.c is untouched: the      */
+/* EPwm1-cycle dispatch in power_probe.c selects FastUpdate by state    */
+/* range [START_HOLD..PRE_HANDOFF_BRAKE], so SOFTSTART_ABORTED exits    */
+/* that branch with no engine cleanup (SS_End is NOT called).           */
+/* ------------------------------------------------------------------ */
+static void OL_TakeoverPoll(void)
+{
+    Uint32 applied;
+
+    if (g_open_loop_takeover_armed == 0U || g_open_loop_steady_active != 0U) return;
+    if (g_fault_flags != 0UL || g_pwm_enabled == 0U) return;
+    if (g_system_state != SYS_STATE_SOFT_START) return;
+
+    if (g_softstart_state == SOFTSTART_PHASE_B &&
+        g_softstart_stage_index >= (Uint16)OPEN_LOOP_TAKEOVER_STAGE_INDEX &&
+        g_softstart_stage_index < (Uint16)SS_PHASE_B_STAGES)
+    {
+        g_softstart_state = SOFTSTART_ABORTED;   /* exits the EPwm1 dispatch; PWM stays ON */
+        g_softstart_ramp_active = 0U;
+
+        /* Restore the OL cadence: FastUpdate owned the PWM-sync SOC0
+         * servicing and had ADCINT1 PIE disabled for the whole ramp
+         * (250 kS/s OVF race guard). The OL session needs its ~50 kS/s
+         * closed-loop cadence and g_adc_sample_sequence again. */
+        ADC_SetClosedLoopSyncTriggerMode();
+        ADC_UpdatePwmSyncPointKeepCadence(g_pwm_period);
+        EALLOW;
+        PieCtrlRegs.PIEIFR1.bit.INTx1 = 0U;
+        PieCtrlRegs.PIEIER1.bit.INTx1 = 1U;
+        EDIS;
+
+        applied = LLC_TBCLK_HZ / ((Uint32)g_pwm_period + 1UL);
+        g_open_loop_takeover_freq_hz = applied;
+        g_open_loop_takeover_raw = g_adc_vout_pwm_sync_raw;
+        g_open_loop_takeover_done = 1U;
+        g_open_loop_takeover_armed = 0U;
+
+        OL_SessionInit(applied);   /* phase = SLEWING toward the host command */
+        g_system_state = SYS_STATE_RUN;
+    }
+    else if ((g_softstart_state == SOFTSTART_PHASE_B &&
+              g_softstart_stage_index >= (Uint16)OPEN_LOOP_TAKEOVER_FALLBACK_STAGE) ||
+             g_softstart_state >= SOFTSTART_FINAL)
+    {
+        /* Fallback: the takeover window was missed (trajectory slipped past
+         * stage 12 at ~166.9 kHz, or reached FINAL at 150 kHz where the
+         * natural Vout would approach ~11.5 V). Force the planned stop
+         * BEFORE the frozen 11 V gate; the trajectory's own ceiling (12 V)
+         * is too high for this experiment. */
+        g_open_loop_takeover_armed = 0U;
+        LLC_PWM_DisableSafe();
+        OL_FreezeStop(OL_STOP_TAKEOVER_MISSED);
+        g_system_state = SYS_STATE_IDLE;
+    }
+}
+
 void OPENLOOP_FastTask(void)
 {
     Uint16 raw_protect, raw_stat, fresh;
 
+    OL_TakeoverPoll();   /* formal-trajectory takeover (armed by the SM enable) */
     if (g_open_loop_steady_active == 0U) return;
 
     fresh = (g_adc_sample_sequence != s_last_adc_sequence) ? 1U : 0U;
@@ -630,6 +723,7 @@ void OPENLOOP_NoEnergyTick(void)
         g_open_loop_ne_exit_request = 0U;
         OPENLOOP_NotifyExit();
     }
+    OL_TakeoverPoll();   /* NE takeover scenario: host fakes the trajectory state */
     OPENLOOP_Step(g_open_loop_ne_raw, g_open_loop_ne_raw, 1U);
 }
 #endif

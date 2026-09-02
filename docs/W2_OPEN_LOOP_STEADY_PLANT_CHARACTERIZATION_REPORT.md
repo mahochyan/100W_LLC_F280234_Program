@@ -139,34 +139,62 @@ Input-power sanity: CR15 at ≤10.5 V → ≈0.33-0.4 A at 24 V input < 0.5 A li
   (CR15 15 Ω load connected, Vin 24 V verified, 0.5 A input limit set,
   CNT3/4 connected) — to be granted via the authorization question.
 - W2 SoftStart→PI handoff modifications remain PAUSED.
-
-## 7. REAL fire attempt #1 (170 kHz entry, CR15, Vin 24 V / 0.5 A limit) — COMP/TZ1 trip, NO retry
-
-Operator-authorized. SHA hard gate PASS (`c524f10c…aeab`), all six human gates PASS, boot gates
-PASS, COMP/TZ loopback PASS, stage confirms 1..5 PASS, preflight PASS.
-
-First point = 170 000 Hz (lowest gain inside the experimental envelope). The actuator path
-succeeded and then the hardware protection tripped:
-
-| Observation | Value |
-|---|---|
-| `LLC_SetFrequencyHz(170000)` | succeeded, `TBPRD` 399 → 352 |
-| `LLC_PWM_Enable()` | armed TZ (`TZEINT=0x4`), released OST |
-| Trip | `TZFLG=0x5` (OST re-latched + TZ INT), `TZSEL=0x100` (OSHT1 = TZ1) |
-| `g_fault_flags` | `0x00000010` = `FAULT_COMP_TZ1` |
-| `g_system_state` | 4 (`SYS_STATE_FAULT`) |
-| Vout / IPRI | raw 14..16 (≈0.05 V) / 0..3 — the trip preceded any meaningful energy transfer |
-| Module behaviour | froze `stop_reason=5` (`OL_STOP_FAULT_EXTERNAL`), no slew, no auto retry |
-| End state | PWM=0 / OST=1, board SAFE |
-
-Interpretation: the COMP/TZ1 event is **not** produced by the SoftStart→PI handoff (that path is
-bypassed and PAUSED in this build). It occurs with a static 170 kHz / 50 % duty command on the
-first switching cycles, i.e. a start-up inrush seen by the primary-current comparator.
-
-Per work-order rule: **any fault → STOP, NO automatic retry.** A further real fire requires either
-a new proven change or a new physical condition, plus a fresh operator authorization.
-
-Evidence: `matrix_real_console_r1.log`, `real_point1_trip_console.log`.
+
+
+## 7. REAL fire attempt #1 (170 kHz entry, CR15, Vin 24 V / 0.5 A limit) — COMP/TZ1 trip, NO retry
+
+
+
+Operator-authorized. SHA hard gate PASS (`c524f10c…aeab`), all six human gates PASS, boot gates
+
+PASS, COMP/TZ loopback PASS, stage confirms 1..5 PASS, preflight PASS.
+
+
+
+First point = 170 000 Hz (lowest gain inside the experimental envelope). The actuator path
+
+succeeded and then the hardware protection tripped:
+
+
+
+| Observation | Value |
+
+|---|---|
+
+| `LLC_SetFrequencyHz(170000)` | succeeded, `TBPRD` 399 → 352 |
+
+| `LLC_PWM_Enable()` | armed TZ (`TZEINT=0x4`), released OST |
+
+| Trip | `TZFLG=0x5` (OST re-latched + TZ INT), `TZSEL=0x100` (OSHT1 = TZ1) |
+
+| `g_fault_flags` | `0x00000010` = `FAULT_COMP_TZ1` |
+
+| `g_system_state` | 4 (`SYS_STATE_FAULT`) |
+
+| Vout / IPRI | raw 14..16 (≈0.05 V) / 0..3 — the trip preceded any meaningful energy transfer |
+
+| Module behaviour | froze `stop_reason=5` (`OL_STOP_FAULT_EXTERNAL`), no slew, no auto retry |
+
+| End state | PWM=0 / OST=1, board SAFE |
+
+
+
+Interpretation: the COMP/TZ1 event is **not** produced by the SoftStart→PI handoff (that path is
+
+bypassed and PAUSED in this build). It occurs with a static 170 kHz / 50 % duty command on the
+
+first switching cycles, i.e. a start-up inrush seen by the primary-current comparator.
+
+
+
+Per work-order rule: **any fault → STOP, NO automatic retry.** A further real fire requires either
+
+a new proven change or a new physical condition, plus a fresh operator authorization.
+
+
+
+Evidence: `matrix_real_console_r1.log`, `real_point1_trip_console.log`.
+
 
 ## 8. REAL attempts #2/#3 (15 ohm load ON): load-independent COMP/TZ1, zero ticks processed
 
@@ -196,3 +224,75 @@ the handoff point, or an open-loop-internal start-up ramp) — a NEW proven SHA 
 operator gate before the next real fire.
 
 Evidence: `matrix_real_console_r2.log`, `real_trip_forensics_15ohm.log`.
+
+## 9. Entry redesign v2 — W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1 (NE-proven, armed)
+
+### 9.1 Root cause carried in from sections 7–8
+
+An abrupt 170 kHz / 50 % duty cold start into a discharged output cap exceeds the frozen OCP
+within the first switching cycles, load-independently. The formal SoftStart engine avoids exactly
+this with its board-verified Profile C trajectory: **250 kHz / DB110 hold (15 cycles) → DB
+110→36 in 15×10-cycle stages → period 239→399 (250→150 kHz) in 16×10-cycle stages → FINAL**.
+DB110 at start means ~22 % effective duty (near-zero energy); the plant is charged gradually
+while the frequency is far above the resonance. Candidate4's real runs climbed to 10.9 V
+through this ramp without an OCP trip — the ramp is the proven anti-inrush mechanism.
+
+### 9.2 Design v2 (real build only; `soft_start.c` untouched)
+
+- **SM 5A enable** (state_machine.c): `BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL` now arms
+  `g_open_loop_takeover_armed` and calls the FORMAL `SoftStart_Begin()` — sys stays IDLE;
+  `SoftStart_Update5ms()` consumes the request and sets `SYS_STATE_SOFT_START` itself, exactly
+  like the Stage 6/7 path. No frequency command, no direct PWM enable at enable time.
+- **OL takeover** (open_loop_steady.c `OL_TakeoverPoll`, called from both the REAL FastTask and
+  the NE tick): when the trajectory reaches **PHASE_B stage 10** (period 339 ≈ **176.47 kHz**,
+  DB already converged to 36, Vout still far below the WARNING ceiling), the OL module:
+  parks the engine at `SOFTSTART_ABORTED` (exits the EPwm1-cycle dispatch in power_probe.c
+  **without** `SS_End`/`SS_HardStop` — PWM keeps running), restores the OL ADC cadence
+  (`ADC_SetClosedLoopSyncTriggerMode` + `ADC_UpdatePwmSyncPointKeepCadence`) and re-enables the
+  ADCINT1 vector (FastUpdate owned both during the ramp), computes the applied frequency from
+  the live `g_pwm_period`, runs `OL_SessionInit(applied)` and publishes `SYS_STATE_RUN`.
+- **Slew clamp** (Step): every slew output is clamped onto the frozen 145..170 kHz envelope, so
+  the post-takeover first write lands exactly on 170 000 Hz — a ~6.5 kHz step, the same
+  magnitude as the trajectory's own 10-period (≈5 kHz) stage steps. No out-of-envelope
+  `LLC_SetFrequencyHz` call is ever issued. In-band sessions are unaffected (clamp is a no-op).
+- **Fallback**: if the trajectory slips past PHASE_B stage 12 (~166.9 kHz) or reaches FINAL
+  (150 kHz, where the natural Vout would approach ~11.5 V), the OL module forces a planned stop
+  with the new reason `OL_STOP_TAKEOVER_MISSED (6)` BEFORE the frozen 11 V gate — the
+  trajectory's own 12 V ceiling is too high for this experiment.
+- **Protection window** (protection.c 5A/5B branch): while `sys == SYS_STATE_SOFT_START` the
+  legality ceiling is `OPEN_LOOP_TRAJ_MAX_HZ` (250 kHz = `SS_START_PERIOD` 239) because
+  `PWM_ApplyPeriodDeadtime` keeps `g_switching_frequency_hz` tracking the real period during the
+  ramp; once the OL session owns the actuator (`sys == RUN`) the window is back to the frozen
+  145..170 kHz. The command envelope and every other guard are unchanged.
+
+### 9.3 No-energy regression r5 (NE v2 SHA `e11c3d72f92243d3…`)
+
+All checks TRUE — `SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE`. New S10 takeover scenario:
+host fakes `sys=SOFT_START` + trajectory parked at PHASE_B stage 10 (period 339) →
+`S10_TAKEN`, `S10_SS_ABORTED`, `S10_RAMP_INACTIVE`, `S10_SYS_RUN`, `S10_SESSION_ACTIVE`,
+`S10_TAKEOVER_FREQ_176K` (176 470), `S10_ENTRY_EQ_TAKEOVER`, `S10_SLEW_CLAMP_170K`
+(applied = 170 000 after the first clamped step), `S10_STOP_HOST`, planned-stop end state.
+S8 TINT0 budget unchanged (interval_max 1206, whole-ISR max 1099). Console:
+`ne_harness_console5.log`.
+
+### 9.4 Frozen v2 binaries
+
+| Binary | SHA256 |
+|---|---|
+| REAL `LLC_100W_F28034_OPEN_LOOP_STEADY.out` | `32b9ecb761069ca8fe47b3d31bb301055eea9e5535a334a2caa3f991aa8c48d8` |
+| NE `LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out` | `e11c3d72f92243d3ecd5c6a79b11ae763a42f8c1cbeac192e55d0020c6ef91b5` |
+
+Manifest: `REAL_OPEN_LOOP_STEADY_SHA256SUMS.txt` (v1 values retained in comments).
+
+### 9.5 Expected real-fire outcome (physics, stated before firing)
+
+- Each matrix point = one full charge-up session (~1.4 ms trajectory + takeover + slew + steady
+  windows + planned OST). The charge-up itself is the candidate4-proven trajectory.
+- Point 1 (170 kHz): OL takes over at ~176.5 kHz, clamps to 170 kHz; the plant then converges to
+  the natural `Vout(170 kHz, CR15)`. If that value is ≥ 1304 raw (10.49 V) the session ends at
+  the WARNING boundary immediately — that boundary row IS the top edge of the CR15 map.
+- Descent: 165 kHz and below push natural Vout higher (candidate4 measured ~10.93 V at ~155 kHz),
+  so the WARNING boundary is expected somewhere between 170 kHz and ~163 kHz. Rows above the
+  boundary are valid plant points; the boundary row closes the map.
+- All guards remain: WARNING 1304 (planned OST + `OPEN_LOOP_UPPER_GAIN_BOUNDARY`), HARD 1367
+  (`PWM_Trip(FAULT_OPEN_LOOP_VOUT_CEILING)`), DAC300/TZ1 OCP, 12 s timeout, fallback stop.

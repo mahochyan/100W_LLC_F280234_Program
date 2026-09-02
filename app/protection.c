@@ -814,8 +814,17 @@ void PROT_SlowTask(void)
          * self-trip FAULT_ILLEGAL_FREQUENCY for every experimental point
          * above 150 kHz. Protection logic is otherwise unchanged and all
          * other builds keep the legacy window. */
+        /* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1: while the FORMAL SoftStart
+         * trajectory owns the start (sys == SOFT_START), the plant frequency
+         * legitimately traverses 250 kHz down to the takeover band
+         * (SS_START_PERIOD=239 -> 250 kHz, PWM_ApplyPeriodDeadtime keeps
+         * g_switching_frequency_hz tracking the real period). The command
+         * envelope stays frozen: as soon as the OL session owns the actuator
+         * (sys == RUN), the window is back to 145..170 kHz. */
         if (g_switching_frequency_hz < OPEN_LOOP_FREQ_MIN_HZ ||
-            g_switching_frequency_hz > OPEN_LOOP_FREQ_MAX_HZ)
+            g_switching_frequency_hz >
+            ((g_system_state == SYS_STATE_SOFT_START) ? OPEN_LOOP_TRAJ_MAX_HZ
+                                                      : OPEN_LOOP_FREQ_MAX_HZ))
 #else
         if (g_switching_frequency_hz < g_open_loop_min_frequency_hz ||
             g_switching_frequency_hz > LLC_HARD_MAX_HZ)

@@ -1,1 +1,11 @@
-REAL_OPEN_LOOP_STEADY_OUT_SHA256=c524f10c7d65ee99f660b147c100f84fcdfc85442e4d48d411e8b1381c45aeab
+# W2_OPEN_LOOP_STEADY frozen build manifests
+# v1 (6a54807/7fcdb71): abrupt 170 kHz cold start - real-fired, trips COMP/TZ1
+#   REAL v1 = c524f10c7d65ee99f660b147c100f84fcdfc85442e4d48d411e8b1381c45aeab
+#   NE   v1 = 4d96f1da455386f4115205b961adb55f283229725e1e6d908179aa5170ac0f99
+# v2 (W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1): cold start through the FORMAL
+#   SoftStart trajectory (staged-DB charge-up), OL takeover at PHASE_B
+#   stage 10 (period 339 ~ 176.5 kHz, DB=36). soft_start.c untouched.
+#   NE regression: tools/sol_w2_open_loop_steady_noenergy.js r5 - all TRUE,
+#   SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE (S10 takeover scenario added).
+REAL_OPEN_LOOP_STEADY_OUT_SHA256=32b9ecb761069ca8fe47b3d31bb301055eea9e5535a334a2caa3f991aa8c48d8
+NE_OPEN_LOOP_STEADY_OUT_SHA256=e11c3d72f92243d3ecd5c6a79b11ae763a42f8c1cbeac192e55d0020c6ef91b5

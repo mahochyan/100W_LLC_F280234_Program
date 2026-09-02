@@ -250,6 +250,28 @@ static void SM_HandleEnable(void)
             return;
         }
 
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+        /* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1 (real evidence: an abrupt
+         * 170 kHz/50% cold start trips COMP/TZ1 within the first switching
+         * cycles, load-independently - W2 report sections 7-8). The 5A
+         * open-loop session therefore cold-starts through the FORMAL
+         * SoftStart trajectory (proven staged-DB charge-up; soft_start.c
+         * untouched). The OL module polls the trajectory and takes over the
+         * actuator at PHASE_B stage 10 (DB already 36, ~176.5 kHz) - see
+         * OL_TakeoverPoll in open_loop_steady.c. sys stays IDLE here;
+         * SoftStart_Update5ms() consumes the request and sets
+         * SYS_STATE_SOFT_START itself, exactly like the Stage 6/7 path. No
+         * frequency command and no direct PWM enable at enable time. */
+        if (g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL)
+        {
+            g_open_loop_takeover_armed = 1U;
+            g_open_loop_takeover_done = 0U;
+            SoftStart_Begin();
+            g_pwm_enable_result = 1U;
+            return;
+        }
+#endif
+
         if (LLC_SetFrequencyHz(freq) != 1U)
         {
             PROT_RequestFault(FAULT_ILLEGAL_FREQUENCY, 0U);

@@ -264,3 +264,29 @@ HANDOFF_MODS=PAUSED (SoftStart->PI candidate work suspended during the experimen
   after every scenario/point; any fault stops the matrix with NO retry.
 - The REAL matrix script refuses to touch the target unless all six human
   gates are 1 and the frozen REAL OUT SHA256 matches.
+
+## W2 entry redesign checkpoint (2026-09-02 late, post 7fcdb71)
+
+REAL attempts #1-#3 proved the abrupt 170 kHz cold start trips COMP/TZ1 load-independently
+(sections 7-8 of the W2 report). Redesign chosen by the operator: ① SoftStart charge -> OL
+takeover (borrowing the FORMAL engine, soft_start.c untouched).
+
+```text
+DESIGN=W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1
+SM_5A_ENABLE=arms takeover + SoftStart_Begin() (sys stays IDLE; Update5ms sets SOFT_START)
+TAKEOVER=PHASE_B stage 10 (period 339 ~ 176.47 kHz, DB=36) -> park engine (ABORTED, no SS_End),
+         restore OL ADC cadence + ADCINT1, OL_SessionInit(actual period freq), sys=RUN
+SLEW_CLAMP=every slew output clamped onto 145..170k (first post-takeover write = 170000 exactly)
+FALLBACK=stage >= 12 or FINAL reached without takeover -> planned stop OL_STOP_TAKEOVER_MISSED(6)
+PROT_WINDOW=sys==SOFT_START allows trajectory band up to 250k; sys==RUN back to frozen 145..170k
+REAL_OUT_SHA256_V2=32b9ecb761069ca8fe47b3d31bb301055eea9e5535a334a2caa3f991aa8c48d8
+NE_OUT_SHA256_V2=e11c3d72f92243d3ecd5c6a79b11ae763a42f8c1cbeac192e55d0020c6ef91b5
+NE_PROOF_R5=SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE (all TRUE incl. S10 takeover scenario)
+MATRIX=point sessions (charge-up per point), CSV v2 open_loop_matrix_real_v2.csv (+Takeover_Hz)
+AUTHORITY=standing real-fire power authority granted by operator (CR15 ON, Vin 24V bench state)
+EXPECTED=WARNING boundary (upper gain) between 170k and ~163k; boundary row = CR15 map top edge
+```
+
+- soft_start.c remains byte-identical to 6a54807. The takeover only parks the engine state
+  variable and restores the OL cadence; every guard (WARNING 1304 / HARD 1367 / OCP / fallback)
+  is live from the takeover tick on.

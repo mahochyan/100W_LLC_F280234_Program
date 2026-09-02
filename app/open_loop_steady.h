@@ -12,9 +12,16 @@
  * g_open_loop_frequency_command_hz, slew-limited per fresh ADC sample, and
  * every run ends in a PLANNED OST stop (PWM=0 / OST=1 / TZINT=0).
  *
- * Power path: safe start (Stage 5A deterministic enable at the fixed safe
- * entry frequency) -> OPEN_LOOP_STEADY (slew to target, settle, steady) ->
- * planned OST stop. Protection is UNCHANGED: Comparator/TZ1 + DAC300 OCP,
+ * Power path (W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1): Stage 5A cold-starts
+ * through the FORMAL SoftStart trajectory (proven staged-DB charge-up;
+ * soft_start.c is untouched). The OL module polls the trajectory and takes
+ * over the actuator at PHASE_B stage 10 (DB already converged to 36,
+ * plant frequency ~176.5 kHz in a transition band ABOVE the 170 kHz command
+ * envelope and far below the prohibited 200 kHz region - never a commanded
+ * steady point), then slews to the host command. Real evidence: an abrupt
+ * 170 kHz/50% cold start trips COMP/TZ1 within the first switching cycles
+ * (load-independently; W2 report sections 7-8). -> OPEN_LOOP_STEADY (slew
+ * to target, settle, steady) -> planned OST stop. Protection is UNCHANGED: Comparator/TZ1 + DAC300 OCP,
  * ADC freshness monitor, PWM topology validation, 12V hardware ceiling.
  * This module ADDS two tighter experiment-only VOUT guards:
  *   - WARNING raw (10.5V): stop descending, planned OST, mark
@@ -44,8 +51,26 @@
 /* ------------------------------------------------------------------ */
 #define OPEN_LOOP_FREQ_MIN_HZ           145000UL
 #define OPEN_LOOP_FREQ_MAX_HZ           170000UL
-/* Fixed safe cold-start frequency = envelope max = lowest LLC gain. */
+/* Fixed safe cold-start frequency = envelope max = lowest LLC gain.
+ * (Kept for the no-energy harness session init; the REAL build's 5A enable
+ * goes through the formal SoftStart trajectory + OL takeover below.) */
 #define OPEN_LOOP_ENTRY_FREQ_HZ         OPEN_LOOP_FREQ_MAX_HZ
+
+/* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1: takeover window inside the formal
+ * trajectory. PHASE_B stage k writes period = SS_START_PERIOD +
+ * SS_PHASE_B_PERIOD_STEP*k with DB already at SS_FINAL_DB (36), so this
+ * module's actuator assumption (DB=36, 50% duty, period-owned) holds from
+ * PHASE_B stage 1 onward. Takeover at stage 10 (period 339 -> ~176.5 kHz):
+ * DB=36 guaranteed, Vout still far below the WARNING ceiling, and the
+ * frequency is ABOVE the 170 kHz command envelope (transition band only),
+ * so the first OL actuator write clamps straight onto the envelope max -
+ * no out-of-envelope LLC_SetFrequencyHz call is ever issued.
+ * Fallback: if the trajectory slips past stage 12 without a takeover, the
+ * OL module forces a planned stop BEFORE the plant can approach the frozen
+ * 11 V gate (the trajectory's own 12 V ceiling is too high for this task). */
+#define OPEN_LOOP_TAKEOVER_STAGE_INDEX      10U
+#define OPEN_LOOP_TAKEOVER_FALLBACK_STAGE   12U
+#define OPEN_LOOP_TRAJ_MAX_HZ               250000UL  /* SS_START_PERIOD=239 -> 250 kHz */
 
 /* Slew limit per fresh ADC sample (task: OPEN_LOOP_FREQ_SLEW_HZ_PER_SAMPLE,
  * suggested initial 500 Hz/sample). Host-writable within a compile ceiling
@@ -85,6 +110,7 @@
 #define OL_STOP_HARD_VOUT       3U   /* Vout >= 11V hard abort (PWM_Trip) */
 #define OL_STOP_TIMEOUT         4U   /* max hold backstop */
 #define OL_STOP_FAULT_EXTERNAL  5U   /* COMP/TZ/stale/other protection fault */
+#define OL_STOP_TAKEOVER_MISSED 6U   /* trajectory slipped past the takeover window */
 
 /* ------------------------------------------------------------------ */
 /* Control / telemetry variables (CCS/DSS visible)                     */
@@ -98,6 +124,11 @@ extern volatile Uint32 g_open_loop_cmd_effective_hz;     /* host command clamped
 extern volatile Uint32 g_open_loop_cmd_clamp_count;
 extern volatile Uint32 g_open_loop_slew_steps;
 extern volatile Uint16 g_open_loop_phase;
+/* formal-trajectory takeover observability */
+extern volatile Uint16 g_open_loop_takeover_armed;   /* set by SM enable; cleared at takeover/stop */
+extern volatile Uint16 g_open_loop_takeover_done;    /* 1 once the OL session owns the actuator */
+extern volatile Uint32 g_open_loop_takeover_freq_hz; /* plant frequency at the takeover tick */
+extern volatile Uint16 g_open_loop_takeover_raw;     /* Vout raw at the takeover tick */
 extern volatile Uint16 g_open_loop_steady_reached;
 extern volatile Uint32 g_open_loop_ticks_active;
 extern volatile Uint32 g_open_loop_slew_done_tick;
