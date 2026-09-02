@@ -62,6 +62,10 @@ SECTIONS
    .ebss               : > RAML2,       PAGE = 1
    .esysmem            : > RAML3,       PAGE = 1
    shot_ram            : > RAML3,       PAGE = 1
+   /* W2_OPEN_LOOP_STEADY: experimental module RAM (RAML3). The default
+       .ebss pool (RAML2, 0x400) was already at its budget; this section
+       exists only in builds that define STAGE6_OPEN_LOOP_STEADY_BUILD. */
+   ol_ram              : > RAML3,       PAGE = 1
    csmpasswds          : > CSM_PWL_P0,  PAGE = 0
    csm_rsvd            : > CSM_RSVD,    PAGE = 0
 }

@@ -15,6 +15,7 @@
 #include "pwm.h"
 #include "adc.h"
 #include "shot.h"
+#include "open_loop_steady.h"
 
 /*
  * D (RECOVERY V1): read-only Flash table of actual switching frequencies for
@@ -223,12 +224,19 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
 
     if (hz == 0UL) return 0U;
     if (hz < LLC_HARD_MIN_HZ) return 0U;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+    /* W2_OPEN_LOOP_STEADY: dedicated experimental actuator envelope
+     * (145..170 kHz). Never 200k/250k diagnostics, never below 145 kHz.
+     * Evaluated before the LLC_HARD_MAX_HZ override branch of non-shot
+     * builds so 145..170 kHz is legal in this build only. */
+    if (hz < OPEN_LOOP_FREQ_MIN_HZ || hz > OPEN_LOOP_FREQ_MAX_HZ) return 0U;
+#endif
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     /* First bounded real PI shot build: the actuator accepts only the shot
      * envelope (145..170 kHz). Anything above FIRST_REAL_PI_MAX_HZ is rejected
      * (never 200k / 250k), even if a diagnostic override were present. */
     if (hz > FIRST_REAL_PI_MAX_HZ) return 0U;
-#else
+#elif !STAGE6_OPEN_LOOP_STEADY_BUILD
     if (hz > LLC_HARD_MAX_HZ)
     {
         /* Diagnostic override: allow only up to LLC_DIAG_MAX_HZ and only when

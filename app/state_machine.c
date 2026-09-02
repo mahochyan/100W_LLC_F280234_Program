@@ -15,6 +15,7 @@
 #include "power_probe.h"
 #include "soft_start.h"
 #include "shot.h"
+#include "open_loop_steady.h"
 #include "state_machine.h"
 
 static Uint16 s_prev_enable_request = 0U;
@@ -38,6 +39,15 @@ void SM_Init(void)
 
 static Uint16 SM_StageAllowsFrequency(Uint32 hz)
 {
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+    /* W2_OPEN_LOOP_STEADY: Stage 5A uses the dedicated experimental envelope
+     * (145..170 kHz). This bypass of LLC_HARD_MAX_HZ exists ONLY in the
+     * open-loop steady build; every other build keeps the 150 kHz gate. */
+    if (g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL)
+    {
+        return (hz >= OPEN_LOOP_FREQ_MIN_HZ && hz <= OPEN_LOOP_FREQ_MAX_HZ) ? 1U : 0U;
+    }
+#endif
     if (hz < LLC_HARD_MIN_HZ || hz > LLC_HARD_MAX_HZ)
     {
         return 0U;
@@ -139,8 +149,15 @@ static void SM_HandleEnable(void)
         }
         else if (g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL)
         {
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+            /* Open-loop steady: fixed safe cold-start entry (envelope max =
+             * lowest LLC gain). The slew engine then descends to the host
+             * command. */
+            freq = OPEN_LOOP_ENTRY_FREQ_HZ;
+#else
             freq = g_open_loop_target_frequency_hz;
             if (freq == 0UL) freq = LLC_DEFAULT_FREQUENCY_HZ;
+#endif
         }
         else if (g_bringup_stage == BRINGUP_STAGE_5B_SOFT_START_TEST)
         {
@@ -243,7 +260,13 @@ static void SM_HandleEnable(void)
         /* Switch ADC to PWM-synchronous sampling from Stage 5 onward. */
         if (g_bringup_stage >= BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL)
         {
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+            /* Open-loop steady: closed-loop cadence (ET_3RD @ CMPB fixed
+             * phase, ~50 kS/s) matches the 20 us control tick. */
+            ADC_SetClosedLoopSyncTriggerMode();
+#else
             ADC_SetPwmSyncTriggerMode();
+#endif
         }
         else
         {
@@ -261,6 +284,11 @@ static void SM_HandleEnable(void)
         {
             g_pwm_enable_result = 1U;
             g_system_state = SYS_STATE_RUN;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+            /* Open-loop steady session armed right after the deterministic
+             * enable (entry frequency already applied via LLC_SetFrequencyHz). */
+            OPENLOOP_NotifyEntry();
+#endif
         }
         else
         {
@@ -275,6 +303,11 @@ static void SM_HandleEnable(void)
         g_system_state = SYS_STATE_IDLE;
         g_pwm_enable_result = 0U;
         g_softstart_state = SOFTSTART_INIT;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+        /* Freeze open-loop stats with the post-stop end state (skipped when
+         * the firmware already stopped the session itself). */
+        OPENLOOP_NotifyExit();
+#endif
     }
 }
 

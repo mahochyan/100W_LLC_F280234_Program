@@ -21,6 +21,14 @@
 #if defined(STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD) && defined(STAGE6_REAL_ACTUATOR_OST_TEST)
 #error "STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD must NOT define STAGE6_REAL_ACTUATOR_OST_TEST"
 #endif
+/* W2_OPEN_LOOP_STEADY_STATE_PLANT_CHARACTERIZATION_V1: the open-loop steady
+ * build is an independent experimental binary. It must NEVER carry the
+ * bounded-shot machinery (different power path, PI fully bypassed). The
+ * no-energy test build combination (with STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST)
+ * IS allowed for the no-power harness. */
+#if defined(STAGE6_OPEN_LOOP_STEADY_BUILD) && (defined(STAGE6_FIRST_BOUNDED_REAL_PI_SHOT) || defined(STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD))
+#error "STAGE6_OPEN_LOOP_STEADY_BUILD must NOT combine with bounded-shot / real-shot build macros"
+#endif
 
 /* ------------------------------------------------------------------ */
 /* Clock / PWM baseline (user-confirmed)                               */
@@ -89,6 +97,7 @@ typedef enum
 #define FAULT_COMP_TZ_LOOPBACK          0x00004000UL
 #define FAULT_COMP_PRESTART_REJECT     0x00008000UL
 #define FAULT_FIRST_SHOT_ABORT         0x00010000UL   /* bounded first real PI shot aborted (VOUT/actuator/TZ) */
+#define FAULT_OPEN_LOOP_VOUT_CEILING   0x00020000UL   /* W2_OPEN_LOOP_STEADY: open-loop Vout >= 11V hard abort */
 
 /* ------------------------------------------------------------------ */
 /* ADC / control timing and thresholds (placeholders pending cal)     */

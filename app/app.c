@@ -17,6 +17,7 @@
 #include "power_probe.h"
 #include "soft_start.h"
 #include "cal_hold_burst.h"
+#include "open_loop_steady.h"
 #include "app.h"
 #include "shot.h"
 
@@ -84,6 +85,9 @@ void APP_Init(void)
     CALHOLD_Init();
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     SHOT_Init();   /* first bounded shot state (shot build only) */
+#endif
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+    OPENLOOP_Init();   /* W2 open-loop steady module (this build only) */
 #endif
     APP_InitInterrupts();
 

@@ -17,6 +17,7 @@
 #include "cal_hold_burst.h"
 #include "soft_start.h"
 #include "shot.h"
+#include "open_loop_steady.h"
 #include "protection.h"
 
 static Uint32 s_last_adc_counter = 0UL;
@@ -352,7 +353,13 @@ __interrupt void TINT0_ISR(void)
     /* 20 us fast control: new ADC sample -> PI/PFM -> PWM update -> fast protection */
     CALHOLD_FastTask();
     PROT_FastTask();
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    OPENLOOP_NoEnergyTick();   /* NE harness: synthetic raw, logic-only */
+#elif STAGE6_OPEN_LOOP_STEADY_BUILD
+    OPENLOOP_FastTask();       /* open-loop steady: PI fully bypassed */
+#else
     CTRL_FastTask();
+#endif
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     SHOT_FastTask();   /* first-shot timer / 11V abort / ring record (shot build only) */
 #endif
