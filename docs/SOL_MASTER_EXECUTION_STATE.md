@@ -326,3 +326,20 @@ CR15_PRIOR=natural Vout(170kHz)>=10.49V -> descending start at 190k is the
         lowest-gain point; WARNING risk rises as the staircase descends
 NEXT=fire matrix v3 (standing authority); criterion OPEN_LOOP_10V_STEADY_POINT_FOUND
 ```
+
+## W2 extended-band RESULT checkpoint (CR15 band closed at 190k)
+
+```text
+RESULT=natural Vout(f, CR15, Vin24) > 10.49V WARNING guard for ALL f in 145..190k
+        (r7 slew500 + r8 slew5000 both crossed; r8 excludes the slew-transient
+        hypothesis -> the gain curve itself is above the guard; flat curve)
+REAL_V2_2_FIRES=r7 + r8 (both fault-free planned stops, TBPRD 315, actual 189873,
+        OVF delta 0, COMP/TZ 0) - the extended-band plant-map build is PROVEN
+        fault-free end-to-end; the map is closed by physics, not by defects
+OPEN_LOOP_10V_STEADY_POINT_FOUND=NOT_FOUND (CR15/24V, authorized band)
+NEXT_DECISION=user: (1) phase2 load variation 30/45 ohm (heavier load lowers gain),
+        (2) lower Vin bench, (3) accept boundary-chain evidence and move on
+KNOWN_LIMIT=g_adc_ipri_raw reads 0 in the OL sampling set (IPRI columns
+        unpopulated; Vout map unaffected; fix belongs to the load-variation phase)
+PRODUCTION=PI/Burst 145..170k envelope FROZEN and untouched (per work order)
+```

@@ -151,8 +151,19 @@ for(var p=0;p<POINTS.length;p++){
   if(!pf_ok){ matrixAborted=true; hardFail=true; break; }
 
   // command + enable
+  /* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1 slew-rate choice: the takeover
+   * lands at 176.47 kHz (HIGH gain region - the natural Vout there is >= the
+   * 170k value, which already crossed the WARNING line). With the default
+   * 500 Hz/sample the escape climb takes ~0.54 ms while the output cap
+   * (tau ~ CR15*Cout ~ 2 ms) integrates the EARLY high-gain asymptote ->
+   * transient WARNING crossing at every point (observed r7: even 190k stopped
+   * at the guard during the climb). 5000 Hz/sample (the compile ceiling,
+   * host-writable by design) escapes the high-gain band in 3 ticks (~60 us),
+   * so the cap then charges toward natural(f_target) ALONE. Frequency
+   * direction is gain-REDUCING (safe); per-step magnitude ~7 kHz is
+   * comparable to the trajectory's own 5 kHz stage steps. */
   wv32("g_open_loop_frequency_command_hz",target);
-  wv32("g_open_loop_freq_slew_hz_per_sample",500);
+  wv32("g_open_loop_freq_slew_hz_per_sample",5000);
   wv("g_pwm_enable_request",1);
   run(60);
   /* v2.1 reality (single_fire_v21.log): through CR15 the plant crosses the

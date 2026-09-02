@@ -423,3 +423,63 @@ stable point inside 180..190 kHz => `OPEN_LOOP_10V_STEADY_POINT_FOUND`.
 This experiment NEVER changes the production envelope; the real plant data
 will later inform (operator decisions only) production Fmax, SoftStart
 endpoint, handoff bias, PI params, Burst boundary.
+
+## 12. W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1 result: the CR15 gain curve is ABOVE the WARNING guard for the whole 145..190 kHz band
+
+Runs: `matrix_real_console_r7_char190.log` (slew 500 Hz/sample) and
+`matrix_real_console_r8_char190.log` (slew 5000 Hz/sample escape ramp),
+CSV `open_loop_matrix_real_v3_char190.csv`. All six operator gates set
+(standing authority; CR15 unchanged). Zero faults in both runs.
+
+### 12.1 What was measured at 190 kHz (both runs, fault-free)
+
+- Entry/charge-up/takeover/clamp all correct: trajectory 275 cycles, takeover
+  176470 Hz @ ~5.8 V, clamp to 190000, TBPRD = **315**, actual
+  **189873 Hz**, DB 36, OVF delta **0** (realtime/freshness proven at the
+  extended band), COMP/TZ events 0, planned OST stop, fault 0x0.
+- r7 (slew 500): the plant crossed the WARNING line within ~57 ms of the
+  takeover; window mean 6.30 V, max 9.57 V.
+- r8 (slew 5000, escape climb in ~60 us): STILL crossed the WARNING line
+  (~57 ms); window mean 6.55 V, max 9.68 V.
+
+### 12.2 Physics conclusion (now experimentally closed)
+
+The r7 crossing could have been a slew-transient artifact (the cap integrating
+the early high-gain asymptote while the frequency escaped the 176.5 kHz
+region). The r8 crossing EXCLUDES that hypothesis: with the frequency at
+190 kHz within ~60 us of the takeover, the cap charged from 5.83 V and crossed
+10.49 V while following natural(190 kHz) alone.
+
+**natural Vout(190 kHz, CR15, Vin 24 V) > 10.49 V (guard ceiling).** Together
+with the 170 kHz result (section 10), the CR15 gain curve lies above the
+frozen WARNING line for ALL frequencies in 145..190 kHz - the curve is very
+flat in this region. The 10 V operating point (if it exists at CR15/24 V) sits
+ABOVE 190 kHz, in the prohibited region. Per the work order's stopping rule
+the staircase closed at the first point; lower points (185k..170k) can only
+have HIGHER natural Vout and were skipped.
+
+`OPEN_LOOP_10V_STEADY_POINT_FOUND` = **NOT FOUND** at CR15 / Vin 24 V within
+the authorized band. No in-band steady point is measurable under the frozen
+guards - not because the entry fails (it is proven fault-free end-to-end),
+but because the physics of this operating point exceeds the guard ceiling
+everywhere in the band.
+
+### 12.3 Known telemetry limitation
+
+`g_adc_ipri_raw` (and the IPRI window columns) read 0 in every powered run -
+the OL sampling set (ePWM1 SOCA -> VOUT SOC group) does not include the
+iPRIM SOC, or the primary-current channel needs the closed-loop SOC
+configuration. The Vout map (the deliverable) is unaffected; IPRI
+characterization needs a sampling-set audit before the load-variation phase.
+
+### 12.4 Operator decision point (physical bench work)
+
+The experiment CANNOT proceed further at CR15 / 24 V within the frozen
+guards. Options (user decision):
+1. **Phase 2 load variation** (heavier load, e.g. 30 / 45 ohm): lowers Q-adjusted
+   gain -> the in-band map opens; no code changes, same binaries.
+2. **Lower Vin** (the gain curve scales down with Vin; e.g. 18 V bench).
+3. Accept the boundary-chain evidence (170k + 190k crossings) as the CR15
+   deliverable and move to the next work-order phase.
+No guard changes were made and none are proposed; the production envelope
+(PI/Burst 145..170 kHz) remains frozen and untouched.

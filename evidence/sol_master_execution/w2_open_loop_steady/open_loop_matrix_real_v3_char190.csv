@@ -1,0 +1,4 @@
+Vin_V,Load,Frequency_Hz,TBPRD,Takeover_Hz,Actual_Fs_Hz,Vout_mean_V,Vout_min_V,Vout_max_V,dVout_dt_V_per_s,IPRI_mean_raw,IPRI_max_raw,COMP_event,TZ_event,settling_time_ms,steady_state_valid,stop_reason,upper_gain_boundary,fault_flags,ADC_ovf_delta
+24,CR15,190000,315,176470,189873,6.303,0.405,9.571,0.00,0,0,56,0,0,0,2,1,0x0,0
+Vin_V,Load,Frequency_Hz,TBPRD,Takeover_Hz,Actual_Fs_Hz,Vout_mean_V,Vout_min_V,Vout_max_V,dVout_dt_V_per_s,IPRI_mean_raw,IPRI_max_raw,COMP_event,TZ_event,settling_time_ms,steady_state_valid,stop_reason,upper_gain_boundary,fault_flags,ADC_ovf_delta
+24,CR15,190000,315,176470,189873,6.553,0.405,9.676,0.00,0,0,64,0,0,0,2,1,0x0,0
