@@ -355,3 +355,15 @@ PHASE1_IPRI_AUDIT=software path COMPLETE + unconditional (SOC1 ADCINA2/SOCA ->
         path; protects SOC/ISR timing); Comparator/TZ OCP untouched + armed
 NEXT=matrix v4 (load-boundary protocol) then READY_FOR_CR12P5 (user swaps load)
 ```
+
+## LOAD_BOUNDARY CR12.5 checkpoint
+
+```text
+CR12P5=NOT_FOUND (CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN at 190 kHz, escape-proven:
+        r1 slew500 ambiguous, r2 slew5000 crossed => natural(190k,CR12.5)>10.49V)
+PROTOCOL=v4.1 (c578ef8): slew 5000 all points; coarse hold 5s (operator OK);
+        candidate 10s; tau~0.4ms measured from the CR15 charge crossing
+CSV=open_loop_load_boundary_matrix.csv (2 rows, both fault-free)
+NEXT=READY_FOR_CR10 (10 W @ 10 V; PSU input ~0.49 A vs the 0.5 A limit -
+        operator decides: raise the limit or accept limit-clamp as a stop)
+```

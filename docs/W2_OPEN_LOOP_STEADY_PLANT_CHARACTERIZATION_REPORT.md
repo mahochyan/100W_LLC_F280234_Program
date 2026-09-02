@@ -550,3 +550,33 @@ in every CSV row and read 0 in all runs so far).
 The load-boundary sweep proceeds with the IPRI columns recorded as 0 and the
 deferred flag; if the bench chain is repaired later, no software change is
 required to populate them.
+
+## 14. Load-boundary: CR12.5 result - natural Vout(190 kHz) STILL above the guard
+
+Protocol v4.1 (c578ef8): slew 5000 Hz/sample for every point (the r8-proven
+escape; the cap follows natural(f_command) alone with ~0.15 tau exposure to
+the early high-gain asymptote, so a 190 kHz WARNING is genuine, not a climb
+artifact); every coarse point holds up to 5 s (operator-authorized); all
+stage targets inside the frozen 12 s module max-hold backstop.
+
+Runs (CSV open_loop_load_boundary_matrix.csv):
+- r1 (slew 500): 190k crossed the guard within ~60 ms; row mean 6.25 V,
+  window max 9.58 V. AMBIGUOUS by itself (the 1.35-tau climb lets the cap
+  ride the early asymptote) - this motivated the v4.1 slew fix.
+- r2 (slew 5000, 5 s protocol): 190k crossed the guard again, at ~1-2 ms
+  (pure natural(190k) charge from 5.83 V). TBPRD 315, actual 189873, CMPA 158,
+  CMPB 79, DB 36, fault 0x0, OVF delta 0, COMP/TZ 0, planned OST, ub=1.
+  GENUINE.
+
+**Classification CR12.5: CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN**
+**natural Vout(190 kHz, CR12.5, Vin 24 V) > 10.49 V.**
+
+Physics: CR15 -> CR12.5 is only a 6.67 W -> 8 W step (20 %); the gain curve
+barely moved - both loads keep the whole 145..190 kHz band above the frozen
+WARNING guard. Per the work order rule A the lower points (185k..145k) are
+skipped: descending only increases Vout.
+
+Load points completed: CR15 NOT_FOUND (>190k), CR12.5 NOT_FOUND
+(TOO_HIGH_GAIN at 190k, escape-proven). Next per the work order ladder: CR10
+(10 W @ 10 V; PSU input ~0.49 A - at the 0.5 A bench limit, see the operator
+checklist).
