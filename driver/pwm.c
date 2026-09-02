@@ -175,6 +175,29 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
 #endif
 #endif
     {
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+        /* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1: the OL build cold-starts through
+         * the FORMAL SoftStart trajectory (250 kHz / TBPRD239 / DB110 ..
+         * 150 kHz / TBPRD399 / DB36). Allow that exact band ONLY while the
+         * formal ramp window is actually running (g_softstart_ramp_active is
+         * set by SoftStart_Update5ms at request consumption and cleared by
+         * SS_HardStop) — the same runtime-limited-authorization semantics the
+         * bounded-shot build uses for SHOT_RealSoftStartAuthOk(). The OL
+         * command path (LLC_SetFrequencyHz) is separately capped at
+         * 145..170 kHz in this build, so no host command can ever reach the
+         * trajectory band; only the trajectory's own PrepareStart /
+         * SS_ApplyStage writes can. Real evidence: without this branch the
+         * first real-fire of the v2 entry died at PrepareStart(239,110) with
+         * PWM_RUNTIME_INVALID -> FAULT_PWM_CONFIG_MISMATCH (0x8),
+         * SS_RESULT_REJECTED, abort_reason=2 (enable_v2_forensics.log). */
+        if (g_softstart_ramp_active != 0U &&
+            period >= 239UL && period <= 399UL &&
+            deadtime >= 36U && deadtime <= 110U)
+        {
+            /* FORMAL SoftStart trajectory write: allowed. */
+        }
+        else
+#endif
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
         /* B: REAL bounded-shot build. The formal Profile C trajectory
          * (250 kHz / TBPRD239 / DB110 .. 150 kHz / TBPRD399 / DB36) is allowed

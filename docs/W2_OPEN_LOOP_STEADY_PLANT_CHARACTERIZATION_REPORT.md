@@ -259,13 +259,22 @@ through this ramp without an OCP trip — the ramp is the proven anti-inrush mec
   (150 kHz, where the natural Vout would approach ~11.5 V), the OL module forces a planned stop
   with the new reason `OL_STOP_TAKEOVER_MISSED (6)` BEFORE the frozen 11 V gate — the
   trajectory's own 12 V ceiling is too high for this experiment.
+- **PWM runtime validation** (pwm.c `PWM_RuntimeValuesValid`): the production range (period
+  399..428) rejected the trajectory's first write — the REAL fire of v2.0 died at
+  `PWM_PrepareStart(239,110)` with `PWM_RUNTIME_INVALID` → `FAULT_PWM_CONFIG_MISMATCH (0x8)`,
+  `SS_RESULT_REJECTED`, `abort_reason=2` (`enable_v2_forensics.log`; the takeover was armed and
+  correct — the engine never started). The OL build now carries a **runtime-authorized trajectory
+  band** (period 239..399, deadtime 36..110) allowed ONLY while `g_softstart_ramp_active != 0`
+  (set by `SoftStart_Update5ms` at request consumption, cleared by `SS_HardStop`) — the same
+  runtime-limited-authorization semantics the bounded-shot build uses. The OL command path stays
+  separately capped at 145..170 kHz, so no host command can reach the band.
 - **Protection window** (protection.c 5A/5B branch): while `sys == SYS_STATE_SOFT_START` the
   legality ceiling is `OPEN_LOOP_TRAJ_MAX_HZ` (250 kHz = `SS_START_PERIOD` 239) because
   `PWM_ApplyPeriodDeadtime` keeps `g_switching_frequency_hz` tracking the real period during the
   ramp; once the OL session owns the actuator (`sys == RUN`) the window is back to the frozen
   145..170 kHz. The command envelope and every other guard are unchanged.
 
-### 9.3 No-energy regression r5 (NE v2 SHA `e11c3d72f92243d3…`)
+### 9.3 No-energy regression r5/r6 (NE v2 SHA `e11c3d72…`, NE v2.1 SHA `4da6ddf9…`)
 
 All checks TRUE — `SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE`. New S10 takeover scenario:
 host fakes `sys=SOFT_START` + trajectory parked at PHASE_B stage 10 (period 339) →
@@ -273,14 +282,18 @@ host fakes `sys=SOFT_START` + trajectory parked at PHASE_B stage 10 (period 339)
 `S10_TAKEOVER_FREQ_176K` (176 470), `S10_ENTRY_EQ_TAKEOVER`, `S10_SLEW_CLAMP_170K`
 (applied = 170 000 after the first clamped step), `S10_STOP_HOST`, planned-stop end state.
 S8 TINT0 budget unchanged (interval_max 1206, whole-ISR max 1099). Console:
-`ne_harness_console5.log`.
+`ne_harness_console5.log`. Re-run r6 on the v2.1 binaries (after the pwm.c band):
+`SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE`, 0 FALSE (`ne_harness_console6.log`).
 
-### 9.4 Frozen v2 binaries
+### 9.4 Frozen v2.1 binaries (after the pwm.c trajectory band)
 
 | Binary | SHA256 |
 |---|---|
-| REAL `LLC_100W_F28034_OPEN_LOOP_STEADY.out` | `32b9ecb761069ca8fe47b3d31bb301055eea9e5535a334a2caa3f991aa8c48d8` |
-| NE `LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out` | `e11c3d72f92243d3ecd5c6a79b11ae763a42f8c1cbeac192e55d0020c6ef91b5` |
+| REAL `LLC_100W_F28034_OPEN_LOOP_STEADY.out` | `cefb5eac9c584fa9d0498dedf6c761b54a25239dc861bf7c93257c5cc9df8ec4` |
+| NE `LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out` | `4da6ddf9e65253eb3f833528ee36a51efd97fd96eaf8c4d2b154dc761f5c6874` |
+
+(v2.0 values retained above the table in the manifest comments; the v2.0 REAL fire aborted
+BEFORE any switching — no energy on the board, fault 0x8 latched, PWM=0.)
 
 Manifest: `REAL_OPEN_LOOP_STEADY_SHA256SUMS.txt` (v1 values retained in comments).
 
