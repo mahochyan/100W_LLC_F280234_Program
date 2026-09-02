@@ -378,3 +378,23 @@ GAIN_SHAPE=fr_eff~160-175k (M rises 150k->170k, flat to 190k); M_eff(190k)~1.09-
 PREDICTION=CR7.5 (Q~2x CR15) may open the in-band map at 190k per FHA
 NEXT=READY_FOR_CR7P5 (13.3 W @ 10 V; PSU limit >=0.8 A required; resistor >=20 W)
 ```
+
+## LOAD_BOUNDARY FINAL checkpoint (W2_OPEN_LOOP_LOAD_BOUNDARY_CHARACTERIZATION_V1)
+
+```text
+LADDER=CR15 NOT_FOUND / CR12.5 NOT_FOUND / CR10 NOT_FOUND / CR7.5 NOT_FOUND
+        (all: natural Vout(190k)>10.49V, escape-proven, fault-free, 0 OVF, 0 COMP/TZ)
+FINAL_CLASSIFICATION=CONTINUOUS_PFM_PLANT_RANGE_MISMATCH
+STATUS=LOAD_BOUNDARY_CHARACTERIZATION_PASS (characterization complete; the
+        mismatch is the finding)
+TANK_AUDIT=fr_eff~160-175k; M_eff(190k)~1.09-1.10 LOAD-INSENSITIVE (FHA
+        overestimates the Q effect); FHA +4-9% gap ~= rectifier drop;
+        Lr/Lm need a user-side LCR/ring-down measurement; 5T:4T ratio and
+        the actual Fs chain proven correct
+DELIVERABLES=map empty in-band (CR7.5..CR15 x 145..190k x 24V); Burst owns the
+        whole region; production Fmax KEEP 170k; Burst entry by Vout>=~9.5-9.8V;
+        W2 handoff = plant-region mismatch (not tuning); takeover should route
+        to Burst directly at these loads
+NEXT=await operator confirmation -> W2_CONTROL_REGION_REDESIGN_V1
+        (NO automatic PI/Burst/envelope changes in this work order)
+```

@@ -616,3 +616,87 @@ Load ladder status: CR15 NOT_FOUND, CR12.5 NOT_FOUND, CR10 NOT_FOUND
 If CR7.5 also crosses => CONTINUOUS_PFM_PLANT_RANGE_MISMATCH per the work
 order section 11, and the tank re-audit (5T:4T, Cr, Lr, Lm, Vin, rectifier
 drop, fr_eff, FHA deviation) becomes the deliverable.
+
+## 16. Load-boundary closure: CR7.5 also above the guard -> CONTINUOUS_PFM_PLANT_RANGE_MISMATCH
+
+Run `load_boundary_CR7P5_r1.log` (protocol v4.1): 190 kHz crossed the guard,
+fault-free (TBPRD 315, actual 189873, CMPA 158, CMPB 79, DB 36, OVF 0,
+COMP/TZ 0, planned OST, ub=1). Same escape-proven signature.
+
+### 16.1 The completed load ladder (Vin 24 V, band 145..190 kHz)
+
+| load | P@10V | 190 kHz result | classification | crossing power |
+|---|---|---|---|---|
+| CR15 | 6.67 W | > 10.49 V (r8 slew-5000) | NOT_FOUND / TOO_HIGH_GAIN | ~7.3 W |
+| CR12.5 | 8.0 W | > 10.49 V (r2) | NOT_FOUND / TOO_HIGH_GAIN | ~8.8 W |
+| CR10 | 10.0 W | > 10.49 V (r1) | NOT_FOUND / TOO_HIGH_GAIN | ~11.0 W |
+| CR7.5 | 13.33 W | > 10.49 V (r1) | NOT_FOUND / TOO_HIGH_GAIN | ~14.7 W |
+
+Every crossing was escape-proven (slew 5000 => the cap charges toward
+natural(190 kHz) alone) and fault-free (planned OST, zero OVF, zero COMP/TZ).
+The resistors saw the crossing power for ~1-2 ms only - no thermal stress.
+
+**Work order classification: CONTINUOUS_PFM_PLANT_RANGE_MISMATCH**
+`OPEN_LOOP_10V_STEADY_POINT_FOUND` = NOT_FOUND within the authorized loads
+and the authorized band. Per section 11: no further loading, no band
+extension; the tank re-audit follows.
+
+### 16.2 Tank re-audit against the work order checklist
+
+1. **Transformer ratio**: documented `Ns1:Np:Ns2 = 4:5:4` (center-tap), n =
+   Np/Ns_half = 1.25 -> Vout = 9.6 x M_eff at 24 V. The 10 V target needs
+   M_eff = 1.042.
+2. **Cr / fr**: the nominal model (fr = 49.9 kHz) is already falsified by the
+   bench (TRANSFORMER_GAIN_AUDIT); the bench behaves as fr_eff ~ 160-175 kHz
+   (the gain RISES 150k -> 170k and stays ~flat to 190k).
+3. **Lr / Lm**: not directly measurable in-band from this data; the
+   load-INSENSITIVITY of the gain (all four loads above the guard, FHA
+   predicts a clear CR7.5 drop) indicates an Lm-dominated, low-effective-Q
+   transfer - a dedicated LCR/ring-down bench measurement (user-side) is
+   needed to quantify Lr/Lm.
+4. **Vin**: 24 V confirmed by the operator gates in every run.
+5. **Rectifier drop**: the FHA-vs-bench gap of +4-9 % (M_eff 1.044 at 150k vs
+   the FHA 1.00) is consistent with the output rectifier drop (~0.5-0.7 V ~
+   5-7 % of the 9.6 V scale) - a significant, quantified contributor.
+6. **Actual switching frequency**: proven per point (TBPRD 315 / actual
+   189873 cross-checked; the frequency chain is NOT the problem).
+7. **FHA deviation**: +4-9 % offset AND load-insensitive in the band - the
+   FHA Q-dependence overestimates the load effect at these operating points.
+
+### 16.3 Deliverables for the control-region decision (work order section 12)
+
+1. **Load x frequency x Vout map**: for CR15/CR12.5/CR10/CR7.5 at 24 V, the
+   natural Vout(f) > 10.49 V for EVERY f in [145k, 190k] - the in-band map is
+   EMPTY (the boundary-chain evidence + the 150k/CR15 10.02 V anchor).
+2. **Continuous PFM first-valid load**: NOT FOUND within the authorized
+   loads (heavier loads are outside this work order by definition - CR7.5 at
+   13.3 W is already ~2x the CR15 6.67 W).
+3. **Burst candidate region**: the ENTIRE CR7.5..CR15 x [145k, 190k] x 24 V
+   region - continuous PFM cannot regulate to 10 V anywhere in it; Burst
+   must own these operating points.
+4. **Recommended production Fmax**: KEEP 170 kHz (frozen). Extending toward
+   190 kHz does not reach 10 V at any authorized load (M_eff(190k) ~ 1.09 >
+   1.042); the 10 V point lies above 190 kHz on the falling side (~200-230k
+   by the curve shape) - outside every authorized envelope.
+5. **Recommended Burst entry/exit region**: by VOUT proximity to the guard
+   (the plant is gain-rich everywhere): entry when Vout >= ~9.5-9.8 V
+   (raw >= ~1175-1200) at any frequency; the exit boundary belongs to the
+   next work order (Burst power ceiling at these loads is unmeasured).
+6. **W2 handoff failure reinterpretation**: NOT a control-tuning failure.
+   The handoff hands a plant whose natural Vout at the takeover frequency
+   (176.47 kHz) is ALREADY above the WARNING guard at CR15 - the closed loop
+   inherited an operating point that continuous PFM cannot hold; it is a
+   plant-region mismatch, exactly as the load ladder now proves.
+7. **SoftStart->RUN->Burst redesign**: YES - the evidence supports routing
+   the takeover to BURST directly at these loads instead of continuous PFM
+   RUN (the RUN continuous region is empty in-band at 24 V). Detailed design
+   belongs to W2_CONTROL_REGION_REDESIGN_V1 (awaiting operator confirmation).
+
+### 16.4 IPRI
+
+Deferred (section 13); the load ladder ran with IPRI columns = 0 +
+`ipri_deferred=1`. The COMP/TZ OCP stayed armed in every run (0 events).
+
+**Work order final status: LOAD_BOUNDARY_CHARACTERIZATION_PASS**
+(all four loads classified, zero faults, zero protection events, zero OVF;
+the mismatch is the FINDING, not a blocker).
