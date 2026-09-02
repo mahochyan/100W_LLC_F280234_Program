@@ -9,11 +9,13 @@
 // Sweep rules (work order sections 4-8):
 //   - start EVERY load at 190 kHz, descend only;
 //   - 190 kHz WARNING stop => CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN, end load
-//     (one documented protocol re-arm with slew 5000 distinguishes a
-//     climb-transient crossing from a genuine natural(190k) above the guard);
+//     (the r8-proven slew-5000 escape makes the crossing genuine, not a
+//     climb-transient artifact);
 //   - Vout < 10 V at 190 kHz => descend to find the 10 V crossing, then
 //     bisect (1 kHz, then 500 Hz), acceptance window 9.9..10.1 V;
-//   - a candidate enters stages D/E/F (cumulative 2.6 s / 5 s / 10 s);
+//   - EVERY coarse point holds up to 5 s (operator-authorized); a candidate
+//     extends to the 10 s steady hold (stages A/B/C/D/E, all inside the
+//     frozen 12 s module max-hold backstop);
 //   - any fault family event => hard abort, NO retry.
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
@@ -128,21 +130,37 @@ if(needHeader){
 }
 
 // ---------- shared per-point machinery ----------
-/* cumulative stage targets (all inside the frozen 12 s module max-hold):
- * A=60ms short confirm, B=150ms, C=650ms, D=2700ms, E=5100ms, F=10100ms */
-var STAGES=[{t:60,n:"A_60MS"},{t:150,n:"B_100MS"},{t:650,n:"C_500MS"},
-            {t:2700,n:"D_2S"},{t:5100,n:"E_5S"},{t:10100,n:"F_10S"}];
+/* Cumulative stage targets (operator-authorized 2026-08-25: every coarse
+ * point holds up to 5 s so bench anomalies are observable; a candidate then
+ * extends to the 10 s steady hold). All targets stay inside the frozen 12 s
+ * module max-hold backstop:
+ *   A=60ms short confirm, B=150ms, C=5s coarse hold,
+ *   D=7s candidate (+2 s), E=10s candidate steady hold (the work order's
+ *   10 s freeze requirement; E/F merge into the 7..10 s segment). */
+var STAGES=[{t:60,n:"A_60MS"},{t:150,n:"B_100MS"},{t:5000,n:"C_5S"},
+            {t:7000,n:"D_7S"},{t:10000,n:"E_10S"}];
 var lastRow="";
 
 function sessionActive(){ return rw("g_open_loop_steady_active")===1; }
 
-function runPoint(freqHz, maxStageIdx, slewHz){
+function runPoint(freqHz, maxStageIdx){
   var pf_ok = rw("g_system_state")===1 && rv32u("g_fault_flags")===0 && rw("g_pwm_enabled")===0 &&
               reg("EPwm1Regs.TZFLG.bit.OST")===1 && rw("g_open_loop_steady_active")===0;
   if(!pf_ok){ print("GATE POINT_"+freqHz+"_PREFLIGHT: FAIL"); return {preflightFail:true}; }
   print("GATE POINT_"+freqHz+"_PREFLIGHT: PASS");
+  /* Slew 5000 Hz/sample for EVERY point (r8-proven on the real bench): the
+   * takeover always lands at 176.47 kHz and at loads near the boundary the
+   * natural Vout there is ABOVE the WARNING guard. With the default 500 Hz/
+   * sample the in-session ramp takes ~0.5-1.3 ms while the output cap
+   * (tau ~ 0.4 ms, measured from the CR15 charge crossing) follows with a
+   * ~one-tau lag -> the cap rides the EARLY high-gain asymptote and can cross
+   * the guard even when natural(f_command) is below it (a false
+   * TOO_HIGH_GAIN). 5000 Hz/sample escapes the high-gain band in ~3-7 ticks
+   * (~60-140 us, well under one tau), so the cap then charges toward
+   * natural(f_command) ALONE. Per-tick step ~5 kHz equals the trajectory's
+   * own per-stage step; direction of the initial climb is gain-reducing. */
   wv32("g_open_loop_frequency_command_hz",freqHz);
-  wv32("g_open_loop_freq_slew_hz_per_sample",slewHz);
+  wv32("g_open_loop_freq_slew_hz_per_sample",5000);
   wv("g_pwm_enable_request",1);
   run(60);
   var tk=rw("g_open_loop_takeover_done");
@@ -252,7 +270,7 @@ var fHigh=-1, fLow=-1;    // bracket: f_high (Vout<10), f_low (Vout>10)
 var idx=0, hardFail=false;
 
 function candidateCheck(f){
-  var r=runPoint(f,5,500);           // A..F directly (candidate)
+  var r=runPoint(f,4);               // full candidate session: A..E (10 s hold)
   if(r.preflightFail||r.enableFail||r.endFail){ hardFail=true; return null; }
   writeRow(r,"CANDIDATE_D_E_F");
   if(r.reason===3 || r.fault!==0 || r.ovfD!==0 || r.faultHit!==0){ hardFail=true; return null; }
@@ -273,31 +291,18 @@ function candidateCheck(f){
   return {above:r};
 }
 
-/* --- point 1: 190 kHz (mandatory first) --- */
+/* --- point 1: 190 kHz (mandatory first, 5 s hold) --- */
 print("=== LOAD "+loadOhm+" OHM - POINT 1: 190000 Hz ===");
-var r1=runPoint(190000,2,500);         // A/B/C only for the coarse probe
+var r1=runPoint(190000,2);
 if(r1.preflightFail||r1.enableFail||r1.endFail){ print("ABORT: 190k entry failure"); throw "point1-fail"; }
 if(r1.tierFailed!==""){ print("ABORT: stage gate failed at 190k ("+r1.tierFailed+"). NO retry."); throw "point1-tier"; }
 writeRow(r1,"COARSE_190K");
 if(r1.ovfD!==0 || r1.fault!==0 || r1.reason===3){ print("ABORT: 190k fault family"); throw "point1-fault"; }
+/* With the r8-proven slew-5000 escape (cap follows natural(f_command) ALONE,
+ * ~0.15 tau exposure to the early asymptote) any WARNING at 190 kHz is a
+ * GENUINE natural(190k) above the guard -> rule A, no disambiguation needed. */
 if(r1.reason===2){
-  /* WARNING at 190k. Distinguish climb-transient from genuine natural(190k):
-   * if the stop fired before the slew completed (applied<command), re-arm ONCE
-   * with slew 5000 (protocol parameter, host-writable, gain-reducing climb,
-   * NOT a fault retry). If it still crosses => TOO_HIGH_GAIN definitively. */
-  if(r1.fa<r1.cmd){
-    print("190k WARNING fired during the climb (applied "+r1.fa+" < cmd "+r1.cmd+"); one protocol re-arm with slew 5000.");
-    var r1b=runPoint(190000,2,5000);
-    if(!(r1b.preflightFail||r1b.enableFail||r1b.endFail)){
-      writeRow(r1b,"COARSE_190K_SLEW5000");
-      if(r1b.reason===2 && r1b.fault===0){
-        classification="CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN";
-      } else if(r1b.fault!==0||r1b.reason===3){ print("ABORT: 190k re-arm fault family"); throw "point1b-fault"; }
-      else { measured[190000]={v:voutV(r1b.liveMean),kind:"steady"}; r1=r1b; }
-    } else { classification="CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN"; }
-  } else {
-    classification="CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN";
-  }
+  classification="CONTINUOUS_PFM_RANGE_TOO_HIGH_GAIN";
 }
 if(classification===""){
   var v1=voutV(r1.liveMean);
@@ -317,7 +322,7 @@ if(classification===""){
     var f=PLAN[idx];
     if(measured[f]||f===fLow||f===fHigh){ idx++; continue; }
     print("=== DESCENT: "+f+" Hz ===");
-    var r=runPoint(f,2,500);
+    var r=runPoint(f,2);
     if(r.preflightFail||r.enableFail||r.endFail){ hardFail=true; break; }
     if(r.tierFailed!==""){ print("ABORT: stage gate failed at "+f+" ("+r.tierFailed+"). NO retry."); hardFail=true; break; }
     writeRow(r,"COARSE_DESCENT");
@@ -357,7 +362,7 @@ while(classification==="" && fHigh>0 && fLow>0 && bisectIter<8){
   }
   bisectIter++;
   print("=== BISECT "+bisectIter+": "+mid+" Hz (bracket "+fLow+".."+fHigh+") ===");
-  var rb=runPoint(mid,2,500);
+  var rb=runPoint(mid,2);
   if(rb.preflightFail||rb.enableFail||rb.endFail){ hardFail=true; break; }
   if(rb.tierFailed!==""){ print("ABORT: stage gate failed at bisect "+mid+" ("+rb.tierFailed+"). NO retry."); hardFail=true; break; }
   writeRow(rb,"BISECT");
