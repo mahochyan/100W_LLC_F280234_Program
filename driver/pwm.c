@@ -249,10 +249,21 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
     if (hz < LLC_HARD_MIN_HZ) return 0U;
 #if STAGE6_OPEN_LOOP_STEADY_BUILD
     /* W2_OPEN_LOOP_STEADY: dedicated experimental actuator envelope
-     * (145..170 kHz). Never 200k/250k diagnostics, never below 145 kHz.
-     * Evaluated before the LLC_HARD_MAX_HZ override branch of non-shot
-     * builds so 145..170 kHz is legal in this build only. */
-    if (hz < OPEN_LOOP_FREQ_MIN_HZ || hz > OPEN_LOOP_FREQ_MAX_HZ) return 0U;
+     * (145..170 kHz production ceiling). Never 200k/250k diagnostics, never
+     * below 145 kHz. Evaluated before the LLC_HARD_MAX_HZ override branch of
+     * non-shot builds so 145..170 kHz is legal in this build only.
+     * W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: in this plant-map build ONLY
+     * the ceiling extends to OPEN_LOOP_CHARACTERIZATION_MAX_HZ (190 kHz)
+     * while the host authorization bit is set; with the bit 0 (default at
+     * boot) the ceiling is exactly the production 170 kHz. The PRODUCTION
+     * closed-loop builds never compile this branch. The generic period path
+     * below carries its own dead-band + min-pulse checks (period 314 at
+     * 190 kHz: cmp 157 vs 36+4 -> holds), and ADC_UpdatePwmSyncPointKeepCadence
+     * repositions CMPB = (period+1)/4 = 78 with the ET_3RD cadence kept. */
+    if (hz < OPEN_LOOP_FREQ_MIN_HZ) return 0U;
+    if (hz > ((g_open_loop_char_ext_authorized != 0U)
+                  ? OPEN_LOOP_CHARACTERIZATION_MAX_HZ
+                  : OPEN_LOOP_FREQ_MAX_HZ)) return 0U;
 #endif
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     /* First bounded real PI shot build: the actuator accepts only the shot

@@ -821,10 +821,18 @@ void PROT_SlowTask(void)
          * g_switching_frequency_hz tracking the real period). The command
          * envelope stays frozen: as soon as the OL session owns the actuator
          * (sys == RUN), the window is back to 145..170 kHz. */
+        /* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: the plant-frequency
+         * legality bound for the OL session is the characterization max
+         * (190 kHz) in this build. The COMMAND path is separately gated by
+         * g_open_loop_char_ext_authorized inside LLC_SetFrequencyHz, so with
+         * the authorization bit 0 no command can drive the plant above
+         * 170 kHz anyway; this window is the plant-side backstop. The
+         * trajectory branch (sys == SOFT_START, up to 250 kHz) and the VOUT
+         * WARNING/HARD ceilings are unchanged. */
         if (g_switching_frequency_hz < OPEN_LOOP_FREQ_MIN_HZ ||
             g_switching_frequency_hz >
             ((g_system_state == SYS_STATE_SOFT_START) ? OPEN_LOOP_TRAJ_MAX_HZ
-                                                      : OPEN_LOOP_FREQ_MAX_HZ))
+                                       : OPEN_LOOP_CHARACTERIZATION_MAX_HZ))
 #else
         if (g_switching_frequency_hz < g_open_loop_min_frequency_hz ||
             g_switching_frequency_hz > LLC_HARD_MAX_HZ)

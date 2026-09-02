@@ -368,3 +368,58 @@ guard, not measured.
   **phase 2 load variation** (heavier load, e.g. 30/45 Ω, lowers the natural
   gain curve so the frozen-band map opens up). Both stay inside the frozen
   WARNING/HARD ceilings — no guard changes required for either path.
+
+## 11. W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1 (design + audit, NE-proven)
+
+Task: extend the characterization band to 190 kHz at CR15/Vin24 to search for
+the real steady Vout(f) curve and a possible ~10 V operating point. The
+PRODUCTION closed-loop envelope (PI/Burst 145..170 kHz) is untouched.
+
+### 11.1 Independent constant + authorization state
+
+`OPEN_LOOP_CHARACTERIZATION_MAX_HZ = 190000UL` (open_loop_steady.h) is a NEW
+macro, separate from `OPEN_LOOP_FREQ_MAX_HZ 170000UL` (kept as the production
+referenced envelope). It is active ONLY in the plant-map build
+(`STAGE6_OPEN_LOOP_STEADY_BUILD`) AND only while the host sets
+`g_open_loop_char_ext_authorized` (ol_ram, zero at boot/Init, armed once by
+the matrix script after the SHA + operator gates). With the bit 0 the effective
+command ceiling is exactly 170 kHz (S11A proves the clamp). 200 kHz+ remain
+prohibited in every build.
+
+### 11.2 Dependency audit (190 kHz -> period clocks 316, TBPRD 315)
+
+| dependency | status at 190 kHz |
+|---|---|
+| TBPRD minimum | TBPRD = round(60 MHz/190 kHz)-1 = **315** (CMPA 158, CMPB 79); pulse margins 158 vs DB36+minpulse4 hold; generic command path carries no hardcoded period floor |
+| PWM_RuntimeValuesValid | NOT on the OL command path; its trajectory band (239..399, ramp_active-gated) already spans below 315; production branch unchanged |
+| LLC_SetFrequencyHz OL gate | ceiling = flag ? 190k : 170k (pwm.c); envelope+pulse checks evaluated per call |
+| ADC CMPB sync point | CMPB=(period+1)/4 = 79 at 190 kHz, period-generic math, no bound |
+| ET_3RD cadence | SOCAPRD=ET_3RD -> 63.5 kS/s at 190 kHz (adc.c header already documented 180k -> 60 kS/s); consumed through the ADC-sequence freshness gate; **OVF delta must be 0 (new per-point matrix gate)** |
+| DB36 | unchanged; S11C asserts DBRED/DBFED=36 at 190 kHz |
+| protection frequency validation | plant-legality window widened to the characterization max in this build ONLY; the COMMAND path is separately flag-gated; trajectory branch + WARNING/HARD Vout ceilings unchanged |
+| telemetry | applied/switching frequencies are Uint32; TBPRD/CMPB Uint16; stop snapshot unchanged |
+| static assertions | NEW: characterization band must contain the production envelope; period at 190 kHz must satisfy dead-band+min-pulse (compile-time #error) |
+| realtime timing | workload frequency-independent; ADCINT1 rate +8% (58.8 -> 63.5 kS/s); S8 NE budget (interval_max 1222/2400 cycles) bounds the same paths; REAL-side proof = OVF delta 0 per point |
+
+### 11.3 NE proof (r8, 0 FALSE)
+
+S11a unauthorized clamp 190k->170k; S11b authorized accept + slew-up lands
+190000 + steady; S11c actuator registers TBPRD 315 / CMPA 158 / CMPB 79 /
+DB36 / actual 189873; S11d ceiling is exactly 190000 (191000 clamps).
+SHA frozen: REAL `61636d05...`, NE `354c7499...`.
+
+### 11.4 Test protocol (matrix v3)
+
+Points DESCENDING 190k/185k/180k/175k/170k. Per point: tiered cumulative
+windows 100 ms -> 600 ms -> 2.6 s -> 7.6 s -> 10 s (inside the frozen 12 s
+max-hold backstop); tier gates: fault=0, TZINT=0, Vout<WARNING (module stop at
+1304 authoritative), ADC fresh (sequence advancing), PWM registers correct
+(TBPRD tracks the applied frequency +/-3, CMPA=(TBPRD+1)/2, DB=36), OVF delta
+0. Outputs per point: Fs, actual Fs, TBPRD, Vout mean/min/max, dVout/dt, IPRI
+raw/max, COMP/TZ, settling time, steady valid, stop_reason, upper_boundary.
+Once a point hits the WARNING boundary: record + stop descending (the CR15
+gain curve rises toward lower frequency). Core criterion: a ~10 V long-term
+stable point inside 180..190 kHz => `OPEN_LOOP_10V_STEADY_POINT_FOUND`.
+This experiment NEVER changes the production envelope; the real plant data
+will later inform (operator decisions only) production Fmax, SoftStart
+endpoint, handoff bias, PI params, Burst boundary.

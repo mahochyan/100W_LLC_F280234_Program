@@ -261,9 +261,68 @@ olExit();
 check("S10_STOP_HOST",rw("g_open_loop_stop_reason")==1);
 endState("S10");
 
+// ---------------- S11: extended characterization band (W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1) ----------------
+// S11a: authorization bit 0 -> command 190000 clamps onto the production 170k
+wv32("g_fault_flags",0);
+wv("g_system_state",1);
+wv("g_open_loop_char_ext_authorized",0);
+wv("g_open_loop_ne_actuator_arm",0);
+wv("g_open_loop_ne_raw",1000);
+olEntry(190000);
+run(20);
+check("S11A_EFF_170K",rv32u("g_open_loop_cmd_effective_hz")==170000);
+check("S11A_CLAMPED",rv32u("g_open_loop_cmd_clamp_count")>0);
+check("S11A_APPLIED_170K",rv32u("g_open_loop_applied_hz")==170000);
+check("S11A_NO_FAULT",rv32u("g_fault_flags")==0);
+olExit();
+endState("S11A");
+
+// S11b: authorized: 190000 accepted, slew-up from the 170k entry lands 190000
+wv("g_open_loop_char_ext_authorized",1);
+var c0b=rv32u("g_open_loop_cmd_clamp_count");
+olEntry(190000);
+run(30);
+check("S11B_EFF_190K",rv32u("g_open_loop_cmd_effective_hz")==190000);
+run(100);
+check("S11B_APPLIED_190K",rv32u("g_open_loop_applied_hz")==190000);
+check("S11B_NO_NEW_CLAMP",rv32u("g_open_loop_cmd_clamp_count")==c0b);
+check("S11B_NO_FAULT",rv32u("g_fault_flags")==0);
+run(600);
+check("S11B_STEADY",rw("g_open_loop_steady_reached")==1);
+olExit();
+endState("S11B");
+
+// S11c: NE actuator (arm=1, OST latched) at 190000:
+//   TBPRD = round(60 MHz/190 kHz)-1 = 315 (period clocks 316), CMPA 158,
+//   CMPB 79, DB 36, actual = 60 MHz/316 = 189873 Hz
+wv("g_open_loop_ne_actuator_arm",1);
+olEntry(190000);
+run(300);
+check("S11C_TBPRD_315",reg("EPwm1Regs.TBPRD")==315);   /* round(60 MHz/190 kHz)-1 = 315 */
+check("S11C_CMPA_158",reg("EPwm1Regs.CMPA.half.CMPA")==158);
+check("S11C_CMPB_79",rw("g_adc_pwm_sync_cmpb")==79);
+check("S11C_DB36",reg("EPwm1Regs.DBRED")==36 && reg("EPwm1Regs.DBFED")==36);
+check("S11C_ACTUAL_189873",Math.abs(rv32u("g_actual_switching_frequency_hz")-189873)<=100);
+check("S11C_SW_FREQ_190K",rv32u("g_switching_frequency_hz")==190000);
+check("S11C_NO_FAULT",rv32u("g_fault_flags")==0);
+olExit();
+check("S11C_STOP_APPLIED_190K",rv32u("g_open_loop_stop_freq_applied")==190000);
+endState("S11C");
+
+// S11d: ceiling is exactly 190000 (191000 clamps onto 190000)
+wv("g_open_loop_ne_actuator_arm",0);
+olEntry(191000);
+run(20);
+check("S11D_EFF_190K",rv32u("g_open_loop_cmd_effective_hz")==190000);
+check("S11D_APPLIED_190K",rv32u("g_open_loop_applied_hz")==190000);
+olExit();
+endState("S11D");
+wv("g_open_loop_char_ext_authorized",0);   // relock the band for later scenarios
+
 // ---------------- final sanity ----------------
 check("FINAL_NO_FAULT",rv32u("g_fault_flags")==0);
-check("FINAL_TBPRD_386",reg("EPwm1Regs.TBPRD")==386);
+/* last register write is S11C's authorized 190 kHz actuator session (TBPRD 315) */
+check("FINAL_TBPRD_315",reg("EPwm1Regs.TBPRD")==315);
 
 print("SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS="+(failures==0?"TRUE":"FALSE"));
 try{session.terminate();}catch(e){}

@@ -56,6 +56,20 @@
  * goes through the formal SoftStart trajectory + OL takeover below.) */
 #define OPEN_LOOP_ENTRY_FREQ_HZ         OPEN_LOOP_FREQ_MAX_HZ
 
+/* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: characterization-only band
+ * extension. The PRODUCTION closed-loop envelope (PI/Burst 145..170 kHz)
+ * stays frozen in every build; this ceiling exists ONLY in the open-loop
+ * plant-map build (STAGE6_OPEN_LOOP_STEADY_BUILD) and is FURTHER gated by
+ * the explicit host authorization bit g_open_loop_char_ext_authorized (set
+ * once per run by the matrix script after the SHA + operator gates; zero at
+ * boot). With the bit 0 the effective command ceiling is exactly the
+ * production 170 kHz. Audit: 190 kHz -> TBPRD = round(60 MHz/190 kHz)-1 =
+ * 314, CMPA 157, CMPB (ADC sample point) 78, DB=36; pulse margins
+ * (157 > 36+4) hold; ET_3RD cadence becomes 63.5 kS/s (above the 50 kHz
+ * control tick, consumed through the ADC-sequence freshness gate; OVF must
+ * stay 0). 200 kHz and above remain prohibited in every build. */
+#define OPEN_LOOP_CHARACTERIZATION_MAX_HZ   190000UL
+
 /* W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1: takeover window inside the formal
  * trajectory. PHASE_B stage k writes period = SS_START_PERIOD +
  * SS_PHASE_B_PERIOD_STEP*k with DB already at SS_FINAL_DB (36), so this
@@ -129,6 +143,8 @@ extern volatile Uint16 g_open_loop_takeover_armed;   /* set by SM enable; cleare
 extern volatile Uint16 g_open_loop_takeover_done;    /* 1 once the OL session owns the actuator */
 extern volatile Uint32 g_open_loop_takeover_freq_hz; /* plant frequency at the takeover tick */
 extern volatile Uint16 g_open_loop_takeover_raw;     /* Vout raw at the takeover tick */
+/* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: 170..190 kHz band unlock bit */
+extern volatile Uint16 g_open_loop_char_ext_authorized;
 extern volatile Uint16 g_open_loop_steady_reached;
 extern volatile Uint32 g_open_loop_ticks_active;
 extern volatile Uint32 g_open_loop_slew_done_tick;

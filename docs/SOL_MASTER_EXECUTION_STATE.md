@@ -306,3 +306,23 @@ CONCLUSION=natural Vout(170kHz,CR15)>=10.49V; whole 145..170k band above the WAR
 NEXT_DECISION=operator: (a) envelope extension 170..190k at CR15, or (b) phase2 load variation
            (30/45 ohm). Both inside frozen guards; no guard changes.
 ```
+
+## W2 extended-band checkpoint (W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1)
+
+```text
+DESIGN=190k characterization band, flag-gated (g_open_loop_char_ext_authorized)
+        production envelope FROZEN (PI/Burst 145..170k untouched)
+REAL_OUT_SHA256=61636d058972c40b20801bea7a4333e239386ef8429712370de090a509f7d857
+NE_OUT_SHA256=354c7499ab41e4afc8a09e9a0e99ec72a812cde7c4e30aa5a23586f11851d14e
+NE_PROOF_R8=SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE (0 FALSE; S11 a/b/c/d)
+AUDIT=TBPRD315/CMPA158/CMPB79/DB36; RuntimeValuesValid off the OL cmd path;
+      CMPB=(p+1)/4 period-generic; ET_3RD 63.5kS/s -> OVF gate; protection
+      window = char max (plant backstop) while command path stays flag-gated;
+      static asserts added; realtime = S8 budget + OVF delta gate
+MATRIX_V3=points 190k..170k DESC; tiers 100ms/600ms/2.6s/7.6s/10s cumulative
+        (inside the frozen 12s backstop); per-point short-window confirm;
+        dVout/dt + ovf_delta telemetry; WARNING boundary closes the descent
+CR15_PRIOR=natural Vout(170kHz)>=10.49V -> descending start at 190k is the
+        lowest-gain point; WARNING risk rises as the staircase descends
+NEXT=fire matrix v3 (standing authority); criterion OPEN_LOOP_10V_STEADY_POINT_FOUND
+```

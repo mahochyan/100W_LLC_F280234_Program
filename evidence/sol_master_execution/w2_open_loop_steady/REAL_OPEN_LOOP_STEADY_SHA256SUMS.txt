@@ -10,3 +10,8 @@
 #   authorized by g_softstart_ramp_active; soft_start.c still untouched)
 REAL_OPEN_LOOP_STEADY_OUT_SHA256=cefb5eac9c584fa9d0498dedf6c761b54a25239dc861bf7c93257c5cc9df8ec4
 NE_OPEN_LOOP_STEADY_OUT_SHA256=4da6ddf9e65253eb3f833528ee36a51efd97fd96eaf8c4d2b154dc761f5c6874
+# v2.2 (W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: OPEN_LOOP_CHARACTERIZATION_MAX_HZ=190k
+#   + g_open_loop_char_ext_authorized flag-gated command ceiling; production envelope
+#   untouched; NE r8 PASS incl. S11 a/b/c/d)
+REAL_OPEN_LOOP_STEADY_OUT_SHA256=61636d058972c40b20801bea7a4333e239386ef8429712370de090a509f7d857
+NE_OPEN_LOOP_STEADY_OUT_SHA256=354c7499ab41e4afc8a09e9a0e99ec72a812cde7c4e30aa5a23586f11851d14e

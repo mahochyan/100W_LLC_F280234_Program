@@ -32,7 +32,28 @@
 #include "board_calibration.h"
 #include "pwm.h"
 #include "adc.h"        /* takeover cadence restore (closed-loop sync mode) */
+
 #include "open_loop_steady.h"
+
+/* ------------------------------------------------------------------ */
+/* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: compile-time consistency     */
+/* checks for the extended characterization band (190 kHz).             */
+/* Dependency audit: TBPRD at 190 kHz = round(60 MHz / 190 kHz) - 1 =   */
+/* 314 (CMPA 157, CMPB 78, DB 36 -> pulse margins 157 vs 36+4 hold);    */
+/* PWM_RuntimeValuesValid is NOT on the OL command path (its trajectory */
+/* band 239..399 is already wider); LLC_SetFrequencyHz carries the      */
+/* envelope gate + pulse checks itself; ADC CMPB math is period-generic;*/
+/* ET_3RD at 190 kHz -> 63.5 kS/s, consumed via the ADC-sequence fresh  */
+/* gate (OVF must stay 0); the protection frequency window in this      */
+/* build widens to the characterization max while the VOUT WARNING/HARD */
+/* ceilings stay frozen.                                                */
+/* ------------------------------------------------------------------ */
+#if OPEN_LOOP_CHARACTERIZATION_MAX_HZ < OPEN_LOOP_FREQ_MAX_HZ
+#error "characterization band must contain the production envelope"
+#endif
+#if (LLC_TBCLK_HZ / OPEN_LOOP_CHARACTERIZATION_MAX_HZ) <=     (2UL * (LLC_DEADBAND_TICKS + LLC_MIN_PULSE_TICKS) + 1UL)
+#error "characterization max frequency violates the dead-band + min-pulse constraints"
+#endif
 
 #if STAGE6_OPEN_LOOP_STEADY_BUILD
 
@@ -151,6 +172,8 @@ volatile Uint16 g_open_loop_takeover_done        = 0U;
 volatile Uint32 g_open_loop_takeover_freq_hz     = 0UL;
 #pragma DATA_SECTION(g_open_loop_takeover_raw, "ol_ram");
 volatile Uint16 g_open_loop_takeover_raw         = 0U;
+#pragma DATA_SECTION(g_open_loop_char_ext_authorized, "ol_ram");
+volatile Uint16 g_open_loop_char_ext_authorized  = 0U;
 
 /* ---- module-private state ---- */
 #pragma DATA_SECTION(s_win_vout_sum, "ol_ram");
@@ -190,10 +213,21 @@ volatile Uint32 g_open_loop_ne_trace[16]     = {0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0U
 /* Internal helpers                                                    */
 /* ------------------------------------------------------------------ */
 
+/* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: effective command ceiling. The
+ * production envelope (170 kHz) applies unless the host explicitly armed the
+ * characterization band (g_open_loop_char_ext_authorized), which only exists
+ * in this plant-map build. */
+static Uint32 OL_CmdCeilingHz(void)
+{
+    if (g_open_loop_char_ext_authorized != 0U) return OPEN_LOOP_CHARACTERIZATION_MAX_HZ;
+    return OPEN_LOOP_FREQ_MAX_HZ;
+}
+
 static Uint32 OL_ClampHz(Uint32 hz)
 {
+    Uint32 ceiling = OL_CmdCeilingHz();
     if (hz < OPEN_LOOP_FREQ_MIN_HZ) return OPEN_LOOP_FREQ_MIN_HZ;
-    if (hz > OPEN_LOOP_FREQ_MAX_HZ) return OPEN_LOOP_FREQ_MAX_HZ;
+    if (hz > ceiling) return ceiling;
     return hz;
 }
 
@@ -468,7 +502,10 @@ static void OPENLOOP_Step(Uint16 raw_protect, Uint16 raw_stat, Uint16 fresh)
      * the trajectory's own 10-period/5 kHz stage steps). In-band sessions
      * are unaffected: every normal applied value already satisfies the
      * clamp. */
-    if (applied > OPEN_LOOP_FREQ_MAX_HZ) applied = OPEN_LOOP_FREQ_MAX_HZ;
+    {
+        Uint32 ceiling = OL_CmdCeilingHz();   /* 170k, or 190k when authorized */
+        if (applied > ceiling) applied = ceiling;
+    }
     if (applied < OPEN_LOOP_FREQ_MIN_HZ) applied = OPEN_LOOP_FREQ_MIN_HZ;
     g_open_loop_applied_hz = applied;
     g_open_loop_slew_steps++;
@@ -502,6 +539,7 @@ static void OPENLOOP_Step(Uint16 raw_protect, Uint16 raw_stat, Uint16 fresh)
 
 void OPENLOOP_Init(void)
 {
+    g_open_loop_char_ext_authorized  = 0U;   /* 170..190k band locked at boot */
     g_open_loop_steady_active        = 0U;
     g_open_loop_frequency_command_hz = 0UL;
     g_open_loop_freq_slew_hz_per_sample = OPEN_LOOP_FREQ_SLEW_DEFAULT_HZ;
