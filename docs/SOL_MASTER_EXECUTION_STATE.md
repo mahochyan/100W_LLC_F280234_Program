@@ -425,3 +425,31 @@ PHYSICS=corrections executed (report sections 15-17): fr~49.9kHz stands;
 NEXT=W2_BURST_PACKET_CHARACTERIZATION_V1 (operator approval required):
         fresh REAL freeze + full proof chain, then 1/2/3/5-cycle packet ladder
 ```
+
+## BURST_PACKET_CHARACTERIZATION checkpoint (W2_BURST_PACKET_CHARACTERIZATION_V1)
+
+```text
+STATUS=READY_FOR_BURST_PACKET_1C  (NE proof PASS + REAL v2.4 frozen; no real shot fired yet)
+SCOPE=answer only how much energy an exact 170kHz/DB36/50% packet injects;
+      NOT Burst closed-loop; no auto Burst->RUN; IPRI deferred
+NE_PROOF=burst_packet_ne_r3.log BURST_PACKET_NE_VERIFICATION_PASS=TRUE
+NE_EXACT=1C/2C/3C/5C completed==N, result PASS; 0C/6C reject; fault-before reject;
+        no-request no-fire; mid-packet fault abort; PWM0/OST1/TZINT0/FAULT0
+NE_PARAMS=TBPRD=352 CMPA=176 CMPB=88(OL cadence) DBRED/FED=36 actual~169971Hz
+FROZEN=production Fmax/DB36/SoftStart/COMP authority unchanged; 190k not used
+REGRESSION=SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE; BURST_REGION 21/0
+REAL_SOURCE_COMMIT=a1614af
+REAL_FREEZE_COMMIT=08f75d0
+REAL_SHA256=4fec970e3a050da6f60f3bc4d6a35dde9a2ab06bd74e031c485b13f9b9a307c9
+REAL_HEX_SHA256=de71cce3bc244014403466163cd320944558974a9aed0f9332ae634958f16404
+REAL_CGT=25.11.1.LTS
+REAL_BUILD_LOG=evidence/sol_master_execution/w2_open_loop_steady/build_real_packet_v2.4.log
+REAL_MAP=evidence/sol_master_execution/w2_open_loop_steady/LLC_100W_F28034_OPEN_LOOP_STEADY_REAL_v2.4.map
+NE_SHA256=7a0491a24bafb821a95814bc271e2eb2da75f9c1b19698a18250a16a7c9dc88a
+NE_HEX_SHA256=0ca08db48d652a02e966d9b0d1272d9652227611c18b30a55ff9a18fc35d0ea1
+PROTOCOL=docs/W2_BURST_PACKET_CHARACTERIZATION_V1_PROTOCOL.md
+NEXT=OPERATOR executes independent cold-state shots 1C -> audit -> 2C -> audit
+        -> 3C -> audit -> 5C -> audit -> final report; no auto sequencing;
+        safety stops end ladder
+FINAL_STATUS_PENDING=BURST_PACKET_CHARACTERIZATION_PASS_CR15 or _BLOCKED
+```
