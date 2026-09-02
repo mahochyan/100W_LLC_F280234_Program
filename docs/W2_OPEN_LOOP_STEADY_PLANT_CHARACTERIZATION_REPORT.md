@@ -309,3 +309,62 @@ Manifest: `REAL_OPEN_LOOP_STEADY_SHA256SUMS.txt` (v1 values retained in comments
   boundary are valid plant points; the boundary row closes the map.
 - All guards remain: WARNING 1304 (planned OST + `OPEN_LOOP_UPPER_GAIN_BOUNDARY`), HARD 1367
   (`PWM_Trip(FAULT_OPEN_LOOP_VOUT_CEILING)`), DAC300/TZ1 OCP, 12 s timeout, fallback stop.
+
+## 10. REAL fire v2.1 (CR15): charge-up + takeover PROVEN; WARNING boundary at the envelope edge
+
+Run: `matrix_real_console_r6_v21.log` (+ `single_fire_v21.log` reproduction),
+CSV `open_loop_matrix_real_v2.csv`. All six operator gates set (standing power
+authority; CR15 ON).
+
+### 10.1 What the board actually did (one point, then the boundary closes the staircase)
+
+1. Boot gates + COMP/TZ loopback + stage confirms 1..5: PASS.
+2. Enable (stage 5A): the FORMAL trajectory ran **275 ePWM cycles** (soca 270,
+   start registers `first_start_tbprd=239, first_cmpa=120` — exactly Profile C
+   250 kHz / DB110), charged the output cap to **727 raw (5.83 V)** — **no
+   COMP/TZ1 trip** (`fault=0x0`, `TZINT=0`). The sections 7/8 fatal entry
+   defect is fixed by the staged-DB charge-up.
+3. OL takeover at PHASE_B stage 10 exactly as designed:
+   `takeover_freq=176470 Hz` (period 339), `takeover_raw=727`, DB already 36.
+4. Slew clamp: applied 176470 → **170000** in the first clamped step; real
+   registers follow (`TBPRD=352`, `actual_switching_frequency=169971`).
+5. Plant response through CR15: the charge crossed the frozen 10.49 V WARNING
+   ceiling within ~1.2 ms of the takeover → **WARNING planned stop**
+   (`stop_reason=2`, `upper_gain_boundary=1`, `fault=0x0`, PWM=0/OST=1/
+   TZINT=0). Window stats froze at 58 ticks: min 56 raw (0.39 V), max 1166
+   (9.37 V), mean 778 (6.23 V) — a transient charging window, not a steady
+   point; the immediate-raw guard caught the crossing before the rolling
+   window (max 1166) caught up.
+6. Matrix verdict: `SOL_W2_OPEN_LOOP_MATRIX_PASS=TRUE` — boundary recorded,
+   lower frequencies skipped per protocol, no fault, no retry.
+
+### 10.2 Physics conclusion (CR15, Vin 24 V)
+
+**natural Vout(170 kHz, CR15) ≥ 10.49 V.** The plant crosses the frozen
+WARNING ceiling while still CHARGING toward its natural steady state, so the
+steady value is above the ceiling and the entire 145..170 kHz command band
+lies above the WARNING line through a 15 Ω load at 24 V. Under the frozen
+guards (WARNING 1304 / HARD 1367 untouched) the CR15 in-band open-loop map is
+**unmeasurable — not because the entry fails, but because the physics of this
+operating point already exceeds the experiment's guard ceiling**. The
+boundary row IS the map's top-edge calibration deliverable for CR15.
+
+Note the guard fired on a TRANSIENT crossing (the plant had not converged);
+the frozen stop snapshot therefore records the charging window
+(0.39..9.37 V), and the steady natural value remains bounded-below by the
+guard, not measured.
+
+### 10.3 Where the W2 experiment stands
+
+- Entry redesign v2.1: **proven on real power** (charge-up + takeover + clamp
+  + guards, fault-free). The W2_REAL_ATTEMPT_COUNT for v2.1 = 1 (matrix
+  point 1) + the single-fire reproduction, both fault-free planned stops.
+- The CR15 map in 145..170 kHz: closed by the upper-gain boundary at the
+  first point. This is a valid experimental outcome per the frozen protocol
+  ("WARNING auto-stop → record boundary, skip lower points").
+- Decisive follow-on options (operator decision, physical bench work):
+  **② envelope extension 170..190 kHz** at CR15 (natural Vout falls with
+  frequency; the in-band map becomes measurable above the boundary), or
+  **phase 2 load variation** (heavier load, e.g. 30/45 Ω, lowers the natural
+  gain curve so the frozen-band map opens up). Both stay inside the frozen
+  WARNING/HARD ceilings — no guard changes required for either path.

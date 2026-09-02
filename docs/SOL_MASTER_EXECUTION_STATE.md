@@ -290,3 +290,19 @@ EXPECTED=WARNING boundary (upper gain) between 170k and ~163k; boundary row = CR
 - soft_start.c remains byte-identical to 6a54807. The takeover only parks the engine state
   variable and restores the OL cadence; every guard (WARNING 1304 / HARD 1367 / OCP / fallback)
   is live from the takeover tick on.
+
+## W2 CR15 result checkpoint (2026-09-02 night, post 273fc32)
+
+```text
+DESIGN=W2_OL_SOFTSTART_TAKEOVER_ENTRY_V1 (v2.1, pwm.c trajectory band, soft_start.c untouched)
+REAL_OUT_SHA256=cefb5eac9c584fa9d0498dedf6c761b54a25239dc861bf7c93257c5cc9df8ec4
+NE_OUT_SHA256=4da6ddf9e65253eb3f833528ee36a51efd97fd96eaf8c4d2b154dc761f5c6874
+NE_PROOF_R6=SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE (0 FALSE, S10 takeover scenario)
+REAL_MATRIX=SOL_W2_OPEN_LOOP_MATRIX_PASS=TRUE (matrix_real_console_r6_v21.log)
+POINT1_170K=charge-up 275cyc/239/120 -> takeover 176470Hz@727raw(5.83V) -> clamp 170000
+           (TBPRD352, actual 169971) -> WARNING stop reason=2 ub=1 fault=0x0 PWM0/OST1/TZINT0
+CONCLUSION=natural Vout(170kHz,CR15)>=10.49V; whole 145..170k band above the WARNING line;
+           CR15 in-band map unmeasurable under frozen guards (boundary row = top-edge deliverable)
+NEXT_DECISION=operator: (a) envelope extension 170..190k at CR15, or (b) phase2 load variation
+           (30/45 ohm). Both inside frozen guards; no guard changes.
+```

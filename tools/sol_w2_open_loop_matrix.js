@@ -147,9 +147,23 @@ for(var p=0;p<POINTS.length;p++){
   wv32("g_open_loop_freq_slew_hz_per_sample",500);
   wv("g_pwm_enable_request",1);
   run(60);
+  /* v2.1 reality (single_fire_v21.log): through CR15 the plant crosses the
+   * WARNING ceiling within ~1.2 ms of the takeover, so by the first gate
+   * read the session may ALREADY have self-stopped (planned OST, ub=1,
+   * fault=0). Accept both a live session and a legitimately finished one;
+   * the poll loop + snapshot below record the outcome either way. */
   var tk=rw("g_open_loop_takeover_done");
-  var en_ok = rw("g_pwm_enable_result")===1 && rw("g_system_state")===3 && rw("g_open_loop_steady_active")===1 && tk===1;
-  print("GATE POINT_"+target+"_ENABLE: "+(en_ok?"PASS":"FAIL"));
+  var sr0=rw("g_open_loop_stop_reason");
+  /* tk==1 is the strict enable-acceptance evidence (the takeover happened).
+   * For a live session require enres==1 as before; for a self-stopped session
+   * LLC_PWM_DisableSafe has already cleared enres, so accept stop_reason!=0
+   * with fault==0 (the poll loop + snapshot record the outcome either way). */
+  var en_ok = tk===1 && rw("g_system_state")===3 &&
+              ( (rw("g_open_loop_steady_active")===1 && rw("g_pwm_enable_result")===1) ||
+                (sr0!==0 && rv32u("g_fault_flags")===0) );
+  print("GATE POINT_"+target+"_ENABLE: "+(en_ok?"PASS":"FAIL")+
+        " (tk="+tk+" active="+rw("g_open_loop_steady_active")+" stop="+sr0+
+        " sys="+rw("g_system_state")+" enres="+rw("g_pwm_enable_result")+")");
   if(!en_ok){ matrixAborted=true; hardFail=true; break; }
 
   // poll loop (~100 ms prints; up to 8 s + 2 s dwell)
