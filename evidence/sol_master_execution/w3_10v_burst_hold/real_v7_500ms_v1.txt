@@ -1,0 +1,48 @@
+SOL W3 10V BURST HOLD V7 — REAL 500 ms
+Captured: 2026-09-05T00:51:35+08:00
+
+Standing bench authority
+- Vin: 24 V active
+- Load: CR 15 ohm continuously connected
+- User standing gate acknowledgement: true
+- No live JTAG reads were performed while the request was active.
+
+Identity hard gate
+REAL_OUT_SHA256=0E9200615F1A6A22E22B1875E339EE5778D1379D1003C71099A561053DB68C28
+EXPECTED_SHA256=0E9200615F1A6A22E22B1875E339EE5778D1379D1003C71099A561053DB68C28
+REAL_SHA_HARD_GATE=PASS
+
+Initial safe snapshot
+sys=1 pwm=0 fault=0x0 ost=1 tzint=0 stage=0 cal=1 hold_state=0 mode_active=0 mode_req=0
+INIT_SYS_IDLE=PASS
+INIT_PWM_OFF=PASS
+INIT_FAULT_ZERO=PASS
+INIT_OST_LATCHED=PASS
+INIT_TZINT_ZERO=PASS
+INIT_STAGE_ZERO=PASS
+INIT_VOUT_CAL_VALID=PASS
+INIT_CALHOLD_STATE_IDLE=PASS
+INIT_CALHOLD_MODE_LEGACY=PASS
+LOOPBACK_PASS=PASS
+STAGE_CONFIRM_1_TO_5=PASS
+
+Single uninterrupted power request
+PRE_FIRE raw=15 vout=0.057624875 hw_trip=0 active_trip=0 enable_rise=0
+RESULT state=4 reason=1 mode=1 elapsed_ticks=25000 fault=0x0
+CHARGE target=1200 stop=1203 accel_reason=2 accel_max=1203 phase=4 tbprd=399 db=36 completed_cycles=419
+HOLD raw=1238 min=1170 max=1278 steady_min=1218 steady_max=1278 steady_avg=1242 cal_avg=1239 cal_n=6650
+PACKETS count=36 total_cycles=4510 min_cycles=106 max_cycles=128 hard_events=0 undersupply_confirm=0
+LAST_PACKET start_raw=1220 stop_raw=1248 post_max_raw=1249 post_last_raw=1248 cycles=128 final_db=90
+
+Terminal safety
+FINAL pwm=0 ost=1 tzint=0 hw_trip_delta=0 active_trip_delta=0 enable_rise_delta=0
+CLEANUP pwm=0 ost=1 tzint=0
+
+Verdict
+SOL_W3_10V_BURST_HOLD_REAL_500MS_PASS=TRUE
+POWER_REQUEST_FIRED=TRUE
+NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE
+
+All duration, initial-charge, packet-bound, aggregate-cycle-cap, sample,
+10 V average-band, hard-limit, fault, hardware-trip, public-enable-edge, run-id,
+and final-safe-state gates passed.
