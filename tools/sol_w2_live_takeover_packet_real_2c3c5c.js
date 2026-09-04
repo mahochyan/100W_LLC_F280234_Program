@@ -39,7 +39,9 @@ function check(name,ok){print(name+"="+(ok?"PASS":"FAIL"));if(!ok)failures++;}
 var failures=0;
 print("=== SOL W2 LIVE TAKEOVER PACKET REAL 2C/3C/5C ===");
 var ack=(java.lang.System.getenv("SOL_W2_GATES_ACK")||"").equals("1");
+var resume5=(java.lang.System.getenv("SOL_W2_RESUME_5C_AFTER_2C3C_PASS")||"").equals("1");
 print("GATE_USER_ACK="+ack+" (Vin24/CR15 confirmed in current task)");
+print("RESUME_5C_ONLY="+resume5);
 if(!ack){throw "real-gates";}
 var actual=sha256File(OUT);
 print("REAL_OUT_SHA256="+actual+" EXPECTED_SHA256="+EXPECTED_SHA);
@@ -66,7 +68,9 @@ for(var s=1;s<=5;s++){
 }
 
 function cleanup(){
-  wv("g_pwm_enable_request",0);run(20);
+  // CR15 remains connected; 500 ms PWM-off dwell drains residual output
+  // charge before any later independent ladder level.
+  wv("g_pwm_enable_request",0);run(500);
   check("CLEANUP_PWM0",rw("g_pwm_enabled")===0);
   check("CLEANUP_OST1",reg("EPwm1Regs.TZFLG.bit.OST")===1);
   check("CLEANUP_TZINT0",reg("EPwm1Regs.TZFLG.bit.INT")===0);
@@ -84,7 +88,9 @@ function fire(n){
   wv("g_open_loop_live_packet_cycles",n);
   wv("g_open_loop_live_packet_arm",1);
   wv("g_pwm_enable_request",1);
-  run(10);
+  // One uninterrupted bounded observation window. Firmware normally reaches
+  // the terminal state in <10 ms; 50 ms avoids 5 ms slow-task phase aliasing.
+  run(50);
 
   var result=rw("g_open_loop_live_packet_result");
   var state=rw("g_open_loop_live_packet_state");
@@ -131,8 +137,10 @@ function fire(n){
   print(tag+"_PASS=TRUE");
 }
 
-fire(2);
-fire(3);
+if(!resume5){
+  fire(2);
+  fire(3);
+}
 fire(5);
 print("SOL_W2_LIVE_TAKEOVER_PACKET_REAL_2C3C5C_PASS=TRUE");
 print("FINAL_PWM0_OST1_TZINT0_FAULT0="+(rw("g_pwm_enabled")===0 &&

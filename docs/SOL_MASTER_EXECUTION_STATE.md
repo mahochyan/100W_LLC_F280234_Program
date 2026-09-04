@@ -15,10 +15,10 @@ UPDATED_AT=2026-09-04T00:00:00+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W2
 CURRENT_GATE=W2_BURST_LIVE_TAKEOVER_PACKET_V1_REAL_2C_3C_5C
-CURRENT_CHECKPOINT=LIVE_TAKEOVER_PACKET_REAL_1C_PASS__NEXT_EXACT_SHA_2C_THEN_3C_THEN_5C
+CURRENT_CHECKPOINT=LIVE_PACKET_REAL_1C_2C_3C_PASS__5C_NOT_FIRED_DUE_HOST_10MS_WINDOW__SAFE_CLEANUP__RESUME_5C_ONLY
 LAST_VERIFIED_WORK_ORDER=W1
-NEXT_ACTION=Run exact-SHA REAL 2C/3C/5C sequential ladder; stop immediately at the first failed gate.
-BOARD_LAST_STATE=AFTER_REAL_LIVE_PACKET_1C_PWM0_OST1_TZINT0__FAULT0
+NEXT_ACTION=Reload exact-SHA REAL binary after CR15 idle discharge dwell and execute only the uncompleted 5C gate with a 50ms bounded observation window.
+BOARD_LAST_STATE=AFTER_5C_NONFIRE_CLEANUP_PWM0_OST1_TZINT0__FAULT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -468,7 +468,7 @@ FINAL_STATUS=BURST_PACKET_CHARACTERIZATION_BLOCKED
 ## BURST LIVE-TAKEOVER packet candidate (W2_BURST_LIVE_TAKEOVER_PACKET_V1)
 
 ```text
-STATUS=REAL_1C_PASS__REAL_2C_3C_5C_PENDING
+STATUS=REAL_1C_2C_3C_PASS__REAL_5C_PENDING
 ROOT_CAUSE_CHANGE=remove the failed coast->cold 170kHz restart; retain the
         fault-free formal SoftStart trajectory continuously through takeover
 LIVE_PATH=formal PHASE_B stage10 at TBPRD339 (~176470Hz), DB36 -> park
@@ -508,5 +508,14 @@ REAL_1C=PASS__one enable edge__takeover176470Hz/raw784(6.28V)__transition
         packet raw before/after/peak832(6.67V)__hw_trip_delta0__active_trip_delta0__
         final PWM0/OST1/TZINT0/fault0
 REAL_1C_SHA_GATE=PASS__E594FF48D49450A1DE4F8D76F653E396CD588F44D5226F2AA50C2A04A8063C30
-NEXT=execute exact-SHA 2C then 3C then 5C, stopping on first failure
+REAL_2C=PASS__takeover_raw785(6.29V)__completed2__peak843(6.76V)__hw_trip_delta0__final safe
+REAL_3C=PASS__takeover_raw1181(9.49V)__completed3__peak1235(9.93V)__hw_trip_delta0__final safe
+REAL_5C_FIRST_OBSERVATION=NOT_FIRED__enable rising consumed but takeover_done0;
+        telemetry remained the immutable 3C snapshot (completed3/resultPASS);
+        fault0/hw_trip_delta0; script stopped and cleanup proved PWM0/OST1/TZINT0
+REAL_5C_NONFIRE_CAUSE=host observation window 10ms ended before the 5ms slow-task
+        phase launched/completed formal trajectory; not a packet or protection failure
+RESUME_POLICY=harness-only timing correction, firmware OUT/SHA/protection unchanged;
+        fresh program load + CR15 PWM-off dwell; fire uncompleted 5C only; 50ms bounded wait
+NEXT=execute exact-SHA REAL 5C resume only
 ```
