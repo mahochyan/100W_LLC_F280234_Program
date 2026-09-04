@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=27
-UPDATED_AT=2026-09-05T01:00:24+08:00
+STATE_VERSION=28
+UPDATED_AT=2026-09-05T01:02:28+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_500MS_V8
-CURRENT_CHECKPOINT=W3_V8_EXACT_PHASE_A_CADENCE_QUALIFIED__NEW_SHA_READY_FOR_REAL_500MS
+CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V8
+CURRENT_CHECKPOINT=W3_V8_REAL_500MS_PASS__SAME_SHA_READY_FOR_REAL_2S
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run V8 REAL 500ms on exact SHA F972829D; on PASS advance same SHA through 2s, 10s, 60s.
-BOARD_LAST_STATE=AFTER_W3_V8_ON_TARGET_NE_AND_SAFE_W2_REGRESSIONS__PWM0_OST1_TZINT0
+NEXT_ACTION=Run V8 REAL 2s on exact SHA F972829D; on PASS advance same SHA through 10s and 60s.
+BOARD_LAST_STATE=AFTER_W3_V8_REAL_500MS_PASS__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -528,7 +528,7 @@ NEXT=W3_10V_BURST_HOLD_INTEGRATION
 ## W3 10 V Burst hold candidate (W3_10V_BURST_HOLD_V1)
 
 ```text
-STATUS=V7_RETIRED__V8_QUALIFIED__NEW_SHA_READY_FOR_REAL_500MS
+STATUS=V8_REAL_500MS_PASS__SAME_SHA_READY_FOR_REAL_2S
 SOURCE_COMMIT=a29d60a578c6fb59bf7f1116d3a519cbe73cfe2b
 CONTROL=firmware-selected W3 CALHOLD profile; legacy 11V calibration unchanged
 INITIAL_CHARGE=accelerated Profile C target raw1200; exact TBPRD239/DB110 start;
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=14
+W3_REAL_POWER_ATTEMPT_COUNT=15
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -789,5 +789,12 @@ V8_REAL_ISR_TEXT_WORDS=0xD8__COMPILED_COMPARE_TREE_CONFIRMS_CYCLES15_25_TO125_AN
 V8_REGRESSIONS=W2_OPEN_LOOP_PASS__W2_LIVE_EXACT1_2_3_5_PASS__BURST_REGION21_0_PASS
 V8_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v8_exact_phase_a.txt
 V8_QUALIFICATION=PASS__NEW_SHA_REQUALIFY_REAL_500MS_THEN_FORWARD_ONLY
-NEXT=REAL_500MS_V8__then_2S_10S_60S_only_after_each_PASS
+V8_REAL_500MS=PASS__stateCOMPLETE_reasonCOMPLETE_elapsed25000ticks__
+        charge_target1200_stop1207_cycles419_no_hwtrip__hold1169_to1271__
+        steady1218_to1271_avg1241_calavg1240_n6938__packets26_total2844__
+        packetmin96_max128__last1220_to1261_postmax1261_cycles114_finalDB60__
+        hardevents0_undersupplyconfirm0_fault0_tripdeltas0_publicenable0__
+        final_cleanup_PWM0_OST1_TZINT0
+V8_REAL_500MS_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v8_500ms_v1.txt
+NEXT=REAL_2S_V8__then_10S_60S_only_after_each_PASS
 ```
