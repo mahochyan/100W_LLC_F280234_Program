@@ -42,12 +42,20 @@ def main() -> None:
          all(f"duration == W3_HOLD_DURATION_{x}" in SRC
              for x in ("500MS", "2S", "10S", "60S")))
     gate("STATIC_PER_DURATION_CYCLE_CAPS",
-         all(x in SRC for x in (
-             "W3_HOLD_CYCLE_CAP_500MS",
-             "W3_HOLD_CYCLE_CAP_2S",
-             "W3_HOLD_CYCLE_CAP_10S",
-             "W3_HOLD_CYCLE_CAP_60S",
+         all(x in HDR for x in (
+             "W3_HOLD_CYCLE_CAP_500MS          62500UL",
+             "W3_HOLD_CYCLE_CAP_2S             250000UL",
+             "W3_HOLD_CYCLE_CAP_10S            1250000UL",
+             "W3_HOLD_CYCLE_CAP_60S            7500000UL",
+         )) and all(x in SRC for x in (
+             "W3_HOLD_CYCLE_CAP_500MS", "W3_HOLD_CYCLE_CAP_2S",
+             "W3_HOLD_CYCLE_CAP_10S", "W3_HOLD_CYCLE_CAP_60S",
          )))
+    gate("STATIC_W3_PACKET_ENERGY_BOUND",
+         "W3_HOLD_MAX_PACKET_CYCLES        64U" in HDR and
+         "CALHOLD_MaxPacketCycles()" in SRC and
+         "? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES" in SRC and
+         "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
     gate("STATIC_PROFILE_C_1200_ENTRY",
          "W3_HOLD_INITIAL_CHARGE_RAW" in SRC and
          "g_accel_vout_target_raw" in SRC)
@@ -90,7 +98,7 @@ def main() -> None:
          "EPwm1Regs.TZCLR.bit.OST = 1U" not in PWM[ne_i:ne_end])
     gate("STATIC_SAFE_PACKET_250K_DB110",
          "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
-         "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
+         "W3_HOLD_MAX_PACKET_CYCLES        64U" in HDR)
     gate("STATIC_PACKET_PRESTART_SETTLE_GATE",
          "COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC)" in SRC and
          "g_comp_prestart_reject != 0U" in SRC and

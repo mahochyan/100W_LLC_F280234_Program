@@ -105,7 +105,7 @@ safe("W3_ENTRY");
 wv("g_cal_hold_ne_raw",1210);run(3);
 wv("g_cal_hold_ne_raw",1240);run(12);
 check("LOW_EMITS_PACKET",rv32u("g_cal_hold_packet_count")>0);
-check("PACKET_CYCLES_BOUNDED",rw("g_cal_hold_packet_max_cycles")<=15 &&
+check("PACKET_CYCLES_BOUNDED",rw("g_cal_hold_packet_max_cycles")==64 &&
       rw("g_cal_hold_packet_min_cycles")>=1);
 check("PACKET_CONFIG_250K_DB110",reg("EPwm1Regs.TBPRD")==239 &&
       reg("EPwm1Regs.DBRED")==110 && reg("EPwm1Regs.DBFED")==110);
@@ -128,7 +128,7 @@ safe("DURATION");
 
 // Frozen per-duration cycle cap aborts before a new packet is released.
 resetIdle();request(1,500,1240);
-wv32("g_cal_hold_total_packet_cycles",20000);wv("g_cal_hold_ne_raw",1210);run(2);
+wv32("g_cal_hold_total_packet_cycles",62500);wv("g_cal_hold_ne_raw",1210);run(2);
 check("CYCLE_CAP_ABORT",rw("g_cal_hold_state")==5 && rw("g_cal_hold_stop_reason")==6);
 safe("CYCLE_CAP");
 

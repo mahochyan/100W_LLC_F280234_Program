@@ -13,10 +13,11 @@ var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_O
 var EXPECTED_SHA="998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
-if(DURATION_MS===2000){RUN_ID=0x25090520;CYCLE_CAP=50000;WAIT_MS=2500;}
-else if(DURATION_MS===10000){RUN_ID=0x25090521;CYCLE_CAP=250000;WAIT_MS=10500;}
-else if(DURATION_MS===60000){RUN_ID=0x25090522;CYCLE_CAP=1500000;WAIT_MS=60600;}
-else{throw "duration-must-be-next-forward-gate-2000-10000-60000";}
+if(DURATION_MS===500){RUN_ID=0x2509053F;CYCLE_CAP=62500;WAIT_MS=1000;}
+else if(DURATION_MS===2000){RUN_ID=0x25090540;CYCLE_CAP=250000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=0x25090541;CYCLE_CAP=1250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=0x25090542;CYCLE_CAP=7500000;WAIT_MS=60600;}
+else{throw "duration-must-be-forward-gate-500-2000-10000-60000";}
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
@@ -140,7 +141,7 @@ try{
   print("FINAL pwm="+pwm+" ost="+ost+" tzint="+tzint+
         " hw_trip_delta="+(hw1-hw0)+" active_trip_delta="+(active1-active0)+
         " enable_rise_delta="+(rise1-rise0));
-  if(state!==4 || fault!==0){
+  if(fault!==0 || hw1!==hw0 || active1!==active0){
     print("TRIP_DIAG event_phase="+rw("g_tz_event_phase")+
           " accel_trip_phase="+rw("g_accel_trip_phase")+
           " accel_trip_period="+rw("g_accel_trip_period")+
@@ -169,7 +170,7 @@ try{
   check("INITIAL_CHARGE_TARGET_STOP",rw("g_accel_stop_reason")===2 && charge>=1200 && charge<1300);
   check("INITIAL_CHARGE_NO_HW_TRIP",rw("g_pre_stop_hardware_trip_seen")===0);
   check("PACKETS_EMITTED",packets>0);
-  check("PACKETS_CYCLE_BOUNDED",pmin>=1 && pmin<=pmax && pmax<=15);
+  check("PACKETS_CYCLE_BOUNDED",pmin>=1 && pmin<=pmax && pmax<=64);
   check("TOTAL_CYCLE_CAP",total>0 && total<CYCLE_CAP);
   check("HOLD_SAMPLES_PRESENT",ssn>0 && caln>0);
   check("HOLD_RAW_BOUNDED",min>=1000 && max<1300 && ssmin>=1000 && ssmax<1300);

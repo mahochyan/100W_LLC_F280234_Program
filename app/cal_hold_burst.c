@@ -88,6 +88,12 @@ static Uint16 CALHOLD_DiagLowRaw(void)
         ? W3_HOLD_DIAG_LOW_ABORT_RAW : CAL_HOLD_DIAG_LOW_ABORT_RAW;
 }
 
+static Uint16 CALHOLD_MaxPacketCycles(void)
+{
+    return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+        ? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES;
+}
+
 static Uint16 CALHOLD_RequestValid(Uint16 mode, Uint16 duration)
 {
     if (mode == CAL_HOLD_MODE_LEGACY_11V)
@@ -339,7 +345,7 @@ void CALHOLD_PacketIsr(void)
         }
     }
 
-    if (g_cal_hold_packet_cycles >= CAL_HOLD_MAX_PACKET_CYCLES)
+    if (g_cal_hold_packet_cycles >= CALHOLD_MaxPacketCycles())
     {
         CALHOLD_StopPacket(0U);
     }
@@ -411,9 +417,9 @@ void CALHOLD_FastTask(void)
                 if (g_cal_hold_off_ticks >= CAL_HOLD_OFF_MIN_TICKS &&
                     raw <= CALHOLD_RechargeLowRaw())
                 {
-                    /* Energy cap (compile-time, not CCS-writable):
-                     * measure hold -> 120000 (30s window), else duration map:
-                     * 100ms -> 6000, 1000ms -> 40000. */
+                    /* Energy cap is compile-time and not CCS-writable. The
+                     * selected profile owns both its per-packet and aggregate
+                     * limits; target/hard VOUT checks remain per-cycle. */
                     if (g_cal_hold_total_packet_cycles >= CALHOLD_CycleCap())
                     {
                         CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_MAX_TOTAL_CYCLES);
