@@ -98,3 +98,17 @@ IDLE/stage0, fault0, PWM0/OST1/TZINT0. The resume harness snapshots and prints
 each boot value once and checks state and mode independently. Firmware and its
 SHA remain unchanged; the no-same-SHA rule still applies after any actual
 request is fired.
+
+## REAL 500 ms result
+
+PASS on the frozen SHA. Profile C reached raw1209 against target1200 and
+hard-limit1300, then stopped at TBPRD399/DB36 without a hardware trip. The hold
+completed at exactly 25000 fast ticks. It emitted 292 packets / 4674 aggregate
+cycles; every packet was bounded at 15 cycles. Hold min/max were 1166/1235,
+steady min/max/average 1200/1235/1224, and the 200 ms calibration-window average
+was 1225 over 7103 samples. Hard-limit events, fault flags, hardware-TZ delta,
+active-window-TZ delta, and public-enable-edge delta were all zero. Final state
+was PWM0/OST1/TZINT0.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_500ms_resume_v2.txt`.

@@ -14,11 +14,11 @@ STATE_VERSION=8
 UPDATED_AT=2026-09-04T23:11:44+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_500MS
-CURRENT_CHECKPOINT=W3_REAL_500MS_V1_HOST_BOOT_GATE_NONFIRE__THREE_COLD_BOOT_DIAGS_PASS__RESUME_UNFIRED_500MS_WITH_SNAPSHOT_HARNESS
+CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S
+CURRENT_CHECKPOINT=W3_REAL_500MS_PASS__ARM_2S_SAME_FROZEN_BINARY
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Resume the un-fired hard-SHA W3 500ms request with the boot-snapshot harness; stop the ladder on any actual power-gate failure.
-BOARD_LAST_STATE=AFTER_W3_ON_TARGET_NOENERGY_PWM0_OST1_TZINT0__FAULT0__REAL_POWER_NEVER_RELEASED
+NEXT_ACTION=Execute W3 2s on the same frozen binary; on PASS advance 10s then 60s; stop on any actual power-gate failure.
+BOARD_LAST_STATE=AFTER_W3_REAL_500MS_PASS__PWM0_OST1_TZINT0__FAULT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -528,7 +528,7 @@ NEXT=W3_10V_BURST_HOLD_INTEGRATION
 ## W3 10 V Burst hold candidate (W3_10V_BURST_HOLD_V1)
 
 ```text
-STATUS=REAL_500MS_V1_HOST_BOOT_GATE_NONFIRE__RESUME_PENDING
+STATUS=REAL_500MS_PASS__REAL_2S_PENDING
 SOURCE_COMMIT=a29d60a578c6fb59bf7f1116d3a519cbe73cfe2b
 CONTROL=firmware-selected W3 CALHOLD profile; legacy 11V calibration unchanged
 INITIAL_CHARGE=accelerated Profile C target raw1200; exact TBPRD239/DB110 start;
@@ -568,6 +568,12 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=0
-NEXT=resume un-fired 500ms; on PASS advance 2s->10s->60s
+W3_REAL_POWER_ATTEMPT_COUNT=1
+REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
+        initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
+        max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
+        total4674__packetmin15/max15__hardevents0__fault0__hwtripdelta0__
+        activetripdelta0__enableedgedelta0__final PWM0/OST1/TZINT0
+REAL_500MS_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_500ms_resume_v2.txt
+NEXT=execute 2s on same PASSed frozen binary; then 10s->60s
 ```
