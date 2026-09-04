@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=10
-UPDATED_AT=2026-09-04T23:49:55+08:00
+STATE_VERSION=11
+UPDATED_AT=2026-09-05T00:11:10+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_ZERO_OUTPUT_CHARGE_ROOT_CAUSE
-CURRENT_CHECKPOINT=W3_V2_REAL_2S_FAILED_SAFE__OLD_SHA_RETIRED__NEW_COLD_CHARGE_CHANGE_REQUIRED
+CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V3
+CURRENT_CHECKPOINT=W3_V3_DETERMINISTIC_FIRST_EDGE_QUALIFIED__NEW_SHA_READY_FOR_ONE_REAL_2S_FIRE
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Preserve V2 trip evidence; do not refire CE206609; qualify a new zero-output initial-charge change before any next real request.
-BOARD_LAST_STATE=AFTER_W3_V2_REAL_2S_FAIL_CLEANUP__PWM0_OST1_TZINT0
+NEXT_ACTION=Run one firmware-timed W3 V3 REAL 2000ms request on exact SHA 998A0A63; on PASS advance same SHA to 10s then 60s.
+BOARD_LAST_STATE=AFTER_W3_V3_ON_TARGET_NE_AND_SAFE_W2_REGRESSIONS__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -612,4 +612,25 @@ ZERO_OUTPUT_ROOT_CAUSE=historical 200kHz/DB140 is FAILED/DO_NOT_RETRY; tutorial 
         gate; next candidate must bound or reshape zero-output initial energy with new source/SHA
 NEXT=offline root-cause + no-energy qualification of a new zero-output initial-charge candidate;
         only then one new real gate, followed by 2s->10s->60s on PASS
+V3_ROOT_CAUSE=prepare-time TBCTR drift plus AQCSFRC shadow-at-ZRO and undefined
+        AQ-A state made the actual first post-OST edge phase-dependent
+V3_CHANGE=AQCSFRC immediate; prepared phase encoded in existing token; release
+        override and readback while OST latched; actual critical section AQ-A SET ->
+        TBCTR phase -> OTSFA -> TZCLR.OST; NE mirror never clears OST
+V3_UNCHANGED=no comparator/TZ/DAC threshold, GPIO qualification, frequency,
+        dead-time, W3 voltage thresholds, cycle caps, or protection authority changed
+V3_SOURCE_COMMIT=fc4f9ae3fdc2fc58c846834d99d993f45eeee735
+V3_STATIC=SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE__23_OF_23
+V3_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE__exact239_110__seed_mirror__no_release
+V3_NE_OUT_SHA256=92F9955DF3587A3264CE4857A108042801F93C051F64D385886AF6C84F5DD8B3
+V3_NE_MAP_SHA256=97782AE375F0BB0196028D6A701291ABCEE009487F7086ABF6850096EA9E0291
+V3_REAL_OUT_SHA256=998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102
+V3_REAL_MAP_SHA256=9A701B16734A472F48573CB6CE4F17947155CB9A975F24390427C1ABC8841F62
+V3_MEMORY=NE_EBSS_0x3FF_OF_0x400__REAL_EBSS_0x3A4_OF_0x400
+V3_REAL_ASSEMBLY=AQ_SET_3E9D8C__TBCTR_3E9D8D__OTSFA_3E9D8F__OST_CLEAR_3E9D94
+V3_REGRESSIONS=W2_OPEN_LOOP_PASS__W2_LIVE_PACKET_EXACT1_2_3_5_PASS__BURST_REGION21_0_PASS
+V3_COLD_PACKET_NE_EXCLUSION=NOT_RUN_WITH_VIN_CONNECTED__fixture_disconnects_OSHT1_AND_RELEASES_PWM__NOT_A_FAILURE
+V3_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v3_deterministic_start.txt
+V3_QUALIFICATION=PASS__ONE_REAL_2S_FIRE_AUTHORIZED_ON_EXACT_NEW_SHA
+NEXT=REAL_2S_V3__then_10S_and_60S_on_same_SHA_only_after_each_PASS
 ```

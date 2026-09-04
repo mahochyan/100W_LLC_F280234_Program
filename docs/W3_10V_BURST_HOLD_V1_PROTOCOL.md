@@ -139,3 +139,39 @@ commit is `80af931829393e2a6d7aaf035efc2d764a423d4d`.
 V2_REAL_OUT_SHA256=CE206609D9469EBCEDADE7A56B81FD093422FEE641337439FEA7F4BC839C9F6F
 V2_REAL_MAP_SHA256=F80992C3DA4D5599EFF6244469F55A14B7B30DD73E50109E156510062DA4BA43
 ```
+
+## REAL 2 s V2 failure and V3 deterministic first edge
+
+V2 passed the comparator-settle and GPIO15 pre-start gates, but its initial
+accelerated Profile-C charge tripped in Phase A after approximately five
+completed cycles (`fault=0x10`, TBCTR193, raw8, DAC300). The binary is retired.
+
+The remaining release path was phase-dependent: `PWM_PrepareStart` wrote TBCTR
+while TBCLK continued to run before the actual OST release, AQ continuous-force
+loading still used its reset shadow-at-ZRO mode, and removing that force did not
+first define AQ-A in front of the active-high-complementary dead-band. V3 makes
+the actual first edge deterministic. It selects immediate AQ-force loading,
+stores the prepared phase in the existing token, releases/readback-checks the
+continuous override under OST, then performs AQ-A one-time SET, TBCTR rewrite,
+OTSFA, and finally `TZCLR.OST` in that order.
+
+The TI F2803x TRM (SPRUI10) was used as the primary hardware reference:
+<https://www.ti.com/lit/ug/sprui10/sprui10.pdf>. No Comparator/TZ/DAC threshold,
+frequency, dead-time, GPIO qualification, W3 voltage threshold, cycle cap, or
+protection authority changed.
+
+```text
+V3_SOURCE_COMMIT=fc4f9ae3fdc2fc58c846834d99d993f45eeee735
+V3_STATIC=PASS_23_OF_23
+V3_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+V3_NE_OUT_SHA256=92F9955DF3587A3264CE4857A108042801F93C051F64D385886AF6C84F5DD8B3
+V3_NE_MAP_SHA256=97782AE375F0BB0196028D6A701291ABCEE009487F7086ABF6850096EA9E0291
+V3_REAL_OUT_SHA256=998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102
+V3_REAL_MAP_SHA256=9A701B16734A472F48573CB6CE4F17947155CB9A975F24390427C1ABC8841F62
+V3_REAL_ASM=AQ_SET@3E9D8C__TBCTR@3E9D8D__OTSFA@3E9D8F__OST_CLEAR@3E9D94
+V3_REGRESSIONS=W2_OPEN_LOOP_PASS__W2_LIVE_1_2_3_5C_PASS__BURST_REGION21_0_PASS
+V3_NEXT=REAL_2000MS_ON_NEW_SHA
+```
+
+Detailed evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v3_deterministic_start.txt`.

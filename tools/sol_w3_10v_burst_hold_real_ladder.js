@@ -1,4 +1,4 @@
-// W3_10V_BURST_HOLD_V1 - REAL forward duration ladder, one request per run.
+// W3_10V_BURST_HOLD_V3 - REAL forward duration ladder, one request per run.
 //
 // Firmware owns the complete sequence: bounded Profile C charge to raw1200,
 // protected 10 V recharge packets, the selected frozen duration, and final OST. The
@@ -10,12 +10,12 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="CE206609D9469EBCEDADE7A56B81FD093422FEE641337439FEA7F4BC839C9F6F";
+var EXPECTED_SHA="998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
-if(DURATION_MS===2000){RUN_ID=0x25090352;CYCLE_CAP=50000;WAIT_MS=2500;}
-else if(DURATION_MS===10000){RUN_ID=0x2509035A;CYCLE_CAP=250000;WAIT_MS=10500;}
-else if(DURATION_MS===60000){RUN_ID=0x2509036F;CYCLE_CAP=1500000;WAIT_MS=60600;}
+if(DURATION_MS===2000){RUN_ID=0x25090520;CYCLE_CAP=50000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=0x25090521;CYCLE_CAP=250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=0x25090522;CYCLE_CAP=1500000;WAIT_MS=60600;}
 else{throw "duration-must-be-next-forward-gate-2000-10000-60000";}
 
 function sha256File(path){
@@ -131,7 +131,8 @@ try{
   print("CHARGE target="+rw("g_accel_stop_target_raw")+" stop="+charge+
         " accel_reason="+rw("g_accel_stop_reason")+" accel_max="+rw("g_accel_stop_max_raw")+
         " phase="+rw("g_accel_stop_phase")+" tbprd="+rw("g_accel_stop_tbprd")+
-        " db="+rw("g_accel_stop_dbred"));
+        " db="+rw("g_accel_stop_dbred")+
+        " completed_cycles="+rv32u("g_accel_stop_completed_cycles"));
   print("HOLD raw="+raw+" min="+min+" max="+max+" steady_min="+ssmin+
         " steady_max="+ssmax+" steady_avg="+ssavg+" cal_avg="+calavg+" cal_n="+caln);
   print("PACKETS count="+packets+" total_cycles="+total+" min_cycles="+pmin+
@@ -141,6 +142,11 @@ try{
         " enable_rise_delta="+(rise1-rise0));
   if(state!==4 || fault!==0){
     print("TRIP_DIAG event_phase="+rw("g_tz_event_phase")+
+          " accel_trip_phase="+rw("g_accel_trip_phase")+
+          " accel_trip_period="+rw("g_accel_trip_period")+
+          " accel_trip_cmpa="+rw("g_accel_trip_cmpa")+
+          " accel_trip_db="+rw("g_accel_trip_db")+
+          " accel_trip_completed="+rv32u("g_accel_trip_completed_cycles")+
           " packet_active="+rw("g_cal_hold_packet_active")+
           " packet_cycles="+rw("g_cal_hold_packet_cycles")+
           " trip_tbctr="+rw("g_comp_trip_tbctr")+
@@ -150,7 +156,10 @@ try{
           " tz_compsts="+rw("g_tz_isr_compsts")+
           " tzflg="+rw("g_tz_isr_tzflg")+
           " pre_reject="+rw("g_comp_prestart_reject")+
-          " pre_gpio15="+rw("g_comp_prestart_gpio15"));
+          " pre_gpio15="+rw("g_comp_prestart_gpio15")+
+          " start_prepared="+rw("g_pwm_start_prepared")+
+          " aq_rldcsf="+reg("EPwm1Regs.AQSFRC.bit.RLDCSF")+
+          " aq_actsfa="+reg("EPwm1Regs.AQSFRC.bit.ACTSFA"));
   }
 
   check("W3_MODE_LATCHED",rw("g_cal_hold_mode_active")===1);

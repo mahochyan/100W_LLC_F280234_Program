@@ -1,0 +1,81 @@
+W3_10V_BURST_HOLD_V3 deterministic first-edge qualification
+Qualified at: 2026-09-05T00:11:10+08:00
+Source commit: fc4f9ae3fdc2fc58c846834d99d993f45eeee735
+
+ROOT_CAUSE
+V2 proved the comparator settle and pre-start GPIO15 gate, but the initial
+accelerated Profile-C charge still tripped after about five completed cycles.
+PWM_PrepareStart wrote TBCTR while TBCLK remained running before the later OST
+release, so the actual release phase was not deterministic. AQCSFRC was also
+left at its reset shadow-load-at-ZRO behavior and the continuous AQ force was
+removed without first defining AQ-A in front of the active-high-complementary
+dead-band. The first physical interval could therefore depend on the live
+time-base/AQ state instead of the requested phase.
+
+PRIMARY_REFERENCE
+Texas Instruments TMS320F2803x Real-Time Microcontrollers Technical Reference
+Manual, SPRUI10: https://www.ti.com/lit/ug/sprui10/sprui10.pdf
+Relevant facts audited: AQSFRC supports one-time software actions; RLDCSF=3 is
+immediate continuous-software-force loading; AQ precedes the dead-band block;
+trip-zone forcing remains after dead-band and therefore remains the final
+physical-output authority.
+
+V3_CHANGE
+- PWM_PrepareStart selects AQCSFRC immediate mode and stores prepared phase+1
+  in the existing nonzero preparation token (no RAM added).
+- PWM_StartDeterministic releases the continuous AQ override while OST is
+  still latched, readback-gates that release, then in the real release critical
+  section writes AQ-A one-time SET, rewrites TBCTR to the prepared phase, issues
+  OTSFA, and only then clears OST.
+- The NE-only mirror executes the same seed/TBCTR sequence but deliberately
+  never clears OST, then restores the clamp.
+- The legacy Burst restart caller now treats the encoded token as nonzero,
+  preserving compatibility.
+
+UNCHANGED
+Comparator/TZ/DAC threshold; GPIO qualification; frequency and dead-time;
+W3 raw thresholds; packet maximum 15 cycles; production envelope; protection
+authority; no automatic retry.
+
+STATIC
+SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+STATIC_GATE_COUNT=23/23
+STATIC_PREPARED_TOKEN_CALLERS_ACCEPT_PHASE_ENCODING=TRUE
+STATIC_REAL_START_AQ_SEED_PHASE_AT_RELEASE=TRUE
+STATIC_NE_START_MIRROR_NEVER_CLEARS_OST=TRUE
+
+CLEAN_BUILDS
+NE_OUT_SHA256=92F9955DF3587A3264CE4857A108042801F93C051F64D385886AF6C84F5DD8B3
+NE_MAP_SHA256=97782AE375F0BB0196028D6A701291ABCEE009487F7086ABF6850096EA9E0291
+NE_EBSS=0x3FF_OF_0x400__ONE_WORD_FREE
+REAL_OUT_SHA256=998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102
+REAL_MAP_SHA256=9A701B16734A472F48573CB6CE4F17947155CB9A975F24390427C1ABC8841F62
+REAL_EBSS=0x3A4_OF_0x400__0x5C_WORDS_FREE
+TOOLCHAIN=CCS21__CGT25.11.1.LTS__COFF
+
+REAL_DISASSEMBLY_ORDER
+FUNCTION=_PWM_StartDeterministic__address_0x003E9D65__size_0x86_words
+0x003E9D8C MOV @0x0D,AH                  ; ACTSFA=AQ_SET
+0x003E9D8D MOV *+XAR5[4],AL              ; TBCTR=prepared phase
+0x003E9D8F OR  @0x0D,#0x0004             ; OTSFA=1
+0x003E9D94 OR  *+XAR4[0],#0x0004         ; TZCLR.OST=1
+ORDER_PRESERVED=TRUE
+
+ON_TARGET_NE
+SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+ACCEL_PREPARE_AUTH_PASS=TRUE
+ACCEL_PREPARE_EXACT_239_110=TRUE
+ACCEL_NE_NO_PWM_RELEASE=TRUE
+ACCEL_NE_START_SEED_MIRROR=TRUE
+ALL_TERMINAL_STATES=PWM0_OST1_TZINT0
+
+SAFE_REGRESSIONS_ON_TARGET
+SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE__EXACT_1_2_3_5C
+BURST_REGION_NE_VERIFICATION_PASS=TRUE__PASS21_FALSE0
+W2_COLD_PACKET_NE=NOT_RUN__fixture disconnects OSHT1 and releases PWM; excluded
+while Vin24 is connected; this is a safety exclusion, not a failed gate.
+
+QUALIFICATION=PASS
+NEXT=one W3 V3 REAL 2000ms request with exact REAL SHA hard gate
+BOARD_FINAL=PWM0_OST1_TZINT0
