@@ -1,4 +1,4 @@
-// W3_10V_BURST_HOLD_V8 - REAL forward duration ladder, one request per run.
+// W3/W4 10 V protected-Burst REAL forward ladder, one request per run.
 //
 // Firmware owns the complete sequence: bounded Profile C charge to raw1200,
 // protected 10 V recharge packets, the selected frozen duration, and final OST. The
@@ -13,13 +13,16 @@ var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_O
 var EXPECTED_SHA="04F5352643FBC82E614EA62C1032038D6CB01C4A18093534ABC2D431B0C9B046";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
 var LOAD_OHMS=(java.lang.System.getenv("SOL_W3_LOAD_OHMS")||"15");
+var INPUT_LIMIT_A=(java.lang.System.getenv("SOL_W3_INPUT_LIMIT_A")||"");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
 var LOAD10=LOAD_OHMS.equals("10");
 if(!LOAD10 && !LOAD_OHMS.equals("15")){throw "load-must-be-explicit-10-or-15-ohm";}
-if(DURATION_MS===500){RUN_ID=LOAD10?0x2509057B:0x25090573;CYCLE_CAP=62500;WAIT_MS=1000;}
-else if(DURATION_MS===2000){RUN_ID=LOAD10?0x2509057C:0x25090574;CYCLE_CAP=250000;WAIT_MS=2500;}
-else if(DURATION_MS===10000){RUN_ID=LOAD10?0x2509057D:0x25090575;CYCLE_CAP=1250000;WAIT_MS=10500;}
-else if(DURATION_MS===60000){RUN_ID=LOAD10?0x2509057E:0x25090576;CYCLE_CAP=7500000;WAIT_MS=60600;}
+if(LOAD10 && !INPUT_LIMIT_A.equals("0.7")){throw "cr10-input-limit-must-be-explicit-0.7A";}
+if(!LOAD10 && !INPUT_LIMIT_A.equals("0.5")){throw "cr15-input-limit-must-be-explicit-0.5A";}
+if(DURATION_MS===500){RUN_ID=LOAD10?0x25090583:0x25090573;CYCLE_CAP=62500;WAIT_MS=1000;}
+else if(DURATION_MS===2000){RUN_ID=LOAD10?0x25090584:0x25090574;CYCLE_CAP=250000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=LOAD10?0x25090585:0x25090575;CYCLE_CAP=1250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=LOAD10?0x25090586:0x25090576;CYCLE_CAP=7500000;WAIT_MS=60600;}
 else{throw "duration-must-be-forward-gate-500-2000-10000-60000";}
 
 function sha256File(path){
@@ -62,7 +65,8 @@ var failures=0,connected=false,fired=false;
 print("=== SOL W3 10V BURST HOLD REAL "+DURATION_MS+"MS ===");
 var ack=(java.lang.System.getenv("SOL_W3_GATES_ACK")||"").equals("1");
 print("LOAD_OHMS="+LOAD_OHMS);
-print("GATE_USER_ACK="+ack+" (standing Vin24/CR"+LOAD_OHMS+" confirmation)");
+print("INPUT_CURRENT_LIMIT_A="+INPUT_LIMIT_A);
+print("GATE_USER_ACK="+ack+" (standing Vin24/CR"+LOAD_OHMS+"/limit"+INPUT_LIMIT_A+"A confirmation)");
 if(!ack){throw "real-gates";}
 var actual=sha256File(OUT);
 print("REAL_OUT_SHA256="+actual);print("EXPECTED_SHA256="+EXPECTED_SHA);
