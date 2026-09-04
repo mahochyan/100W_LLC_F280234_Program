@@ -1,0 +1,38 @@
+=== SOL W3 10V BURST HOLD V6 REAL 2000MS ===
+RUN_AT=2026-09-05T00:41:18+08:00
+SOURCE_COMMIT=c04c1f98576d868bfd325797a0e640ab8c3d23e0
+REAL_OUT_SHA256=BD0CFFCB33FABE522B23AAC49D445A1C65BC7EA17C0C506837EC7E28ECC05CA9
+REAL_SHA_HARD_GATE=PASS
+STANDING_BENCH=VIN24_CR15
+INIT_LOOPBACK_STAGE_GATES=ALL_PASS
+
+RESULT_STATE=ABORT
+RESULT_REASON=UNDERSUPPLIED
+ELAPSED_TICKS=22030__approximately_440.60ms
+FAULT=0x0
+MODE=W3
+INITIAL_CHARGE=target1200_stop1203_max1203_reasonTARGET_phase4_TBPRD399_DB36_cycles419
+HOLD=final995_prior_published_min1020_max1247_steady1020_to1247_avg1228_calavg1223_caln2430
+PACKETS=count181_total_cycles23808_min128_max128_hardevents0
+UNDERSUPPLY_CONFIRM_FINAL=3
+LAST_PACKET=start992_stop990_postmax997_postlast990_cycles128
+TRIP_DELTAS=hardware0_active0
+PUBLIC_ENABLE_RISE_DELTA=0
+FINAL_AND_CLEANUP=PWM0_OST1_TZINT0
+
+FAILED_GATES=W3_2000MS_COMPLETE__FIRMWARE_DURATION_EXACT
+ALL_OTHER_ACCEPTANCE_GATES=PASS
+SOL_W3_10V_BURST_HOLD_REAL_2000MS_PASS=FALSE
+POWER_REQUEST_FIRED=TRUE
+
+INTERPRETATION
+The last packet establishes the physical control failure directly: it began at
+raw992, ran the full 128 cycles at fixed 250kHz/DB110, and ended raw990 with
+post-max997. More DB110 cycles do not provide net recharge at low output. At
+TBPRD239/CMPA120, DB110 leaves only about 10 TBCLK counts of effective pulse.
+The already-passed accelerated Profile-C Phase A safely ramps the same period
+from DB110 toward DB36. The next candidate will reuse a bounded prefix of that
+proven trajectory inside each W3 packet rather than lengthening DB110 again.
+
+V6_SHA_DISPOSITION=RETIRED__NO_RETRY
+NEXT=V7_PER_PACKET_DB110_TO_DB90_RAMP__ALL_VOLTAGE_AND_HARDWARE_STOPS_UNCHANGED

@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=20
-UPDATED_AT=2026-09-05T00:39:53+08:00
+STATE_VERSION=21
+UPDATED_AT=2026-09-05T00:41:18+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V6
-CURRENT_CHECKPOINT=W3_V6_REAL_500MS_PASS__SAME_SHA_READY_FOR_FORWARD_2S
+CURRENT_GATE=W3_10V_PACKET_EFFECTIVE_PULSE_ROOT_CAUSE
+CURRENT_CHECKPOINT=W3_V6_REAL_2S_LAST_PACKET_NO_NET_CHARGE_SAFE__SHA_RETIRED__DB_RAMP_REQUIRED
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run V6 REAL 2000ms on the same passing exact SHA; then 10s and 60s only after each PASS.
-BOARD_LAST_STATE=AFTER_W3_V6_REAL_500MS_PASS_AND_CLEANUP__PWM0_OST1_TZINT0
+NEXT_ACTION=Preserve V6 2s evidence; qualify per-packet DB110-to-DB90 ramp using the proven Profile-C Phase-A prefix, with all stops unchanged.
+BOARD_LAST_STATE=AFTER_W3_V6_REAL_2S_NO_NET_RECHARGE_AND_CLEANUP__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=9
+W3_REAL_POWER_ATTEMPT_COUNT=10
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -715,5 +715,13 @@ V6_REAL_500MS=PASS__elapsed25000__charge1202_cycles419__hold1164_to1245_avg1227_
         undersupplyconfirm0_hardevents0_fault0_tripdeltas0_publicenable0__
         final_cleanup_PWM0_OST1_TZINT0
 V6_REAL_500MS_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v6_500ms_v1.txt
-NEXT=REAL_2S_V6_SAME_SHA__then_10S_60S_only_after_each_PASS
+V6_REAL_2S=FAIL_SAFE__reasonUNDERSUPPLIED__elapsed22030ticks_440.6ms__
+        final995_prior_min1020_avg1228__packets181_all128_total23808__confirm3__
+        lastpacket_start992_stop990_postmax997_cycles128__fault0_tripdeltas0_publicenable0__
+        final_cleanup_PWM0_OST1_TZINT0
+V6_REAL_2S_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v6_2s_v1.txt
+V6_ROOT_CAUSE=FIXED_DB110_AT_TBPRD239_CMPA120_LEAVES_APPROX10_TBCLK_EFFECTIVE_PULSE__
+        LAST_PACKET_PROVES_NO_NET_RECHARGE_AT_LOW_RAW__DO_NOT_LENGTHEN_DB110_AGAIN
+V6_DISPOSITION=RETIRED__NO_SAME_SHA_RETRY
+NEXT=V7_PACKET_DB110_TO90_PREFIX_OF_PROVEN_PROFILE_C_PHASE_A__NEW_SHA
 ```

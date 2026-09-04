@@ -337,3 +337,20 @@ final and cleanup were PWM0/OST1/TZINT0.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v6_500ms_v1.txt`.
+
+### V6 REAL 2 s result
+
+V6 ended safely at tick22030 (440.6 ms). Its last packet began at raw992,
+ran all 128 fixed-DB110 cycles, and ended raw990 with post-max997. This directly
+shows no net recharge at low output. At TBPRD239/CMPA120, DB110 leaves only
+about 10 TBCLK counts of effective pulse. Lengthening the same pulse again is
+therefore rejected.
+
+The accelerated Profile-C initial charge has repeatedly passed its Phase-A
+DB110-to-DB36 ramp. The next candidate will reuse only a bounded DB110-to-DB90
+prefix inside each packet, preserving the safe first edge while adding pulse
+authority. All voltage, aggregate cycle, Comparator/TZ, and undersupply stops
+remain unchanged.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v6_2s_v1.txt`.
