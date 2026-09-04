@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=11
-UPDATED_AT=2026-09-05T00:11:10+08:00
+STATE_VERSION=12
+UPDATED_AT=2026-09-05T00:13:15+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V3
-CURRENT_CHECKPOINT=W3_V3_DETERMINISTIC_FIRST_EDGE_QUALIFIED__NEW_SHA_READY_FOR_ONE_REAL_2S_FIRE
+CURRENT_GATE=W3_10V_HOLD_ENERGY_AUTHORITY_ROOT_CAUSE
+CURRENT_CHECKPOINT=W3_V3_REAL_2S_ENDED_SAFE_UNDERSUPPLIED__FIRST_EDGE_FIX_PROVEN__SHA_RETIRED
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run one firmware-timed W3 V3 REAL 2000ms request on exact SHA 998A0A63; on PASS advance same SHA to 10s then 60s.
-BOARD_LAST_STATE=AFTER_W3_V3_ON_TARGET_NE_AND_SAFE_W2_REGRESSIONS__PWM0_OST1_TZINT0
+NEXT_ACTION=Preserve V3 evidence; do not refire 998A0A63; qualify a new bounded hold-energy authority change without relaxing Comparator/TZ.
+BOARD_LAST_STATE=AFTER_W3_V3_REAL_2S_UNDERSUPPLY_AND_HOST_CLEANUP__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=3
+W3_REAL_POWER_ATTEMPT_COUNT=4
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -632,5 +632,13 @@ V3_REGRESSIONS=W2_OPEN_LOOP_PASS__W2_LIVE_PACKET_EXACT1_2_3_5_PASS__BURST_REGION
 V3_COLD_PACKET_NE_EXCLUSION=NOT_RUN_WITH_VIN_CONNECTED__fixture_disconnects_OSHT1_AND_RELEASES_PWM__NOT_A_FAILURE
 V3_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v3_deterministic_start.txt
 V3_QUALIFICATION=PASS__ONE_REAL_2S_FIRE_AUTHORIZED_ON_EXACT_NEW_SHA
-NEXT=REAL_2S_V3__then_10S_and_60S_on_same_SHA_only_after_each_PASS
+V3_REAL_2S=FAIL_SAFE__stateABORT_reasonUNDERSUPPLIED__elapsed34438ticks_688.76ms__
+        initial_charge_target1200_stop1205_cycles419_no_hwtrip__hold_final999_min1009_
+        max1240_avg1211__packets2126_all15cycles_total32235__fault0__hwtripdelta0__
+        activetripdelta0__publicenable0__final_cleanup_PWM0_OST1_TZINT0
+V3_INTERPRETATION=DETERMINISTIC_FIRST_EDGE_FIX_PROVEN__V2_HARDWARE_TRIP_REMOVED__
+        NEW_INDEPENDENT_BLOCKER_IS_INSUFFICIENT_BOUNDED_HOLD_ENERGY_AUTHORITY
+V3_REAL_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v3_2s_v1.txt
+V3_DISPOSITION=RETIRED__NO_SAME_SHA_RETRY
+NEXT=NEW_BOUNDED_HOLD_ENERGY_AUTHORITY_CHANGE__OFFLINE_NE_REGRESSIONS__NEW_SHA__ONE_REAL_2S
 ```

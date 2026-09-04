@@ -1,0 +1,80 @@
+=== SOL W3 10V BURST HOLD REAL 2000MS ===
+RUN_AT=2026-09-05T00:13:15+08:00
+SOURCE_COMMIT=fc4f9ae3fdc2fc58c846834d99d993f45eeee735
+REAL_OUT_SHA256=998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102
+EXPECTED_SHA256=998A0A63EA6DFF930AC2B94C15CEE7D75D59B7501F383FA4BC1FE81D9B9BF102
+REAL_SHA_HARD_GATE=PASS
+GATE_USER_ACK=TRUE__standing_Vin24_CR15
+
+INIT_SNAPSHOT=sys1_pwm0_fault0_ost1_tzint0_stage0_cal1_hold0_mode0
+INIT_GATES=ALL_PASS
+LOOPBACK=PASS
+STAGES_1_TO_5=ALL_PASS
+PRE_FIRE_RAW=13
+PRE_FIRE_HW_TRIP=0
+PRE_FIRE_ACTIVE_TRIP=0
+PRE_FIRE_PUBLIC_ENABLE_RISE=0
+
+RESULT_STATE=ABORT
+RESULT_REASON=UNDERSUPPLIED
+ELAPSED_TICKS=34438__approximately_688.76ms_at_20us
+FAULT=0x0
+MODE=W3
+
+INITIAL_CHARGE_TARGET_RAW=1200
+INITIAL_CHARGE_STOP_RAW=1205
+INITIAL_CHARGE_STOP_REASON=TARGET
+INITIAL_CHARGE_MAX_RAW=1205
+INITIAL_CHARGE_FINAL_PHASE=4
+INITIAL_CHARGE_FINAL_TBPRD=399
+INITIAL_CHARGE_FINAL_DB=36
+INITIAL_CHARGE_COMPLETED_CYCLES=419
+INITIAL_CHARGE_HW_TRIP=0
+
+HOLD_FINAL_RAW=999
+HOLD_MIN_RAW=1009
+HOLD_MAX_RAW=1240
+HOLD_STEADY_MIN_RAW=1009
+HOLD_STEADY_MAX_RAW=1240
+HOLD_STEADY_AVG_RAW=1211
+HOLD_CAL_AVG_RAW=1207
+HOLD_CAL_SAMPLES=7666
+
+PACKET_COUNT=2126
+PACKET_TOTAL_CYCLES=32235
+PACKET_MIN_CYCLES=15
+PACKET_MAX_CYCLES=15
+HARD_LIMIT_EVENTS=0
+
+FINAL_PWM=0
+FINAL_OST=1
+FINAL_TZINT=0
+HW_TRIP_DELTA=0
+ACTIVE_TRIP_DELTA=0
+PUBLIC_ENABLE_RISE_DELTA=0
+CLEANUP=PWM0_OST1_TZINT0
+
+PASS_GATES
+- SHA, boot, loopback, stages, W3 mode
+- deterministic initial charge reached target with no hardware trip
+- packets emitted and each remained within the frozen 15-cycle bound
+- total-cycle cap, samples, average band, hard limit, fault/TZ/public-enable,
+  run-id chain, and final hardware-safe state
+
+FAILED_GATES
+- W3_2000MS_COMPLETE: state ABORT/reason UNDERSUPPLIED
+- FIRMWARE_DURATION_EXACT: ended at tick34438 before tick100000
+
+INTERPRETATION
+The V3 deterministic first-edge correction closed the V2 hardware-trip failure:
+there was no comparator/TZ event during initial charge or 2126 cold packets.
+The next independent blocker is hold-energy authority. Every packet reached the
+15-cycle ceiling, yet raw VOUT eventually crossed below the compile-time raw1000
+diagnostic floor. This is not a protection false trip and does not justify any
+Comparator/TZ relaxation. Values shown by the generic TRIP_DIAG block are stale
+and inapplicable because fault=0 and both trip deltas are zero.
+
+SOL_W3_10V_BURST_HOLD_REAL_2000MS_PASS=FALSE
+POWER_REQUEST_FIRED=TRUE
+V3_SHA_DISPOSITION=RETIRED__NO_RETRY
+NEXT=qualify_new_bounded_hold_energy_authority_change_with_new_source_and_SHA

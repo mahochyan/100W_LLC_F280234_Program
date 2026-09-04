@@ -175,3 +175,21 @@ V3_NEXT=REAL_2000MS_ON_NEW_SHA
 
 Detailed evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v3_deterministic_start.txt`.
+
+## REAL 2 s V3 result
+
+V3 removed the hardware-trip failure. The deterministic initial charge reached
+raw1205 in 419 cycles and the hold subsequently executed 2126 protected cold
+starts with zero hardware/active-window TZ events and no fault. Every packet
+reached the 15-cycle ceiling. At tick34438 (about 688.76 ms), raw VOUT crossed
+below the raw1000 diagnostic floor and the firmware ended with the explicit
+UNDERSUPPLIED reason. Final and host-cleanup state were PWM0/OST1/TZINT0.
+
+This establishes a new, independent root cause: the bounded 250 kHz/DB110,
+15-cycle packet policy does not supply enough average energy for the attached
+15 ohm load. It is not a comparator false trip. V3 SHA `998A0A63...BF102` is
+retired; the next candidate must add bounded hold-energy authority with a new
+source commit/SHA while retaining Comparator/TZ and all voltage safety gates.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v3_2s_v1.txt`.
