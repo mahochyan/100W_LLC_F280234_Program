@@ -300,3 +300,29 @@ stops remain unchanged.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v5_2s_v1.txt`.
+
+## V6 128-cycle bounded recharge
+
+V6 extends only the W3 packet ceiling from 64 to 128 identical
+250 kHz/DB110 cycles, or 512 us maximum. This gives a packet enough continuous
+time to reach raw1260; the unchanged per-cycle target/hard checks can still end
+it earlier. The 50% duration-wide cap, three-sample raw1000 confirmation,
+minimum OFF time, deterministic start, and Comparator/TZ all remain unchanged.
+Legacy 11 V remains capped at 15 cycles.
+
+Existing allocated telemetry now records the last packet's start/stop/post-max/
+post-last raw and cycle count, with no RAM increase.
+
+```text
+V6_SOURCE_COMMIT=c04c1f98576d868bfd325797a0e640ab8c3d23e0
+V6_STATIC=PASS_26_OF_26
+V6_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+V6_NE_OUT_SHA256=28994B67EA0F16AAE464123F3F96FCE129A7A5E201573B54044DDF71A578A3F2
+V6_NE_MAP_SHA256=6B9A53C730FD3F6DD96D1905FD7CE253DC45DE266BE09A5E6C3A5A1FE5B8E8BE
+V6_REAL_OUT_SHA256=BD0CFFCB33FABE522B23AAC49D445A1C65BC7EA17C0C506837EC7E28ECC05CA9
+V6_REAL_MAP_SHA256=E096440DBCEC09FFA3D4129668EBF008DF607314EA191EFB97BF544B2C5616CE
+V6_NEXT=REAL_500MS_REQUALIFICATION
+```
+
+Detailed evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v6_packet128.txt`.

@@ -1,0 +1,55 @@
+W3_10V_BURST_HOLD_V6 128-cycle packet qualification
+Qualified at: 2026-09-05T00:38:20+08:00
+Source commit: c04c1f98576d868bfd325797a0e640ab8c3d23e0
+
+ROOT_CAUSE
+V5 confirmed three persistent below-raw1000 OFF observations at 780.32ms.
+All 893 packets hit the 64-cycle limit; OFF maximum raw1241 remained below
+target1260. Active time was 29.6575%, so the 50% aggregate cap did not bind.
+The per-packet continuous recharge interval, not the duration-wide budget or
+undersupply classifier, remained the limiting authority.
+
+V6_CHANGE
+- W3-only packet ceiling: 128 identical 250kHz/DB110 cycles = 512us maximum.
+- Existing 50% duration-wide aggregate cap remains unchanged.
+- Reuse already-allocated legacy CCS globals to freeze last packet start,
+  stop, post-max, post-last, and actual cycles; no RAM is added.
+- Legacy 11V remains at 15 cycles.
+
+UNCHANGED
+Per-cycle target raw1260 and hard raw1300 termination; 3-sample raw1000
+undersupply confirmation; 40us minimum OFF; deterministic start; Comparator/
+TZ/DAC; GPIO15 qualification; frequency/DB; production envelope; no retry.
+
+STATIC
+SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+STATIC_GATE_COUNT=26/26
+STATIC_W3_PACKET_ENERGY_BOUND=TRUE
+STATIC_W3_PACKET_EXISTING_TELEMETRY=TRUE
+
+CLEAN_BUILDS
+NE_OUT_SHA256=28994B67EA0F16AAE464123F3F96FCE129A7A5E201573B54044DDF71A578A3F2
+NE_MAP_SHA256=6B9A53C730FD3F6DD96D1905FD7CE253DC45DE266BE09A5E6C3A5A1FE5B8E8BE
+REAL_OUT_SHA256=BD0CFFCB33FABE522B23AAC49D445A1C65BC7EA17C0C506837EC7E28ECC05CA9
+REAL_MAP_SHA256=E096440DBCEC09FFA3D4129668EBF008DF607314EA191EFB97BF544B2C5616CE
+MEMORY=UNCHANGED__NE_EBSS0x3FF__REAL_EBSS0x3A4
+TOOLCHAIN=CCS21__CGT25.11.1.LTS__COFF
+
+ON_TARGET_NE
+SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+W3_PACKET_MAX128_EXERCISED=TRUE
+PACKET_EXISTING_TELEMETRY=TRUE
+RECOVERY_CLEARS_CONFIRM=TRUE
+PERSISTENT_LOW_ABORT=TRUE
+HARD1300_ABORT=TRUE
+LEGACY_MAX15=TRUE
+ALL_TERMINAL_STATES=PWM0_OST1_TZINT0
+
+SAFE_REGRESSIONS_ON_TARGET
+SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE__EXACT_1_2_3_5C
+BURST_REGION_NE_VERIFICATION_PASS=TRUE__PASS21_FALSE0
+
+QUALIFICATION=PASS
+NEXT=one V6 REAL 500ms requalification, then forward ladder on PASS
+BOARD_FINAL=PWM0_OST1_TZINT0
