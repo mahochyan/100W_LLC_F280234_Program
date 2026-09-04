@@ -39,6 +39,25 @@
 #define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_MEASURE 120000UL  /* 30s interactive hold, ~70k expected */
 #define CAL_HOLD_ZERO_SAMPLES           64U    /* post-test zero/offset capture */
 
+/* W3_10V_BURST_HOLD_V1: protected 10 V profile on the already proven
+ * 250 kHz / DB110 low-energy restart packet. The selector can choose only
+ * between two compile-time-bounded profiles. */
+#define CAL_HOLD_MODE_LEGACY_11V         0U
+#define CAL_HOLD_MODE_W3_10V             1U
+#define W3_HOLD_RECHARGE_LOW_RAW         1220U  /* 9.81 V */
+#define W3_HOLD_RECHARGE_TARGET_RAW      1260U  /* 10.13 V */
+#define W3_HOLD_HARD_LIMIT_RAW           1300U  /* 10.45 V, below OL warning 1304 */
+#define W3_HOLD_DIAG_LOW_ABORT_RAW       1000U  /* 8.03 V after 2 ms => abort */
+#define W3_HOLD_INITIAL_CHARGE_RAW       1200U  /* legal accelerated Profile C target */
+#define W3_HOLD_DURATION_500MS           500U
+#define W3_HOLD_DURATION_2S              2000U
+#define W3_HOLD_DURATION_10S             10000U
+#define W3_HOLD_DURATION_60S             60000U
+#define W3_HOLD_CYCLE_CAP_500MS          20000UL
+#define W3_HOLD_CYCLE_CAP_2S             50000UL
+#define W3_HOLD_CYCLE_CAP_10S            250000UL
+#define W3_HOLD_CYCLE_CAP_60S            1500000UL
+
 /* CALIBRATION_MEASURE_HOLD: interactive DMM hold (task
  * LLC_STAGE5_ACCEPTANCE_SPRINT_V2). The hold does NOT end at 1s; it runs
  * until the operator signals completion or the 30s wall-clock timeout. */
@@ -50,5 +69,6 @@ void CALHOLD_Init(void);
 void CALHOLD_SlowTask(void);       /* request detect, CHARGE supervision, end/abort bookkeeping */
 void CALHOLD_FastTask(void);       /* 20 us: OFF software ADC, packet scheduling, safety */
 void CALHOLD_PacketIsr(void);      /* EPWM1 INT while a recharge packet is active */
+Uint16 CALHOLD_W3PacketAuthOk(void); /* private-latch-backed exact 239/110 write gate */
 
 #endif /* APP_CAL_HOLD_BURST_H */

@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Static safety gates for W3_10V_BURST_HOLD_V1."""
+
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = (ROOT / "app" / "cal_hold_burst.c").read_text(encoding="utf-8")
+HDR = (ROOT / "app" / "cal_hold_burst.h").read_text(encoding="utf-8")
+GLOBALS_H = (ROOT / "app" / "llc_globals.h").read_text(encoding="utf-8")
+PROBE = (ROOT / "app" / "power_probe.c").read_text(encoding="utf-8")
+PROBE_H = (ROOT / "app" / "power_probe.h").read_text(encoding="utf-8")
+PWM = (ROOT / "driver" / "pwm.c").read_text(encoding="utf-8")
+
+
+def gate(name: str, condition: bool) -> None:
+    print(f"{name}={'TRUE' if condition else 'FALSE'}")
+    if not condition:
+        raise AssertionError(name)
+
+
+def main() -> None:
+    gate("STATIC_W3_FROZEN_BAND",
+         all(x in HDR for x in (
+             "W3_HOLD_RECHARGE_LOW_RAW         1220U",
+             "W3_HOLD_RECHARGE_TARGET_RAW      1260U",
+             "W3_HOLD_HARD_LIMIT_RAW           1300U",
+             "W3_HOLD_DIAG_LOW_ABORT_RAW       1000U",
+         )))
+    gate("STATIC_HARD_BELOW_OL_WARNING", 1300 < 1304)
+    gate("STATIC_LEGACY_PROFILE_UNCHANGED",
+         all(x in HDR for x in (
+             "CAL_HOLD_RECHARGE_LOW_RAW       1380U",
+             "CAL_HOLD_RECHARGE_TARGET_RAW    1400U",
+             "CAL_HOLD_HARD_LIMIT_RAW         1450U",
+         )))
+    gate("STATIC_PRIVATE_MODE_LATCH",
+         "static Uint16 s_cal_hold_mode" in SRC and
+         "g_cal_hold_mode_active = s_cal_hold_mode" in SRC)
+    gate("STATIC_ALLOWED_DURATIONS",
+         all(f"duration == W3_HOLD_DURATION_{x}" in SRC
+             for x in ("500MS", "2S", "10S", "60S")))
+    gate("STATIC_PER_DURATION_CYCLE_CAPS",
+         all(x in SRC for x in (
+             "W3_HOLD_CYCLE_CAP_500MS",
+             "W3_HOLD_CYCLE_CAP_2S",
+             "W3_HOLD_CYCLE_CAP_10S",
+             "W3_HOLD_CYCLE_CAP_60S",
+         )))
+    gate("STATIC_PROFILE_C_1200_ENTRY",
+         "W3_HOLD_INITIAL_CHARGE_RAW" in SRC and
+         "g_accel_vout_target_raw" in SRC)
+    gate("STATIC_ACCEL_SKIPS_GENERIC_150K_PATH",
+         "if (accel_requested == 0U)" in PROBE and
+         "start_period = 239U" in PROBE and
+         "start_deadtime = 110U" in PROBE)
+    gate("STATIC_ACCEL_PRIVATE_WRITE_AUTH",
+         "static Uint16 s_accel_pwm_write_auth" in PROBE and
+         "ACCEL_PwmWriteAuthOk" in PROBE_H and
+         "ACCEL_PwmWriteAuthOk(period, deadtime)" in PWM and
+         PROBE.count("s_accel_pwm_write_auth = 1U") == 3 and
+         PROBE.count("s_accel_pwm_write_auth = 0U") >= 6)
+    gate("STATIC_ACCEL_TRAJECTORY_EXACT",
+         "period == 239UL && deadtime >= 36U && deadtime <= 110U" in PROBE and
+         "period >= 239UL && period <= 399UL && deadtime == 36U" in PROBE)
+    gate("STATIC_ACCEL_ADC_START_MATCH",
+         "MULTICYCLE_ConfigureAdcCapture(start_period)" in PROBE and
+         "PWM_PrepareStart((Uint32)start_period, start_deadtime, 1U)" in PROBE)
+    gate("STATIC_ACCEL_NE_NEVER_RELEASES_OST",
+         "W3 authorization proof without energy" in PROBE and
+         "Never call PWM_StartDeterministic in this branch" in PROBE and
+         "g_pwm_start_prepared = 0U" in PROBE)
+    gate("STATIC_SAFE_PACKET_250K_DB110",
+         "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
+         "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
+    gate("STATIC_REAL_EPWM_ISR_RETAINED",
+         "CALHOLD_PacketIsr" in SRC and
+         "EPwm1Regs.ETSEL.bit.INTEN  = 1U" in SRC)
+    gate("STATIC_NE_NEVER_RELEASES_OST",
+         "Logic-only packet: retain the mandatory OST clamp" in SRC and
+         "g_pwm_start_prepared = 0U" in SRC)
+    gate("STATIC_FAULT_PASSTHROUGH",
+         "g_fault_flags != 0UL" in SRC and
+         "CAL_HOLD_REASON_ACTIVE_TZ" in SRC)
+    gate("STATIC_W3_GLOBALS_EXPORTED",
+         all(x in GLOBALS_H for x in (
+             "g_cal_hold_mode_request", "g_cal_hold_mode_active",
+             "g_cal_hold_ne_bypass_charge", "g_cal_hold_ne_raw",
+         )))
+    print("SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE")
+
+
+if __name__ == "__main__":
+    main()

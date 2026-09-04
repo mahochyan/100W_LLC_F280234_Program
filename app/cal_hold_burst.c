@@ -37,6 +37,88 @@ typedef struct
 } cal_hold_stats_t;
 
 static cal_hold_stats_t s_stats;
+#pragma DATA_SECTION(s_cal_hold_mode, "ol_ram");
+static Uint16 s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
+#pragma DATA_SECTION(s_w3_packet_write_auth, "ol_ram");
+static Uint16 s_w3_packet_write_auth = 0U;
+
+Uint16 CALHOLD_W3PacketAuthOk(void)
+{
+    return (s_w3_packet_write_auth != 0U &&
+            s_cal_hold_mode == CAL_HOLD_MODE_W3_10V &&
+            g_cal_hold_state == CAL_HOLD_OFF &&
+            g_cal_hold_packet_active == 0U &&
+            g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
+            g_system_state == SYS_STATE_IDLE &&
+            g_pwm_enable_request == 0U &&
+            g_comp_tz_loopback_verified != 0U &&
+            g_fault_flags == 0UL &&
+            g_pwm_enabled == 0U &&
+            EPwm1Regs.TZFLG.bit.OST != 0U) ? 1U : 0U;
+}
+
+static Uint16 CALHOLD_RechargeLowRaw(void)
+{
+    return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+        ? W3_HOLD_RECHARGE_LOW_RAW : CAL_HOLD_RECHARGE_LOW_RAW;
+}
+
+static Uint16 CALHOLD_RechargeTargetRaw(void)
+{
+    return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+        ? W3_HOLD_RECHARGE_TARGET_RAW : CAL_HOLD_RECHARGE_TARGET_RAW;
+}
+
+static Uint16 CALHOLD_HardLimitRaw(void)
+{
+    return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+        ? W3_HOLD_HARD_LIMIT_RAW : CAL_HOLD_HARD_LIMIT_RAW;
+}
+
+static Uint16 CALHOLD_DiagLowRaw(void)
+{
+    return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+        ? W3_HOLD_DIAG_LOW_ABORT_RAW : CAL_HOLD_DIAG_LOW_ABORT_RAW;
+}
+
+static Uint16 CALHOLD_RequestValid(Uint16 mode, Uint16 duration)
+{
+    if (mode == CAL_HOLD_MODE_LEGACY_11V)
+        return (duration == 100U || duration == 1000U) ? 1U : 0U;
+    if (mode == CAL_HOLD_MODE_W3_10V)
+        return (duration == W3_HOLD_DURATION_500MS ||
+                duration == W3_HOLD_DURATION_2S ||
+                duration == W3_HOLD_DURATION_10S ||
+                duration == W3_HOLD_DURATION_60S) ? 1U : 0U;
+    return 0U;
+}
+
+static Uint32 CALHOLD_CycleCap(void)
+{
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+    {
+        if (g_cal_hold_duration_ms == W3_HOLD_DURATION_500MS)
+            return W3_HOLD_CYCLE_CAP_500MS;
+        if (g_cal_hold_duration_ms == W3_HOLD_DURATION_2S)
+            return W3_HOLD_CYCLE_CAP_2S;
+        if (g_cal_hold_duration_ms == W3_HOLD_DURATION_10S)
+            return W3_HOLD_CYCLE_CAP_10S;
+        return W3_HOLD_CYCLE_CAP_60S;
+    }
+    if (g_cal_measure_active != 0U)
+        return CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_MEASURE;
+    return (g_cal_hold_duration_ms == 1000U)
+        ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S
+        : CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS;
+}
+
+static Uint16 CALHOLD_ReadOffRaw(void)
+{
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U) return g_cal_hold_ne_raw;
+#endif
+    return (Uint16)AdcResult.ADCRESULT0;
+}
 
 static void CALHOLD_StatsReset(void)
 {
@@ -68,6 +150,27 @@ static void CALHOLD_AdcPollMode(Uint16 enable)
     EALLOW;
     AdcRegs.INTSEL1N2.bit.INT1E = (enable != 0U) ? 0U : 1U;
     EDIS;
+}
+
+static void CALHOLD_BeginOff(Uint16 charge_stop_raw)
+{
+    g_cal_hold_charge_stop_raw = charge_stop_raw;
+    CALHOLD_StatsReset();
+    g_cal_hold_hard_limit_events = 0U;
+    g_cal_hold_elapsed_ticks = 0UL;
+    g_cal_hold_hold_active_ticks = 0UL;
+    g_cal_hold_off_ticks = CAL_HOLD_OFF_MIN_TICKS;
+    g_cal_hold_cal_raw_min = 0xFFFFU;
+    g_cal_hold_cal_raw_max = 0U;
+    g_cal_hold_cal_raw_sum = 0UL;
+    g_cal_hold_cal_raw_samples = 0UL;
+    g_cal_hold_cal_raw_avg = 0U;
+    CALHOLD_AdcPollMode(1U);
+    ADC_SetSoftwareTriggerMode();
+    g_cal_hold_state = CAL_HOLD_OFF;
+    g_cal_hold_packet_active = 0U;
+    g_pwm_enabled = 0U;
+    g_pwm_enable_result = 0U;
 }
 
 /* Freeze final status + run-id chain. */
@@ -173,6 +276,7 @@ static void CALHOLD_StopPacket(Uint16 hard_limit_flag)
 void CALHOLD_PacketIsr(void)
 {
     Uint16 fresh = 0U;
+    Uint16 raw = 0U;
 
     if (g_fault_flags != 0UL || g_system_state == SYS_STATE_FAULT)
     {
@@ -183,11 +287,23 @@ void CALHOLD_PacketIsr(void)
     g_cal_hold_packet_cycles++;
     g_cal_hold_total_packet_cycles++;
 
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U)
+    {
+        fresh = 1U;
+        raw = g_cal_hold_ne_raw;
+        g_adc_vout_pwm_sync_raw = raw;
+        g_adc_vout_raw = raw;
+    }
+    else
+#endif
+    {
     EALLOW;
     if (EPwm1Regs.ETFLG.bit.SOCA != 0U)
     {
         fresh = 1U;
         g_adc_vout_pwm_sync_raw = AdcResult.ADCRESULT0;
+        raw = g_adc_vout_pwm_sync_raw;
         g_adc_vout_raw = g_adc_vout_pwm_sync_raw;
         g_adc_pwm_sync_soca_count++;
         g_adc_pwm_sync_eoc_count++;
@@ -199,15 +315,16 @@ void CALHOLD_PacketIsr(void)
         g_adc_pwm_sync_consecutive_miss = 0U;
     }
     EDIS;
+    }
 
     if (fresh != 0U)
     {
-        if (g_adc_vout_pwm_sync_raw >= CAL_HOLD_HARD_LIMIT_RAW)
+        if (raw >= CALHOLD_HardLimitRaw())
         {
             CALHOLD_StopPacket(1U);
             return;
         }
-        if (g_adc_vout_pwm_sync_raw >= CAL_HOLD_RECHARGE_TARGET_RAW)
+        if (raw >= CALHOLD_RechargeTargetRaw())
         {
             CALHOLD_StopPacket(0U);
             return;
@@ -224,8 +341,22 @@ void CALHOLD_PacketIsr(void)
 void CALHOLD_FastTask(void)
 {
     Uint16 raw;
+    Uint16 prepare_ok;
     Uint32 limit = 0UL;
     if (g_cal_hold_state == CAL_HOLD_IDLE) return;
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* The NE 20 us Group-1 harness can starve lower-priority Group-3. Drive
+     * the identical packet handler once per synthetic boundary; REAL compiles
+     * this out and remains exclusively EPWM1 ISR driven. */
+    if (g_no_energy_test_mode != 0U &&
+        g_cal_hold_state == CAL_HOLD_PACKET &&
+        g_cal_hold_packet_active != 0U)
+    {
+        CALHOLD_PacketIsr();
+        return;
+    }
+#endif
 
     switch (g_cal_hold_state)
     {
@@ -252,17 +383,17 @@ void CALHOLD_FastTask(void)
                 {
                     AdcRegs.ADCINTFLGCLR.bit.ADCINT1 = 1U;
                 }
-                raw = (Uint16)AdcResult.ADCRESULT0;
+                raw = CALHOLD_ReadOffRaw();
                 CALHOLD_RecordRaw(raw);
 
-                if (raw >= CAL_HOLD_HARD_LIMIT_RAW)
+                if (raw >= CALHOLD_HardLimitRaw())
                 {
                     g_cal_hold_hard_limit_events++;
                     CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_HARD_LIMIT);
                     return;
                 }
                 if (g_cal_hold_hold_active_ticks > CAL_HOLD_UNDERSUPPLY_DELAY_TICKS &&
-                    raw < CAL_HOLD_DIAG_LOW_ABORT_RAW)
+                    raw < CALHOLD_DiagLowRaw())
                 {
                     CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_UNDERSUPPLIED);
                     return;
@@ -270,17 +401,12 @@ void CALHOLD_FastTask(void)
 
                 /* Recharge: PWM off >= 40 us and VOUT <= 1380. */
                 if (g_cal_hold_off_ticks >= CAL_HOLD_OFF_MIN_TICKS &&
-                    raw <= CAL_HOLD_RECHARGE_LOW_RAW)
+                    raw <= CALHOLD_RechargeLowRaw())
                 {
                     /* Energy cap (compile-time, not CCS-writable):
                      * measure hold -> 120000 (30s window), else duration map:
                      * 100ms -> 6000, 1000ms -> 40000. */
-                    if (g_cal_hold_total_packet_cycles >=
-                        ((g_cal_measure_active != 0U)
-                            ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_MEASURE
-                            : ((g_cal_hold_duration_ms == 1000U)
-                                 ? CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_1S
-                                 : CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_100MS)))
+                    if (g_cal_hold_total_packet_cycles >= CALHOLD_CycleCap())
                     {
                         CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_MAX_TOTAL_CYCLES);
                         return;
@@ -301,18 +427,37 @@ void CALHOLD_FastTask(void)
                     GpioCtrlRegs.GPBMUX1.bit.GPIO42 = 3U;
                     EDIS;
 
-                    if (PWM_PrepareStart(239UL, 110U, 1U) == 0U)
+                    s_w3_packet_write_auth = 1U;
+                    prepare_ok = PWM_PrepareStart(239UL, 110U, 1U);
+                    s_w3_packet_write_auth = 0U;
+                    if (prepare_ok == 0U)
                     {
                         ADC_SetSoftwareTriggerMode();
                         g_cal_hold_off_ticks = 0UL;
                         return;
                     }
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+                    if (g_no_energy_test_mode != 0U)
+                    {
+                        /* Logic-only packet: retain the mandatory OST clamp.
+                         * The NE tick above drives the same state handler. */
+                        g_pwm_start_prepared = 0U;
+                        g_pwm_enabled = 0U;
+                        g_pwm_enable_result = 0U;
+                    }
+                    else
+#endif
                     PWM_StartDeterministic();
 
                     EALLOW;
                     EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
                     EPwm1Regs.ETPS.bit.INTPRD  = ET_1ST;
                     EPwm1Regs.ETCLR.bit.INT    = 1U;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+                    if (g_no_energy_test_mode != 0U)
+                        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+                    else
+#endif
                     EPwm1Regs.ETSEL.bit.INTEN  = 1U;
                     EDIS;
 
@@ -381,6 +526,8 @@ void CALHOLD_SlowTask(void)
             return;
         }
         /* Same PASSed Profile C charge + recharge hold, no 1s auto-end. */
+        s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
+        g_cal_hold_mode_active = s_cal_hold_mode;
         g_cal_measure_active = 1U;
         g_cal_measure_done = 0U;
         g_cal_measure_ready = 0U;
@@ -395,20 +542,32 @@ void CALHOLD_SlowTask(void)
 
     if (g_cal_hold_request != 0U)
     {
+        Uint16 requested_mode = g_cal_hold_mode_request;
         g_cal_hold_request = 0U;
 
         if (g_cal_hold_state != CAL_HOLD_IDLE ||
-            (g_cal_hold_duration_ms != 100U && g_cal_hold_duration_ms != 1000U))
+            CALHOLD_RequestValid(requested_mode, g_cal_hold_duration_ms) == 0U)
         {
             CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_REJECTED);
             return;
         }
 
-        /* CHARGE: reuse the PASSed Profile C up to 1400 raw. */
+        s_cal_hold_mode = requested_mode;
+        g_cal_hold_mode_active = s_cal_hold_mode;
+        /* CHARGE: legacy uses 1400 raw; W3 uses the already authorized 1200
+         * raw Profile C target before entering the 10 V packet band. */
         g_cal_hold_state = CAL_HOLD_CHARGE;
         g_cal_hold_stop_reason = CAL_HOLD_REASON_NONE;
         g_cal_hold_run_id_at_arm = g_test_run_id;
-        g_accel_vout_target_raw = CAL_HOLD_RECHARGE_TARGET_RAW;
+        g_accel_vout_target_raw = (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+            ? W3_HOLD_INITIAL_CHARGE_RAW : CAL_HOLD_RECHARGE_TARGET_RAW;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+        if (g_no_energy_test_mode != 0U && g_cal_hold_ne_bypass_charge != 0U)
+        {
+            CALHOLD_BeginOff(g_accel_vout_target_raw);
+            return;
+        }
+#endif
         g_accel_request = 1U;
         g_multi_cycle_probe_request = 1U;
         return;
@@ -421,16 +580,7 @@ void CALHOLD_SlowTask(void)
         switch (g_accel_stop_reason)
         {
             case ACCEL_STOP_VOUT_TARGET:
-                g_cal_hold_charge_stop_raw = g_accel_stop_raw;
-                CALHOLD_StatsReset();
-                g_cal_hold_hard_limit_events = 0U;
-                g_cal_hold_elapsed_ticks = 0UL;
-                g_cal_hold_hold_active_ticks = 0UL;
-                g_cal_hold_off_ticks = CAL_HOLD_OFF_MIN_TICKS;
-                CALHOLD_AdcPollMode(1U);
-                ADC_SetSoftwareTriggerMode();   /* SOC0 TRIGSEL back to SW */
-                g_cal_hold_state = CAL_HOLD_OFF;
-                g_cal_hold_packet_active = 0U;
+                CALHOLD_BeginOff(g_accel_stop_raw);
                 break;
 
             case ACCEL_STOP_HARD_LIMIT:
@@ -518,5 +668,13 @@ void CALHOLD_SlowTask(void)
 
 void CALHOLD_Init(void)
 {
+    s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
+    s_w3_packet_write_auth = 0U;
+    g_cal_hold_mode_request = CAL_HOLD_MODE_LEGACY_11V;
+    g_cal_hold_mode_active = CAL_HOLD_MODE_LEGACY_11V;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    g_cal_hold_ne_bypass_charge = 0U;
+    g_cal_hold_ne_raw = 0U;
+#endif
     g_cal_hold_state = CAL_HOLD_IDLE;
 }

@@ -16,6 +16,8 @@
 #include "adc.h"
 #include "shot.h"
 #include "open_loop_steady.h"
+#include "cal_hold_burst.h"
+#include "power_probe.h"
 
 /*
  * D (RECOVERY V1): read-only Flash table of actual switching frequencies for
@@ -190,7 +192,18 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
          * first real-fire of the v2 entry died at PrepareStart(239,110) with
          * PWM_RUNTIME_INVALID -> FAULT_PWM_CONFIG_MISMATCH (0x8),
          * SS_RESULT_REJECTED, abort_reason=2 (enable_v2_forensics.log). */
-        if (g_softstart_ramp_active != 0U &&
+        if (ACCEL_PwmWriteAuthOk(period, deadtime) != 0U)
+        {
+            /* Accelerated Profile C: private, per-write authority owned by
+             * power_probe.c. The public command envelope remains unchanged. */
+        }
+        else if (period == 239UL && deadtime == 110U &&
+            CALHOLD_W3PacketAuthOk() != 0U)
+        {
+            /* W3_10V_BURST_HOLD_V1: exact low-energy recharge profile,
+             * authorized only by CALHOLD's private start latch while OFF. */
+        }
+        else if (g_softstart_ramp_active != 0U &&
             period >= 239UL && period <= 399UL &&
             deadtime >= 36U && deadtime <= 110U)
         {
@@ -684,5 +697,3 @@ Uint16 LLC_ProtectionResetExplicit(void)
     g_pwm_enable_result = 0U;
     return 1U;
 }
-
-

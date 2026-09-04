@@ -16,11 +16,13 @@
 
 #include "DSP2803x_Device.h"
 
+void POWERPROBE_Init(void);
 void SINGLECYCLE_SlowTask(void);
 void SINGLECYCLE_AbortByFault(void);
 void MULTICYCLE_SlowTask(void);
 void MULTICYCLE_AbortByFault(void);
 void POSTSTOP_SlowTask(void);
+Uint16 ACCEL_PwmWriteAuthOk(Uint32 period, Uint16 deadtime);
 __interrupt void EPWM1_INT_ISR(void);
 
 #endif /* APP_POWER_PROBE_H */

@@ -581,6 +581,10 @@ volatile Uint32 g_accel_stop_eoc_count;
 volatile Uint32 g_accel_stop_miss_count;
 volatile Uint16 g_cal_hold_request;
 volatile Uint16 g_cal_hold_duration_ms = 100U;   /* first shot: 100ms */
+#pragma DATA_SECTION(g_cal_hold_mode_request, "ol_ram");
+volatile Uint16 g_cal_hold_mode_request;
+#pragma DATA_SECTION(g_cal_hold_mode_active, "ol_ram");
+volatile Uint16 g_cal_hold_mode_active;
 volatile Uint16 g_cal_hold_state = CAL_HOLD_IDLE;
 volatile Uint16 g_cal_hold_stop_reason = CAL_HOLD_REASON_NONE;
 volatile Uint16 g_cal_hold_charge_stop_raw;
@@ -622,6 +626,12 @@ volatile Uint16 g_cal_measure_request;
 volatile Uint16 g_cal_measure_done;
 volatile Uint16 g_cal_measure_ready;
 volatile Uint16 g_cal_measure_active;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+#pragma DATA_SECTION(g_cal_hold_ne_bypass_charge, "ol_ram");
+volatile Uint16 g_cal_hold_ne_bypass_charge;
+#pragma DATA_SECTION(g_cal_hold_ne_raw, "ol_ram");
+volatile Uint16 g_cal_hold_ne_raw;
+#endif
 volatile Uint16 g_softstart_request = 0U;  /* explicit init (.bss not zeroed by DSS loadProgram) */
 volatile Uint16 g_softstart_acceptance_mode;
 volatile Uint16 g_softstart_accept_target_raw;

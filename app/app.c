@@ -83,6 +83,7 @@ void APP_Init(void)
     CTRL_Init();
     SM_Init();
     SoftStart_Init();
+    POWERPROBE_Init();
     CALHOLD_Init();
 #if STAGE6_FIRST_BOUNDED_REAL_PI_SHOT
     SHOT_Init();   /* first bounded shot state (shot build only) */

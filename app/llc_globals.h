@@ -591,7 +591,9 @@ typedef enum
 #define CAL_HOLD_REASON_REJECTED        7U   /* bad duration or entry state */
 
 extern volatile Uint16 g_cal_hold_request;
-extern volatile Uint16 g_cal_hold_duration_ms;   /* 100 or 1000 only */
+extern volatile Uint16 g_cal_hold_duration_ms;   /* legacy 100/1000; W3 500/2000/10000/60000 */
+extern volatile Uint16 g_cal_hold_mode_request;
+extern volatile Uint16 g_cal_hold_mode_active;   /* telemetry; control uses private latch */
 extern volatile Uint16 g_cal_hold_state;
 extern volatile Uint16 g_cal_hold_stop_reason;
 
@@ -639,6 +641,10 @@ extern volatile Uint16 g_cal_measure_request;
 extern volatile Uint16 g_cal_measure_done;    /* operator: measurement complete */
 extern volatile Uint16 g_cal_measure_ready;   /* stable -> DMM_MEASUREMENT_READY */
 extern volatile Uint16 g_cal_measure_active;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+extern volatile Uint16 g_cal_hold_ne_bypass_charge;
+extern volatile Uint16 g_cal_hold_ne_raw;
+#endif
 
 /* FORMAL SoftStart (Stage5 acceptance) fields */
 extern volatile Uint16 g_softstart_request;

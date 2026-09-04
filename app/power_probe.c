@@ -26,6 +26,42 @@ static Uint32 s_probe_ticks = 0UL;
 static volatile Uint32 s_single_cycle_safety_ticks = 0UL;
 static Uint16 s_saved_timer0_tie = 0U;
 static Uint16 s_saved_adc_int1e = 0U;
+static Uint16 ACCEL_HardLimitForTarget(Uint16 target_raw);
+#pragma DATA_SECTION(s_accel_pwm_write_auth, "ol_ram");
+static Uint16 s_accel_pwm_write_auth = 0U;
+
+void POWERPROBE_Init(void)
+{
+    /* ol_ram is deliberately uninitialized; revoke trajectory authority on
+     * every application boot before any request can be consumed. */
+    s_accel_pwm_write_auth = 0U;
+}
+
+Uint16 ACCEL_PwmWriteAuthOk(Uint32 period, Uint16 deadtime)
+{
+    Uint16 expected_hard = ACCEL_HardLimitForTarget(g_accel_vout_target_raw);
+
+    if (s_accel_pwm_write_auth == 0U ||
+        g_accel_active == 0U ||
+        g_multi_cycle_probe_active == 0U ||
+        (g_accel_phase != 1U && g_accel_phase != 2U) ||
+        (g_bringup_stage != BRINGUP_STAGE_4_PROTECTION_TEST &&
+         g_bringup_stage != BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL) ||
+        g_system_state != SYS_STATE_IDLE ||
+        g_pwm_enable_request != 0U ||
+        g_fault_flags != 0UL ||
+        g_comp_tz_loopback_verified == 0U ||
+        g_comp_inject_test_armed == 0U ||
+        expected_hard == 0U ||
+        g_accel_vout_hard_limit_raw != expected_hard)
+        return 0U;
+
+    /* Phase A is fixed at 250 kHz while DB falls 110 -> 36. Phase B is
+     * fixed DB36 while TBPRD rises 239 -> 399. No other write is authorized. */
+    if (g_accel_phase == 1U)
+        return (period == 239UL && deadtime >= 36U && deadtime <= 110U) ? 1U : 0U;
+    return (period >= 239UL && period <= 399UL && deadtime == 36U) ? 1U : 0U;
+}
 
 static void PRE_STOP_Capture(void)
 {
@@ -304,7 +340,7 @@ void SINGLECYCLE_SlowTask(void)
 }
 
 
-static void MULTICYCLE_ConfigureAdcCapture(void)
+static void MULTICYCLE_ConfigureAdcCapture(Uint16 start_period)
 {
     EALLOW;
     /* Single VOUT channel, hardware ePWM1 SOCA trigger, no ADC CPU interrupt. */
@@ -317,8 +353,10 @@ static void MULTICYCLE_ConfigureAdcCapture(void)
     AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;
     EDIS;
 
-    /* Move SOCA sample point to the current period midpoint. */
-    ADC_UpdatePwmSyncPoint(g_pwm_period);
+    /* Move SOCA to the period that will actually be prepared below. This is
+     * explicit because accelerated Profile C intentionally skips the generic
+     * 145..170 kHz command path and starts at TBPRD239. */
+    ADC_UpdatePwmSyncPoint(start_period);
 
     g_adc_trigger_mode = 1U;   /* ePWM1 SOCA capture active */
 
@@ -477,6 +515,7 @@ __interrupt void EPWM1_INT_ISR(void)
                 Uint16 db;
                 Uint16 period;
                 Uint16 cmp;
+                Uint16 write_ok;
 
                 g_accel_last_tzflg = EPwm1Regs.TZFLG.all;
                 g_accel_last_vout_raw = g_adc_vout_pwm_sync_raw;
@@ -524,7 +563,10 @@ __interrupt void EPWM1_INT_ISR(void)
                             g_accel_stage_index++;
                             db = (g_accel_stage_index < 15U) ?
                                  (Uint16)(110U - 5U * g_accel_stage_index) : 36U;
-                            if (PWM_SetDeadbandOnly(db) == 0U)
+                            s_accel_pwm_write_auth = 1U;
+                            write_ok = PWM_SetDeadbandOnly(db);
+                            s_accel_pwm_write_auth = 0U;
+                            if (write_ok == 0U)
                             {
                                 MULTICYCLE_AbortByFault();
                                 return;
@@ -555,7 +597,10 @@ __interrupt void EPWM1_INT_ISR(void)
                             g_accel_stage_index++;
                             period = (Uint16)(239U + 10U * g_accel_stage_index);
                             cmp = (Uint16)((period + 1U) / 2U);
-                            if (PWM_ApplyPeriodDeadtime(period, 36U) == 0U)
+                            s_accel_pwm_write_auth = 1U;
+                            write_ok = PWM_ApplyPeriodDeadtime(period, 36U);
+                            s_accel_pwm_write_auth = 0U;
+                            if (write_ok == 0U)
                             {
                                 MULTICYCLE_AbortByFault();
                                 return;
@@ -790,6 +835,8 @@ static void MULTICYCLE_IsolateInterrupts(void)
 
 static void MULTICYCLE_RestoreInterrupts(void)
 {
+    /* Residue-proof revocation on every normal/reject/abort exit. */
+    s_accel_pwm_write_auth = 0U;
     if (g_probe_interrupt_isolation_active == 0U) return;
 
     EALLOW;
@@ -821,9 +868,15 @@ void MULTICYCLE_SlowTask(void)
 {
     Uint32 cycles;
     Uint32 probe_freq;
+    Uint16 accel_requested;
+    Uint16 start_period;
+    Uint16 start_deadtime;
+    Uint16 prepare_ok;
 
     if (g_multi_cycle_probe_request == 0U) return;
     g_multi_cycle_probe_request = 0U;
+    s_accel_pwm_write_auth = 0U;
+    accel_requested = (g_accel_request != 0U) ? 1U : 0U;
 
     if (MULTICYCLE_CheckEntry() == 0U)
     {
@@ -831,16 +884,27 @@ void MULTICYCLE_SlowTask(void)
         return;
     }
 
-    /* Diagnostic frequency (default 150 kHz). The 200 kHz / DB140 profile is
-     * explicitly allowed when g_diag_frequency_override is set. */
-    probe_freq = g_single_cycle_probe_frequency_hz;
-    if (probe_freq == 0UL) probe_freq = LLC_DEFAULT_FREQUENCY_HZ;
-    if (g_single_cycle_probe_deadtime == 0U)
-        g_single_cycle_probe_deadtime = 36U;
-    if (LLC_SetFrequencyHz(probe_freq) == 0U)
+    /* A normal probe uses the diagnostic frequency path. Accelerated Profile C
+     * must not touch that path: its firmware-owned start is exact 239/110 and
+     * is authorized only at the final prepare call below. */
+    if (accel_requested == 0U)
     {
-        g_multi_cycle_probe_result = 3U;
-        return;
+        probe_freq = g_single_cycle_probe_frequency_hz;
+        if (probe_freq == 0UL) probe_freq = LLC_DEFAULT_FREQUENCY_HZ;
+        if (g_single_cycle_probe_deadtime == 0U)
+            g_single_cycle_probe_deadtime = 36U;
+        if (LLC_SetFrequencyHz(probe_freq) == 0U)
+        {
+            g_multi_cycle_probe_result = 3U;
+            return;
+        }
+        start_period = g_pwm_period;
+        start_deadtime = g_single_cycle_probe_deadtime;
+    }
+    else
+    {
+        start_period = 239U;
+        start_deadtime = 110U;
     }
 
     /* Hard limit cycles to 3 in this Bring-up stage. */
@@ -852,9 +916,6 @@ void MULTICYCLE_SlowTask(void)
 
     /* Isolate probe interrupts before arming/starting PWM. */
     MULTICYCLE_IsolateInterrupts();
-
-    /* Configure ePWM1 SOCA VOUT capture for this probe. */
-    MULTICYCLE_ConfigureAdcCapture();
 
     g_multi_cycle_probe_result = 0U;
     g_multi_cycle_probe_completed_cycles = 0UL;
@@ -998,6 +1059,9 @@ void MULTICYCLE_SlowTask(void)
         g_multi_cycle_probe_completed_cycles = 0UL;
     }
 
+    /* Configure VOUT capture only after the exact start period is known. */
+    MULTICYCLE_ConfigureAdcCapture(start_period);
+
     /* Edge-avoidance guard: reject Profile C if CMPB is too close to CMPA. */
     if (g_accel_active != 0U)
     {
@@ -1045,7 +1109,10 @@ void MULTICYCLE_SlowTask(void)
     /* Mark active immediately before deterministic release. */
     g_multi_cycle_probe_active = 1U;
 
-    if (PWM_PrepareStart(g_pwm_period, g_single_cycle_probe_deadtime, 1U) == 0U)
+    if (g_accel_active != 0U) s_accel_pwm_write_auth = 1U;
+    prepare_ok = PWM_PrepareStart((Uint32)start_period, start_deadtime, 1U);
+    s_accel_pwm_write_auth = 0U;
+    if (prepare_ok == 0U)
     {
         g_multi_cycle_probe_active = 0U;
         g_multi_cycle_probe_result = 3U;
@@ -1055,6 +1122,28 @@ void MULTICYCLE_SlowTask(void)
         return;
     }
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U && g_accel_active != 0U)
+    {
+        /* W3 authorization proof without energy: PWM_PrepareStart has exercised
+         * the private 239/110 gate and written the exact registers while OST
+         * stayed latched. Never call PWM_StartDeterministic in this branch. */
+        g_adc_vout_pwm_sync_raw = g_accel_vout_target_raw;
+        g_adc_vout_raw = g_accel_vout_target_raw;
+        g_accel_last_vout_raw = g_accel_vout_target_raw;
+        g_accel_last_vout_max = g_accel_vout_target_raw;
+        g_accel_stop_reason = ACCEL_STOP_VOUT_TARGET;
+        g_accel_phase = 4U;
+        g_test_run_id_at_stop = g_test_run_id;
+        ACCEL_FreezeStopSnapshot();
+        LLC_PWM_DisableSafe();
+        g_pwm_start_prepared = 0U;
+        g_multi_cycle_probe_active = 0U;
+        g_multi_cycle_probe_result = 1U;
+        g_multi_cycle_probe_stop_reason = 1U;
+        MULTICYCLE_RestoreInterrupts();
+        return;
+    }
+
     /* NE no-energy simulation: there is no physical COMP1OUT->GPIO15/TZ1
      * loopback, so a real TZ1 would falsely trip the moment PWM starts. In NE
      * only, disconnect the TZ1 source for the duration of the cycle-count test;
@@ -1079,6 +1168,7 @@ void MULTICYCLE_SlowTask(void)
 
 void MULTICYCLE_AbortByFault(void)
 {
+    s_accel_pwm_write_auth = 0U;
     if (g_multi_cycle_probe_active == 0U) return;
 
     /* Always hardware-clamp immediately, even if no TZ latch exists yet. */
