@@ -426,3 +426,28 @@ V8_NEXT=REAL_500MS_REQUALIFICATION
 
 Detailed evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v8_exact_phase_a.txt`.
+
+### V8 REAL ladder result and W3 closure
+
+The exact V8 REAL binary passed 500 ms, 2 s, 10 s, and 60 s in forward order.
+The 60 s run completed exactly 3,000,000 fast ticks with steady raw1207..1278,
+steady/calibration average raw1226 (about 9.85 V), 43,256 packets, and 5,534,319
+active cycles (36.89546% of the 60 s theoretical 250 kHz cycle budget). The
+final full packet rose from raw1217 to raw1236 and peaked raw1239 at DB50.
+
+There were zero undersupply confirmations, hard-limit events, faults, hardware
+or active-window TZ trips, and public-enable edges. Every duration ended with
+PWM0/OST1/TZINT0. W3 is closed on the protected-Burst control-region redesign
+accepted after W2 proved continuous PFM could not regulate 10 V in the frozen
+plant envelope. External input-power and temperature measurements remain
+explicitly deferred to the W9 instrumentation gate.
+
+```text
+W3_10V_60S_SUSTAINED_PASS
+```
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v8_500ms_v1.txt`,
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v8_2s_v1.txt`,
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v8_10s_v1.txt`, and
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v8_60s_v1.txt`.
