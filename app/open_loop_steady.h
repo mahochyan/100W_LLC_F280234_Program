@@ -125,6 +125,22 @@
 #define OL_STOP_TIMEOUT         4U   /* max hold backstop */
 #define OL_STOP_FAULT_EXTERNAL  5U   /* COMP/TZ/stale/other protection fault */
 #define OL_STOP_TAKEOVER_MISSED 6U   /* trajectory slipped past the takeover window */
+#define OL_STOP_LIVE_PACKET_COMPLETE 7U /* exact live packet ended by planned OST */
+#define OL_STOP_LIVE_PACKET_REJECT   8U /* invalid live-packet request */
+
+/* W2_BURST_LIVE_TAKEOVER_PACKET_V1. WARMUP discards the first boundary
+ * after the live 176.47 -> 170 kHz transition; COUNTING therefore contains
+ * full 170 kHz periods only and never cold-restarts the bridge. */
+#define OL_LIVE_PACKET_STATE_IDLE      0U
+#define OL_LIVE_PACKET_STATE_SLEW      1U
+#define OL_LIVE_PACKET_STATE_WARMUP    2U
+#define OL_LIVE_PACKET_STATE_COUNTING  3U
+#define OL_LIVE_PACKET_STATE_DONE      4U
+#define OL_LIVE_PACKET_STATE_FAULT     5U
+#define OL_LIVE_PACKET_RESULT_NONE     0U
+#define OL_LIVE_PACKET_RESULT_PASS     1U
+#define OL_LIVE_PACKET_RESULT_FAULT    2U
+#define OL_LIVE_PACKET_RESULT_REJECT   3U
 
 /* ------------------------------------------------------------------ */
 /* Control / telemetry variables (CCS/DSS visible)                     */
@@ -148,6 +164,20 @@ extern volatile Uint16 g_open_loop_takeover_done;    /* 1 once the OL session ow
 extern volatile Uint16 g_open_loop_stop_on_takeover;
 extern volatile Uint32 g_open_loop_takeover_freq_hz; /* plant frequency at the takeover tick */
 extern volatile Uint16 g_open_loop_takeover_raw;     /* Vout raw at the takeover tick */
+extern volatile Uint16 g_open_loop_live_packet_arm;
+extern volatile Uint16 g_open_loop_live_packet_cycles;
+extern volatile Uint16 g_open_loop_live_packet_state;
+extern volatile Uint16 g_open_loop_live_packet_result;
+extern volatile Uint32 g_open_loop_live_packet_completed_cycles;
+extern volatile Uint16 g_open_loop_live_packet_vout_before;
+extern volatile Uint16 g_open_loop_live_packet_vout_after;
+extern volatile Uint16 g_open_loop_live_packet_vout_peak;
+extern volatile Uint16 g_open_loop_live_packet_transition_tbprd;
+extern volatile Uint32 g_open_loop_live_packet_transition_hz;
+extern volatile Uint32 g_open_loop_live_packet_start_timer2;
+extern volatile Uint32 g_open_loop_live_packet_stop_timer2;
+extern volatile Uint32 g_open_loop_live_packet_fault;
+extern volatile Uint16 g_open_loop_live_packet_final_ost;
 /* W2_OPEN_LOOP_EXTENDED_BAND_170_190K_V1: 170..190 kHz band unlock bit */
 extern volatile Uint16 g_open_loop_char_ext_authorized;
 extern volatile Uint16 g_open_loop_steady_reached;
@@ -208,6 +238,7 @@ extern volatile Uint16 g_open_loop_ne_actuator_arm;   /* actuator writes under O
 extern volatile Uint32 g_open_loop_ne_max_hold_ticks; /* 0 = compile default */
 extern volatile Uint32 g_open_loop_ne_tick;
 extern volatile Uint32 g_open_loop_ne_trace[16];      /* first 16 slew steps */
+extern volatile Uint16 g_open_loop_live_packet_ne_fault_first;
 #endif
 
 /* ------------------------------------------------------------------ */
@@ -217,6 +248,8 @@ void OPENLOOP_Init(void);
 void OPENLOOP_FastTask(void);        /* TINT0 20 us task (real build) */
 void OPENLOOP_NotifyEntry(void);     /* SM: after deterministic PWM enable */
 void OPENLOOP_NotifyExit(void);      /* SM: planned OST falling edge */
+Uint16 OPENLOOP_LivePacketIsrOwned(void);
+void OPENLOOP_LivePacketPwmIsr(void);
 
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
 void OPENLOOP_NoEnergyTick(void);    /* NE harness tick (synthetic raw) */

@@ -17,6 +17,7 @@
 #include "power_probe.h"
 #include "cal_hold_burst.h"
 #include "soft_start.h"
+#include "open_loop_steady.h"
 
 #define POWER_PROBE_TICK_US   20UL
 #define POWER_PROBE_TICKS_MAX (LLC_POWER_PROBE_MAX_US / POWER_PROBE_TICK_US)
@@ -692,6 +693,12 @@ __interrupt void EPWM1_INT_ISR(void)
             }
         }
     }
+#if STAGE6_OPEN_LOOP_STEADY_BUILD
+    else if (OPENLOOP_LivePacketIsrOwned() != 0U)
+    {
+        OPENLOOP_LivePacketPwmIsr();
+    }
+#endif
     else if (g_cal_hold_state == CAL_HOLD_PACKET &&
              g_cal_hold_packet_active != 0U)
     {

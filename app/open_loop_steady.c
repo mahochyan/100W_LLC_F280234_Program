@@ -174,6 +174,34 @@ volatile Uint16 g_open_loop_stop_on_takeover     = 0U;
 volatile Uint32 g_open_loop_takeover_freq_hz     = 0UL;
 #pragma DATA_SECTION(g_open_loop_takeover_raw, "ol_ram");
 volatile Uint16 g_open_loop_takeover_raw         = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_arm, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_arm      = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_cycles, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_cycles   = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_state, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_state    = OL_LIVE_PACKET_STATE_IDLE;
+#pragma DATA_SECTION(g_open_loop_live_packet_result, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_result   = OL_LIVE_PACKET_RESULT_NONE;
+#pragma DATA_SECTION(g_open_loop_live_packet_completed_cycles, "ol_ram");
+volatile Uint32 g_open_loop_live_packet_completed_cycles = 0UL;
+#pragma DATA_SECTION(g_open_loop_live_packet_vout_before, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_vout_before = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_vout_after, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_vout_after = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_vout_peak, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_vout_peak = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_transition_tbprd, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_transition_tbprd = 0U;
+#pragma DATA_SECTION(g_open_loop_live_packet_transition_hz, "ol_ram");
+volatile Uint32 g_open_loop_live_packet_transition_hz = 0UL;
+#pragma DATA_SECTION(g_open_loop_live_packet_start_timer2, "ol_ram");
+volatile Uint32 g_open_loop_live_packet_start_timer2 = 0UL;
+#pragma DATA_SECTION(g_open_loop_live_packet_stop_timer2, "ol_ram");
+volatile Uint32 g_open_loop_live_packet_stop_timer2 = 0UL;
+#pragma DATA_SECTION(g_open_loop_live_packet_fault, "ol_ram");
+volatile Uint32 g_open_loop_live_packet_fault = 0UL;
+#pragma DATA_SECTION(g_open_loop_live_packet_final_ost, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_final_ost = 0U;
 #pragma DATA_SECTION(g_open_loop_char_ext_authorized, "ol_ram");
 volatile Uint16 g_open_loop_char_ext_authorized  = 0U;
 
@@ -209,6 +237,8 @@ volatile Uint32 g_open_loop_ne_tick          = 0UL;
 #pragma DATA_SECTION(g_open_loop_ne_trace, "ol_ram");
 volatile Uint32 g_open_loop_ne_trace[16]     = {0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL,
                                                 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL};
+#pragma DATA_SECTION(g_open_loop_live_packet_ne_fault_first, "ol_ram");
+volatile Uint16 g_open_loop_live_packet_ne_fault_first = 0U;
 #endif
 
 /* ------------------------------------------------------------------ */
@@ -287,6 +317,18 @@ static void OL_FreezeStop(Uint16 reason)
     g_open_loop_stop_fault       = g_fault_flags;
     g_open_loop_steady_active    = 0U;
     g_open_loop_phase            = OL_PHASE_STOPPED;
+    if (g_open_loop_live_packet_state != OL_LIVE_PACKET_STATE_IDLE &&
+        g_open_loop_live_packet_state != OL_LIVE_PACKET_STATE_DONE &&
+        g_open_loop_live_packet_state != OL_LIVE_PACKET_STATE_FAULT)
+    {
+        g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_FAULT;
+        g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_FAULT;
+        g_open_loop_live_packet_vout_after = g_adc_vout_raw;
+        g_open_loop_live_packet_fault = g_fault_flags;
+        g_open_loop_live_packet_stop_timer2 = CpuTimer2Regs.TIM.all;
+        g_open_loop_live_packet_final_ost = EPwm1Regs.TZFLG.bit.OST;
+        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+    }
 }
 
 /* Planned (non-fault) stop: normal inhibit path, end state PWM=0/OST=1. */
@@ -533,6 +575,30 @@ static void OPENLOOP_Step(Uint16 raw_protect, Uint16 raw_stat, Uint16 fresh)
         OL_FreezeStop(OL_STOP_FAULT_EXTERNAL);
         return;
     }
+
+    /* Arm counting only after the live actuator has actually committed
+     * 170 kHz. The next zero boundary is discarded because TBPRD may have
+     * changed mid-period; counting starts at the following full period. */
+    if (g_open_loop_live_packet_state == OL_LIVE_PACKET_STATE_SLEW &&
+        applied == OPEN_LOOP_FREQ_MAX_HZ)
+    {
+        g_open_loop_live_packet_transition_tbprd = EPwm1Regs.TBPRD;
+        g_open_loop_live_packet_transition_hz = g_actual_switching_frequency_hz;
+        g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_WARMUP;
+        EALLOW;
+        EPwm1Regs.ETSEL.bit.INTSEL = ET_CTR_ZERO;
+        EPwm1Regs.ETPS.bit.INTPRD = ET_1ST;
+        EPwm1Regs.ETCLR.bit.INT = 1U;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+        /* The NE build's 20 us Group-1 synthetic harness can intentionally
+         * saturate the CPU and starve lower-priority Group-3. Its tick calls
+         * the identical handler directly below; REAL remains ePWM-driven. */
+        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+#else
+        EPwm1Regs.ETSEL.bit.INTEN = 1U;
+#endif
+        EDIS;
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -598,6 +664,20 @@ void OPENLOOP_Init(void)
     s_steady_window_count = 0UL;
     s_last_adc_sequence = 0UL;
     g_open_loop_stop_on_takeover = 0U;
+    g_open_loop_live_packet_arm = 0U;
+    g_open_loop_live_packet_cycles = 0U;
+    g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_IDLE;
+    g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_NONE;
+    g_open_loop_live_packet_completed_cycles = 0UL;
+    g_open_loop_live_packet_vout_before = 0U;
+    g_open_loop_live_packet_vout_after = 0U;
+    g_open_loop_live_packet_vout_peak = 0U;
+    g_open_loop_live_packet_transition_tbprd = 0U;
+    g_open_loop_live_packet_transition_hz = 0UL;
+    g_open_loop_live_packet_start_timer2 = 0UL;
+    g_open_loop_live_packet_stop_timer2 = 0UL;
+    g_open_loop_live_packet_fault = 0UL;
+    g_open_loop_live_packet_final_ost = 0U;
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     g_open_loop_ne_test_enable  = 0U;
     g_open_loop_ne_entry_request = 0U;
@@ -605,6 +685,7 @@ void OPENLOOP_Init(void)
     g_open_loop_ne_actuator_arm = 0U;
     g_open_loop_ne_max_hold_ticks = 0UL;
     g_open_loop_ne_tick = 0UL;
+    g_open_loop_live_packet_ne_fault_first = 0U;
 #endif
 }
 
@@ -716,6 +797,29 @@ static void OL_TakeoverPoll(void)
         g_open_loop_takeover_armed = 0U;
 
         OL_SessionInit(applied);   /* phase = SLEWING toward the host command */
+        if (g_open_loop_live_packet_arm != 0U)
+        {
+            Uint16 requested = g_open_loop_live_packet_cycles;
+            g_open_loop_live_packet_arm = 0U;   /* one-shot consume */
+            g_open_loop_live_packet_completed_cycles = 0UL;
+            g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_NONE;
+            g_open_loop_live_packet_vout_before = 0U;
+            g_open_loop_live_packet_vout_after = 0U;
+            g_open_loop_live_packet_vout_peak = 0U;
+            g_open_loop_live_packet_fault = 0UL;
+            if (requested != 1U && requested != 2U &&
+                requested != 3U && requested != 5U)
+            {
+                g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_FAULT;
+                g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_REJECT;
+                LLC_PWM_DisableSafe();
+                OL_FreezeStop(OL_STOP_LIVE_PACKET_REJECT);
+                g_system_state = SYS_STATE_IDLE;
+                return;
+            }
+            g_open_loop_frequency_command_hz = OPEN_LOOP_FREQ_MAX_HZ;
+            g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_SLEW;
+        }
         if (g_open_loop_stop_on_takeover != 0U)
         {
             /* W2_BURST_PACKET_CHARACTERIZATION_V1: firmware-latched planned
@@ -744,6 +848,110 @@ static void OL_TakeoverPoll(void)
         LLC_PWM_DisableSafe();
         OL_FreezeStop(OL_STOP_TAKEOVER_MISSED);
         g_system_state = SYS_STATE_IDLE;
+    }
+}
+
+Uint16 OPENLOOP_LivePacketIsrOwned(void)
+{
+    return (g_open_loop_live_packet_state == OL_LIVE_PACKET_STATE_WARMUP ||
+            g_open_loop_live_packet_state == OL_LIVE_PACKET_STATE_COUNTING)
+        ? 1U : 0U;
+}
+
+/* W2_BURST_LIVE_TAKEOVER_PACKET_V1: exact-cycle packet termination while
+ * keeping the bridge continuously live across the SoftStart -> 170 kHz
+ * transition. The first zero event after the TBPRD write is deliberately
+ * discarded; every increment below therefore represents one full period at
+ * the committed 170 kHz setting. Comparator/TZ1 remains armed throughout. */
+void OPENLOOP_LivePacketPwmIsr(void)
+{
+    Uint16 raw = g_adc_vout_raw;
+    Uint16 ost_is_fault = EPwm1Regs.TZFLG.bit.OST;
+
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* OST is the mandatory output clamp in the no-energy proof. It is a real
+     * fault only in the production path, where PWM must still be live here. */
+    if (g_no_energy_test_mode != 0U) ost_is_fault = 0U;
+#endif
+
+    if (g_fault_flags != 0UL || ost_is_fault != 0U)
+    {
+        g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_FAULT;
+        g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_FAULT;
+        g_open_loop_live_packet_vout_after = raw;
+        g_open_loop_live_packet_fault = g_fault_flags;
+        g_open_loop_live_packet_stop_timer2 = CpuTimer2Regs.TIM.all;
+        g_open_loop_live_packet_final_ost = EPwm1Regs.TZFLG.bit.OST;
+        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+        OL_FreezeStop(OL_STOP_FAULT_EXTERNAL);
+        return;
+    }
+
+    /* Preserve the same experiment VOUT limits as the 20 us task, but check
+     * them at every packet boundary as an additional fail-safe. */
+    if (raw >= OPEN_LOOP_VOUT_HARD_ABORT_RAW)
+    {
+        PWM_Trip(FAULT_OPEN_LOOP_VOUT_CEILING, 1U);
+        OL_FreezeStop(OL_STOP_HARD_VOUT);
+        return;
+    }
+    if (raw >= OPEN_LOOP_VOUT_WARNING_RAW)
+    {
+        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+        LLC_PWM_DisableSafe();
+        g_open_loop_upper_gain_boundary = 1U;
+        OL_FreezeStop(OL_STOP_WARNING);
+        return;
+    }
+
+    if (g_open_loop_live_packet_state == OL_LIVE_PACKET_STATE_WARMUP)
+    {
+        g_open_loop_live_packet_vout_before = raw;
+        g_open_loop_live_packet_vout_peak = raw;
+        g_open_loop_live_packet_start_timer2 = CpuTimer2Regs.TIM.all;
+        g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_COUNTING;
+        return;
+    }
+
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U &&
+        g_open_loop_live_packet_ne_fault_first != 0U &&
+        g_open_loop_live_packet_completed_cycles == 0UL)
+    {
+        g_fault_flags |= (1UL << 30U);
+        LLC_PWM_DisableSafe();
+        g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_FAULT;
+        g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_FAULT;
+        g_open_loop_live_packet_vout_after = raw;
+        g_open_loop_live_packet_fault = g_fault_flags;
+        g_open_loop_live_packet_stop_timer2 = CpuTimer2Regs.TIM.all;
+        g_open_loop_live_packet_final_ost = EPwm1Regs.TZFLG.bit.OST;
+        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+        OL_FreezeStop(OL_STOP_FAULT_EXTERNAL);
+        return;
+    }
+#endif
+
+    g_open_loop_live_packet_completed_cycles++;
+    if (raw > g_open_loop_live_packet_vout_peak)
+        g_open_loop_live_packet_vout_peak = raw;
+
+    if (g_open_loop_live_packet_completed_cycles >=
+        (Uint32)g_open_loop_live_packet_cycles)
+    {
+        /* Planned exact-cycle stop. Disable this interrupt before forcing OST
+         * so no extra boundary can enter the packet handler. */
+        EPwm1Regs.ETSEL.bit.INTEN = 0U;
+        g_open_loop_live_packet_vout_after = raw;
+        g_open_loop_live_packet_result = OL_LIVE_PACKET_RESULT_PASS;
+        g_open_loop_live_packet_state = OL_LIVE_PACKET_STATE_DONE;
+        LLC_PWM_DisableSafe();
+        g_open_loop_live_packet_stop_timer2 = CpuTimer2Regs.TIM.all;
+        g_open_loop_live_packet_final_ost = EPwm1Regs.TZFLG.bit.OST;
+        g_open_loop_live_packet_fault = g_fault_flags;
+        OL_FreezeStop(OL_STOP_LIVE_PACKET_COMPLETE);
+        g_system_state = SYS_STATE_IDLE;
+        g_pwm_enable_result = 0U;
     }
 }
 
@@ -779,6 +987,8 @@ void OPENLOOP_NoEnergyTick(void)
     }
     OL_TakeoverPoll();   /* NE takeover scenario: host fakes the trajectory state */
     OPENLOOP_Step(g_open_loop_ne_raw, g_open_loop_ne_raw, 1U);
+    if (OPENLOOP_LivePacketIsrOwned() != 0U)
+        OPENLOOP_LivePacketPwmIsr(); /* one synthetic full-cycle boundary */
 }
 #endif
 

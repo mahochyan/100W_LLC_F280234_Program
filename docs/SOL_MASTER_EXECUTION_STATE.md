@@ -10,23 +10,23 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=6
-UPDATED_AT=2026-08-26T02:00:00+08:00
-MASTER_STATUS=ENGINEERING_BLOCKED
+STATE_VERSION=7
+UPDATED_AT=2026-09-04T00:00:00+08:00
+MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W2
-CURRENT_GATE=W2_HANDOFF_ENERGY_STATE_CONTINUITY_CANDIDATE
-CURRENT_CHECKPOINT=W2_CANDIDATE4_REAL_2MS_FAILED_FOUR_TIMES__CR15_500MA_CC_LOADOFF_CNT34OPEN__COMP_TZ1_OR_NO_HANDOFF__NO_RETRY__NEXT_LOAD_NONE
+CURRENT_GATE=W2_BURST_LIVE_TAKEOVER_PACKET_V1_REAL_1C
+CURRENT_CHECKPOINT=LIVE_TAKEOVER_PACKET_SOURCE_AND_NE_QUALIFIED__REAL_BUILD_FREEZE_PENDING
 LAST_VERIFIED_WORK_ORDER=W1
-NEXT_ACTION=Await operator physical change / instrumentation decision. No same-SHA retry; no auto CR12.5.
-BOARD_LAST_STATE=AFTER_REAL_RUN_PWM0_OST1_TZINT0__FAULT_0x10000
-PHYSICAL_ACTION_REQUIRED=DECISION_REQUIRED__TRUE_TRIP_WAVEFORM_OR_NEW_PHYSICAL_SETUP__NO_DISCHARGE_REASK
+NEXT_ACTION=Commit qualified source; clean-build/freeze REAL OUT; run exact-SHA REAL 1C once; stop on any failed gate.
+BOARD_LAST_STATE=AFTER_NE_QUALIFICATION_PWM0_OST1_TZINT0__FAULT0
+PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
 W2_REAL_ATTEMPT_COUNT=7
 W2_REAL_RETRY_ALLOWED=0_UNCHANGED_SHA_NO_RETRY__CANDIDATE4_FAILED__NEXT_REAL_REQUIRES_NEW_PROVEN_CHANGE_AND_NEW_SHA
 STANDING_OPERATOR_CONFIRMATION=CR15_ELECTRONIC_LOAD_ALWAYS_CONNECTED__BENCH_SAFETY_CONTINUOUSLY_MAINTAINED__DO_NOT_REASK_DISCHARGE
 200K_DB140_AUDIT=ACCEPTED__NOT_PRODUCTION_BASELINE__DO_NOT_RETRY__NO_BLANKING_QUALIFICATION_DAC_TZ_CHANGE
-SOL_MASTER_EXECUTION_ENGINEERING_BLOCKED=TRUE__FAILED_WORK_ORDER=W2__FAILED_GATE=REAL_CR15_2MS__ATTEMPTED_ROOT_CAUSES=W2_ATTEMPT1__CANDIDATE2__CANDIDATE3__CANDIDATE4
+SOL_MASTER_EXECUTION_ENGINEERING_BLOCKED=FALSE__NEW_ROOT_CAUSE_CHANGE=REMOVE_COLD_PACKET_RESTART__CONTINUOUS_LIVE_TAKEOVER_TO_170K_EXACT_PACKET
 W2_CANDIDATE2_CHANGE=CTRL_REDUCE_POWER_MAX_STEP_HZ_500_TO_1000_ONLY
 W2_CANDIDATE2_REPLAY=ATTEMPT1_LINEARIZED_ENDPOINT_REPLAY_AFTER_8_APPLIES_HZ_156546
 W2_REAL_TIMING_GATE_CORRECTION=ALL_REAL_DURATIONS_900_CYCLES_PER_WORK_ORDER__NOPOWER_2MS_10MS_REMAINS_850
@@ -463,4 +463,38 @@ REAL_1C_ROOT_CAUSE_HYPOTHESIS=abrupt 170kHz single-pulse packet after coast
         trips COMP/TZ1 before any completed cycle (consistent with earlier
         abrupt cold-start COMP/TZ1 evidence); no guard relaxed
 FINAL_STATUS=BURST_PACKET_CHARACTERIZATION_BLOCKED
+```
+
+## BURST LIVE-TAKEOVER packet candidate (W2_BURST_LIVE_TAKEOVER_PACKET_V1)
+
+```text
+STATUS=OFFLINE_QUALIFIED__REAL_1C_PENDING
+ROOT_CAUSE_CHANGE=remove the failed coast->cold 170kHz restart; retain the
+        fault-free formal SoftStart trajectory continuously through takeover
+LIVE_PATH=formal PHASE_B stage10 at TBPRD339 (~176470Hz), DB36 -> park
+        SoftStart without OST -> OL actuator commits TBPRD352 (~169971Hz) ->
+        discard first transition zero boundary -> count exactly N full 170kHz
+        periods -> planned OST
+AUTHORIZED_PACKET_CYCLES=1,2,3,5 only; all other values consumed+rejected
+PROTECTION=unchanged Comparator/TZ1 authority; WARNING raw1304; HARD raw1367;
+        production 145..170kHz envelope and DB36 unchanged; no PI path
+COLD_START_PATH=not used by the new candidate; historical MULTICYCLE path retained
+STATIC_PROOF=SOL_W2_LIVE_TAKEOVER_PACKET_STATIC_PASS=TRUE (11/11)
+NE_PROOF=SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE;
+        exact 1C/2C/3C/5C; 4C reject; injected first-boundary fault completes 0C;
+        every terminal state PWM0/OST1/TZINT0
+NE_FIXTURE_NOTE=the NE Group-1 20us synthetic harness can starve lower-priority
+        Group-3; NE therefore invokes the identical packet boundary handler once
+        per synthetic tick with INTEN=0. REAL compiles this branch out and remains
+        exclusively ePWM CTR_ZERO interrupt driven.
+REGRESSIONS=OPEN_LOOP_STEADY PASS; BURST_REGION 21/0 PASS; historical cold
+        BURST_PACKET exact-cycle harness PASS; handoff-brake host test PASS
+LEGACY_SUITE=tools/test_static.py retains 5 pre-existing stale assumptions
+        (launch name, CAN/SCI text, generic fresh OUT, PFM literal); historical
+        candidate2/preflight scripts target retired source strings and are not
+        acceptance gates for this candidate
+REAL_POLICY=fresh source commit + clean REAL build + exact SHA hard gate;
+        first fire is 1C only, no host second fire, no same-SHA retry after fault
+OPERATOR_STATE=2026-09-04 user confirms Vin=24V and electronic load=15ohm active
+NEXT=freeze REAL binary and execute one live-takeover 1C shot
 ```
