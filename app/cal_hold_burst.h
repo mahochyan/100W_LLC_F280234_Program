@@ -40,7 +40,7 @@
 #define CAL_HOLD_ZERO_SAMPLES           64U    /* post-test zero/offset capture */
 
 /* W3 protected 10 V profile on the already proven 250 kHz / DB110 restart
- * cycle. The 64-cycle packet ceiling is 256 us at 250 kHz and is still
+ * cycle. The 128-cycle packet ceiling is 512 us at 250 kHz and is still
  * terminated early by every fresh target/hard-limit sample. V4 separates its
  * energy budget from the legacy 11 V profile, which remains at 15 cycles. */
 #define CAL_HOLD_MODE_LEGACY_11V         0U
@@ -51,7 +51,7 @@
 #define W3_HOLD_DIAG_LOW_ABORT_RAW       1000U  /* 8.03 V after 2 ms => abort */
 #define W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES 3U /* consecutive OFF samples */
 #define W3_HOLD_INITIAL_CHARGE_RAW       1200U  /* legal accelerated Profile C target */
-#define W3_HOLD_MAX_PACKET_CYCLES        64U    /* <=256 us; per-cycle target/hard stop remains */
+#define W3_HOLD_MAX_PACKET_CYCLES        128U   /* <=512 us; per-cycle target/hard stop remains */
 #define W3_HOLD_DURATION_500MS           500U
 #define W3_HOLD_DURATION_2S              2000U
 #define W3_HOLD_DURATION_10S             10000U

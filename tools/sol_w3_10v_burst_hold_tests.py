@@ -52,10 +52,17 @@ def main() -> None:
              "W3_HOLD_CYCLE_CAP_10S", "W3_HOLD_CYCLE_CAP_60S",
          )))
     gate("STATIC_W3_PACKET_ENERGY_BOUND",
-         "W3_HOLD_MAX_PACKET_CYCLES        64U" in HDR and
+         "W3_HOLD_MAX_PACKET_CYCLES        128U" in HDR and
          "CALHOLD_MaxPacketCycles()" in SRC and
          "? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES" in SRC and
          "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
+    gate("STATIC_W3_PACKET_EXISTING_TELEMETRY",
+         all(x in SRC for x in (
+             "g_cal_hold_packet_start_raw = raw",
+             "g_cal_hold_packet_stop_raw = g_cal_hold_packet_post_last_raw",
+             "g_cal_hold_packet_post_max_raw",
+             "g_cal_hold_packet_actual_cycles = (Uint32)cycles",
+         )))
     gate("STATIC_W3_UNDERSUPPLY_PERSISTENCE",
          "W3_HOLD_DIAG_LOW_ABORT_RAW       1000U" in HDR and
          "W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES 3U" in HDR and
@@ -104,7 +111,7 @@ def main() -> None:
          "EPwm1Regs.TZCLR.bit.OST = 1U" not in PWM[ne_i:ne_end])
     gate("STATIC_SAFE_PACKET_250K_DB110",
          "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
-         "W3_HOLD_MAX_PACKET_CYCLES        64U" in HDR)
+         "W3_HOLD_MAX_PACKET_CYCLES        128U" in HDR)
     gate("STATIC_PACKET_PRESTART_SETTLE_GATE",
          "COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC)" in SRC and
          "g_comp_prestart_reject != 0U" in SRC and

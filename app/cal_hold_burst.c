@@ -145,6 +145,11 @@ static void CALHOLD_StatsReset(void)
     zero.packet_cycles_sum = 0UL;
     s_stats = zero;
     g_cal_hold_undersupply_low_samples = 0U;
+    g_cal_hold_packet_start_raw = 0U;
+    g_cal_hold_packet_stop_raw = 0U;
+    g_cal_hold_packet_post_max_raw = 0U;
+    g_cal_hold_packet_post_last_raw = 0U;
+    g_cal_hold_packet_actual_cycles = 0UL;
 }
 
 /* One shared hard-stop sequence (OST force + EPWM1 INT off). */
@@ -273,6 +278,8 @@ static void CALHOLD_StopPacket(Uint16 hard_limit_flag)
     s_stats.packet_cycles_sum += cycles;
     if (cycles < s_stats.packet_min_cycles) s_stats.packet_min_cycles = cycles;
     if (cycles > s_stats.packet_max_cycles) s_stats.packet_max_cycles = cycles;
+    g_cal_hold_packet_stop_raw = g_cal_hold_packet_post_last_raw;
+    g_cal_hold_packet_actual_cycles = (Uint32)cycles;
 
     g_cal_hold_state = CAL_HOLD_OFF;
     g_cal_hold_packet_active = 0U;
@@ -334,6 +341,9 @@ void CALHOLD_PacketIsr(void)
 
     if (fresh != 0U)
     {
+        g_cal_hold_packet_post_last_raw = raw;
+        if (raw > g_cal_hold_packet_post_max_raw)
+            g_cal_hold_packet_post_max_raw = raw;
         if (raw >= CALHOLD_HardLimitRaw())
         {
             CALHOLD_StopPacket(1U);
@@ -451,6 +461,14 @@ void CALHOLD_FastTask(void)
                         CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_MAX_TOTAL_CYCLES);
                         return;
                     }
+
+                    /* Freeze existing CCS-visible packet telemetry without
+                     * adding RAM; the per-cycle ISR updates last/max/stop. */
+                    g_cal_hold_packet_start_raw = raw;
+                    g_cal_hold_packet_stop_raw = raw;
+                    g_cal_hold_packet_post_max_raw = raw;
+                    g_cal_hold_packet_post_last_raw = raw;
+                    g_cal_hold_packet_actual_cycles = 0UL;
 
                     /* Fixed 250 kHz / DB110 packet start (never 150 kHz). */
                     ADC_SetPwmSyncTriggerMode();
