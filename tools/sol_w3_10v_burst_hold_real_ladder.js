@@ -12,11 +12,14 @@ importPackage(Packages.java.security);
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
 var EXPECTED_SHA="F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
+var LOAD_OHMS=(java.lang.System.getenv("SOL_W3_LOAD_OHMS")||"15");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
-if(DURATION_MS===500){RUN_ID=0x25090573;CYCLE_CAP=62500;WAIT_MS=1000;}
-else if(DURATION_MS===2000){RUN_ID=0x25090574;CYCLE_CAP=250000;WAIT_MS=2500;}
-else if(DURATION_MS===10000){RUN_ID=0x25090575;CYCLE_CAP=1250000;WAIT_MS=10500;}
-else if(DURATION_MS===60000){RUN_ID=0x25090576;CYCLE_CAP=7500000;WAIT_MS=60600;}
+var LOAD10=LOAD_OHMS.equals("10");
+if(!LOAD10 && !LOAD_OHMS.equals("15")){throw "load-must-be-explicit-10-or-15-ohm";}
+if(DURATION_MS===500){RUN_ID=LOAD10?0x25090577:0x25090573;CYCLE_CAP=62500;WAIT_MS=1000;}
+else if(DURATION_MS===2000){RUN_ID=LOAD10?0x25090578:0x25090574;CYCLE_CAP=250000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=LOAD10?0x25090579:0x25090575;CYCLE_CAP=1250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=LOAD10?0x2509057A:0x25090576;CYCLE_CAP=7500000;WAIT_MS=60600;}
 else{throw "duration-must-be-forward-gate-500-2000-10000-60000";}
 
 function sha256File(path){
@@ -58,7 +61,8 @@ function forceSafe(){
 var failures=0,connected=false,fired=false;
 print("=== SOL W3 10V BURST HOLD REAL "+DURATION_MS+"MS ===");
 var ack=(java.lang.System.getenv("SOL_W3_GATES_ACK")||"").equals("1");
-print("GATE_USER_ACK="+ack+" (standing Vin24/CR15 confirmation)");
+print("LOAD_OHMS="+LOAD_OHMS);
+print("GATE_USER_ACK="+ack+" (standing Vin24/CR"+LOAD_OHMS+" confirmation)");
 if(!ack){throw "real-gates";}
 var actual=sha256File(OUT);
 print("REAL_OUT_SHA256="+actual);print("EXPECTED_SHA256="+EXPECTED_SHA);
