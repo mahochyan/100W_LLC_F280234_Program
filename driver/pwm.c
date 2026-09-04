@@ -539,6 +539,10 @@ Uint16 PWM_PrepareStart(Uint32 period, Uint16 deadtime, Uint16 start_phase)
     if (ph >= g_pwm_period) ph = 0U;
 
     EALLOW;
+    /* AQCSFRC reset default is shadow-load-at-ZRO. Select immediate mode so
+     * the prepare clamp and the later release are not phase-dependent. TZ OST
+     * remains the final after-dead-band authority on both physical outputs. */
+    EPwm1Regs.AQSFRC.bit.RLDCSF = 3U;
     EPwm1Regs.AQCSFRC.bit.CSFA = AQ_CLEAR;
     EPwm1Regs.AQCSFRC.bit.CSFB = AQ_CLEAR;
     EPwm1Regs.TBCTR = ph;
@@ -547,7 +551,9 @@ Uint16 PWM_PrepareStart(Uint32 period, Uint16 deadtime, Uint16 start_phase)
     EDIS;
 
     g_power_window_state = POWER_WINDOW_IDLE;
-    g_pwm_start_prepared = 1U;
+    /* Encode phase+1 in the existing token: zero remains the revoked value and
+     * no additional RAM is consumed in the already-full target memory map. */
+    g_pwm_start_prepared = (Uint16)(ph + 1U);
     return 1U;
 }
 
@@ -573,18 +579,52 @@ Uint16 PWM_SetDeadbandOnly(Uint16 deadtime)
 /*
  * PWM_StartDeterministic
  *
- * Releases the prepared PWM in one step. OST is cleared only after the
- * registers and TBCTR phase have been set by PWM_PrepareStart().
+ * Releases the prepared PWM in one step. The old implementation wrote TBCTR
+ * only in PWM_PrepareStart(), even though TBCLK kept running between Prepare
+ * and this function. It also removed an AQ-A low force in front of an
+ * active-high-complementary dead-band without first defining AQ-A's state;
+ * that can expose an arbitrary, long first A/B interval when OST is cleared.
+ *
+ * The actual release critical section now:
+ *   1. disables the continuous AQ override in immediate mode (OST still owns
+ *      both physical pins),
+ *   2. rewrites TBCTR to the prepared phase at the real release point,
+ *   3. issues a one-time AQ-A SET so the dead-band sees a known rising edge
+ *      at that phase (with no intervening time-base AQ event), and
+ *   4. only then clears OST.
+ * This preserves the configured DB delay on the first useful edge and removes
+ * the prepare-to-release phase drift without changing frequency, dead-time,
+ * DAC, GPIO qualification, or TZ protection authority.
  */
 void PWM_StartDeterministic(void)
 {
+    Uint16 ph;
+
     if (g_pwm_start_prepared == 0U) return;
+
+    ph = (Uint16)(g_pwm_start_prepared - 1U);
+    if (ph >= g_pwm_period) ph = 0U;
 
     /* Consume the software-OST token only at the deterministic start. */
     g_software_ost_pending = 0U;
 
     EALLOW;
+    EPwm1Regs.AQSFRC.bit.RLDCSF = 3U;  /* AQCSFRC immediate */
     EPwm1Regs.AQCSFRC.all = 0U;
+    EDIS;
+    /* A failed AQ override release must never be followed by an OST clear. */
+    if (EPwm1Regs.AQCSFRC.bit.CSFA != AQ_NO_ACTION ||
+        EPwm1Regs.AQCSFRC.bit.CSFB != AQ_NO_ACTION)
+    {
+        g_pwm_start_prepared = 0U;
+        PWM_Trip(FAULT_PWM_CONFIG_MISMATCH, 0U);
+        return;
+    }
+
+    EALLOW;
+    EPwm1Regs.AQSFRC.bit.ACTSFA = AQ_SET;
+    EPwm1Regs.TBCTR = ph;
+    EPwm1Regs.AQSFRC.bit.OTSFA = 1U;
     EPwm1Regs.TZCLR.bit.OST = 1U;
     g_probe_tzclr_write_count++;
     EPwm1Regs.TZCLR.bit.INT = 1U;
@@ -609,6 +649,47 @@ void PWM_StartDeterministic(void)
         g_first_start_pwm    = 1U;
     }
 }
+
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+/* On-target mirror of the real seed/phase critical section. It deliberately
+ * omits TZCLR.OST, so this can be exercised with Vin present: the physical
+ * PWM pins stay clamped by the already-latched after-dead-band OST path. */
+Uint16 PWM_ExerciseDeterministicStartNoRelease(void)
+{
+    Uint16 ph;
+
+    if (g_pwm_start_prepared == 0U) return 0U;
+    if (EPwm1Regs.TZFLG.bit.OST == 0U) return 0U;
+
+    ph = (Uint16)(g_pwm_start_prepared - 1U);
+    if (ph >= g_pwm_period) ph = 0U;
+
+    EALLOW;
+    EPwm1Regs.AQSFRC.bit.RLDCSF = 3U;
+    EPwm1Regs.AQCSFRC.all = 0U;
+    EDIS;
+    if (EPwm1Regs.AQCSFRC.bit.CSFA != AQ_NO_ACTION ||
+        EPwm1Regs.AQCSFRC.bit.CSFB != AQ_NO_ACTION)
+    {
+        g_pwm_start_prepared = 0U;
+        return 0U;
+    }
+
+    EALLOW;
+    EPwm1Regs.AQSFRC.bit.ACTSFA = AQ_SET;
+    EPwm1Regs.TBCTR = ph;
+    EPwm1Regs.AQSFRC.bit.OTSFA = 1U;
+    /* Restore the prepare clamp while OST remains continuously latched. */
+    EPwm1Regs.AQCSFRC.bit.CSFA = AQ_CLEAR;
+    EPwm1Regs.AQCSFRC.bit.CSFB = AQ_CLEAR;
+    EDIS;
+
+    g_pwm_start_prepared = 0U;
+    g_pwm_enabled = 0U;
+    g_pwm_enable_result = 0U;
+    return (EPwm1Regs.TZFLG.bit.OST != 0U && ph < g_pwm_period) ? 1U : 0U;
+}
+#endif
 
 /*
  * PWM_Trip

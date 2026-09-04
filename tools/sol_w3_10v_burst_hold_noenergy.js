@@ -66,6 +66,9 @@ check("ACCEL_PREPARE_EXACT_239_110",reg("EPwm1Regs.TBPRD")==239 &&
       reg("EPwm1Regs.DBRED")==110 && reg("EPwm1Regs.DBFED")==110);
 check("ACCEL_NE_NO_PWM_RELEASE",rw("g_first_start_seen")==startSeen0 &&
       rv32u("g_probe_tzclr_write_count")==tzclr0);
+check("ACCEL_NE_START_SEED_MIRROR",rw("g_pwm_start_prepared")==0 &&
+      reg("EPwm1Regs.AQSFRC.bit.ACTSFA")==2 &&
+      reg("EPwm1Regs.AQSFRC.bit.RLDCSF")==3);
 safe("ACCEL_PREPARE");
 wv("g_cal_hold_ne_bypass_charge",1);
 

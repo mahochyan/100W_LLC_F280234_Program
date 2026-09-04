@@ -344,6 +344,7 @@ extern volatile Uint32 g_software_ost_late_isr_count;
 extern volatile Uint16 g_ocp_recovery_mode;
 extern volatile Uint16 g_softstart_abort_reason;
 extern volatile Uint16 g_softstart_ocp_dac_code;
+/* 0 = no prepared start; otherwise stores (prepared TBCTR phase + 1). */
 extern volatile Uint16 g_pwm_start_prepared;
 extern volatile Uint32 g_enable_rising_count;
 extern volatile Uint32 g_softstart_final_apply_count;

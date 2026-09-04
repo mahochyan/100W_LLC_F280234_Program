@@ -11,6 +11,7 @@ GLOBALS_H = (ROOT / "app" / "llc_globals.h").read_text(encoding="utf-8")
 PROBE = (ROOT / "app" / "power_probe.c").read_text(encoding="utf-8")
 PROBE_H = (ROOT / "app" / "power_probe.h").read_text(encoding="utf-8")
 PWM = (ROOT / "driver" / "pwm.c").read_text(encoding="utf-8")
+SHOT = (ROOT / "app" / "shot.c").read_text(encoding="utf-8")
 
 
 def gate(name: str, condition: bool) -> None:
@@ -67,9 +68,26 @@ def main() -> None:
          "MULTICYCLE_ConfigureAdcCapture(start_period)" in PROBE and
          "PWM_PrepareStart((Uint32)start_period, start_deadtime, 1U)" in PROBE)
     gate("STATIC_ACCEL_NE_NEVER_RELEASES_OST",
-         "W3 authorization proof without energy" in PROBE and
-         "Never call PWM_StartDeterministic in this branch" in PROBE and
-         "g_pwm_start_prepared = 0U" in PROBE)
+         "deterministic-start proof without energy" in PROBE and
+         "PWM_ExerciseDeterministicStartNoRelease()" in PROBE)
+    phase_i = PWM.find("EPwm1Regs.TBCTR = ph", PWM.find("void PWM_StartDeterministic"))
+    seed_i = PWM.find("EPwm1Regs.AQSFRC.bit.OTSFA = 1U", phase_i)
+    ost_i = PWM.find("EPwm1Regs.TZCLR.bit.OST = 1U", seed_i)
+    gate("STATIC_REAL_START_AQ_SEED_PHASE_AT_RELEASE",
+         "EPwm1Regs.AQSFRC.bit.RLDCSF = 3U" in PWM and
+         phase_i >= 0 and phase_i < seed_i < ost_i and
+         "g_pwm_start_prepared = (Uint16)(ph + 1U)" in PWM and
+         "g_pwm_start_prepared - 1U" in PWM)
+    gate("STATIC_PREPARED_TOKEN_CALLERS_ACCEPT_PHASE_ENCODING",
+         "g_pwm_start_prepared != 1U" not in (PROBE + SRC + SHOT) and
+         "if (g_pwm_start_prepared == 0U) gate_ok = 0U" in SHOT)
+    ne_i = PWM.find("Uint16 PWM_ExerciseDeterministicStartNoRelease")
+    ne_end = PWM.find("#endif", ne_i)
+    gate("STATIC_NE_START_MIRROR_NEVER_CLEARS_OST",
+         ne_i >= 0 and ne_end > ne_i and
+         "EPwm1Regs.AQSFRC.bit.OTSFA = 1U" in PWM[ne_i:ne_end] and
+         "EPwm1Regs.TBCTR = ph" in PWM[ne_i:ne_end] and
+         "EPwm1Regs.TZCLR.bit.OST = 1U" not in PWM[ne_i:ne_end])
     gate("STATIC_SAFE_PACKET_250K_DB110",
          "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
          "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)

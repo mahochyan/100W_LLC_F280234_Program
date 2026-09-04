@@ -22,6 +22,9 @@ Uint16  PWM_ApplyPeriodDeadtime(Uint32 period, Uint16 deadtime);
 Uint16  PWM_SetDeadbandOnly(Uint16 deadtime);
 Uint16  PWM_PrepareStart(Uint32 period, Uint16 deadtime, Uint16 start_phase);
 void    PWM_StartDeterministic(void);
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+Uint16  PWM_ExerciseDeterministicStartNoRelease(void);
+#endif
 
 /* Internal helper used by protection/state machine */
 void    PWM_Trip(Uint32 cause, Uint16 countTrip);

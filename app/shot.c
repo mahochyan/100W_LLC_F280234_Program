@@ -730,7 +730,8 @@ void SHOT_BurstRestart(void)
         if ((g_tz_hardware_trip_count - g_burst_entry_hw_trip_count) != 0UL) gate_ok = 0U;
         if ((g_tz_active_window_trip_count - g_burst_entry_active_trip_count) != 0UL) gate_ok = 0U;
         if (g_adc_vout_filtered_raw >= g_first_real_pi_shot_abort_vout_raw) gate_ok = 0U;
-        if (g_pwm_start_prepared != 1U) gate_ok = 0U;
+        /* The token carries prepared phase+1; zero alone means revoked. */
+        if (g_pwm_start_prepared == 0U) gate_ok = 0U;
         if (gate_ok == 0U)
         {
             g_burst_restart_fail_count++;

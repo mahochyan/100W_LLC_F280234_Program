@@ -1124,9 +1124,17 @@ void MULTICYCLE_SlowTask(void)
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     if (g_no_energy_test_mode != 0U && g_accel_active != 0U)
     {
-        /* W3 authorization proof without energy: PWM_PrepareStart has exercised
-         * the private 239/110 gate and written the exact registers while OST
-         * stayed latched. Never call PWM_StartDeterministic in this branch. */
+        /* W3 authorization + deterministic-start proof without energy:
+         * PWM_PrepareStart exercises the private 239/110 gate, then the NE
+         * mirror executes the same AQ seed/TBCTR-at-release writes as the real
+         * path while deliberately never clearing OST. */
+        if (PWM_ExerciseDeterministicStartNoRelease() == 0U)
+        {
+            g_multi_cycle_probe_active = 0U;
+            g_multi_cycle_probe_result = 3U;
+            MULTICYCLE_RestoreInterrupts();
+            return;
+        }
         g_adc_vout_pwm_sync_raw = g_accel_vout_target_raw;
         g_adc_vout_raw = g_accel_vout_target_raw;
         g_accel_last_vout_raw = g_accel_vout_target_raw;
@@ -1136,7 +1144,6 @@ void MULTICYCLE_SlowTask(void)
         g_test_run_id_at_stop = g_test_run_id;
         ACCEL_FreezeStopSnapshot();
         LLC_PWM_DisableSafe();
-        g_pwm_start_prepared = 0U;
         g_multi_cycle_probe_active = 0U;
         g_multi_cycle_probe_result = 1U;
         g_multi_cycle_probe_stop_reason = 1U;
