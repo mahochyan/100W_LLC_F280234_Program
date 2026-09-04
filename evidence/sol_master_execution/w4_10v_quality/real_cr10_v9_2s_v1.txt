@@ -1,0 +1,29 @@
+W4 CR10 stress — V9 REAL 2 s
+Captured: 2026-09-05T01:22:36+08:00
+
+Bench and identity
+- Vin: 24 V active
+- Load: CR 10 ohm
+- REAL_OUT_SHA256=04F5352643FBC82E614EA62C1032038D6CB01C4A18093534ABC2D431B0C9B046
+- REAL_SHA_HARD_GATE=PASS
+- No live JTAG reads occurred during the active request.
+
+Result
+PRE_FIRE raw=14 vout=0.04953555 hw_trip=0 active_trip=0 enable_rise=0
+RESULT state=4 reason=1 mode=1 elapsed_ticks=100000 fault=0x0
+CHARGE target=1200 stop=1201 accel_reason=2 accel_max=1201 phase=4 tbprd=399 db=36 completed_cycles=417
+HOLD raw=1220 min=1165 max=1276 steady_min=1214 steady_max=1276 steady_avg=1239 cal_avg=1239 cal_n=22200
+PACKETS count=726 total_cycles=100837 min_cycles=89 max_cycles=157 hard_events=0 undersupply_confirm=0
+LAST_PACKET start_raw=1220 stop_raw=1194 post_max_raw=1220 post_last_raw=1194 cycles=41 final_db=95
+ACTIVE_FRACTION=100837/(2000ms*250cycles/ms)=20.1674%
+
+The last packet was cut by the exact firmware duration boundary at cycle41.
+
+Terminal safety
+FINAL pwm=0 ost=1 tzint=0 hw_trip_delta=0 active_trip_delta=0 enable_rise_delta=0
+CLEANUP pwm=0 ost=1 tzint=0
+
+Verdict
+W4_CR10_V9_REAL_2S_PASS=TRUE
+POWER_REQUEST_FIRED=TRUE
+FORWARD_ONLY_NEXT=CR10_10S
