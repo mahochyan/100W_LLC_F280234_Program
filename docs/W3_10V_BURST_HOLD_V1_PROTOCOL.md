@@ -273,3 +273,13 @@ V5_NEXT=REAL_500MS_REQUALIFICATION
 
 Detailed evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v5_undersupply_persistence.txt`.
+
+### V5 REAL 500 ms result
+
+PASS: exactly 25000 ticks, raw1166..1232, steady average raw1222, 354
+packets / 22656 cycles (18.1248% active time), and final undersupply-confirm
+count zero. There was no hard-limit event, fault, trip, or public enable edge.
+Final and cleanup state were PWM0/OST1/TZINT0.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v5_500ms_v1.txt`.
