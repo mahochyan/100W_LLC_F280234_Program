@@ -4,9 +4,9 @@
  * PROFILE_C_CAL_HOLD_BURST_V1 — see cal_hold_burst.h.
  *
  * Size-optimized for the 10KB-RAM F28034 bring-up image: statistics live in
- * one struct (single reset), the recharge packet writes the comparator DAC
- * directly (no arm-path calls), and the packet ISR skips IIR filtering (only
- * the fresh PWM-sync raw is needed for the 1400/1450 judgment).
+ * one struct (single reset), each recharge packet reuses the proven comparator
+ * settle/pre-start gate, and the packet ISR skips IIR filtering (only the
+ * fresh PWM-sync raw is needed for its target/hard-limit judgment).
  */
 
 #include "DSP2803x_Device.h"
@@ -15,6 +15,7 @@
 #include "llc_globals.h"
 #include "pwm.h"
 #include "adc.h"
+#include "comparator.h"
 #include "cal_hold_burst.h"
 
 /* Hold statistics packed so one struct write resets everything. */
@@ -37,6 +38,7 @@ typedef struct
 } cal_hold_stats_t;
 
 static cal_hold_stats_t s_stats;
+static void CALHOLD_StatsPublish(void);
 #pragma DATA_SECTION(s_cal_hold_mode, "ol_ram");
 static Uint16 s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
 #pragma DATA_SECTION(s_w3_packet_write_auth, "ol_ram");
@@ -45,13 +47,18 @@ static Uint16 s_w3_packet_write_auth = 0U;
 Uint16 CALHOLD_W3PacketAuthOk(void)
 {
     return (s_w3_packet_write_auth != 0U &&
-            s_cal_hold_mode == CAL_HOLD_MODE_W3_10V &&
+            (s_cal_hold_mode == CAL_HOLD_MODE_LEGACY_11V ||
+             s_cal_hold_mode == CAL_HOLD_MODE_W3_10V) &&
             g_cal_hold_state == CAL_HOLD_OFF &&
             g_cal_hold_packet_active == 0U &&
             g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
             g_system_state == SYS_STATE_IDLE &&
             g_pwm_enable_request == 0U &&
             g_comp_tz_loopback_verified != 0U &&
+            g_comp_inject_test_armed != 0U &&
+            g_comp_prestart_reject == 0U &&
+            g_comp_prestart_gpio15 != 0U &&
+            GpioDataRegs.GPADAT.bit.GPIO15 != 0U &&
             g_fault_flags == 0UL &&
             g_pwm_enabled == 0U &&
             EPwm1Regs.TZFLG.bit.OST != 0U) ? 1U : 0U;
@@ -156,6 +163,7 @@ static void CALHOLD_BeginOff(Uint16 charge_stop_raw)
 {
     g_cal_hold_charge_stop_raw = charge_stop_raw;
     CALHOLD_StatsReset();
+    CALHOLD_StatsPublish();
     g_cal_hold_hard_limit_events = 0U;
     g_cal_hold_elapsed_ticks = 0UL;
     g_cal_hold_hold_active_ticks = 0UL;
@@ -415,17 +423,23 @@ void CALHOLD_FastTask(void)
                     /* Fixed 250 kHz / DB110 packet start (never 150 kHz). */
                     ADC_SetPwmSyncTriggerMode();
                     ADC_UpdatePwmSyncPoint(239U);
-                    EALLOW;
-                    Comp1Regs.COMPCTL.all = 0U;
-                    Comp1Regs.COMPCTL.bit.COMPSOURCE = 0U;
-                    Comp1Regs.COMPCTL.bit.QUALSEL = 5U;
-                    Comp1Regs.COMPCTL.bit.SYNCSEL = 0U;
-                    Comp1Regs.COMPCTL.bit.CMPINV = 1U;
-                    Comp1Regs.DACCTL.all = 0U;
-                    Comp1Regs.DACVAL.bit.DACVAL = LLC_SINGLE_CYCLE_PROBE_DAC;
-                    Comp1Regs.COMPCTL.bit.COMPDACEN = 1U;
-                    GpioCtrlRegs.GPBMUX1.bit.GPIO42 = 3U;
-                    EDIS;
+                    /* The historical direct register path released OST before
+                     * the newly-written comparator/DAC had a settle + safe
+                     * GPIO15 observation. Reuse the proven 2 us pre-start arm
+                     * sequence on every cold packet and fail closed. */
+                    g_comp1_dac_code = LLC_SINGLE_CYCLE_PROBE_DAC;
+                    g_comp_polarity = 1U;
+                    COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC);
+                    if (g_comp_prestart_reject != 0U ||
+                        g_comp_inject_test_armed == 0U ||
+                        g_comp_prestart_gpio15 == 0U ||
+                        GpioDataRegs.GPADAT.bit.GPIO15 == 0U)
+                    {
+                        ADC_SetSoftwareTriggerMode();
+                        CALHOLD_End(CAL_HOLD_ABORT,
+                                    CAL_HOLD_REASON_PRESTART_REJECT);
+                        return;
+                    }
 
                     s_w3_packet_write_auth = 1U;
                     prepare_ok = PWM_PrepareStart(239UL, 110U, 1U);
@@ -433,7 +447,8 @@ void CALHOLD_FastTask(void)
                     if (prepare_ok == 0U)
                     {
                         ADC_SetSoftwareTriggerMode();
-                        g_cal_hold_off_ticks = 0UL;
+                        CALHOLD_End(CAL_HOLD_ABORT,
+                                    CAL_HOLD_REASON_PRESTART_REJECT);
                         return;
                     }
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
@@ -668,8 +683,17 @@ void CALHOLD_SlowTask(void)
 
 void CALHOLD_Init(void)
 {
+    CALHOLD_StatsReset();
+    CALHOLD_StatsPublish();
     s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
     s_w3_packet_write_auth = 0U;
+    g_cal_hold_request = 0U;
+    g_cal_hold_duration_ms = 100U;
+    g_cal_measure_request = 0U;
+    g_cal_measure_done = 0U;
+    g_cal_measure_active = 0U;
+    g_cal_hold_packet_active = 0U;
+    g_cal_hold_stop_reason = CAL_HOLD_REASON_NONE;
     g_cal_hold_mode_request = CAL_HOLD_MODE_LEGACY_11V;
     g_cal_hold_mode_active = CAL_HOLD_MODE_LEGACY_11V;
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST

@@ -74,6 +74,21 @@ resetIdle();request(1,100,1240);
 check("INVALID_DURATION_ABORT",rw("g_cal_hold_state")==5 && rw("g_cal_hold_stop_reason")==7);
 safe("INVALID_DURATION");
 
+// Revoked Comparator/TZ loopback must make the private packet write fail closed.
+resetIdle();wv("g_comp_tz_loopback_verified",0);request(1,500,1210);run(5);
+check("PRESTART_AUTH_REJECT_ABORT",rw("g_cal_hold_state")==5 &&
+      rw("g_cal_hold_stop_reason")==8 && rv32u("g_cal_hold_packet_count")==0);
+safe("PRESTART_AUTH_REJECT");
+wv("g_comp_tz_loopback_verified",1);
+
+// The legacy 11 V profile keeps the same protected packet capability.
+resetIdle();request(0,100,1390);
+check("LEGACY_MODE_OFF",rw("g_cal_hold_mode_active")==0 && rw("g_cal_hold_state")==2);
+wv("g_cal_hold_ne_raw",1370);run(3);wv("g_cal_hold_ne_raw",1410);run(8);
+check("LEGACY_PACKET_AUTH_PASS",rv32u("g_cal_hold_packet_count")>0 &&
+      rw("g_cal_hold_packet_max_cycles")<=15 && rv32u("g_fault_flags")==0);
+safe("LEGACY_PACKET");
+
 // Valid W3 entry bypasses only the energy-producing charge in NE.
 resetIdle();request(1,500,1240);
 check("W3_MODE_LATCHED",rw("g_cal_hold_mode_active")==1);

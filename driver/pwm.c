@@ -200,8 +200,8 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
         else if (period == 239UL && deadtime == 110U &&
             CALHOLD_W3PacketAuthOk() != 0U)
         {
-            /* W3_10V_BURST_HOLD_V1: exact low-energy recharge profile,
-             * authorized only by CALHOLD's private start latch while OFF. */
+            /* CALHOLD protected low-energy recharge profile, authorized only
+             * by its private start latch after comparator pre-start passes. */
         }
         else if (g_softstart_ramp_active != 0U &&
             period >= 239UL && period <= 399UL &&

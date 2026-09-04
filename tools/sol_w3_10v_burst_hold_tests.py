@@ -73,6 +73,17 @@ def main() -> None:
     gate("STATIC_SAFE_PACKET_250K_DB110",
          "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
          "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
+    gate("STATIC_PACKET_PRESTART_SETTLE_GATE",
+         "COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC)" in SRC and
+         "g_comp_prestart_reject != 0U" in SRC and
+         "g_comp_prestart_gpio15 == 0U" in SRC and
+         "CAL_HOLD_REASON_PRESTART_REJECT" in SRC and
+         "Comp1Regs.COMPCTL.all = 0U" not in SRC)
+    gate("STATIC_LEGACY_PACKET_AUTH_RETAINED",
+         "s_cal_hold_mode == CAL_HOLD_MODE_LEGACY_11V ||" in SRC and
+         "s_cal_hold_mode == CAL_HOLD_MODE_W3_10V" in SRC)
+    gate("STATIC_STATS_RESET_PUBLISHED",
+         "CALHOLD_StatsReset();\n    CALHOLD_StatsPublish();" in SRC)
     gate("STATIC_REAL_EPWM_ISR_RETAINED",
          "CALHOLD_PacketIsr" in SRC and
          "EPwm1Regs.ETSEL.bit.INTEN  = 1U" in SRC)

@@ -589,6 +589,7 @@ typedef enum
 #define CAL_HOLD_REASON_CHARGE_NOT_REACHED 5U
 #define CAL_HOLD_REASON_MAX_TOTAL_CYCLES 6U  /* 6000-cycle energy cap */
 #define CAL_HOLD_REASON_REJECTED        7U   /* bad duration or entry state */
+#define CAL_HOLD_REASON_PRESTART_REJECT 8U   /* comparator/TZ or private write gate not clean */
 
 extern volatile Uint16 g_cal_hold_request;
 extern volatile Uint16 g_cal_hold_duration_ms;   /* legacy 100/1000; W3 500/2000/10000/60000 */
