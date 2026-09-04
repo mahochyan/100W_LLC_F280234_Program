@@ -13,12 +13,12 @@ user's request and bench-safety constraints remain controlling.
 STATE_VERSION=7
 UPDATED_AT=2026-09-04T00:00:00+08:00
 MASTER_STATUS=IN_PROGRESS
-CURRENT_WORK_ORDER=W2
-CURRENT_GATE=W2_BURST_LIVE_TAKEOVER_PACKET_V1_REAL_2C_3C_5C
-CURRENT_CHECKPOINT=LIVE_PACKET_REAL_1C_2C_3C_PASS__5C_NOT_FIRED_DUE_HOST_10MS_WINDOW__SAFE_CLEANUP__RESUME_5C_ONLY
-LAST_VERIFIED_WORK_ORDER=W1
-NEXT_ACTION=Reload exact-SHA REAL binary after CR15 idle discharge dwell and execute only the uncompleted 5C gate with a 50ms bounded observation window.
-BOARD_LAST_STATE=AFTER_5C_NONFIRE_CLEANUP_PWM0_OST1_TZINT0__FAULT0
+CURRENT_WORK_ORDER=W3
+CURRENT_GATE=W3_10V_BURST_HOLD_INTEGRATION
+CURRENT_CHECKPOINT=W2_PACKET_CHARACTERIZATION_COMPLETE__1C_2C_3C_5C_REAL_PASS__DESIGN_W3_10V_500MS_BURST_HOLD
+LAST_VERIFIED_WORK_ORDER=W2
+NEXT_ACTION=Integrate a protected 10V Burst hold using the proven low-energy restart platform; qualify NE; then execute the W3 500ms first duration.
+BOARD_LAST_STATE=AFTER_REAL_LIVE_PACKET_5C_PWM0_OST1_TZINT0__FAULT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -215,8 +215,8 @@ control code must not be transplanted directly.
 |---|---|---|
 | W0 | PASS | `W0_IDENTITY_RESTORED` |
 | W1 | PASS | `SOL_W1_ADC_CADENCE_NOPOWER_HARD_GATES_PASS` |
-| W2 | BLOCKED + EXPERIMENT | Candidate4 closed (4 same-SHA failures, no retry). OPEN_LOOP_STEADY plant characterization active: builds frozen, NE proof PASS, REAL matrix armed awaiting operator physical authorization |
-| W3 | NOT STARTED | 10V 500ms -> 60s |
+| W2 | PASS | Continuous-PFM mismatch characterized; live-takeover exact 1/2/3/5C REAL ladder PASS, no TZ/fault |
+| W3 | IN PROGRESS | 10V protected Burst hold integration; next real gate 500ms, then staged to 60s |
 | W4 | NOT STARTED | 10V PI/PFM quality |
 | W5 | NOT STARTED | 10V -> 12V reference transition |
 | W6 | NOT STARTED | frequency envelope and 12V 60s |
@@ -517,5 +517,10 @@ REAL_5C_NONFIRE_CAUSE=host observation window 10ms ended before the 5ms slow-tas
         phase launched/completed formal trajectory; not a packet or protection failure
 RESUME_POLICY=harness-only timing correction, firmware OUT/SHA/protection unchanged;
         fresh program load + CR15 PWM-off dwell; fire uncompleted 5C only; 50ms bounded wait
-NEXT=execute exact-SHA REAL 5C resume only
+REAL_5C_RESUME=PASS__fresh load + 50ms bounded observation__takeover_raw796
+        (6.38V)__completed5__peak870(6.97V)__fault0__hw_trip_delta0__
+        active_trip_delta0__final PWM0/OST1/TZINT0
+W2_FINAL=PASS__CONTINUOUS_PFM_PLANT_RANGE_MISMATCH_ACCEPTED__CONTROL_REGION_REDIRECT_TO_BURST__
+        LIVE_TAKEOVER_PACKET_REAL_1C_2C_3C_5C_ALL_PASS
+NEXT=W3_10V_BURST_HOLD_INTEGRATION
 ```
