@@ -207,7 +207,7 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
                  deadtime >= W3_HOLD_PACKET_DB_MIN && deadtime <= 110U &&
                  CALHOLD_W3PacketRampAuthOk() != 0U)
         {
-            /* W3 active-packet exact Phase-A cadence through DB50. Each
+            /* W3/W4 active-packet exact Phase-A cadence through DB36. Each
              * DB-only write is privately authorized by cal_hold_burst.c;
              * period/CMPA cannot change. */
         }

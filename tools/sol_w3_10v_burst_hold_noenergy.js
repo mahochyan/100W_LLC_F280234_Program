@@ -105,13 +105,13 @@ safe("W3_ENTRY");
 wv("g_cal_hold_ne_raw",1210);run(3);
 wv("g_cal_hold_ne_raw",1240);run(12);
 check("LOW_EMITS_PACKET",rv32u("g_cal_hold_packet_count")>0);
-check("PACKET_CYCLES_BOUNDED",rw("g_cal_hold_packet_max_cycles")==128 &&
+check("PACKET_CYCLES_BOUNDED",rw("g_cal_hold_packet_max_cycles")==160 &&
       rw("g_cal_hold_packet_min_cycles")>=1);
 check("PACKET_EXISTING_TELEMETRY",rw("g_cal_hold_packet_start_raw")==1210 &&
-      rw("g_cal_hold_packet_actual_cycles")==128 &&
+      rw("g_cal_hold_packet_actual_cycles")==160 &&
       rw("g_cal_hold_packet_post_last_raw")==1240);
-check("PACKET_CONFIG_250K_PHASE_A_TO_DB50",reg("EPwm1Regs.TBPRD")==239 &&
-      reg("EPwm1Regs.DBRED")==50 && reg("EPwm1Regs.DBFED")==50);
+check("PACKET_CONFIG_250K_FULL_PHASE_A_TO_DB36",reg("EPwm1Regs.TBPRD")==239 &&
+      reg("EPwm1Regs.DBRED")==36 && reg("EPwm1Regs.DBFED")==36);
 check("DEADBAND_RETURNS_OFF",rw("g_cal_hold_state")==2 && rw("g_cal_hold_packet_active")==0);
 check("NO_FAULT_AFTER_PACKETS",rv32u("g_fault_flags")==0);
 safe("PACKETS");

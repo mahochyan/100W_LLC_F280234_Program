@@ -52,8 +52,8 @@ def main() -> None:
              "W3_HOLD_CYCLE_CAP_10S", "W3_HOLD_CYCLE_CAP_60S",
          )))
     gate("STATIC_W3_PACKET_ENERGY_BOUND",
-         "W3_HOLD_MAX_PACKET_CYCLES        128U" in HDR and
-         "W3_HOLD_PACKET_DB_MIN            50U" in HDR and
+         "W3_HOLD_MAX_PACKET_CYCLES        160U" in HDR and
+         "W3_HOLD_PACKET_DB_MIN            36U" in HDR and
          "CALHOLD_MaxPacketCycles()" in SRC and
          "? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES" in SRC and
          "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
@@ -68,11 +68,13 @@ def main() -> None:
         (15, 105), (25, 100), (35, 95), (45, 90),
         (55, 85), (65, 80), (75, 75), (85, 70),
         (95, 65), (105, 60), (115, 55), (125, 50),
+        (135, 45), (145, 40), (155, 36),
     )
     gate("STATIC_W3_PACKET_EXACT_PHASE_A_CADENCE",
          all(f"case {cycle}U:" in SRC and f"next_db = {db}U;" in SRC
              for cycle, db in phase_a_schedule) and
-         [db for _, db in phase_a_schedule] == list(range(105, 49, -5)))
+         [db for _, db in phase_a_schedule[:-1]] == list(range(105, 39, -5)) and
+         phase_a_schedule[-1] == (155, 36))
     gate("STATIC_W3_PACKET_EXISTING_TELEMETRY",
          all(x in SRC for x in (
              "g_cal_hold_packet_start_raw = raw",
@@ -126,10 +128,10 @@ def main() -> None:
          "EPwm1Regs.AQSFRC.bit.OTSFA = 1U" in PWM[ne_i:ne_end] and
          "EPwm1Regs.TBCTR = ph" in PWM[ne_i:ne_end] and
          "EPwm1Regs.TZCLR.bit.OST = 1U" not in PWM[ne_i:ne_end])
-    gate("STATIC_SAFE_PACKET_250K_DB110_TO50",
+    gate("STATIC_SAFE_PACKET_250K_DB110_TO36",
          "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
-         "W3_HOLD_MAX_PACKET_CYCLES        128U" in HDR and
-         "W3_HOLD_PACKET_DB_MIN            50U" in HDR)
+         "W3_HOLD_MAX_PACKET_CYCLES        160U" in HDR and
+         "W3_HOLD_PACKET_DB_MIN            36U" in HDR)
     gate("STATIC_PACKET_PRESTART_SETTLE_GATE",
          "COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC)" in SRC and
          "g_comp_prestart_reject != 0U" in SRC and

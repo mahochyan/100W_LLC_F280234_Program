@@ -39,8 +39,8 @@
 #define CAL_HOLD_MAX_TOTAL_PACKET_CYCLES_MEASURE 120000UL  /* 30s interactive hold, ~70k expected */
 #define CAL_HOLD_ZERO_SAMPLES           64U    /* post-test zero/offset capture */
 
-/* W3 protected 10 V profile on the already proven 250 kHz / DB110 restart
- * cycle. The 128-cycle packet ceiling is 512 us at 250 kHz and is still
+/* W3/W4 protected 10 V profile on the already proven 250 kHz / DB110 restart
+ * cycle. The 160-cycle packet ceiling is 640 us at 250 kHz and is still
  * terminated early by every fresh target/hard-limit sample. V4 separates its
  * energy budget from the legacy 11 V profile, which remains at 15 cycles. */
 #define CAL_HOLD_MODE_LEGACY_11V         0U
@@ -51,8 +51,8 @@
 #define W3_HOLD_DIAG_LOW_ABORT_RAW       1000U  /* 8.03 V after 2 ms => abort */
 #define W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES 3U /* consecutive OFF samples */
 #define W3_HOLD_INITIAL_CHARGE_RAW       1200U  /* legal accelerated Profile C target */
-#define W3_HOLD_MAX_PACKET_CYCLES        128U   /* <=512 us; per-cycle target/hard stop remains */
-#define W3_HOLD_PACKET_DB_MIN            50U    /* exact Phase-A cadence reaches DB50 by cycle125 */
+#define W3_HOLD_MAX_PACKET_CYCLES        160U   /* <=640 us; per-cycle target/hard stop remains */
+#define W3_HOLD_PACKET_DB_MIN            36U    /* exact Phase-A cadence reaches DB36 by cycle155 */
 #define W3_HOLD_DURATION_500MS           500U
 #define W3_HOLD_DURATION_2S              2000U
 #define W3_HOLD_DURATION_10S             10000U
@@ -76,6 +76,6 @@ void CALHOLD_SlowTask(void);       /* request detect, CHARGE supervision, end/ab
 void CALHOLD_FastTask(void);       /* 20 us: OFF software ADC, packet scheduling, safety */
 void CALHOLD_PacketIsr(void);      /* EPWM1 INT while a recharge packet is active */
 Uint16 CALHOLD_W3PacketAuthOk(void); /* private-latch-backed exact 239/110 write gate */
-Uint16 CALHOLD_W3PacketRampAuthOk(void); /* private active-packet 239/DB110..50 gate */
+Uint16 CALHOLD_W3PacketRampAuthOk(void); /* private active-packet 239/DB110..36 gate */
 
 #endif /* APP_CAL_HOLD_BURST_H */

@@ -385,8 +385,8 @@ void CALHOLD_PacketIsr(void)
 
     /* Reuse the exact initial-charge Phase-A cadence: DB110 for 15 complete
      * cycles, then DB falls by five after every ten completed cycles. The
-     * 128-cycle packet is therefore bounded at DB50 (the write occurs after
-     * cycle125); it never reaches the later DB36 stage. Every DB-only write
+     * 160-cycle packet is therefore bounded at DB36 (the write occurs after
+     * cycle155); it never enters the later period-ramp stage. Every DB-only write
      * needs a one-call private active-packet authorization and a failed write
      * immediately returns to OST. */
     next_db = EPwm1Regs.DBRED;
@@ -406,6 +406,9 @@ void CALHOLD_PacketIsr(void)
             case 105U: next_db = 60U;  break;
             case 115U: next_db = 55U;  break;
             case 125U: next_db = 50U;  break;
+            case 135U: next_db = 45U;  break;
+            case 145U: next_db = 40U;  break;
+            case 155U: next_db = 36U;  break;
             default: break;
         }
     }

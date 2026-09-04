@@ -181,7 +181,7 @@ try{
   check("INITIAL_CHARGE_TARGET_STOP",rw("g_accel_stop_reason")===2 && charge>=1200 && charge<1300);
   check("INITIAL_CHARGE_NO_HW_TRIP",rw("g_pre_stop_hardware_trip_seen")===0);
   check("PACKETS_EMITTED",packets>0);
-  check("PACKETS_CYCLE_BOUNDED",pmin>=1 && pmin<=pmax && pmax<=128);
+  check("PACKETS_CYCLE_BOUNDED",pmin>=1 && pmin<=pmax && pmax<=160);
   check("TOTAL_CYCLE_CAP",total>0 && total<CYCLE_CAP);
   check("HOLD_SAMPLES_PRESENT",ssn>0 && caln>0);
   check("HOLD_RAW_BOUNDED",min>=1000 && max<1300 && ssmin>=1000 && ssmax<1300);
