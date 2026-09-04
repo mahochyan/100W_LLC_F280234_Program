@@ -1,0 +1,42 @@
+SOL W3 10V BURST HOLD V8 — REAL 2 s
+Captured: 2026-09-05T01:03:38+08:00
+
+Standing bench authority
+- Vin: 24 V active
+- Load: CR 15 ohm continuously connected
+- User standing gate acknowledgement: true
+- No live JTAG reads were performed while the request was active.
+
+Identity hard gate
+REAL_OUT_SHA256=F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA
+EXPECTED_SHA256=F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA
+REAL_SHA_HARD_GATE=PASS
+
+Initial safe snapshot
+sys=1 pwm=0 fault=0x0 ost=1 tzint=0 stage=0 cal=1 hold_state=0 mode_active=0 mode_req=0
+INIT_SAFE_AND_IDLE_GATES=PASS
+LOOPBACK_PASS=PASS
+STAGE_CONFIRM_1_TO_5=PASS
+
+Single uninterrupted power request
+PRE_FIRE raw=9 vout=0.009088925 hw_trip=0 active_trip=0 enable_rise=0
+RESULT state=4 reason=1 mode=1 elapsed_ticks=100000 fault=0x0
+CHARGE target=1200 stop=1200 accel_reason=2 accel_max=1200 phase=4 tbprd=399 db=36 completed_cycles=417
+HOLD raw=1218 min=1162 max=1270 steady_min=1215 steady_max=1270 steady_avg=1238 cal_avg=1239 cal_n=27152
+PACKETS count=636 total_cycles=79805 min_cycles=90 max_cycles=128 hard_events=0 undersupply_confirm=0
+LAST_PACKET start_raw=1218 stop_raw=1209 post_max_raw=1218 post_last_raw=1209 cycles=95 final_db=65
+
+The last packet was cut by the exact firmware duration boundary at cycle95.
+
+Terminal safety
+FINAL pwm=0 ost=1 tzint=0 hw_trip_delta=0 active_trip_delta=0 enable_rise_delta=0
+CLEANUP pwm=0 ost=1 tzint=0
+
+Verdict
+SOL_W3_10V_BURST_HOLD_REAL_2000MS_PASS=TRUE
+POWER_REQUEST_FIRED=TRUE
+NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE
+
+All duration, initial-charge, packet-bound, aggregate-cycle-cap, sample,
+10 V average-band, hard-limit, fault, hardware-trip, public-enable-edge, run-id,
+and final-safe-state gates passed.
