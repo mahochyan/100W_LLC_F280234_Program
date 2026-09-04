@@ -354,3 +354,30 @@ remain unchanged.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v6_2s_v1.txt`.
+
+## V7 bounded per-packet DB ramp
+
+Every V7 packet retains the deterministic TBPRD239/DB110 first cycle. At each
+subsequent cycle boundary, DBRED/DBFED decrease by one to a fixed DB90 floor;
+period and CMPA do not change. This is a conservative prefix of the initial
+charge's repeatedly proven DB110-to-DB36 Phase-A trajectory.
+
+Each DB-only write is authorized for one call by private W3 active-packet state
+and requires Stage5A, IDLE, loopback, GPIO15 safe, no fault, plus the correct
+REAL-active or NE-OST-clamped output state. A failed write ends safely. The
+128-cycle and 50% aggregate caps, all voltage stops, and Comparator/TZ remain
+unchanged.
+
+```text
+V7_SOURCE_COMMIT=1044cd71147f20ef33eccc33ba9aeba5db3e4dcb
+V7_STATIC=PASS_27_OF_27
+V7_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+V7_NE_OUT_SHA256=335B835FF2D34FAA514CCF74F94FF2B4CC1E71BA0C3DE5FE2AE3C1305DEF1B67
+V7_NE_MAP_SHA256=EE17E481F332BA817A6A588D0862B2659FE35D151BDBD1569E86EFEA99148040
+V7_REAL_OUT_SHA256=0E9200615F1A6A22E22B1875E339EE5778D1379D1003C71099A561053DB68C28
+V7_REAL_MAP_SHA256=E1CACCD870679E015D5A579C07B35043032D40407F5DA47438D178C33FFB52A5
+V7_NEXT=REAL_500MS_REQUALIFICATION
+```
+
+Detailed evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v7_db_ramp.txt`.

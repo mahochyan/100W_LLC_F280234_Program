@@ -1,0 +1,55 @@
+W3_10V_BURST_HOLD_V7 per-packet DB ramp qualification
+Qualified at: 2026-09-05T00:46:47+08:00
+Source commit: 1044cd71147f20ef33eccc33ba9aeba5db3e4dcb
+
+ROOT_CAUSE
+V6 last packet: start raw992, 128 fixed DB110 cycles, stop raw990,
+post-max997. At TBPRD239/CMPA120, DB110 leaves about 10 TBCLK counts of
+effective pulse. More identical DB110 cycles did not provide net recharge.
+
+V7_CHANGE
+- Every packet still starts deterministically at TBPRD239/DB110.
+- After the first completed cycle, DBRED/DBFED fall by one count per boundary
+  to DB90, then remain there; period and CMPA never change.
+- This is a bounded prefix of the repeatedly passed accelerated Profile-C
+  Phase-A DB110-to-DB36 trajectory.
+- Every DB-only write requires a one-call private active-packet authorization
+  covering W3 mode/state, Stage5A, IDLE, loopback, GPIO15, no fault, and correct
+  REAL-active or NE-OST-clamped output state. Any failed write ends in OST.
+
+UNCHANGED
+128-cycle/512us packet cap; 50% aggregate cap; per-cycle target raw1260 and
+hard raw1300; three-sample raw1000 undersupply; 40us minimum OFF; deterministic
+first edge; Comparator/TZ/DAC; production envelope; legacy 11V max15; no retry.
+
+STATIC
+SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+STATIC_GATE_COUNT=27/27
+STATIC_W3_PACKET_DB_RAMP_PRIVATE_AUTH=TRUE
+STATIC_SAFE_PACKET_250K_DB110_TO90=TRUE
+
+CLEAN_BUILDS
+NE_OUT_SHA256=335B835FF2D34FAA514CCF74F94FF2B4CC1E71BA0C3DE5FE2AE3C1305DEF1B67
+NE_MAP_SHA256=EE17E481F332BA817A6A588D0862B2659FE35D151BDBD1569E86EFEA99148040
+REAL_OUT_SHA256=0E9200615F1A6A22E22B1875E339EE5778D1379D1003C71099A561053DB68C28
+REAL_MAP_SHA256=E1CACCD870679E015D5A579C07B35043032D40407F5DA47438D178C33FFB52A5
+MEMORY=UNCHANGED__NE_EBSS0x3FF_OLRAM0xD6__REAL_EBSS0x3A4_OLRAM0x90
+TOOLCHAIN=CCS21__CGT25.11.1.LTS__COFF
+
+ON_TARGET_NE
+SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+PACKET_CONFIG_250K_DB110_TO90=TRUE
+PACKET_MAX128_AND_TELEMETRY=TRUE
+RECOVERY_CLEAR_AND_PERSISTENT_LOW_ABORT=TRUE
+HARD1300_ABORT=TRUE
+LEGACY_MAX15=TRUE
+ALL_TERMINAL_STATES=PWM0_OST1_TZINT0
+
+SAFE_REGRESSIONS_ON_TARGET
+SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE__EXACT_1_2_3_5C
+BURST_REGION_NE_VERIFICATION_PASS=TRUE__PASS21_FALSE0
+
+QUALIFICATION=PASS
+NEXT=one V7 REAL 500ms requalification, then forward ladder on PASS
+BOARD_FINAL=PWM0_OST1_TZINT0
