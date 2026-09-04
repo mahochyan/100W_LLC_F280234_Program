@@ -1,0 +1,63 @@
+W3_10V_BURST_HOLD_V8 exact Phase-A cadence qualification
+Qualified at: 2026-09-05T01:00:24+08:00
+Source commit: af0f36d416ebaa3e0c55bd1493db328a084c5b01
+
+ROOT_CAUSE
+V7 passed 500 ms, 2 s, and 10 s but its 60 s request safely aborted at
+2.49724 s. The final packet started raw997, ran 128 cycles through DB90,
+ended raw1001, and peaked raw1005. DB90 therefore has positive but insufficient
+low-output recovery margin before the unchanged three-sample floor stop.
+
+V8_CHANGE
+- Each packet starts deterministically at TBPRD239/DB110.
+- DB110 is held for 15 complete cycles, then DBRED/DBFED fall by five only
+  after completed cycles 15, 25, 35, ..., 125.
+- A full 128-cycle packet reaches DB50 after cycle125; period and CMPA remain
+  fixed at TBPRD239/CMPA120 and the later DB36 phase is never entered.
+- This exactly mirrors a strict prefix of the accelerated Profile-C Phase-A
+  cadence proven during every successful initial charge.
+- The integrated effective-pulse authority of a full packet is approximately
+  31% above V7, while the early-cycle ramp is slower than V7.
+
+UNCHANGED
+128-cycle/512us packet cap; 50% aggregate cap; per-cycle target raw1260 and
+hard raw1300; three-sample raw1000 undersupply; 40us minimum OFF; deterministic
+first edge; private one-call DB authorization; Comparator/TZ/DAC/GPIO15;
+production envelope; legacy 11V max15; no automatic retry.
+
+STATIC
+SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+STATIC_GATE_COUNT=28/28
+STATIC_W3_PACKET_EXACT_PHASE_A_CADENCE=TRUE
+STATIC_SAFE_PACKET_250K_DB110_TO50=TRUE
+
+CLEAN_BUILDS
+NE_OUT_SHA256=8DEE1A7A10F3D128FBE4B52A4891443AB5F87198C349E1F4EF0FDFDCE418E59B
+NE_MAP_SHA256=29000C4BEE1425D8A3BA9666C70C3798C9374BB4FA5BAD85283FA6B95E90F6ED
+REAL_OUT_SHA256=F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA
+REAL_MAP_SHA256=E14D439E43634782712880B925B72F8E3AC022B9128D6068781F64C70B2B1D6F
+MEMORY=UNCHANGED__NE_EBSS0x3FF_OLRAM0xD6__REAL_EBSS0x3A4_OLRAM0x90
+REAL_CALHOLD_PACKET_ISR_TEXT_WORDS=0xD8
+DISASSEMBLY=compare tree contains cycle hex0F/19/23/2D/37/41/4B/55/5F/69/73/7D
+        and DB immediate hex69/64/5F/5A/55/50/4B/46/41/3C/37/32
+TOOLCHAIN=CCS21__CGT25.11.1.LTS__COFF
+
+ON_TARGET_NE
+SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+PACKET_CONFIG_250K_PHASE_A_TO_DB50=TRUE
+PACKET_MAX128_AND_TELEMETRY=TRUE
+RECOVERY_CLEAR_AND_PERSISTENT_LOW_ABORT=TRUE
+HARD1300_ABORT=TRUE
+LEGACY_MAX15=TRUE
+ALL_TERMINAL_STATES=PWM0_OST1_TZINT0
+
+SAFE_REGRESSIONS_ON_TARGET
+SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE__EXACT_1_2_3_5C
+BURST_REGION_NE_VERIFICATION_PASS=TRUE__PASS21_FALSE0
+EXCLUDED=sol_w2_burst_packet_noenergy.js__disconnects_OSHT1_and_releases_PWM__
+        not safe while Vin is connected; exclusion is not a failure
+
+QUALIFICATION=PASS
+NEXT=one V8 REAL 500ms requalification, then forward ladder on PASS
+BOARD_FINAL=PWM0_OST1_TZINT0

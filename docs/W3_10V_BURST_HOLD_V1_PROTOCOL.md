@@ -359,8 +359,8 @@ Evidence:
 
 Every V7 packet retains the deterministic TBPRD239/DB110 first cycle. At each
 subsequent cycle boundary, DBRED/DBFED decrease by one to a fixed DB90 floor;
-period and CMPA do not change. This is a conservative prefix of the initial
-charge's repeatedly proven DB110-to-DB36 Phase-A trajectory.
+period and CMPA do not change. Its values remain inside the initial charge's
+proven DB110-to-DB36 Phase-A envelope, but its faster cadence is V7-specific.
 
 Each DB-only write is authorized for one call by private W3 active-packet state
 and requires Stage5A, IDLE, loopback, GPIO15 safe, no fault, plus the correct
@@ -381,3 +381,48 @@ V7_NEXT=REAL_500MS_REQUALIFICATION
 
 Detailed evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v7_db_ramp.txt`.
+
+### V7 REAL ladder result
+
+V7 passed 500 ms, 2 s, and 10 s on one exact binary. The 60 s request ended
+safely at 2.49724 s after three consecutive below-raw1000 samples. Its final
+128-cycle packet started at raw997, ended raw1001, and peaked at raw1005 with
+DB90. This proves positive recharge direction but insufficient low-boundary
+recovery margin. No fault, hardware TZ, hard-limit event, or public enable edge
+occurred; final and cleanup were PWM0/OST1/TZINT0. V7 is retired without retry.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v7_500ms_v1.txt`,
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v7_2s_v1.txt`,
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v7_10s_v1.txt`, and
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v7_60s_v1.txt`.
+
+## V8 exact Phase-A packet cadence
+
+V8 preserves the deterministic TBPRD239/DB110 start, holds DB110 for 15
+completed cycles, then reduces DB by five only after cycles 15, 25, ... 125.
+A full 128-cycle packet therefore ends at DB50 and remains a strict prefix of
+the exact accelerated Profile-C Phase-A trajectory used by every successful
+initial charge; it never reaches the later DB36 stage. The full-packet pulse
+authority is approximately 31% above V7 while its early rise is slower.
+
+No RAM was added. The private active-packet authorization, 128-cycle/512 us
+packet bound, 50% aggregate cap, raw1260 target, raw1300 hard stop, three-sample
+raw1000 undersupply stop, 40 us OFF time, Comparator/TZ/DAC/GPIO15 gates,
+legacy 11 V limit, and no-auto-retry policy are unchanged.
+
+```text
+V8_SOURCE_COMMIT=af0f36d416ebaa3e0c55bd1493db328a084c5b01
+V8_STATIC=PASS_28_OF_28
+V8_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+V8_NE_OUT_SHA256=8DEE1A7A10F3D128FBE4B52A4891443AB5F87198C349E1F4EF0FDFDCE418E59B
+V8_NE_MAP_SHA256=29000C4BEE1425D8A3BA9666C70C3798C9374BB4FA5BAD85283FA6B95E90F6ED
+V8_REAL_OUT_SHA256=F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA
+V8_REAL_MAP_SHA256=E14D439E43634782712880B925B72F8E3AC022B9128D6068781F64C70B2B1D6F
+V8_MEMORY=UNCHANGED_NE_EBSS0x3FF_OLRAM0xD6_REAL_EBSS0x3A4_OLRAM0x90
+V8_REGRESSIONS=W2_OPEN_LOOP_PASS_W2_LIVE_1_2_3_5_PASS_BURST_REGION_21_0_PASS
+V8_NEXT=REAL_500MS_REQUALIFICATION
+```
+
+Detailed evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v8_exact_phase_a.txt`.

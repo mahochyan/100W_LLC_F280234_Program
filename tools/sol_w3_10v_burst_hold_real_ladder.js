@@ -1,4 +1,4 @@
-// W3_10V_BURST_HOLD_V3 - REAL forward duration ladder, one request per run.
+// W3_10V_BURST_HOLD_V8 - REAL forward duration ladder, one request per run.
 //
 // Firmware owns the complete sequence: bounded Profile C charge to raw1200,
 // protected 10 V recharge packets, the selected frozen duration, and final OST. The
@@ -10,13 +10,13 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="0E9200615F1A6A22E22B1875E339EE5778D1379D1003C71099A561053DB68C28";
+var EXPECTED_SHA="F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
-if(DURATION_MS===500){RUN_ID=0x2509056F;CYCLE_CAP=62500;WAIT_MS=1000;}
-else if(DURATION_MS===2000){RUN_ID=0x25090570;CYCLE_CAP=250000;WAIT_MS=2500;}
-else if(DURATION_MS===10000){RUN_ID=0x25090571;CYCLE_CAP=1250000;WAIT_MS=10500;}
-else if(DURATION_MS===60000){RUN_ID=0x25090572;CYCLE_CAP=7500000;WAIT_MS=60600;}
+if(DURATION_MS===500){RUN_ID=0x25090573;CYCLE_CAP=62500;WAIT_MS=1000;}
+else if(DURATION_MS===2000){RUN_ID=0x25090574;CYCLE_CAP=250000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=0x25090575;CYCLE_CAP=1250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=0x25090576;CYCLE_CAP=7500000;WAIT_MS=60600;}
 else{throw "duration-must-be-forward-gate-500-2000-10000-60000";}
 
 function sha256File(path){
