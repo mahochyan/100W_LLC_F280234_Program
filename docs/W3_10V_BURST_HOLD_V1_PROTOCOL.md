@@ -283,3 +283,20 @@ Final and cleanup state were PWM0/OST1/TZINT0.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v5_500ms_v1.txt`.
+
+### V5 REAL 2 s result
+
+V5 safely confirmed a sustained low condition instead of a one-sample event:
+it ended at tick39016 (780.32 ms) with confirmation count3. All 893 packets
+reached 64 cycles, the published maximum raw1241 stayed below target1260, and
+active time was 29.6575%, below the 50% aggregate cap. There was no fault, trip,
+hard-limit event, or public enable edge; final and cleanup were
+PWM0/OST1/TZINT0.
+
+The next candidate will not filter further. It will extend only the W3 packet
+ceiling to 128 identical 250 kHz/DB110 cycles (512 us), so a recharge attempt
+can reach target. The 50% aggregate cap and all per-cycle/software/hardware
+stops remain unchanged.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v5_2s_v1.txt`.

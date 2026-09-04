@@ -1,0 +1,39 @@
+=== SOL W3 10V BURST HOLD V5 REAL 2000MS ===
+RUN_AT=2026-09-05T00:33:48+08:00
+SOURCE_COMMIT=ca793abe0b1df201033478a47950cbb2c998a2aa
+REAL_OUT_SHA256=7123C328ABC5750F0329720678078DE0038C7611B48A80631296F066F3D14D8A
+REAL_SHA_HARD_GATE=PASS
+STANDING_BENCH=VIN24_CR15
+INIT_LOOPBACK_STAGE_GATES=ALL_PASS
+
+RESULT_STATE=ABORT
+RESULT_REASON=UNDERSUPPLIED
+ELAPSED_TICKS=39016__approximately_780.32ms
+FAULT=0x0
+MODE=W3
+INITIAL_CHARGE=target1200_stop1204_max1204_reasonTARGET_phase4_TBPRD399_DB36_cycles419
+HOLD=final993_prior_published_min1015_max1241_steady1015_to1241_avg1221_calavg1219_caln6639
+PACKETS=count893_total_cycles57856_min64_max64_hardevents0
+PWM_ACTIVE_FRACTION=57856_DIV_250000_DIV_0.78032=29.6575_PERCENT
+UNDERSUPPLY_CONFIRM_FINAL=3
+TRIP_DELTAS=hardware0_active0
+PUBLIC_ENABLE_RISE_DELTA=0
+FINAL_AND_CLEANUP=PWM0_OST1_TZINT0
+
+FAILED_GATES=W3_2000MS_COMPLETE__FIRMWARE_DURATION_EXACT
+ALL_OTHER_ACCEPTANCE_GATES=PASS
+SOL_W3_10V_BURST_HOLD_REAL_2000MS_PASS=FALSE
+POWER_REQUEST_FIRED=TRUE
+
+INTERPRETATION
+V5 proved the low event persisted across three bounded recharge attempts, so it
+must not be filtered further. Every one of 893 completed packets reached the
+64-cycle ceiling, and peak OFF raw never reached target1260. The measured
+active fraction was 29.66%, below the unchanged 50% aggregate cap. The next
+change therefore increases only the continuous length of the same proven
+250kHz/DB110 packet so a packet can reach the target, while retaining the 50%
+aggregate cap, per-cycle target/hard stops, three-sample undersupply, and all
+hardware protection.
+
+V5_SHA_DISPOSITION=RETIRED__NO_RETRY
+NEXT=W3_ONLY_PACKET_MAX128_512US__NEW_SOURCE_SHA_AND_FULL_QUALIFICATION

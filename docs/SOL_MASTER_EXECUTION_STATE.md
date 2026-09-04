@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=17
-UPDATED_AT=2026-09-05T00:31:42+08:00
+STATE_VERSION=18
+UPDATED_AT=2026-09-05T00:33:48+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V5
-CURRENT_CHECKPOINT=W3_V5_REAL_500MS_PASS__SAME_SHA_READY_FOR_FORWARD_2S
+CURRENT_GATE=W3_10V_PACKET_CONTIGUOUS_ENERGY_ROOT_CAUSE
+CURRENT_CHECKPOINT=W3_V5_REAL_2S_PERSISTENT_LOW_CONFIRMED_SAFE__SHA_RETIRED__PACKET_LENGTH_CHANGE_REQUIRED
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run V5 REAL 2000ms on the same passing SHA; then 10s and 60s only after each PASS.
-BOARD_LAST_STATE=AFTER_W3_V5_REAL_500MS_PASS_AND_CLEANUP__PWM0_OST1_TZINT0
+NEXT_ACTION=Preserve V5 2s evidence; qualify W3-only 128-cycle/512us packet ceiling with existing 50% aggregate and voltage/hardware stops unchanged.
+BOARD_LAST_STATE=AFTER_W3_V5_REAL_2S_PERSISTENT_UNDERSUPPLY_AND_CLEANUP__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=7
+W3_REAL_POWER_ATTEMPT_COUNT=8
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -687,5 +687,13 @@ V5_REAL_500MS=PASS__elapsed25000__charge1203_cycles419__hold1166_to1232__
         avg1222__packets354_all64_total22656_active18.1248pct__undersupplyconfirm0__
         hardevents0_fault0_tripdeltas0_publicenable0_final_cleanup_PWM0_OST1_TZINT0
 V5_REAL_500MS_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v5_500ms_v1.txt
-NEXT=REAL_2S_V5_SAME_SHA__then_10S_60S_only_after_each_PASS
+V5_REAL_2S=FAIL_SAFE__reasonUNDERSUPPLIED__elapsed39016ticks_780.32ms__
+        finalraw993_prior_min1015_avg1221__packets893_all64_total57856__
+        active29.6575pct_below50pctcap__confirm3__fault0_tripdeltas0_publicenable0__
+        final_cleanup_PWM0_OST1_TZINT0
+V5_REAL_2S_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v5_2s_v1.txt
+V5_INTERPRETATION=PERSISTENT_LOW_PROVEN__DO_NOT_FILTER_FURTHER__ALL_PACKETS_HIT64__
+        OFF_MAX1241_BELOW_TARGET1260__CONTIGUOUS_PACKET_AUTHORITY_NEXT
+V5_DISPOSITION=RETIRED__NO_SAME_SHA_RETRY
+NEXT=V6_W3_PACKET_MAX128_512US__KEEP_AGGREGATE50PCT_AND_ALL_STOPS__NEW_SHA
 ```
