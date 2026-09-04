@@ -89,3 +89,12 @@ REAL_OUT_SHA256=B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2
 REAL_MAP_SHA256=61BC854853A320E6EDFC59FE10D3CBB86A88F4FBBC4B4FA24270EC1BA6F6E658
 REAL_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js
 ```
+
+The first harness invocation stopped at its combined CALHOLD boot check before
+loopback, stage advance, or request write. It therefore was not a duration or
+power attempt. Cleanup proved PWM0/OST1/TZINT0. Three subsequent cold-load,
+read-only diagnostics all reported state0, requested/active mode0, request0,
+IDLE/stage0, fault0, PWM0/OST1/TZINT0. The resume harness snapshots and prints
+each boot value once and checks state and mode independently. Firmware and its
+SHA remain unchanged; the no-same-SHA rule still applies after any actual
+request is fired.

@@ -15,9 +15,9 @@ UPDATED_AT=2026-09-04T23:11:44+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
 CURRENT_GATE=W3_10V_BURST_HOLD_REAL_500MS
-CURRENT_CHECKPOINT=W3_REAL_500MS_BINARY_FROZEN__SINGLE_FIRE_PENDING
+CURRENT_CHECKPOINT=W3_REAL_500MS_V1_HOST_BOOT_GATE_NONFIRE__THREE_COLD_BOOT_DIAGS_PASS__RESUME_UNFIRED_500MS_WITH_SNAPSHOT_HARNESS
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Execute the hard-SHA single-fire W3 500ms harness under standing Vin24/CR15 confirmation; stop the ladder on any failed gate.
+NEXT_ACTION=Resume the un-fired hard-SHA W3 500ms request with the boot-snapshot harness; stop the ladder on any actual power-gate failure.
 BOARD_LAST_STATE=AFTER_W3_ON_TARGET_NOENERGY_PWM0_OST1_TZINT0__FAULT0__REAL_POWER_NEVER_RELEASED
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
@@ -528,7 +528,7 @@ NEXT=W3_10V_BURST_HOLD_INTEGRATION
 ## W3 10 V Burst hold candidate (W3_10V_BURST_HOLD_V1)
 
 ```text
-STATUS=REAL_500MS_BINARY_FROZEN__SINGLE_FIRE_PENDING
+STATUS=REAL_500MS_V1_HOST_BOOT_GATE_NONFIRE__RESUME_PENDING
 SOURCE_COMMIT=a29d60a578c6fb59bf7f1116d3a519cbe73cfe2b
 CONTROL=firmware-selected W3 CALHOLD profile; legacy 11V calibration unchanged
 INITIAL_CHARGE=accelerated Profile C target raw1200; exact TBPRD239/DB110 start;
@@ -561,5 +561,13 @@ REAL_BUILD=PASS__CGT25.11.1.LTS__COFF__STAGE6_OPEN_LOOP_STEADY_BUILD_ONLY
 REAL_OUT_SHA256=B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2
 REAL_MAP_SHA256=61BC854853A320E6EDFC59FE10D3CBB86A88F4FBBC4B4FA24270EC1BA6F6E658
 REAL_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js
-NEXT=execute 500ms; on PASS advance 2s->10s->60s
+REAL_500MS_V1=NOT_FIRED__combined CALHOLD boot check reported FAIL before
+        loopback/stage/request; cleanup PWM0/OST1/TZINT0; no power request
+BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
+        measure_req0/sysIDLE/stage0/PWM0/OST1/TZINT0/fault0
+RESUME_POLICY=harness-only boot observation correction; capture all boot values
+        once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
+        because g_cal_hold_request was never written and PWM was never released
+W3_REAL_POWER_ATTEMPT_COUNT=0
+NEXT=resume un-fired 500ms; on PASS advance 2s->10s->60s
 ```

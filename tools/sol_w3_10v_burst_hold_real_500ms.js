@@ -63,14 +63,23 @@ try{
   try{session.target.connect();}catch(e){} connected=true;
   try{session.target.halt();}catch(e){}
   session.memory.loadProgram(OUT);run(400);
-  check("INIT_SYS_IDLE",rw("g_system_state")===1);
-  check("INIT_PWM_OFF",rw("g_pwm_enabled")===0);
-  check("INIT_FAULT_ZERO",rv32u("g_fault_flags")===0);
-  check("INIT_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1);
-  check("INIT_TZINT_ZERO",reg("EPwm1Regs.TZFLG.bit.INT")===0);
-  check("INIT_STAGE_ZERO",rw("g_bringup_stage")===0);
-  check("INIT_VOUT_CAL_VALID",rw("g_board_vout_cal_valid")===1);
-  check("INIT_CALHOLD_IDLE",rw("g_cal_hold_state")===0 && rw("g_cal_hold_mode_active")===0);
+  var initSys=rw("g_system_state"),initPwm=rw("g_pwm_enabled");
+  var initFault=rv32u("g_fault_flags"),initOst=reg("EPwm1Regs.TZFLG.bit.OST");
+  var initTzint=reg("EPwm1Regs.TZFLG.bit.INT"),initStage=rw("g_bringup_stage");
+  var initCal=rw("g_board_vout_cal_valid"),initHold=rw("g_cal_hold_state");
+  var initMode=rw("g_cal_hold_mode_active"),initModeReq=rw("g_cal_hold_mode_request");
+  print("INIT_SNAPSHOT sys="+initSys+" pwm="+initPwm+" fault=0x"+initFault.toString(16)+
+        " ost="+initOst+" tzint="+initTzint+" stage="+initStage+" cal="+initCal+
+        " hold_state="+initHold+" mode_active="+initMode+" mode_req="+initModeReq);
+  check("INIT_SYS_IDLE",initSys===1);
+  check("INIT_PWM_OFF",initPwm===0);
+  check("INIT_FAULT_ZERO",initFault===0);
+  check("INIT_OST_LATCHED",initOst===1);
+  check("INIT_TZINT_ZERO",initTzint===0);
+  check("INIT_STAGE_ZERO",initStage===0);
+  check("INIT_VOUT_CAL_VALID",initCal===1);
+  check("INIT_CALHOLD_STATE_IDLE",initHold===0);
+  check("INIT_CALHOLD_MODE_LEGACY",initMode===0 && initModeReq===0);
   if(failures){throw "boot-gates";}
 
   wv("g_loopback_diag_request",1);run(50);
@@ -162,5 +171,6 @@ try{
 }
 
 print("SOL_W3_10V_BURST_HOLD_REAL_500MS_PASS="+(failures===0?"TRUE":"FALSE"));
-print("NO_RETRY_SAME_SHA=TRUE");
+print("POWER_REQUEST_FIRED="+(fired?"TRUE":"FALSE"));
+print("NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE");
 if(failures){throw "w3-real-500ms-failures="+failures;}
