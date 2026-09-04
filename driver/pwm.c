@@ -203,6 +203,13 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
             /* CALHOLD protected low-energy recharge profile, authorized only
              * by its private start latch after comparator pre-start passes. */
         }
+        else if (period == 239UL &&
+                 deadtime >= W3_HOLD_PACKET_DB_MIN && deadtime <= 110U &&
+                 CALHOLD_W3PacketRampAuthOk() != 0U)
+        {
+            /* W3 active-packet Phase-A prefix. Each DB-only write is privately
+             * authorized by cal_hold_burst.c; period/CMPA cannot change. */
+        }
         else if (g_softstart_ramp_active != 0U &&
             period >= 239UL && period <= 399UL &&
             deadtime >= 36U && deadtime <= 110U)

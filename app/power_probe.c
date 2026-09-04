@@ -748,7 +748,7 @@ __interrupt void EPWM1_INT_ISR(void)
              g_cal_hold_packet_active != 0U)
     {
         /* PROFILE_C_CAL_HOLD_BURST_V1 recharge packet: per-cycle PWM-sync
-         * VOUT judgment and <=15-cycle cap (see cal_hold_burst.c). */
+         * VOUT judgment and profile-specific bounded cap (see cal_hold_burst.c). */
         CALHOLD_PacketIsr();
     }
     else if (g_softstart_state >= SOFTSTART_START_HOLD &&

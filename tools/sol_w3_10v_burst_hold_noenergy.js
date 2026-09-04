@@ -110,8 +110,8 @@ check("PACKET_CYCLES_BOUNDED",rw("g_cal_hold_packet_max_cycles")==128 &&
 check("PACKET_EXISTING_TELEMETRY",rw("g_cal_hold_packet_start_raw")==1210 &&
       rw("g_cal_hold_packet_actual_cycles")==128 &&
       rw("g_cal_hold_packet_post_last_raw")==1240);
-check("PACKET_CONFIG_250K_DB110",reg("EPwm1Regs.TBPRD")==239 &&
-      reg("EPwm1Regs.DBRED")==110 && reg("EPwm1Regs.DBFED")==110);
+check("PACKET_CONFIG_250K_DB110_TO90",reg("EPwm1Regs.TBPRD")==239 &&
+      reg("EPwm1Regs.DBRED")==90 && reg("EPwm1Regs.DBFED")==90);
 check("DEADBAND_RETURNS_OFF",rw("g_cal_hold_state")==2 && rw("g_cal_hold_packet_active")==0);
 check("NO_FAULT_AFTER_PACKETS",rv32u("g_fault_flags")==0);
 safe("PACKETS");

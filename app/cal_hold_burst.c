@@ -64,6 +64,31 @@ Uint16 CALHOLD_W3PacketAuthOk(void)
             EPwm1Regs.TZFLG.bit.OST != 0U) ? 1U : 0U;
 }
 
+Uint16 CALHOLD_W3PacketRampAuthOk(void)
+{
+    Uint16 output_state_ok;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U)
+        output_state_ok = (g_pwm_enabled == 0U &&
+                           EPwm1Regs.TZFLG.bit.OST != 0U) ? 1U : 0U;
+    else
+#endif
+        output_state_ok = (g_pwm_enabled != 0U &&
+                           EPwm1Regs.TZFLG.bit.OST == 0U) ? 1U : 0U;
+
+    return (s_w3_packet_write_auth != 0U &&
+            s_cal_hold_mode == CAL_HOLD_MODE_W3_10V &&
+            g_cal_hold_state == CAL_HOLD_PACKET &&
+            g_cal_hold_packet_active != 0U &&
+            g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
+            g_system_state == SYS_STATE_IDLE &&
+            g_pwm_enable_request == 0U &&
+            g_comp_tz_loopback_verified != 0U &&
+            g_comp_inject_test_armed != 0U &&
+            GpioDataRegs.GPADAT.bit.GPIO15 != 0U &&
+            g_fault_flags == 0UL && output_state_ok != 0U) ? 1U : 0U;
+}
+
 static Uint16 CALHOLD_RechargeLowRaw(void)
 {
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
@@ -299,6 +324,8 @@ void CALHOLD_PacketIsr(void)
 {
     Uint16 fresh = 0U;
     Uint16 raw = 0U;
+    Uint16 next_db;
+    Uint16 write_ok;
 
     if (g_fault_flags != 0UL || g_system_state == SYS_STATE_FAULT)
     {
@@ -352,6 +379,24 @@ void CALHOLD_PacketIsr(void)
         if (raw >= CALHOLD_RechargeTargetRaw())
         {
             CALHOLD_StopPacket(0U);
+            return;
+        }
+    }
+
+    /* Reuse only the already-proven initial-charge Phase-A prefix: the first
+     * complete cycle stays at DB110, then each boundary reduces DB by one to
+     * the compile-time DB90 floor. Every write needs a one-call private active
+     * packet authorization; a failed write immediately returns to OST. */
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V &&
+        EPwm1Regs.DBRED > W3_HOLD_PACKET_DB_MIN)
+    {
+        next_db = (Uint16)(EPwm1Regs.DBRED - 1U);
+        s_w3_packet_write_auth = 1U;
+        write_ok = PWM_SetDeadbandOnly(next_db);
+        s_w3_packet_write_auth = 0U;
+        if (write_ok == 0U)
+        {
+            CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_PRESTART_REJECT);
             return;
         }
     }

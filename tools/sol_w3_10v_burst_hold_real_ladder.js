@@ -13,10 +13,10 @@ var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_O
 var EXPECTED_SHA="BD0CFFCB33FABE522B23AAC49D445A1C65BC7EA17C0C506837EC7E28ECC05CA9";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
-if(DURATION_MS===500){RUN_ID=0x2509055F;CYCLE_CAP=62500;WAIT_MS=1000;}
-else if(DURATION_MS===2000){RUN_ID=0x25090560;CYCLE_CAP=250000;WAIT_MS=2500;}
-else if(DURATION_MS===10000){RUN_ID=0x25090561;CYCLE_CAP=1250000;WAIT_MS=10500;}
-else if(DURATION_MS===60000){RUN_ID=0x25090562;CYCLE_CAP=7500000;WAIT_MS=60600;}
+if(DURATION_MS===500){RUN_ID=0x2509056F;CYCLE_CAP=62500;WAIT_MS=1000;}
+else if(DURATION_MS===2000){RUN_ID=0x25090570;CYCLE_CAP=250000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=0x25090571;CYCLE_CAP=1250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=0x25090572;CYCLE_CAP=7500000;WAIT_MS=60600;}
 else{throw "duration-must-be-forward-gate-500-2000-10000-60000";}
 
 function sha256File(path){
@@ -143,7 +143,8 @@ try{
         " stop_raw="+rw("g_cal_hold_packet_stop_raw")+
         " post_max_raw="+rw("g_cal_hold_packet_post_max_raw")+
         " post_last_raw="+rw("g_cal_hold_packet_post_last_raw")+
-        " cycles="+rv32u("g_cal_hold_packet_actual_cycles"));
+        " cycles="+rv32u("g_cal_hold_packet_actual_cycles")+
+        " final_db="+reg("EPwm1Regs.DBRED"));
   print("FINAL pwm="+pwm+" ost="+ost+" tzint="+tzint+
         " hw_trip_delta="+(hw1-hw0)+" active_trip_delta="+(active1-active0)+
         " enable_rise_delta="+(rise1-rise0));
