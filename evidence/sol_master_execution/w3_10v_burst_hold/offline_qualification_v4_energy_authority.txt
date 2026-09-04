@@ -1,0 +1,70 @@
+W3_10V_BURST_HOLD_V4 bounded hold-energy authority qualification
+Qualified at: 2026-09-05T00:20:12+08:00
+Source commit: eeb9f756b92d26a925efbb2874444a5d0393940f
+
+MEASURED_ROOT_CAUSE
+V3 ran 32235 identical 250kHz/DB110 cycles during 34438 x 20us hold ticks.
+PWM-active time = 32235 / 250000 = 0.12894s.
+Observed active fraction = 0.12894 / 0.68876 = 18.72%.
+The old 2s aggregate cap permitted only 50000 / 250000 = 0.2s, exactly
+10% of the requested duration. Every V3 packet also reached its 15-cycle cap.
+The old bounded authority was therefore below already-observed load demand.
+
+V4_CHANGE
+- Keep the already exercised 250kHz/TBPRD239/DB110 cycle unchanged.
+- W3-only per-packet ceiling: 64 cycles = 256us maximum active interval.
+- W3-only aggregate ceiling: 50% of each selected duration:
+  500ms=62500, 2s=250000, 10s=1250000, 60s=7500000 cycles.
+- Legacy 11V remains at its original 15-cycle packet ceiling and original
+  aggregate caps.
+- Every fresh PWM-cycle sample still stops at target raw1260 and hard-stops at
+  raw1300; every packet remains comparator/TZ protected.
+
+SAFETY_RATIONALE
+V3 proved 2126 deterministic cold starts and 32235 individual 250kHz/DB110
+cycles without a hardware/active-window trip. V4 does not increase per-cycle
+voltage, frequency, duty command, or current threshold. It only permits more
+of those same cycles before the software packet ceiling, while retaining a
+finite 256us packet limit, 40us minimum off time, a 50% aggregate time limit,
+per-cycle voltage termination, raw1300 hard stop, and Comparator/TZ authority.
+The previously proven Profile-C charge completed 419 cycles and is unchanged.
+
+UNCHANGED
+Deterministic first-edge sequence; Comparator/TZ/DAC threshold; GPIO15
+qualification; frequency; DB; W3 voltage thresholds; ADC paths; production
+envelope; public enable isolation; no automatic retry.
+
+STATIC
+SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+STATIC_GATE_COUNT=24/24
+STATIC_W3_PACKET_ENERGY_BOUND=TRUE
+STATIC_LEGACY_PROFILE_UNCHANGED=TRUE
+
+CLEAN_BUILDS
+NE_OUT_SHA256=EFB4DDAC97B4500A73B073EC3263393194B0899F76F4D203F92BDBD18F532CDA
+NE_MAP_SHA256=E57DA26F5CBEBF7043BB3DB5D46E575183EEF213AE2680118465533A6A9847E4
+NE_EBSS=0x3FF_OF_0x400
+REAL_OUT_SHA256=073290E38DC2DFD4BC06891DF95DB2FBA3D721A16B06B882F28E4913D729F3F7
+REAL_MAP_SHA256=A7CD0E328FF4988F841AFA1A27A1366B7FB2159210DF44E3910DA4153F138C79
+REAL_EBSS=0x3A4_OF_0x400
+TOOLCHAIN=CCS21__CGT25.11.1.LTS__COFF
+
+ON_TARGET_NE
+SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+W3_PACKET_MAX_EXERCISED=64
+LEGACY_PACKET_MAX_RETAINED_LE_15=TRUE
+W3_AGGREGATE_CAP_500MS_62500_ABORT=TRUE
+DETERMINISTIC_START_MIRROR_NO_RELEASE=TRUE
+ALL_TERMINAL_STATES=PWM0_OST1_TZINT0
+
+SAFE_REGRESSIONS_ON_TARGET
+SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE__EXACT_1_2_3_5C
+BURST_REGION_NE_VERIFICATION_PASS=TRUE__PASS21_FALSE0
+W2_COLD_PACKET_NE=NOT_RUN_WITH_VIN_CONNECTED__fixture disconnects OSHT1 and
+releases PWM__safety exclusion, not failure
+
+QUALIFICATION=PASS
+REAL_FORWARD_POLICY=new SHA first requalifies 500ms, then 2s/10s/60s only on PASS
+NEXT=one W3 V4 REAL 500ms request with exact SHA hard gate
+BOARD_FINAL=PWM0_OST1_TZINT0

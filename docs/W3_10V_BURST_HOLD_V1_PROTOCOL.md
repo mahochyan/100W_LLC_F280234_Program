@@ -193,3 +193,32 @@ source commit/SHA while retaining Comparator/TZ and all voltage safety gates.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v3_2s_v1.txt`.
+
+## V4 bounded hold-energy authority
+
+V3 quantified the new blocker. It executed 32235 cycles over 688.76 ms, an
+observed PWM-active fraction of 18.72%, while the old duration-wide cap allowed
+only 10%. Every packet also reached the 15-cycle ceiling. V4 therefore leaves
+the proven 250 kHz/DB110 cycle unchanged and raises only the W3 profile's
+bounded authority: maximum 64 cycles (256 us) per packet and aggregate active
+time capped at 50% of each requested duration. Legacy 11 V stays at 15 cycles.
+
+The firmware still checks target raw1260 and hard raw1300 on every fresh packet
+sample, enforces at least 40 us OFF, retains deterministic first-edge startup,
+and leaves Comparator/TZ/DAC and all voltage thresholds unchanged. Because the
+candidate changes the energy envelope, it requalifies 500 ms before advancing
+to 2 s, 10 s, and 60 s.
+
+```text
+V4_SOURCE_COMMIT=eeb9f756b92d26a925efbb2874444a5d0393940f
+V4_STATIC=PASS_24_OF_24
+V4_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+V4_NE_OUT_SHA256=EFB4DDAC97B4500A73B073EC3263393194B0899F76F4D203F92BDBD18F532CDA
+V4_NE_MAP_SHA256=E57DA26F5CBEBF7043BB3DB5D46E575183EEF213AE2680118465533A6A9847E4
+V4_REAL_OUT_SHA256=073290E38DC2DFD4BC06891DF95DB2FBA3D721A16B06B882F28E4913D729F3F7
+V4_REAL_MAP_SHA256=A7CD0E328FF4988F841AFA1A27A1366B7FB2159210DF44E3910DA4153F138C79
+V4_NEXT=REAL_500MS_REQUALIFICATION
+```
+
+Detailed evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v4_energy_authority.txt`.
