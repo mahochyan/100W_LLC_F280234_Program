@@ -1,0 +1,63 @@
+W3_10V_BURST_HOLD_V5 undersupply-persistence qualification
+Qualified at: 2026-09-05T00:30:10+08:00
+Source commit: ca793abe0b1df201033478a47950cbb2c998a2aa
+
+ROOT_CAUSE_EVIDENCE
+V4 500ms PASS: 34240 cycles, raw1166..1243, average1225.
+V4 2s failure: ended at 611ms after only 30784 cycles; prior min1004 and
+average1221, then one terminal OFF sample raw997. The 50% aggregate cycle cap
+did not bind. Current firmware treated that one sample as sustained
+undersupply, although the raw1000 threshold is intentionally far below the
+normal band.
+
+V5_CHANGE
+- Keep raw1000 and the initial 2ms grace period unchanged.
+- W3 requires 3 consecutive below-raw1000 OFF observations across bounded
+  recharge attempts before UNDERSUPPLIED.
+- Any in-band OFF observation immediately clears the count.
+- Legacy 11V retains its historical immediate undersupply behavior.
+- The counter is placed in existing ol_ram; NE .ebss remains 0x3FF.
+
+UNCHANGED
+250kHz/TBPRD239/DB110; 64-cycle/256us W3 packet cap; 50% aggregate active-time
+cap; 40us minimum OFF; raw1220/1260/1300 control and hard bounds; deterministic
+first edge; Comparator/TZ/DAC; GPIO15; ADC mode configuration; production
+envelope; no automatic retry.
+
+STATIC
+SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+STATIC_GATE_COUNT=25/25
+STATIC_W3_UNDERSUPPLY_PERSISTENCE=TRUE
+STATIC_W3_FROZEN_BAND=TRUE
+
+CLEAN_BUILDS
+NE_OUT_SHA256=1F0AEAAD5D034522E8A48177524DFC9914FAF3071B4A2E5159BEED52D4FAAFEF
+NE_MAP_SHA256=12176121C3FFF07DAD144E461F46AAEAD39DF04F12A8796A4B5C05D8A38CF33E
+NE_EBSS=0x3FF_OF_0x400
+NE_OL_RAM=0xD6_OF_0x1000
+REAL_OUT_SHA256=7123C328ABC5750F0329720678078DE0038C7611B48A80631296F066F3D14D8A
+REAL_MAP_SHA256=FFF020965B8D9D555748D8A200FE8A4DF1B67E30D2BA886693BBB06AB9FAFD6D
+REAL_EBSS=0x3A4_OF_0x400
+REAL_OL_RAM=0x90_OF_0x1000
+TOOLCHAIN=CCS21__CGT25.11.1.LTS__COFF
+
+ON_TARGET_NE
+SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+LOW_RECOVERY_CLEARS_CONFIRM=TRUE
+PERSISTENT_LOW_ABORT_AT_COUNT3=TRUE
+W3_PACKET_MAX64=TRUE
+LEGACY_PACKET_MAX15=TRUE
+HARD1300_ABORT=TRUE
+ALL_TERMINAL_STATES=PWM0_OST1_TZINT0
+FIXTURE_NOTE=DSS sleep cannot halt at exactly one 20us step; the recovery test
+injects the intermediate count1 then exercises the real clear path, while the
+persistent-low scenario exercises the real increment-to-3 and abort path.
+
+SAFE_REGRESSIONS_ON_TARGET
+SOL_W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+SOL_W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE__EXACT_1_2_3_5C
+BURST_REGION_NE_VERIFICATION_PASS=TRUE__PASS21_FALSE0
+
+QUALIFICATION=PASS
+NEXT=one V5 REAL 500ms requalification on exact new SHA, then forward ladder
+BOARD_FINAL=PWM0_OST1_TZINT0

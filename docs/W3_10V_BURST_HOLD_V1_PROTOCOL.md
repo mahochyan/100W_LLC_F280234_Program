@@ -250,3 +250,26 @@ cannot end an otherwise in-band run.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v4_2s_v1.txt`.
+
+## V5 persistent undersupply confirmation
+
+V5 retains raw1000 and the existing initial 2 ms grace period, but W3 now
+requires three consecutive below-floor OFF observations before declaring a
+sustained undersupply. Any in-band observation clears the counter. Legacy 11 V
+keeps its immediate behavior. This change filters only isolated ADC-transition
+samples; it does not alter the normal 1220/1260 band, raw1300 hard stop,
+250 kHz/DB110 energy settings, Comparator/TZ, or cycle/time caps.
+
+```text
+V5_SOURCE_COMMIT=ca793abe0b1df201033478a47950cbb2c998a2aa
+V5_STATIC=PASS_25_OF_25
+V5_NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+V5_NE_OUT_SHA256=1F0AEAAD5D034522E8A48177524DFC9914FAF3071B4A2E5159BEED52D4FAAFEF
+V5_NE_MAP_SHA256=12176121C3FFF07DAD144E461F46AAEAD39DF04F12A8796A4B5C05D8A38CF33E
+V5_REAL_OUT_SHA256=7123C328ABC5750F0329720678078DE0038C7611B48A80631296F066F3D14D8A
+V5_REAL_MAP_SHA256=FFF020965B8D9D555748D8A200FE8A4DF1B67E30D2BA886693BBB06AB9FAFD6D
+V5_NEXT=REAL_500MS_REQUALIFICATION
+```
+
+Detailed evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v5_undersupply_persistence.txt`.
