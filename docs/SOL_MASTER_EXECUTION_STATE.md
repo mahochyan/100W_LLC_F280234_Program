@@ -14,11 +14,11 @@ STATE_VERSION=7
 UPDATED_AT=2026-09-04T00:00:00+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W2
-CURRENT_GATE=W2_BURST_LIVE_TAKEOVER_PACKET_V1_REAL_1C
-CURRENT_CHECKPOINT=LIVE_TAKEOVER_PACKET_REAL_BINARY_FROZEN__EXACT_SHA_1C_READY
+CURRENT_GATE=W2_BURST_LIVE_TAKEOVER_PACKET_V1_REAL_2C_3C_5C
+CURRENT_CHECKPOINT=LIVE_TAKEOVER_PACKET_REAL_1C_PASS__NEXT_EXACT_SHA_2C_THEN_3C_THEN_5C
 LAST_VERIFIED_WORK_ORDER=W1
-NEXT_ACTION=Run exact-SHA REAL live-takeover 1C once; stop on any failed gate and do not advance to 2C automatically.
-BOARD_LAST_STATE=AFTER_NE_QUALIFICATION_PWM0_OST1_TZINT0__FAULT0
+NEXT_ACTION=Run exact-SHA REAL 2C/3C/5C sequential ladder; stop immediately at the first failed gate.
+BOARD_LAST_STATE=AFTER_REAL_LIVE_PACKET_1C_PWM0_OST1_TZINT0__FAULT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -468,7 +468,7 @@ FINAL_STATUS=BURST_PACKET_CHARACTERIZATION_BLOCKED
 ## BURST LIVE-TAKEOVER packet candidate (W2_BURST_LIVE_TAKEOVER_PACKET_V1)
 
 ```text
-STATUS=REAL_BINARY_FROZEN__REAL_1C_READY
+STATUS=REAL_1C_PASS__REAL_2C_3C_5C_PENDING
 ROOT_CAUSE_CHANGE=remove the failed coast->cold 170kHz restart; retain the
         fault-free formal SoftStart trajectory continuously through takeover
 LIVE_PATH=formal PHASE_B stage10 at TBPRD339 (~176470Hz), DB36 -> park
@@ -503,5 +503,10 @@ NE_OUT_SHA256=05DABD9E66A4DE51D178466B5F2EE5076A5847F9920B6ED0CED8DC39D6DEDCFC
 REAL_HARNESS=tools/sol_w2_live_takeover_packet_real_1c.js (hardcoded exact SHA;
         one uninterrupted 10ms target run; one enable edge; no host second fire)
 OPERATOR_STATE=2026-09-04 user confirms Vin=24V and electronic load=15ohm active
-NEXT=execute one live-takeover REAL 1C shot
+REAL_1C=PASS__one enable edge__takeover176470Hz/raw784(6.28V)__transition
+        TBPRD352/actual169971Hz__completed1__resultPASS__stop_reason7__
+        packet raw before/after/peak832(6.67V)__hw_trip_delta0__active_trip_delta0__
+        final PWM0/OST1/TZINT0/fault0
+REAL_1C_SHA_GATE=PASS__E594FF48D49450A1DE4F8D76F653E396CD588F44D5226F2AA50C2A04A8063C30
+NEXT=execute exact-SHA 2C then 3C then 5C, stopping on first failure
 ```
