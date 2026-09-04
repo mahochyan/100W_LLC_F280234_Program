@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=7
-UPDATED_AT=2026-09-04T00:00:00+08:00
+STATE_VERSION=8
+UPDATED_AT=2026-09-04T23:11:44+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_INTEGRATION
-CURRENT_CHECKPOINT=W2_PACKET_CHARACTERIZATION_COMPLETE__1C_2C_3C_5C_REAL_PASS__DESIGN_W3_10V_500MS_BURST_HOLD
+CURRENT_GATE=W3_10V_BURST_HOLD_REAL_500MS
+CURRENT_CHECKPOINT=W3_SOURCE_AND_NE_QUALIFIED__BUILD_AND_FREEZE_CLEAN_REAL_500MS_BINARY
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Integrate a protected 10V Burst hold using the proven low-energy restart platform; qualify NE; then execute the W3 500ms first duration.
-BOARD_LAST_STATE=AFTER_REAL_LIVE_PACKET_5C_PWM0_OST1_TZINT0__FAULT0
+NEXT_ACTION=Clean-build REAL from source commit a29d60a2; hard-code its SHA in the single-fire W3 500ms harness; execute under standing Vin24/CR15 confirmation.
+BOARD_LAST_STATE=AFTER_W3_ON_TARGET_NOENERGY_PWM0_OST1_TZINT0__FAULT0__REAL_POWER_NEVER_RELEASED
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -523,4 +523,39 @@ REAL_5C_RESUME=PASS__fresh load + 50ms bounded observation__takeover_raw796
 W2_FINAL=PASS__CONTINUOUS_PFM_PLANT_RANGE_MISMATCH_ACCEPTED__CONTROL_REGION_REDIRECT_TO_BURST__
         LIVE_TAKEOVER_PACKET_REAL_1C_2C_3C_5C_ALL_PASS
 NEXT=W3_10V_BURST_HOLD_INTEGRATION
+```
+
+## W3 10 V Burst hold candidate (W3_10V_BURST_HOLD_V1)
+
+```text
+STATUS=SOURCE_AND_NOENERGY_QUALIFIED__REAL_500MS_PENDING
+SOURCE_COMMIT=a29d60a2
+CONTROL=firmware-selected W3 CALHOLD profile; legacy 11V calibration unchanged
+INITIAL_CHARGE=accelerated Profile C target raw1200; exact TBPRD239/DB110 start;
+        Phase A DB110->36 at 250kHz; Phase B TBPRD239->399 at DB36
+INITIAL_CHARGE_FIX=accelerated request skips generic LLC_SetFrequencyHz path;
+        ADC sample point and actual prepared start now both use TBPRD239
+PRIVATE_AUTH=per-write private latch; active Profile C + Stage4/5A + IDLE +
+        loopback verified + no public enable/fault; revoked after every write/exit
+HOLD_BAND=low1220 target1260 hard1300 diagnostic-low1000
+PACKET=250kHz/TBPRD239/DB110; 1..15 cycles; >=40us off dwell
+DURATIONS_MS=500,2000,10000,60000 only
+TOTAL_CYCLE_CAPS=20000,50000,250000,1500000
+PROTECTION_UNCHANGED=Comparator/TZ1 authority; OL warning1304/hard1367;
+        production145..170kHz command envelope; production DB36
+STATIC=SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE (17/17)
+NE=SOL_W3_10V_BURST_HOLD_NOENERGY_PASS=TRUE
+NE_ACCEL=exact239/110 prepare authorized while OST latched; zero PWM release
+NE_W3=invalid duration reject; mode latch; deadband/no-packet; low recharge;
+        bounded packet; hard1300 abort; duration complete; aggregate-cap abort;
+        injected fault abort; every terminal state PWM0/OST1/TZINT0
+NE_OUT_SHA256=E8A08E4440775D03F6A46DEBFC3CF16564CCBC346EB557257E91C4BBD8CA1370
+NE_MAP_SHA256=905991CCF687CBEEB75650F10627722E44095D839344084D95601997E72A185E
+REGRESSIONS=W2_OPEN_LOOP PASS; W2_LIVE_PACKET PASS; W2_COLD_PACKET PASS;
+        W2_BURST_REGION 21/0 PASS
+PROTOCOL=docs/W3_10V_BURST_HOLD_V1_PROTOCOL.md
+EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v1.txt
+REAL_POLICY=clean REAL build + hardcoded exact SHA; one 500ms request; no
+        public enable edge; firmware-timed end; no same-SHA retry after failure
+NEXT=build/freeze REAL; execute 500ms; on PASS advance 2s->10s->60s
 ```
