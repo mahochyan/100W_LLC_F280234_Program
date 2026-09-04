@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=25
-UPDATED_AT=2026-09-05T00:52:09+08:00
+STATE_VERSION=26
+UPDATED_AT=2026-09-05T00:54:24+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_60S_V7
-CURRENT_CHECKPOINT=W3_V7_REAL_10S_PASS__SAME_SHA_READY_FOR_REAL_60S
+CURRENT_GATE=W3_10V_BURST_HOLD_V8_OFFLINE_ROOT_CAUSE
+CURRENT_CHECKPOINT=W3_V7_REAL_60S_FAILED_SAFE_AT_2497MS__SHA_RETIRED__DB90_RECOVERY_MARGIN_INSUFFICIENT
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run V7 REAL 60s on exact SHA 0E920061; on PASS close W3 and advance to W4.
-BOARD_LAST_STATE=AFTER_W3_V7_REAL_10S_PASS__PWM0_OST1_TZINT0
+NEXT_ACTION=Design and qualify a new packet-energy candidate from V7 low-output telemetry; do not retry V7 SHA.
+BOARD_LAST_STATE=AFTER_W3_V7_REAL_60S_FAIL_SAFE__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -528,7 +528,7 @@ NEXT=W3_10V_BURST_HOLD_INTEGRATION
 ## W3 10 V Burst hold candidate (W3_10V_BURST_HOLD_V1)
 
 ```text
-STATUS=V7_REAL_500MS_2S_10S_PASS__SAME_SHA_READY_FOR_REAL_60S
+STATUS=V7_REAL_500MS_2S_10S_PASS__REAL_60S_FAILED_SAFE__V7_RETIRED
 SOURCE_COMMIT=a29d60a578c6fb59bf7f1116d3a519cbe73cfe2b
 CONTROL=firmware-selected W3 CALHOLD profile; legacy 11V calibration unchanged
 INITIAL_CHARGE=accelerated Profile C target raw1200; exact TBPRD239/DB110 start;
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=13
+W3_REAL_POWER_ATTEMPT_COUNT=14
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -760,5 +760,15 @@ V7_REAL_10S=PASS__stateCOMPLETE_reasonCOMPLETE_elapsed500000ticks__
         hardevents0_undersupplyconfirm0_fault0_tripdeltas0_publicenable0__
         final_cleanup_PWM0_OST1_TZINT0
 V7_REAL_10S_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v7_10s_v1.txt
-NEXT=REAL_60S_V7__on_PASS_close_W3_and_advance_W4
+V7_REAL_60S=FAIL_SAFE__stateABORT_reasonUNDERSUPPLIED_elapsed124862ticks_2497.24ms__
+        charge_target1200_stop1200_cycles417_no_hwtrip__hold997_to1266__
+        steady997_to1266_avg1228_calavg1225_n15998__packets1539_total196865__
+        lastpacket_start997_stop1001_postmax1005_postlast1001_cycles128_finalDB90__
+        hardevents0_undersupplyconfirm3_fault0_tripdeltas0_publicenable0__
+        final_cleanup_PWM0_OST1_TZINT0
+V7_REAL_60S_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v7_60s_v1.txt
+V7_ROOT_CAUSE=DB90_RAMP_DIRECTION_IS_CORRECT_BUT_LOW_OUTPUT_RECOVERY_MARGIN_IS_ONLY_PLUS4_RAW__
+        LAST_PACKET_PEAK1005_DID_NOT_RESTORE_CONTROL_BAND_BEFORE_THREE_LOW_CONFIRMATIONS
+V7_DISPOSITION=RETIRED__NO_SAME_SHA_RETRY
+NEXT=OFFLINE_V8_PACKET_ENERGY_AUTHORITY__NEW_SHA_FULL_STATIC_NE_REGRESSION_QUALIFICATION
 ```
