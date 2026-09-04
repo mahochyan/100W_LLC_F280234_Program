@@ -608,6 +608,8 @@ volatile Uint32 g_cal_hold_off_ticks;
 volatile Uint32 g_cal_hold_elapsed_ticks;
 volatile Uint32 g_cal_hold_hold_active_ticks;
 volatile Uint16 g_cal_hold_hard_limit_events;
+#pragma DATA_SECTION(g_cal_hold_undersupply_low_samples, "ol_ram");
+volatile Uint16 g_cal_hold_undersupply_low_samples;
 volatile Uint32 g_cal_hold_run_id_at_arm;
 volatile Uint32 g_cal_hold_run_id_at_stop;
 volatile Uint32 g_cal_hold_run_id_at_tz_isr;

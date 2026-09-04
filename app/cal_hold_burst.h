@@ -49,6 +49,7 @@
 #define W3_HOLD_RECHARGE_TARGET_RAW      1260U  /* 10.13 V */
 #define W3_HOLD_HARD_LIMIT_RAW           1300U  /* 10.45 V, below OL warning 1304 */
 #define W3_HOLD_DIAG_LOW_ABORT_RAW       1000U  /* 8.03 V after 2 ms => abort */
+#define W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES 3U /* consecutive OFF samples */
 #define W3_HOLD_INITIAL_CHARGE_RAW       1200U  /* legal accelerated Profile C target */
 #define W3_HOLD_MAX_PACKET_CYCLES        64U    /* <=256 us; per-cycle target/hard stop remains */
 #define W3_HOLD_DURATION_500MS           500U

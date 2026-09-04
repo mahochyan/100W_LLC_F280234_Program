@@ -56,6 +56,12 @@ def main() -> None:
          "CALHOLD_MaxPacketCycles()" in SRC and
          "? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES" in SRC and
          "CAL_HOLD_MAX_PACKET_CYCLES      15U" in HDR)
+    gate("STATIC_W3_UNDERSUPPLY_PERSISTENCE",
+         "W3_HOLD_DIAG_LOW_ABORT_RAW       1000U" in HDR and
+         "W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES 3U" in HDR and
+         "g_cal_hold_undersupply_low_samples" in SRC and
+         "s_cal_hold_mode == CAL_HOLD_MODE_W3_10V" in SRC and
+         "raw >= CALHOLD_DiagLowRaw()" in SRC)
     gate("STATIC_PROFILE_C_1200_ENTRY",
          "W3_HOLD_INITIAL_CHARGE_RAW" in SRC and
          "g_accel_vout_target_raw" in SRC)

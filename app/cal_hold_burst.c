@@ -144,6 +144,7 @@ static void CALHOLD_StatsReset(void)
     zero.packet_min_cycles = 0xFFFFU; zero.packet_max_cycles = 0U;
     zero.packet_cycles_sum = 0UL;
     s_stats = zero;
+    g_cal_hold_undersupply_low_samples = 0U;
 }
 
 /* One shared hard-stop sequence (OST force + EPWM1 INT off). */
@@ -406,11 +407,36 @@ void CALHOLD_FastTask(void)
                     CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_HARD_LIMIT);
                     return;
                 }
-                if (g_cal_hold_hold_active_ticks > CAL_HOLD_UNDERSUPPLY_DELAY_TICKS &&
-                    raw < CALHOLD_DiagLowRaw())
+                if (raw >= CALHOLD_DiagLowRaw())
                 {
-                    CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_UNDERSUPPLIED);
-                    return;
+                    g_cal_hold_undersupply_low_samples = 0U;
+                }
+                else if (g_cal_hold_hold_active_ticks >
+                         CAL_HOLD_UNDERSUPPLY_DELAY_TICKS)
+                {
+                    /* A PWM-sync -> software-trigger transition can expose a
+                     * single low OFF sample. Legacy semantics remain immediate;
+                     * W3 requires consecutive below-floor evidence across
+                     * bounded recharge attempts before declaring undersupply. */
+                    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+                    {
+                        if (g_cal_hold_undersupply_low_samples <
+                            W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES)
+                            g_cal_hold_undersupply_low_samples++;
+                        if (g_cal_hold_undersupply_low_samples >=
+                            W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES)
+                        {
+                            CALHOLD_End(CAL_HOLD_ABORT,
+                                        CAL_HOLD_REASON_UNDERSUPPLIED);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        CALHOLD_End(CAL_HOLD_ABORT,
+                                    CAL_HOLD_REASON_UNDERSUPPLIED);
+                        return;
+                    }
                 }
 
                 /* Recharge: PWM off >= 40 us and VOUT <= 1380. */

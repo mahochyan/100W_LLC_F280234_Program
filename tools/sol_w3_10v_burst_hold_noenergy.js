@@ -113,7 +113,26 @@ check("DEADBAND_RETURNS_OFF",rw("g_cal_hold_state")==2 && rw("g_cal_hold_packet_
 check("NO_FAULT_AFTER_PACKETS",rv32u("g_fault_flags")==0);
 safe("PACKETS");
 
+// One below-floor OFF sample is rejected as a transition transient; a fresh
+// in-band sample clears the confirmation counter.
+wv("g_cal_hold_ne_raw",999);run(1);
+check("SINGLE_LOW_NOT_ABORT",rw("g_cal_hold_state")!=5 &&
+      rw("g_cal_hold_undersupply_low_samples")<3);
+safe("SINGLE_LOW");
+wv("g_cal_hold_ne_raw",1240);run(4);
+check("LOW_RECOVERY_CLEARS_CONFIRM",rw("g_cal_hold_state")==2 &&
+      rw("g_cal_hold_undersupply_low_samples")==0);
+safe("LOW_RECOVERY");
+
+// Persistent below-floor evidence still aborts after three confirmations.
+resetIdle();request(1,500,1240);wv("g_cal_hold_ne_raw",999);run(10);
+check("PERSISTENT_LOW_ABORT",rw("g_cal_hold_state")==5 &&
+      rw("g_cal_hold_stop_reason")==4 &&
+      rw("g_cal_hold_undersupply_low_samples")==3);
+safe("PERSISTENT_LOW");
+
 // Hard ceiling in OFF mode is immediate and cannot be enlarged by the host.
+resetIdle();request(1,500,1240);
 wv("g_cal_hold_ne_raw",1300);run(2);
 check("HARD_1300_ABORT",rw("g_cal_hold_state")==5 && rw("g_cal_hold_stop_reason")==2);
 check("HARD_EVENT_COUNT",rw("g_cal_hold_hard_limit_events")>0);

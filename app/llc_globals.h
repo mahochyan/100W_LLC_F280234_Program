@@ -622,6 +622,7 @@ extern volatile Uint32 g_cal_hold_off_ticks;        /* PWM-off gap (20us ticks) 
 extern volatile Uint32 g_cal_hold_elapsed_ticks;    /* 20us ticks since CHARGE end */
 extern volatile Uint32 g_cal_hold_hold_active_ticks;
 extern volatile Uint16 g_cal_hold_hard_limit_events;
+extern volatile Uint16 g_cal_hold_undersupply_low_samples;
 
 extern volatile Uint32 g_cal_hold_run_id_at_arm;
 extern volatile Uint32 g_cal_hold_run_id_at_stop;

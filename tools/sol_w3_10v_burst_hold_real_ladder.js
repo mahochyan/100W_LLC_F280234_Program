@@ -137,7 +137,8 @@ try{
   print("HOLD raw="+raw+" min="+min+" max="+max+" steady_min="+ssmin+
         " steady_max="+ssmax+" steady_avg="+ssavg+" cal_avg="+calavg+" cal_n="+caln);
   print("PACKETS count="+packets+" total_cycles="+total+" min_cycles="+pmin+
-        " max_cycles="+pmax+" hard_events="+rw("g_cal_hold_hard_limit_events"));
+        " max_cycles="+pmax+" hard_events="+rw("g_cal_hold_hard_limit_events")+
+        " undersupply_confirm="+rw("g_cal_hold_undersupply_low_samples"));
   print("FINAL pwm="+pwm+" ost="+ost+" tzint="+tzint+
         " hw_trip_delta="+(hw1-hw0)+" active_trip_delta="+(active1-active0)+
         " enable_rise_delta="+(rise1-rise0));
