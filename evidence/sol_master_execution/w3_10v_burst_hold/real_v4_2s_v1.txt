@@ -1,0 +1,51 @@
+=== SOL W3 10V BURST HOLD V4 REAL 2000MS ===
+RUN_AT=2026-09-05T00:24:20+08:00
+SOURCE_COMMIT=eeb9f756b92d26a925efbb2874444a5d0393940f
+REAL_OUT_SHA256=073290E38DC2DFD4BC06891DF95DB2FBA3D721A16B06B882F28E4913D729F3F7
+REAL_SHA_HARD_GATE=PASS
+STANDING_BENCH=VIN24_CR15
+
+INIT_LOOPBACK_STAGE_GATES=ALL_PASS
+PRE_FIRE_RAW=14
+PRE_FIRE_TRIPS=0
+
+RESULT_STATE=ABORT
+RESULT_REASON=UNDERSUPPLIED
+ELAPSED_TICKS=30550__approximately_611.00ms
+FAULT=0x0
+MODE=W3
+INITIAL_CHARGE=target1200_stop1205_max1205_reasonTARGET_phase4_TBPRD399_DB36_cycles419
+
+HOLD_FINAL_RAW=997
+HOLD_MIN_RAW_BEFORE_ABORT=1004
+HOLD_MAX_RAW=1242
+HOLD_STEADY_MIN_RAW=1004
+HOLD_STEADY_MAX_RAW=1242
+HOLD_STEADY_AVG_RAW=1221
+HOLD_CAL_AVG_RAW=1220
+HOLD_CAL_SAMPLES=7076
+PACKETS=count479_total_cycles30784_min64_max64_hard_events0
+
+FAULT=0
+TRIP_DELTAS=hardware0_active0
+PUBLIC_ENABLE_RISE_DELTA=0
+FINAL=PWM0_OST1_TZINT0
+CLEANUP=PWM0_OST1_TZINT0
+
+FAILED_GATES=W3_2000MS_COMPLETE__FIRMWARE_DURATION_EXACT
+ALL_OTHER_ACCEPTANCE_GATES=PASS
+SOL_W3_10V_BURST_HOLD_REAL_2000MS_PASS=FALSE
+POWER_REQUEST_FIRED=TRUE
+
+INTERPRETATION
+The same V4 SHA passed 500ms with 34240 total cycles, but this 2s attempt ended
+at 611ms with only 30784 cycles. Therefore the aggregate 50% cap did not bind
+and energy-budget exhaustion is not the immediate abort cause. Before the
+terminal raw997 sample, the published minimum was raw1004 and steady average
+was raw1221. A one-sample raw drop of more than 200 counts across the 40us OFF
+sampling cadence is inconsistent with ordinary 15-ohm output-capacitor decay
+and is treated as an OFF/PWM ADC-transition transient until persistence proves
+otherwise. The raw1000 threshold itself remains valid and must not be lowered.
+
+V4_SHA_DISPOSITION=RETIRED__NO_RETRY
+NEXT=require_consecutive_below_raw1000_confirmation_before_UNDERSUPPLIED__new_SHA

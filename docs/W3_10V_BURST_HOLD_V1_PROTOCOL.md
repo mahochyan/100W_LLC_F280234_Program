@@ -233,3 +233,20 @@ event, or public enable edge. Final and cleanup state were PWM0/OST1/TZINT0.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_v4_500ms_v1.txt`.
+
+### V4 REAL 2 s result
+
+The same SHA ended safely at tick30550 (611 ms) on a single raw997 reading.
+Prior published minimum was raw1004 and steady average was raw1221. It had used
+30784 cycles, fewer than the passing 500 ms run's 34240 cycles, so neither the
+new aggregate cap nor total energy budget caused the immediate abort. There
+was no fault, trip, hard-limit event, or public enable edge; final and cleanup
+were PWM0/OST1/TZINT0.
+
+The current undersupply logic aborts on one sample after its initial grace
+period. The next candidate will retain raw1000 and require consecutive evidence
+before declaring a sustained undersupply, so an OFF/PWM ADC-transition sample
+cannot end an otherwise in-band run.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v4_2s_v1.txt`.
