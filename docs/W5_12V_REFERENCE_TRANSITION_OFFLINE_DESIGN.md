@@ -119,3 +119,11 @@ decision and cannot expand the W5 envelope.
 
 The current offline preflight token is
 `SOL_W5_REFERENCE_TRANSITION_PREFLIGHT_PASS`. It does not close W5.
+
+The build-excluded pure table/gate implementation is now staged in
+`app/w5_reference_transition.[ch]`. CGT 25.11.1.LTS compiles it successfully;
+its static/model tests prove invalid-rung rejection, exact duration choices,
+stage-equal and absolute-ceiling aborts, the frozen frequency envelope, and
+absence from both W4 build lists. Its token is
+`SOL_W5_REFERENCE_MODULE_STATIC_MODEL_PASS`; this also is not a W5 real-power
+PASS claim.
