@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=9
-UPDATED_AT=2026-09-04T23:43:26+08:00
+STATE_VERSION=10
+UPDATED_AT=2026-09-04T23:49:55+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S
-CURRENT_CHECKPOINT=W3_V2_NEW_REAL_SHA_FROZEN__SINGLE_2S_FIRE_PENDING
+CURRENT_GATE=W3_10V_BURST_HOLD_ZERO_OUTPUT_CHARGE_ROOT_CAUSE
+CURRENT_CHECKPOINT=W3_V2_REAL_2S_FAILED_SAFE__OLD_SHA_RETIRED__NEW_COLD_CHARGE_CHANGE_REQUIRED
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Execute one W3 V2 2s attempt on frozen SHA CE206609; on PASS advance 10s then 60s; stop on failure.
-BOARD_LAST_STATE=AFTER_W3_REAL_2S_FAIL_CLEANUP__PWM0_OST1_TZINT0
+NEXT_ACTION=Preserve V2 trip evidence; do not refire CE206609; qualify a new zero-output initial-charge change before any next real request.
+BOARD_LAST_STATE=AFTER_W3_V2_REAL_2S_FAIL_CLEANUP__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -528,7 +528,7 @@ NEXT=W3_10V_BURST_HOLD_INTEGRATION
 ## W3 10 V Burst hold candidate (W3_10V_BURST_HOLD_V1)
 
 ```text
-STATUS=REAL_500MS_PASS__REAL_2S_V1_FAILED__V2_REAL_FROZEN_PENDING
+STATUS=REAL_500MS_PASS__REAL_2S_V1_FAILED__REAL_2S_V2_FAILED_SAFE__NEW_ZERO_OUTPUT_CHARGE_CHANGE_REQUIRED
 SOURCE_COMMIT=a29d60a578c6fb59bf7f1116d3a519cbe73cfe2b
 CONTROL=firmware-selected W3 CALHOLD profile; legacy 11V calibration unchanged
 INITIAL_CHARGE=accelerated Profile C target raw1200; exact TBPRD239/DB110 start;
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=2
+W3_REAL_POWER_ATTEMPT_COUNT=3
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -600,5 +600,16 @@ V2_REGRESSIONS=W2_OPEN_LOOP PASS__W2_LIVE_PACKET PASS__W2_COLD_PACKET PASS__BURS
 V2_REAL_BUILD=PASS__CGT25.11.1.LTS__COFF__STAGE6_OPEN_LOOP_STEADY_BUILD_ONLY
 V2_REAL_OUT_SHA256=CE206609D9469EBCEDADE7A56B81FD093422FEE641337439FEA7F4BC839C9F6F
 V2_REAL_MAP_SHA256=F80992C3DA4D5599EFF6244469F55A14B7B30DD73E50109E156510062DA4BA43
-NEXT=execute V2 2s once; on PASS advance10s->60s
+V2_REAL_2S=FAIL__POWER_REQUEST_FIRED__initial accelerated Profile-C charge tripped
+        in Phase-A before hold__fault0x10 COMP_TZ1__trip TBCTR193/VOUTraw8/DAC300__
+        prestart GPIO15 high/reject0__hardware+active trip delta1__public enable edge0__
+        host cleanup PWM0/OST1/TZINT0__NO_SAME_SHA_RETRY
+V2_REAL_2S_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v2_2s_v1.txt
+V2_DISPOSITION=RETIRED__comparator-settle correction did not remove a real cold-start
+        primary-current event; no protection threshold/qualification/blanking relaxation
+ZERO_OUTPUT_ROOT_CAUSE=historical 200kHz/DB140 is FAILED/DO_NOT_RETRY; tutorial direct
+        PWM start plus automatic OCP hiccup is reference-only and violates current no-auto-retry
+        gate; next candidate must bound or reshape zero-output initial energy with new source/SHA
+NEXT=offline root-cause + no-energy qualification of a new zero-output initial-charge candidate;
+        only then one new real gate, followed by 2s->10s->60s on PASS
 ```
