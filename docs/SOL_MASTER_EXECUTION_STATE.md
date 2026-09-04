@@ -560,7 +560,8 @@ REAL_POLICY=clean REAL build + hardcoded exact SHA; one 500ms request; no
 REAL_BUILD=PASS__CGT25.11.1.LTS__COFF__STAGE6_OPEN_LOOP_STEADY_BUILD_ONLY
 REAL_OUT_SHA256=B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2
 REAL_MAP_SHA256=61BC854853A320E6EDFC59FE10D3CBB86A88F4FBBC4B4FA24270EC1BA6F6E658
-REAL_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js
+REAL_500MS_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js (historical path at fire commit 8151cec)
+REAL_FORWARD_HARNESS=tools/sol_w3_10v_burst_hold_real_ladder.js
 REAL_500MS_V1=NOT_FIRED__combined CALHOLD boot check reported FAIL before
         loopback/stage/request; cleanup PWM0/OST1/TZINT0; no power request
 BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/

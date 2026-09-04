@@ -1,7 +1,7 @@
-// W3_10V_BURST_HOLD_V1 - REAL 500 ms, single request, no retry.
+// W3_10V_BURST_HOLD_V1 - REAL forward duration ladder, one request per run.
 //
 // Firmware owns the complete sequence: bounded Profile C charge to raw1200,
-// protected 10 V recharge packets, the 500 ms duration, and final OST. The
+// protected 10 V recharge packets, the selected frozen duration, and final OST. The
 // host never issues a PWM enable edge and never times the power stop.
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
@@ -11,7 +11,12 @@ importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
 var EXPECTED_SHA="B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2";
-var RUN_ID=0x25090350;
+var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
+var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
+if(DURATION_MS===2000){RUN_ID=0x25090352;CYCLE_CAP=50000;WAIT_MS=2500;}
+else if(DURATION_MS===10000){RUN_ID=0x2509035A;CYCLE_CAP=250000;WAIT_MS=10500;}
+else if(DURATION_MS===60000){RUN_ID=0x2509036F;CYCLE_CAP=1500000;WAIT_MS=60600;}
+else{throw "duration-must-be-next-forward-gate-2000-10000-60000";}
 
 function sha256File(path){
   var md=MessageDigest.getInstance("SHA-256");
@@ -50,7 +55,7 @@ function forceSafe(){
 }
 
 var failures=0,connected=false,fired=false;
-print("=== SOL W3 10V BURST HOLD REAL 500MS ===");
+print("=== SOL W3 10V BURST HOLD REAL "+DURATION_MS+"MS ===");
 var ack=(java.lang.System.getenv("SOL_W3_GATES_ACK")||"").equals("1");
 print("GATE_USER_ACK="+ack+" (standing Vin24/CR15 confirmation)");
 if(!ack){throw "real-gates";}
@@ -99,13 +104,13 @@ try{
 
   wv32("g_test_run_id",RUN_ID);
   wv("g_cal_hold_mode_request",1);
-  wv("g_cal_hold_duration_ms",500);
+  wv("g_cal_hold_duration_ms",DURATION_MS);
   wv("g_cal_hold_request",1);
   fired=true;
 
-  // One uninterrupted observation interval. Firmware terminates at 500 ms;
+  // One uninterrupted observation interval. Firmware terminates at DURATION_MS;
   // the extra margin only lets the host halt after the immutable safe result.
-  run(900);
+  run(WAIT_MS);
 
   var state=rw("g_cal_hold_state"),reason=rw("g_cal_hold_stop_reason");
   var charge=rw("g_cal_hold_charge_stop_raw"),raw=rw("g_cal_hold_raw");
@@ -136,14 +141,14 @@ try{
         " enable_rise_delta="+(rise1-rise0));
 
   check("W3_MODE_LATCHED",rw("g_cal_hold_mode_active")===1);
-  check("W3_500MS_COMPLETE",state===4 && reason===1);
-  check("FIRMWARE_DURATION_500MS",elapsed>=25000 && elapsed<=25010);
+  check("W3_"+DURATION_MS+"MS_COMPLETE",state===4 && reason===1);
+  check("FIRMWARE_DURATION_EXACT",elapsed>=DURATION_MS*50 && elapsed<=DURATION_MS*50+10);
   check("INITIAL_TARGET_1200",rw("g_accel_stop_target_raw")===1200 && rw("g_accel_stop_hard_limit_raw")===1300);
   check("INITIAL_CHARGE_TARGET_STOP",rw("g_accel_stop_reason")===2 && charge>=1200 && charge<1300);
   check("INITIAL_CHARGE_NO_HW_TRIP",rw("g_pre_stop_hardware_trip_seen")===0);
   check("PACKETS_EMITTED",packets>0);
   check("PACKETS_CYCLE_BOUNDED",pmin>=1 && pmin<=pmax && pmax<=15);
-  check("TOTAL_CYCLE_CAP",total>0 && total<20000);
+  check("TOTAL_CYCLE_CAP",total>0 && total<CYCLE_CAP);
   check("HOLD_SAMPLES_PRESENT",ssn>0 && caln>0);
   check("HOLD_RAW_BOUNDED",min>=1000 && max<1300 && ssmin>=1000 && ssmax<1300);
   check("HOLD_AVERAGE_10V_BAND",ssavg>=1180 && ssavg<1300 && calavg>=1180 && calavg<1300);
@@ -156,7 +161,7 @@ try{
   check("FINAL_OST_LATCHED",ost===1 && rw("g_cal_hold_final_ost")===1);
   check("FINAL_TZINT_ZERO",tzint===0);
 }catch(e){
-  print("REAL_500MS_EXCEPTION="+e);
+  print("REAL_LADDER_EXCEPTION="+e);
   if(fired)failures++;
 }finally{
   if(connected){
@@ -170,7 +175,7 @@ try{
   }
 }
 
-print("SOL_W3_10V_BURST_HOLD_REAL_500MS_PASS="+(failures===0?"TRUE":"FALSE"));
+print("SOL_W3_10V_BURST_HOLD_REAL_"+DURATION_MS+"MS_PASS="+(failures===0?"TRUE":"FALSE"));
 print("POWER_REQUEST_FIRED="+(fired?"TRUE":"FALSE"));
 print("NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE");
-if(failures){throw "w3-real-500ms-failures="+failures;}
+if(failures){throw "w3-real-"+DURATION_MS+"ms-failures="+failures;}

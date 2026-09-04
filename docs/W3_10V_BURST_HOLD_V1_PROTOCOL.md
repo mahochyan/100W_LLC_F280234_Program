@@ -87,7 +87,8 @@ increment, and final PWM0/OST1/TZINT0. Any failed gate ends the ladder.
 ```text
 REAL_OUT_SHA256=B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2
 REAL_MAP_SHA256=61BC854853A320E6EDFC59FE10D3CBB86A88F4FBBC4B4FA24270EC1BA6F6E658
-REAL_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js
+REAL_500MS_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js (historical path at fire commit 8151cec)
+REAL_FORWARD_HARNESS=tools/sol_w3_10v_burst_hold_real_ladder.js
 ```
 
 The first harness invocation stopped at its combined CALHOLD boot check before
