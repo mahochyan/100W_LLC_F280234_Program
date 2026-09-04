@@ -1,6 +1,6 @@
 # W4 10 V quality protocol
 
-W4 starts from the W3 V8 protected-Burst control baseline because W2 proved
+W4 starts from the protected-Burst control baseline because W2 proved
 that continuous PFM cannot regulate 10 V inside the frozen plant envelope.
 The original CR15/CR12.5 A/B/A load-step quality gate remains required. At the
 user's explicit request, a CR10 60 s stress point is inserted first and is
@@ -37,4 +37,53 @@ V9_NE_OUT_SHA256=44F94E2B279F7F5A656A0655C4580D5D6AC5E990AD2F9F6967FBE9C98EA8E9A
 V9_REAL_OUT_SHA256=04F5352643FBC82E614EA62C1032038D6CB01C4A18093534ABC2D431B0C9B046
 V9_REGRESSIONS=W2_OPEN_LOOP_PASS_W2_LIVE_1_2_3_5_PASS_BURST_REGION_21_0_PASS
 V9_NEXT=CR10_REAL_500MS
+```
+
+## CR10 input-limit closure
+
+The V9 CR10 run at the presumed 0.5 A input limit stopped safely after
+3.42416 s on the three-sample raw1000 undersupply gate. This was an input-power
+boundary, not a control or protection trip: 10 V into 10 ohm is 10 W, while
+24 V x 0.5 A provides only 12 W before conversion loss and transient margin.
+The same V9 SHA was therefore repeated only after the physical condition was
+changed to the W5-prescribed 0.7 A limit. The complete 500 ms, 2 s, 10 s, and
+60 s forward ladder passed. The 60 s result held steady raw1209..1273,
+average raw1230, with zero undersupply, hard-limit, fault, hardware-trip, or
+public-enable events and terminal PWM0/OST1/TZINT0.
+
+```text
+W4_CR10_INPUT_LIMIT_ROOT_CAUSE=CONFIRMED
+W4_CR10_V9_0P7A_60S=PASS
+W4_CR10_60S_TOKEN=W4_CR10_10V_60S_SUSTAINED_PASS
+```
+
+## A/B/A on-chip trace
+
+Source commit `525e9e2659f30b8a2b558e3906094c5f2fd25876` adds a passive,
+one-shot 5 ms observer to the existing V9 protected-Burst hold. It never writes
+PWM, control limits, protection state, or enable requests. Its 128-sample ring
+records VOUT, packet cycles, and packet count. A 200 ms initial-load baseline
+is followed by directional detection beginning at 5 s; two consecutive 20 ms
+blocks must change the packet-demand index by at least 12.5%.
+
+The demand index multiplies cycle rate by average packet depth. This matters
+because earlier CR15/CR10 evidence showed that total cycle duty alone can stay
+similar while deeper packets carry the extra load. Once detected, a 240 ms
+window is frozen. Instantaneous raw1182..1306 enforces +/-5%, and a 20 ms moving
+average must enter raw1215..1265 within 100 ms and remain there.
+
+Both clean REAL/NE builds, executable models, on-target heavier/lighter
+no-energy traces, deliberate peak rejection, incomplete-window rejection, and
+the W3 safety regression passed. The REAL host harness checks the exact SHA,
+Vin/load/current-limit declarations, boot/loopback/stage gates, performs no JTAG
+read or halt during the 60 s firmware-owned power window, prints the physical
+step marker at 8 s, and reads the trace only after terminal OST.
+
+```text
+W4_TRACE_SOURCE_COMMIT=525e9e2659f30b8a2b558e3906094c5f2fd25876
+W4_TRACE_REAL_SHA256=2267A0C1DD8FF81373B71BFA35466B22882EE41A6EB99C771BB566B428ED1027
+W4_TRACE_NE_SHA256=962A1A2AE30DE5F1FDF0E8870BD4F0DE62577470302446262F5639996C2A9129
+W4_TRACE_STATIC_MODEL=PASS
+W4_TRACE_ON_TARGET_NE=PASS__PWM_NEVER_RELEASED
+W4_TRACE_NEXT=VIN24_LIMIT0P5A_CR15__THEN_CR15_TO_CR12P5
 ```
