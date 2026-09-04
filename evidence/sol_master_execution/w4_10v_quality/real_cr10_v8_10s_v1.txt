@@ -1,0 +1,36 @@
+W4 user-requested CR10 stress — V8 REAL 10 s
+Captured: 2026-09-05T01:16:01+08:00
+
+Bench and identity
+- Vin: 24 V active
+- Load: CR 10 ohm, explicitly set by the user
+- REAL_OUT_SHA256=F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA
+- REAL_SHA_HARD_GATE=PASS
+- No live JTAG reads occurred during the active request.
+
+Result
+PRE_FIRE raw=9 vout=0.009088925 hw_trip=0 active_trip=0 enable_rise=0
+RESULT state=4 reason=1 mode=1 elapsed_ticks=500000 fault=0x0
+CHARGE target=1200 stop=1200 accel_reason=2 accel_max=1200 phase=4 tbprd=399 db=36 completed_cycles=417
+HOLD raw=1078 min=1073 max=1279 steady_min=1073 steady_max=1279 steady_avg=1204 cal_avg=1197 cal_n=25332
+PACKETS count=7587 total_cycles=970156 min_cycles=91 max_cycles=128 hard_events=0 undersupply_confirm=0
+LAST_PACKET start_raw=1078 stop_raw=1089 post_max_raw=1089 post_last_raw=1089 cycles=127 final_db=50
+ACTIVE_FRACTION=970156/(10000ms*250cycles/ms)=38.80624%
+
+Terminal safety
+FINAL pwm=0 ost=1 tzint=0 hw_trip_delta=0 active_trip_delta=0 enable_rise_delta=0
+CLEANUP pwm=0 ost=1 tzint=0
+
+Verdict
+GENERIC_W3_DURATION_AND_SAFETY_GATES=PASS
+W4_CR10_V8_REAL_10S_QUALITY_PASS=FALSE
+POWER_REQUEST_FIRED=TRUE
+V8_CR10_60S_NOT_AUTHORIZED=TRUE
+
+Failure classification
+- The W4 lower 5% boundary for the 10 V calibrated target is raw1182.
+- Steady minimum raw1073 and final packet raw1089 are below that boundary;
+  the record shows sustained output decline, not stable 10 V regulation.
+- No fault, hardware TZ, hard-limit event, undersupply abort, or public-enable
+  edge occurred, and the terminal state was safe.
+- V8 remains the accepted W3/CR15 baseline but is retired for CR10.
