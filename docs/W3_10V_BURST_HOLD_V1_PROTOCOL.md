@@ -113,3 +113,24 @@ was PWM0/OST1/TZINT0.
 
 Evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/real_500ms_resume_v2.txt`.
+
+## REAL 2 s V1 failure and V2 correction
+
+The 2 s request on the 500 ms SHA failed at the first cold recharge packet,
+before its first completed cycle. The hardware snapshot captured DAC300,
+TBCTR27, VOUT raw1175, an ACTIVE-window TZ event, and fault `0x50`; cleanup
+proved PWM0/OST1/TZINT0. That SHA is retired and was not retried.
+
+The old CALHOLD packet path directly reconfigured the comparator/DAC and then
+released OST without the 2 us settle and GPIO15-safe observation used by the
+already-proven Profile C initial charge. V2 makes every recharge packet call
+that same comparator arm routine. The private PWM write gate now additionally
+requires the comparator arm, zero pre-start rejection, and both the frozen and
+live GPIO15-safe states. A failed arm or PWM prepare ends with explicit reason8
+and OST retained. It also publishes reset statistics immediately so an early
+abort cannot expose the preceding run's packet totals.
+
+No threshold or protection authority changed. Static qualification passes 20
+gates; target no-energy qualification includes the negative pre-start-authority
+case and legacy 11 V packet authorization. All W2 regressions pass. V2 source
+commit is `80af931829393e2a6d7aaf035efc2d764a423d4d`.

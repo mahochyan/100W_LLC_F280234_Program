@@ -1,0 +1,29 @@
+W3_10V_BURST_HOLD_V2 comparator-settle qualification
+Date: 2026-09-04 Asia/Hong_Kong
+Source commit: 80af931829393e2a6d7aaf035efc2d764a423d4d
+
+ROOT_CAUSE=legacy CALHOLD recharge path reconfigured comparator/DAC300 and
+immediately cleared OST without the proven 2us settle plus GPIO15 safe check.
+The failed 2s attempt tripped at the first restart packet before cycle 1
+(TBCTR27, GPIO15=1/COMPSTS=1 when serviced, TZFLG=5, packet cycle 0).
+
+CHANGE=each cold packet calls COMP_ArmForSingleCycleStart(DAC300), waits the
+existing 2us settle, and requires prestart_reject=0, armed=1, prestart GPIO15=1,
+live GPIO15=1, verified loopback, IDLE, no public enable, no fault. Any arm or
+private PWM-write rejection aborts hardware-safe with reason8. No comparator,
+TZ, DAC, frequency, dead-time, VOUT, or packet-cycle limit was relaxed.
+
+STATIC_W3=PASS_20_GATES
+ON_TARGET_W3_NE=PASS
+NE_PRESTART_AUTH_REJECT_ABORT=PASS_REASON8_PWM0_OST1_TZINT0
+NE_LEGACY_PACKET_AUTH=PASS
+NE_EXACT_PACKET=TBPRD239_DB110_MAX15
+NE_OUT_SHA256=5C657AD56354BF952D5AE1AA0C35DA8FD7C8597E5E993CAADAEF82B90AC27219
+NE_MAP_SHA256=E45141EFC7244D3429165C84A3C5627C85C73224696CD6B644FCA11927F93196
+
+W2_OPEN_LOOP_STEADY_NOENERGY_PASS=TRUE
+W2_LIVE_TAKEOVER_PACKET_NOENERGY_PASS=TRUE
+W2_BURST_PACKET_NOENERGY_PASS=TRUE
+W2_BURST_REGION_NOENERGY=PASS_21_FALSE_0
+
+NEXT=clean REAL build; freeze new SHA; execute 2s exactly once.
