@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=13
-UPDATED_AT=2026-09-05T00:20:12+08:00
+STATE_VERSION=14
+UPDATED_AT=2026-09-05T00:22:08+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_500MS_V4
-CURRENT_CHECKPOINT=W3_V4_BOUNDED_ENERGY_AUTHORITY_QUALIFIED__NEW_SHA_READY_FOR_REAL_500MS
+CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V4
+CURRENT_CHECKPOINT=W3_V4_REAL_500MS_PASS__SAME_SHA_READY_FOR_FORWARD_2S
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run one firmware-timed W3 V4 REAL 500ms request on exact SHA 073290E3; on PASS advance same SHA to 2s, 10s, 60s.
-BOARD_LAST_STATE=AFTER_W3_V4_ON_TARGET_NE_AND_SAFE_W2_REGRESSIONS__PWM0_OST1_TZINT0
+NEXT_ACTION=Run firmware-timed W3 V4 REAL 2000ms on the same passing exact SHA; then 10s and 60s only after each PASS.
+BOARD_LAST_STATE=AFTER_W3_V4_REAL_500MS_PASS_AND_CLEANUP__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=4
+W3_REAL_POWER_ATTEMPT_COUNT=5
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -657,5 +657,10 @@ V4_MEMORY=NE_EBSS_0x3FF_OF_0x400__REAL_EBSS_0x3A4_OF_0x400
 V4_REGRESSIONS=W2_OPEN_LOOP_PASS__W2_LIVE_EXACT1_2_3_5_PASS__BURST_REGION21_0_PASS
 V4_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v4_energy_authority.txt
 V4_QUALIFICATION=PASS__NEW_SHA_REQUALIFY_REAL_500MS_THEN_FORWARD_ONLY
-NEXT=REAL_500MS_V4__then_2S_10S_60S_on_same_SHA_only_after_each_PASS
+V4_REAL_500MS=PASS__elapsed25000__charge1205_cycles419__hold1166_to1243__
+        steady1174_to1243_avg1225__packets525_all64cycles_total34240__
+        active_fraction27.392pct__hardevents0__fault0__tripdeltas0__publicenable0__
+        final_and_cleanup_PWM0_OST1_TZINT0
+V4_REAL_500MS_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v4_500ms_v1.txt
+NEXT=REAL_2S_V4_SAME_SHA__then_10S_60S_only_after_each_PASS
 ```

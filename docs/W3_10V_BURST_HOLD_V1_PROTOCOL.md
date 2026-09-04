@@ -222,3 +222,14 @@ V4_NEXT=REAL_500MS_REQUALIFICATION
 
 Detailed evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v4_energy_authority.txt`.
+
+### V4 REAL 500 ms result
+
+PASS on the new SHA. Initial charge reached raw1205 in 419 cycles. The hold
+completed exactly 25000 fast ticks with raw1166..1243, steady average raw1225,
+525 packets / 34240 cycles, and 27.392% PWM-active time. All packets reached
+the 64-cycle ceiling without a fault, hardware/active TZ event, hard-limit
+event, or public enable edge. Final and cleanup state were PWM0/OST1/TZINT0.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v4_500ms_v1.txt`.
