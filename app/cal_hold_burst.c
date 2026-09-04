@@ -44,6 +44,97 @@ static Uint16 s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
 #pragma DATA_SECTION(s_w3_packet_write_auth, "ol_ram");
 static Uint16 s_w3_packet_write_auth = 0U;
 
+/* W4 diagnostic observer. The three ring arrays live in roomy RAML3; all
+ * control and protection variables remain separate. */
+#pragma DATA_SECTION(g_w4_trace_ring_raw, "ol_ram");
+volatile Uint16 g_w4_trace_ring_raw[W4_TRACE_SAMPLES];
+#pragma DATA_SECTION(g_w4_trace_ring_cycle_delta, "ol_ram");
+volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
+#pragma DATA_SECTION(g_w4_trace_ring_packet_delta, "ol_ram");
+volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
+
+#pragma DATA_SECTION(g_w4_trace_arm, "ol_ram");
+volatile Uint16 g_w4_trace_arm = 0U;
+#pragma DATA_SECTION(g_w4_trace_expected_direction, "ol_ram");
+volatile Uint16 g_w4_trace_expected_direction = 0U;
+#pragma DATA_SECTION(g_w4_trace_direction_active, "ol_ram");
+volatile Uint16 g_w4_trace_direction_active = 0U;
+#pragma DATA_SECTION(g_w4_trace_state, "ol_ram");
+volatile Uint16 g_w4_trace_state = W4_TRACE_STATE_IDLE;
+#pragma DATA_SECTION(g_w4_trace_fail_reason, "ol_ram");
+volatile Uint16 g_w4_trace_fail_reason = W4_TRACE_FAIL_NONE;
+#pragma DATA_SECTION(g_w4_trace_count, "ol_ram");
+volatile Uint16 g_w4_trace_count = 0U;
+#pragma DATA_SECTION(g_w4_trace_write_index, "ol_ram");
+volatile Uint16 g_w4_trace_write_index = 0U;
+#pragma DATA_SECTION(g_w4_trace_trigger_index, "ol_ram");
+volatile Uint16 g_w4_trace_trigger_index = 0U;
+#pragma DATA_SECTION(g_w4_trace_baseline_raw, "ol_ram");
+volatile Uint16 g_w4_trace_baseline_raw = 0U;
+#pragma DATA_SECTION(g_w4_trace_baseline_cycles_per_5ms, "ol_ram");
+volatile Uint16 g_w4_trace_baseline_cycles_per_5ms = 0U;
+#pragma DATA_SECTION(g_w4_trace_baseline_cycles_per_packet, "ol_ram");
+volatile Uint16 g_w4_trace_baseline_cycles_per_packet = 0U;
+#pragma DATA_SECTION(g_w4_trace_baseline_demand_index, "ol_ram");
+volatile Uint32 g_w4_trace_baseline_demand_index = 0UL;
+#pragma DATA_SECTION(g_w4_trace_trigger_raw, "ol_ram");
+volatile Uint16 g_w4_trace_trigger_raw = 0U;
+#pragma DATA_SECTION(g_w4_trace_trigger_cycles_20ms, "ol_ram");
+volatile Uint16 g_w4_trace_trigger_cycles_20ms = 0U;
+#pragma DATA_SECTION(g_w4_trace_trigger_packets_20ms, "ol_ram");
+volatile Uint16 g_w4_trace_trigger_packets_20ms = 0U;
+#pragma DATA_SECTION(g_w4_trace_trigger_cycles_per_packet, "ol_ram");
+volatile Uint16 g_w4_trace_trigger_cycles_per_packet = 0U;
+#pragma DATA_SECTION(g_w4_trace_trigger_demand_index, "ol_ram");
+volatile Uint32 g_w4_trace_trigger_demand_index = 0UL;
+#pragma DATA_SECTION(g_w4_trace_min_raw, "ol_ram");
+volatile Uint16 g_w4_trace_min_raw = 0U;
+#pragma DATA_SECTION(g_w4_trace_max_raw, "ol_ram");
+volatile Uint16 g_w4_trace_max_raw = 0U;
+#pragma DATA_SECTION(g_w4_trace_settle_ms, "ol_ram");
+volatile Uint16 g_w4_trace_settle_ms = 0U;
+#pragma DATA_SECTION(g_w4_trace_peak_pass, "ol_ram");
+volatile Uint16 g_w4_trace_peak_pass = 0U;
+#pragma DATA_SECTION(g_w4_trace_settle_pass, "ol_ram");
+volatile Uint16 g_w4_trace_settle_pass = 0U;
+#pragma DATA_SECTION(g_w4_trace_quality_pass, "ol_ram");
+volatile Uint16 g_w4_trace_quality_pass = 0U;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+#pragma DATA_SECTION(g_w4_trace_ne_cycle_delta, "ol_ram");
+volatile Uint16 g_w4_trace_ne_cycle_delta = 0U;
+#pragma DATA_SECTION(g_w4_trace_ne_packet_delta, "ol_ram");
+volatile Uint16 g_w4_trace_ne_packet_delta = 0U;
+#endif
+
+#pragma DATA_SECTION(s_w4_trace_cycle_clock, "ol_ram");
+static volatile Uint16 s_w4_trace_cycle_clock = 0U;
+#pragma DATA_SECTION(s_w4_trace_packet_clock, "ol_ram");
+static volatile Uint16 s_w4_trace_packet_clock = 0U;
+#pragma DATA_SECTION(s_w4_trace_last_cycle_clock, "ol_ram");
+static Uint16 s_w4_trace_last_cycle_clock = 0U;
+#pragma DATA_SECTION(s_w4_trace_last_packet_clock, "ol_ram");
+static Uint16 s_w4_trace_last_packet_clock = 0U;
+#pragma DATA_SECTION(s_w4_trace_baseline_count, "ol_ram");
+static Uint16 s_w4_trace_baseline_count = 0U;
+#pragma DATA_SECTION(s_w4_trace_block_count, "ol_ram");
+static Uint16 s_w4_trace_block_count = 0U;
+#pragma DATA_SECTION(s_w4_trace_detect_streak, "ol_ram");
+static Uint16 s_w4_trace_detect_streak = 0U;
+#pragma DATA_SECTION(s_w4_trace_candidate_index, "ol_ram");
+static Uint16 s_w4_trace_candidate_index = 0U;
+#pragma DATA_SECTION(s_w4_trace_post_remaining, "ol_ram");
+static Uint16 s_w4_trace_post_remaining = 0U;
+#pragma DATA_SECTION(s_w4_trace_baseline_raw_sum, "ol_ram");
+static Uint32 s_w4_trace_baseline_raw_sum = 0UL;
+#pragma DATA_SECTION(s_w4_trace_baseline_cycle_sum, "ol_ram");
+static Uint32 s_w4_trace_baseline_cycle_sum = 0UL;
+#pragma DATA_SECTION(s_w4_trace_baseline_packet_sum, "ol_ram");
+static Uint32 s_w4_trace_baseline_packet_sum = 0UL;
+#pragma DATA_SECTION(s_w4_trace_block_cycle_sum, "ol_ram");
+static Uint32 s_w4_trace_block_cycle_sum = 0UL;
+#pragma DATA_SECTION(s_w4_trace_block_packet_sum, "ol_ram");
+static Uint32 s_w4_trace_block_packet_sum = 0UL;
+
 Uint16 CALHOLD_W3PacketAuthOk(void)
 {
     return (s_w3_packet_write_auth != 0U &&
@@ -177,6 +268,295 @@ static void CALHOLD_StatsReset(void)
     g_cal_hold_packet_actual_cycles = 0UL;
 }
 
+/* Reset/consume the W4 observer arm. This function never changes PWM state or
+ * a controller threshold. Invalid observer metadata only fails the observer. */
+static void CALHOLD_W4TraceReset(void)
+{
+    Uint16 requested = g_w4_trace_expected_direction;
+
+    g_w4_trace_direction_active = 0U;
+    g_w4_trace_state = W4_TRACE_STATE_IDLE;
+    g_w4_trace_fail_reason = W4_TRACE_FAIL_NONE;
+    g_w4_trace_count = 0U;
+    g_w4_trace_write_index = 0U;
+    g_w4_trace_trigger_index = 0U;
+    g_w4_trace_baseline_raw = 0U;
+    g_w4_trace_baseline_cycles_per_5ms = 0U;
+    g_w4_trace_baseline_cycles_per_packet = 0U;
+    g_w4_trace_baseline_demand_index = 0UL;
+    g_w4_trace_trigger_raw = 0U;
+    g_w4_trace_trigger_cycles_20ms = 0U;
+    g_w4_trace_trigger_packets_20ms = 0U;
+    g_w4_trace_trigger_cycles_per_packet = 0U;
+    g_w4_trace_trigger_demand_index = 0UL;
+    g_w4_trace_min_raw = 0U;
+    g_w4_trace_max_raw = 0U;
+    g_w4_trace_settle_ms = 0U;
+    g_w4_trace_peak_pass = 0U;
+    g_w4_trace_settle_pass = 0U;
+    g_w4_trace_quality_pass = 0U;
+
+    s_w4_trace_last_cycle_clock = s_w4_trace_cycle_clock;
+    s_w4_trace_last_packet_clock = s_w4_trace_packet_clock;
+    s_w4_trace_baseline_count = 0U;
+    s_w4_trace_block_count = 0U;
+    s_w4_trace_detect_streak = 0U;
+    s_w4_trace_candidate_index = 0U;
+    s_w4_trace_post_remaining = 0U;
+    s_w4_trace_baseline_raw_sum = 0UL;
+    s_w4_trace_baseline_cycle_sum = 0UL;
+    s_w4_trace_baseline_packet_sum = 0UL;
+    s_w4_trace_block_cycle_sum = 0UL;
+    s_w4_trace_block_packet_sum = 0UL;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    g_w4_trace_ne_cycle_delta = 0U;
+    g_w4_trace_ne_packet_delta = 0U;
+#endif
+
+    if (g_w4_trace_arm == 0U) return;
+    g_w4_trace_arm = 0U;  /* one-shot consume; cannot retrigger during power */
+    if (requested != W4_TRACE_DIRECTION_HEAVIER &&
+        requested != W4_TRACE_DIRECTION_LIGHTER)
+    {
+        g_w4_trace_state = W4_TRACE_STATE_FAIL;
+        g_w4_trace_fail_reason = W4_TRACE_FAIL_BAD_DIRECTION;
+        return;
+    }
+    g_w4_trace_direction_active = requested;
+    g_w4_trace_state = W4_TRACE_STATE_WAIT_BASELINE;
+}
+
+/* Store one 5 ms sample and return its physical ring index. */
+static Uint16 CALHOLD_W4TraceStore(Uint16 raw, Uint16 cycle_delta,
+                                  Uint16 packet_delta)
+{
+    Uint16 index = g_w4_trace_write_index;
+    g_w4_trace_ring_raw[index] = raw;
+    g_w4_trace_ring_cycle_delta[index] = cycle_delta;
+    g_w4_trace_ring_packet_delta[index] = packet_delta;
+    g_w4_trace_write_index = (Uint16)((index + 1U) &
+                                      (W4_TRACE_SAMPLES - 1U));
+    if (g_w4_trace_count < W4_TRACE_SAMPLES) g_w4_trace_count++;
+    return index;
+}
+
+/* Freeze extrema and 20 ms moving-average settling from the detected step.
+ * Instantaneous samples own the +/-5% peak gate; the 4-sample average removes
+ * normal protected-Burst ripple from the +/-2% settling judgment. */
+static void CALHOLD_W4TraceFinalize(void)
+{
+    Uint16 i;
+    Uint16 j;
+    Uint16 index = g_w4_trace_trigger_index;
+    Uint16 min_raw = 0xFFFFU;
+    Uint16 max_raw = 0U;
+    Uint16 last_out = 0U;
+    Uint16 out_seen = 0U;
+
+    for (i = 0U; i < W4_TRACE_EVAL_SAMPLES; i++)
+    {
+        Uint16 raw = g_w4_trace_ring_raw[index];
+        if (raw < min_raw) min_raw = raw;
+        if (raw > max_raw) max_raw = raw;
+        if (i >= (W4_TRACE_DETECT_BLOCK_SAMPLES - 1U))
+        {
+            Uint32 sum = 0UL;
+            Uint16 back = index;
+            for (j = 0U; j < W4_TRACE_DETECT_BLOCK_SAMPLES; j++)
+            {
+                sum += g_w4_trace_ring_raw[back];
+                back = (Uint16)((back - 1U) & (W4_TRACE_SAMPLES - 1U));
+            }
+            raw = (Uint16)(sum >> 2);
+            if (raw < W4_TRACE_2PCT_LOW_RAW ||
+                raw > W4_TRACE_2PCT_HIGH_RAW)
+            {
+                last_out = i;
+                out_seen = 1U;
+            }
+        }
+        index = (Uint16)((index + 1U) & (W4_TRACE_SAMPLES - 1U));
+    }
+
+    g_w4_trace_min_raw = min_raw;
+    g_w4_trace_max_raw = max_raw;
+    g_w4_trace_settle_ms = (out_seen != 0U)
+        ? (Uint16)((last_out + 1U) * W4_TRACE_SAMPLE_MS) : 0U;
+    g_w4_trace_peak_pass =
+        (min_raw >= W4_TRACE_5PCT_LOW_RAW &&
+         max_raw <= W4_TRACE_5PCT_HIGH_RAW) ? 1U : 0U;
+    g_w4_trace_settle_pass =
+        (g_w4_trace_settle_ms <= W4_TRACE_SETTLE_LIMIT_MS) ? 1U : 0U;
+    g_w4_trace_quality_pass =
+        (g_w4_trace_peak_pass != 0U &&
+         g_w4_trace_settle_pass != 0U) ? 1U : 0U;
+    g_w4_trace_state = W4_TRACE_STATE_COMPLETE;
+}
+
+/* Passive 5 ms observer. Two consecutive 20 ms demand blocks must differ by
+ * >=12.5% in the requested direction before a step is accepted. */
+static void CALHOLD_W4TraceSample(void)
+{
+    Uint16 cycle_clock;
+    Uint16 packet_clock;
+    Uint16 cycle_delta;
+    Uint16 packet_delta;
+    Uint16 raw;
+    Uint16 index;
+    Uint16 changed = 0U;
+    Uint16 block_cycles_per_5ms = 0U;
+    Uint16 block_cycles_per_packet = 0U;
+    Uint32 block_demand_index = 0UL;
+
+    if (g_w4_trace_state == W4_TRACE_STATE_IDLE ||
+        g_w4_trace_state == W4_TRACE_STATE_COMPLETE ||
+        g_w4_trace_state == W4_TRACE_STATE_FAIL) return;
+    if (g_w4_trace_state == W4_TRACE_STATE_WAIT_BASELINE)
+    {
+        if (g_cal_hold_elapsed_ticks < W4_TRACE_BASELINE_START_TICKS) return;
+        s_w4_trace_last_cycle_clock = s_w4_trace_cycle_clock;
+        s_w4_trace_last_packet_clock = s_w4_trace_packet_clock;
+        g_w4_trace_state = W4_TRACE_STATE_BASELINE;
+        return;
+    }
+
+    cycle_clock = s_w4_trace_cycle_clock;
+    packet_clock = s_w4_trace_packet_clock;
+    cycle_delta = (Uint16)(cycle_clock - s_w4_trace_last_cycle_clock);
+    packet_delta = (Uint16)(packet_clock - s_w4_trace_last_packet_clock);
+    s_w4_trace_last_cycle_clock = cycle_clock;
+    s_w4_trace_last_packet_clock = packet_clock;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U && g_w4_trace_ne_cycle_delta != 0U)
+    {
+        cycle_delta = g_w4_trace_ne_cycle_delta;
+        packet_delta = g_w4_trace_ne_packet_delta;
+    }
+#endif
+    /* OFF-mode sampling owns the hold and trace measurement.  Use its fresh
+     * software-trigger result; g_adc_vout_raw is only guaranteed fresh while
+     * a recharge packet is active. */
+    raw = g_cal_hold_raw;
+    index = CALHOLD_W4TraceStore(raw, cycle_delta, packet_delta);
+
+    if (g_w4_trace_state == W4_TRACE_STATE_BASELINE)
+    {
+        s_w4_trace_baseline_raw_sum += raw;
+        s_w4_trace_baseline_cycle_sum += cycle_delta;
+        s_w4_trace_baseline_packet_sum += packet_delta;
+        s_w4_trace_baseline_count++;
+        if (s_w4_trace_baseline_count >= W4_TRACE_BASELINE_SAMPLES)
+        {
+            g_w4_trace_baseline_raw = (Uint16)
+                (s_w4_trace_baseline_raw_sum / W4_TRACE_BASELINE_SAMPLES);
+            g_w4_trace_baseline_cycles_per_5ms = (Uint16)
+                (s_w4_trace_baseline_cycle_sum / W4_TRACE_BASELINE_SAMPLES);
+            if (g_w4_trace_baseline_cycles_per_5ms == 0U ||
+                s_w4_trace_baseline_packet_sum == 0UL)
+            {
+                g_w4_trace_state = W4_TRACE_STATE_FAIL;
+                g_w4_trace_fail_reason = W4_TRACE_FAIL_ZERO_BASELINE;
+            }
+            else
+            {
+                g_w4_trace_baseline_cycles_per_packet = (Uint16)
+                    (s_w4_trace_baseline_cycle_sum /
+                     s_w4_trace_baseline_packet_sum);
+                g_w4_trace_baseline_demand_index =
+                    ((Uint32)g_w4_trace_baseline_cycles_per_5ms *
+                     g_w4_trace_baseline_cycles_per_packet) >> 1;
+                g_w4_trace_state = W4_TRACE_STATE_ARMED;
+            }
+        }
+        return;
+    }
+
+    if (g_w4_trace_state == W4_TRACE_STATE_ARMED)
+    {
+        if (g_cal_hold_elapsed_ticks < W4_TRACE_DETECT_START_TICKS) return;
+        s_w4_trace_block_cycle_sum += cycle_delta;
+        s_w4_trace_block_packet_sum += packet_delta;
+        s_w4_trace_block_count++;
+        if (s_w4_trace_block_count < W4_TRACE_DETECT_BLOCK_SAMPLES) return;
+
+        if (s_w4_trace_block_packet_sum != 0UL)
+        {
+            block_cycles_per_5ms = (Uint16)
+                (s_w4_trace_block_cycle_sum /
+                 W4_TRACE_DETECT_BLOCK_SAMPLES);
+            block_cycles_per_packet = (Uint16)
+                (s_w4_trace_block_cycle_sum /
+                 s_w4_trace_block_packet_sum);
+            block_demand_index =
+                ((Uint32)block_cycles_per_5ms *
+                 block_cycles_per_packet) >> 1;
+            if (g_w4_trace_direction_active == W4_TRACE_DIRECTION_HEAVIER)
+            {
+                if (((Uint32)block_demand_index * 8UL) >=
+                    ((Uint32)g_w4_trace_baseline_demand_index * 9UL))
+                    changed = 1U;
+            }
+            else
+            {
+                if (((Uint32)block_demand_index * 8UL) <=
+                    ((Uint32)g_w4_trace_baseline_demand_index * 7UL))
+                    changed = 1U;
+            }
+        }
+
+        if (changed != 0U)
+        {
+            if (s_w4_trace_detect_streak == 0U)
+            {
+                s_w4_trace_candidate_index = (Uint16)
+                    ((index - (W4_TRACE_DETECT_BLOCK_SAMPLES - 1U)) &
+                     (W4_TRACE_SAMPLES - 1U));
+            }
+            s_w4_trace_detect_streak++;
+            if (s_w4_trace_detect_streak >= W4_TRACE_DETECT_STREAK_BLOCKS)
+            {
+                g_w4_trace_trigger_index = s_w4_trace_candidate_index;
+                g_w4_trace_trigger_raw =
+                    g_w4_trace_ring_raw[g_w4_trace_trigger_index];
+                g_w4_trace_trigger_cycles_20ms =
+                    (Uint16)s_w4_trace_block_cycle_sum;
+                g_w4_trace_trigger_packets_20ms =
+                    (Uint16)s_w4_trace_block_packet_sum;
+                g_w4_trace_trigger_cycles_per_packet =
+                    block_cycles_per_packet;
+                g_w4_trace_trigger_demand_index = block_demand_index;
+                s_w4_trace_post_remaining = W4_TRACE_POST_SAMPLES;
+                g_w4_trace_state = W4_TRACE_STATE_POST;
+            }
+        }
+        else
+        {
+            s_w4_trace_detect_streak = 0U;
+        }
+        s_w4_trace_block_count = 0U;
+        s_w4_trace_block_cycle_sum = 0UL;
+        s_w4_trace_block_packet_sum = 0UL;
+        return;
+    }
+
+    if (g_w4_trace_state == W4_TRACE_STATE_POST)
+    {
+        if (s_w4_trace_post_remaining > 0U) s_w4_trace_post_remaining--;
+        if (s_w4_trace_post_remaining == 0U) CALHOLD_W4TraceFinalize();
+    }
+}
+
+static void CALHOLD_W4TraceEnd(void)
+{
+    if (g_w4_trace_state != W4_TRACE_STATE_IDLE &&
+        g_w4_trace_state != W4_TRACE_STATE_COMPLETE &&
+        g_w4_trace_state != W4_TRACE_STATE_FAIL)
+    {
+        g_w4_trace_state = W4_TRACE_STATE_FAIL;
+        g_w4_trace_fail_reason = W4_TRACE_FAIL_NO_COMPLETE_WINDOW;
+    }
+}
+
 /* One shared hard-stop sequence (OST force + EPWM1 INT off). */
 static void CALHOLD_HardStop(void)
 {
@@ -235,6 +615,7 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
     CALHOLD_HardStop();
     CALHOLD_AdcPollMode(0U);
     g_cal_measure_active = 0U;
+    CALHOLD_W4TraceEnd();
     g_cal_hold_state = state;
     g_cal_hold_stop_reason = reason;
     CALHOLD_FreezeFinal();
@@ -299,6 +680,7 @@ static void CALHOLD_StopPacket(Uint16 hard_limit_flag)
     CALHOLD_AdcPollMode(1U);
 
     s_stats.packets++;
+    s_w4_trace_packet_clock++;
     s_stats.total_cycles += cycles;
     s_stats.packet_cycles_sum += cycles;
     if (cycles < s_stats.packet_min_cycles) s_stats.packet_min_cycles = cycles;
@@ -335,6 +717,7 @@ void CALHOLD_PacketIsr(void)
 
     g_cal_hold_packet_cycles++;
     g_cal_hold_total_packet_cycles++;
+    s_w4_trace_cycle_clock++;
 
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     if (g_no_energy_test_mode != 0U)
@@ -687,6 +1070,7 @@ void CALHOLD_SlowTask(void)
 
         s_cal_hold_mode = requested_mode;
         g_cal_hold_mode_active = s_cal_hold_mode;
+        CALHOLD_W4TraceReset();
         /* CHARGE: legacy uses 1400 raw; W3 uses the already authorized 1200
          * raw Profile C target before entering the 10 V packet band. */
         g_cal_hold_state = CAL_HOLD_CHARGE;
@@ -746,6 +1130,7 @@ void CALHOLD_SlowTask(void)
             if (g_cal_hold_cal_raw_samples > 0UL)
                 g_cal_hold_cal_raw_avg =
                     (Uint16)(g_cal_hold_cal_raw_sum / g_cal_hold_cal_raw_samples);
+            CALHOLD_W4TraceSample();
 
             /* DMM stability: after 500ms settling, a rolling average that
              * moves <=10 raw across 200ms marks DMM_MEASUREMENT_READY. */
@@ -805,6 +1190,11 @@ void CALHOLD_Init(void)
     CALHOLD_StatsPublish();
     s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
     s_w3_packet_write_auth = 0U;
+    s_w4_trace_cycle_clock = 0U;
+    s_w4_trace_packet_clock = 0U;
+    g_w4_trace_arm = 0U;
+    g_w4_trace_expected_direction = 0U;
+    CALHOLD_W4TraceReset();
     g_cal_hold_request = 0U;
     g_cal_hold_duration_ms = 100U;
     g_cal_measure_request = 0U;

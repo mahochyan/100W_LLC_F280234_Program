@@ -64,6 +64,74 @@
 #define W3_HOLD_CYCLE_CAP_10S            1250000UL
 #define W3_HOLD_CYCLE_CAP_60S            7500000UL
 
+/* W4 CR15 <-> CR12.5 A/B/A observer. It is diagnostic-only: the host arms a
+ * direction while PWM is safely stopped, then the 5 ms slow task records a
+ * circular VOUT / packet-demand history. A sustained >=12.5% change in a
+ * packet-demand proxy (cycle rate times average packet depth) freezes 200 ms
+ * after the detected step. No value below grants PWM authority or changes the
+ * W3 packet controller. */
+#define W4_TRACE_SAMPLES                  128U    /* 640 ms at 5 ms/sample */
+#define W4_TRACE_BASELINE_SAMPLES         40U     /* 200 ms */
+#define W4_TRACE_DETECT_BLOCK_SAMPLES     4U      /* 20 ms */
+#define W4_TRACE_DETECT_STREAK_BLOCKS     2U      /* 40 ms persistence */
+#define W4_TRACE_POST_SAMPLES             40U     /* 200 ms after detection */
+#define W4_TRACE_EVAL_SAMPLES             48U     /* two detect blocks + post */
+#define W4_TRACE_SAMPLE_MS                 5U
+#define W4_TRACE_BASELINE_START_TICKS      25000UL /* 500 ms */
+#define W4_TRACE_DETECT_START_TICKS       250000UL /* 5 s */
+#define W4_TRACE_5PCT_LOW_RAW              1182U
+#define W4_TRACE_5PCT_HIGH_RAW             1306U
+#define W4_TRACE_2PCT_LOW_RAW              1215U
+#define W4_TRACE_2PCT_HIGH_RAW             1265U
+#define W4_TRACE_SETTLE_LIMIT_MS            100U
+
+#define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12.5 */
+#define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12.5 -> CR15 */
+
+#define W4_TRACE_STATE_IDLE                 0U
+#define W4_TRACE_STATE_WAIT_BASELINE        1U
+#define W4_TRACE_STATE_BASELINE             2U
+#define W4_TRACE_STATE_ARMED                3U
+#define W4_TRACE_STATE_POST                 4U
+#define W4_TRACE_STATE_COMPLETE             5U
+#define W4_TRACE_STATE_FAIL                 6U
+
+#define W4_TRACE_FAIL_NONE                  0U
+#define W4_TRACE_FAIL_BAD_DIRECTION         1U
+#define W4_TRACE_FAIL_ZERO_BASELINE         2U
+#define W4_TRACE_FAIL_NO_COMPLETE_WINDOW    3U
+
+extern volatile Uint16 g_w4_trace_arm;
+extern volatile Uint16 g_w4_trace_expected_direction;
+extern volatile Uint16 g_w4_trace_direction_active;
+extern volatile Uint16 g_w4_trace_state;
+extern volatile Uint16 g_w4_trace_fail_reason;
+extern volatile Uint16 g_w4_trace_count;
+extern volatile Uint16 g_w4_trace_write_index;
+extern volatile Uint16 g_w4_trace_trigger_index;
+extern volatile Uint16 g_w4_trace_baseline_raw;
+extern volatile Uint16 g_w4_trace_baseline_cycles_per_5ms;
+extern volatile Uint16 g_w4_trace_baseline_cycles_per_packet;
+extern volatile Uint32 g_w4_trace_baseline_demand_index;
+extern volatile Uint16 g_w4_trace_trigger_raw;
+extern volatile Uint16 g_w4_trace_trigger_cycles_20ms;
+extern volatile Uint16 g_w4_trace_trigger_packets_20ms;
+extern volatile Uint16 g_w4_trace_trigger_cycles_per_packet;
+extern volatile Uint32 g_w4_trace_trigger_demand_index;
+extern volatile Uint16 g_w4_trace_min_raw;
+extern volatile Uint16 g_w4_trace_max_raw;
+extern volatile Uint16 g_w4_trace_settle_ms;
+extern volatile Uint16 g_w4_trace_peak_pass;
+extern volatile Uint16 g_w4_trace_settle_pass;
+extern volatile Uint16 g_w4_trace_quality_pass;
+extern volatile Uint16 g_w4_trace_ring_raw[W4_TRACE_SAMPLES];
+extern volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
+extern volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+extern volatile Uint16 g_w4_trace_ne_cycle_delta;
+extern volatile Uint16 g_w4_trace_ne_packet_delta;
+#endif
+
 /* CALIBRATION_MEASURE_HOLD: interactive DMM hold (task
  * LLC_STAGE5_ACCEPTANCE_SPRINT_V2). The hold does NOT end at 1s; it runs
  * until the operator signals completion or the 30s wall-clock timeout. */
