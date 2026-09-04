@@ -383,14 +383,34 @@ void CALHOLD_PacketIsr(void)
         }
     }
 
-    /* Reuse only the already-proven initial-charge Phase-A prefix: the first
-     * complete cycle stays at DB110, then each boundary reduces DB by one to
-     * the compile-time DB90 floor. Every write needs a one-call private active
-     * packet authorization; a failed write immediately returns to OST. */
-    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V &&
-        EPwm1Regs.DBRED > W3_HOLD_PACKET_DB_MIN)
+    /* Reuse the exact initial-charge Phase-A cadence: DB110 for 15 complete
+     * cycles, then DB falls by five after every ten completed cycles. The
+     * 128-cycle packet is therefore bounded at DB50 (the write occurs after
+     * cycle125); it never reaches the later DB36 stage. Every DB-only write
+     * needs a one-call private active-packet authorization and a failed write
+     * immediately returns to OST. */
+    next_db = EPwm1Regs.DBRED;
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
     {
-        next_db = (Uint16)(EPwm1Regs.DBRED - 1U);
+        switch (g_cal_hold_packet_cycles)
+        {
+            case 15U:  next_db = 105U; break;
+            case 25U:  next_db = 100U; break;
+            case 35U:  next_db = 95U;  break;
+            case 45U:  next_db = 90U;  break;
+            case 55U:  next_db = 85U;  break;
+            case 65U:  next_db = 80U;  break;
+            case 75U:  next_db = 75U;  break;
+            case 85U:  next_db = 70U;  break;
+            case 95U:  next_db = 65U;  break;
+            case 105U: next_db = 60U;  break;
+            case 115U: next_db = 55U;  break;
+            case 125U: next_db = 50U;  break;
+            default: break;
+        }
+    }
+    if (next_db < EPwm1Regs.DBRED && next_db >= W3_HOLD_PACKET_DB_MIN)
+    {
         s_w3_packet_write_auth = 1U;
         write_ok = PWM_SetDeadbandOnly(next_db);
         s_w3_packet_write_auth = 0U;

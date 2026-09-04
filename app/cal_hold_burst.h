@@ -52,7 +52,7 @@
 #define W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES 3U /* consecutive OFF samples */
 #define W3_HOLD_INITIAL_CHARGE_RAW       1200U  /* legal accelerated Profile C target */
 #define W3_HOLD_MAX_PACKET_CYCLES        128U   /* <=512 us; per-cycle target/hard stop remains */
-#define W3_HOLD_PACKET_DB_MIN            90U    /* Phase-A-proven ramp prefix from DB110 */
+#define W3_HOLD_PACKET_DB_MIN            50U    /* exact Phase-A cadence reaches DB50 by cycle125 */
 #define W3_HOLD_DURATION_500MS           500U
 #define W3_HOLD_DURATION_2S              2000U
 #define W3_HOLD_DURATION_10S             10000U
@@ -76,6 +76,6 @@ void CALHOLD_SlowTask(void);       /* request detect, CHARGE supervision, end/ab
 void CALHOLD_FastTask(void);       /* 20 us: OFF software ADC, packet scheduling, safety */
 void CALHOLD_PacketIsr(void);      /* EPWM1 INT while a recharge packet is active */
 Uint16 CALHOLD_W3PacketAuthOk(void); /* private-latch-backed exact 239/110 write gate */
-Uint16 CALHOLD_W3PacketRampAuthOk(void); /* private active-packet 239/DB110..90 gate */
+Uint16 CALHOLD_W3PacketRampAuthOk(void); /* private active-packet 239/DB110..50 gate */
 
 #endif /* APP_CAL_HOLD_BURST_H */

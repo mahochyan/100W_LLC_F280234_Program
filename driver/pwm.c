@@ -207,8 +207,9 @@ Uint16 PWM_RuntimeValuesValid(Uint32 period, Uint16 deadtime)
                  deadtime >= W3_HOLD_PACKET_DB_MIN && deadtime <= 110U &&
                  CALHOLD_W3PacketRampAuthOk() != 0U)
         {
-            /* W3 active-packet Phase-A prefix. Each DB-only write is privately
-             * authorized by cal_hold_burst.c; period/CMPA cannot change. */
+            /* W3 active-packet exact Phase-A cadence through DB50. Each
+             * DB-only write is privately authorized by cal_hold_burst.c;
+             * period/CMPA cannot change. */
         }
         else if (g_softstart_ramp_active != 0U &&
             period >= 239UL && period <= 399UL &&
