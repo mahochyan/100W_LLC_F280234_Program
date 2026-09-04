@@ -54,7 +54,8 @@ undersupply, active fault/TZ, and invalid-request gates all end hardware-safe.
 
 ## Offline and on-target no-energy qualification
 
-Source commit: `a29d60a2` (`W3: add protected 10V burst hold`).
+Source commit: `a29d60a578c6fb59bf7f1116d3a519cbe73cfe2b`
+(`W3: add protected 10V burst hold`).
 
 ```text
 STATIC=SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE (17 gates)
@@ -82,3 +83,9 @@ initial target/stop within the raw1200/raw1300 envelope, at least one recharge
 packet, every packet within 1..15 cycles, aggregate cycles below 20000,
 steady/maximum VOUT below raw1300, no fault, no hardware or active-window TZ
 increment, and final PWM0/OST1/TZINT0. Any failed gate ends the ladder.
+
+```text
+REAL_OUT_SHA256=B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2
+REAL_MAP_SHA256=61BC854853A320E6EDFC59FE10D3CBB86A88F4FBBC4B4FA24270EC1BA6F6E658
+REAL_HARNESS=tools/sol_w3_10v_burst_hold_real_500ms.js
+```
