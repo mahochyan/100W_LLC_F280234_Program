@@ -101,6 +101,7 @@ def main() -> None:
         "W4_TRACE_BASELINE_SAMPLES         40U",
         "W4_TRACE_DETECT_BLOCK_SAMPLES     4U",
         "W4_TRACE_POST_SAMPLES             40U",
+        "W4_TRACE_DETECT_START_TICKS        35000UL",
         "W4_TRACE_5PCT_LOW_RAW              1182U",
         "W4_TRACE_2PCT_LOW_RAW              1215U",
         "W4_TRACE_SETTLE_LIMIT_MS            100U",
@@ -111,6 +112,11 @@ def main() -> None:
         "g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES]",
     )))
     gate("W4_TRACE_ONE_SHOT_ARM", "g_w4_trace_arm = 0U;  /* one-shot consume" in SRC)
+    gate("W4_TRACE_DETECTS_IMMEDIATELY_AFTER_BASELINE",
+         "W4_TRACE_BASELINE_START_TICKS      25000UL" in HDR and
+         "W4_TRACE_DETECT_START_TICKS        35000UL" in HDR and
+         "W4_TRACE_BASELINE_SAMPLES         40U" in HDR and
+         "W4_TRACE_SAMPLE_MS                 5U" in HDR)
     gate("W4_TRACE_DIRECTIONAL_PERSISTENCE", all(token in SRC for token in (
         "g_w4_trace_baseline_demand_index * 9UL",
         "g_w4_trace_baseline_demand_index * 7UL",
@@ -136,9 +142,10 @@ def main() -> None:
         "rw(", "rv32u(", "reg(", "session.memory.readWord",
     )))
     gate("W4_REAL_SHA_AND_PHYSICAL_GATES", all(token in REAL for token in (
-        'EXPECTED_SHA="2267A0C1DD8FF81373B71BFA35466B22882EE41A6EB99C771BB566B428ED1027"',
+        'EXPECTED_SHA="B10587C6FF8BE3F438E18CB229DAB9733087FE62BC091129778F0D359A71C07B"',
         'SOL_W4_INPUT_LIMIT_A', 'SOL_W4_INITIAL_LOAD_OHMS',
-        'W4_PHYSICAL_STEP_NOW=', 'NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE',
+        'PREFIRE_TARGET_CLOCK_200MS', 'W4_PHYSICAL_STEP_NOW=',
+        'NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE',
     )))
 
     heavy = model(1, 100, 4, 100, 3, [1185] * 4)

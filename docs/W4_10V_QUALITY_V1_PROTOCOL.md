@@ -87,3 +87,24 @@ W4_TRACE_STATIC_MODEL=PASS
 W4_TRACE_ON_TARGET_NE=PASS__PWM_NEVER_RELEASED
 W4_TRACE_NEXT=VIN24_LIMIT0P5A_CR15__THEN_CR15_TO_CR12P5
 ```
+
+## V9 first A/B/A attempt and V10 correction
+
+The first CR15-to-CR12.5 attempt was invalid rather than a plant failure. DSS
+reported FTDI error -150. During the nominal 60.6 s host window the target's
+hold counter advanced only 170735 fast ticks (3.4147 s), so the host halted in
+an active packet before the firmware-owned terminal stop. Fault, hard-limit,
+hardware-trip, and public-enable deltas were all zero, and host cleanup ended
+at PWM0/OST1/TZINT0.
+
+The load-demand change was nevertheless visible: baseline demand index was
+2226 at 42 cycles/5 ms, while the ring contained 294..447 cycles/5 ms after
+the operator step. It was not detected solely because V9 held detection until
+250000 ticks (5 s) of target time.
+
+V10 opens detection at 35000 ticks, exactly after the 500 ms start delay plus
+the 40 x 5 ms baseline. It also adds a pre-fire host gate requiring 9000..11000
+fast ticks during a 200 ms safe, PWM-off interval. The operator marker moves
+to 2 s host time and the host waits 70 s total, leaving ten seconds beyond the
+unchanged firmware-owned 60 s terminal OST. This is a new source and SHA; V9
+will not be retried.

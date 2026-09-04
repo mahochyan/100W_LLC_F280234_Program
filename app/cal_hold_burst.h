@@ -78,7 +78,11 @@
 #define W4_TRACE_EVAL_SAMPLES             48U     /* two detect blocks + post */
 #define W4_TRACE_SAMPLE_MS                 5U
 #define W4_TRACE_BASELINE_START_TICKS      25000UL /* 500 ms */
-#define W4_TRACE_DETECT_START_TICKS       250000UL /* 5 s */
+/* V10: detection opens as soon as the 500 ms + 200 ms baseline is complete.
+ * The first real attempt proved that an FTDI stall can let host wall time
+ * advance while target time remains below the old 5 s gate, hiding a genuine
+ * operator step already visible in the ring. */
+#define W4_TRACE_DETECT_START_TICKS        35000UL /* 700 ms */
 #define W4_TRACE_5PCT_LOW_RAW              1182U
 #define W4_TRACE_5PCT_HIGH_RAW             1306U
 #define W4_TRACE_2PCT_LOW_RAW              1215U

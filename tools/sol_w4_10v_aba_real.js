@@ -8,17 +8,17 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="2267A0C1DD8FF81373B71BFA35466B22882EE41A6EB99C771BB566B428ED1027";
+var EXPECTED_SHA="B10587C6FF8BE3F438E18CB229DAB9733087FE62BC091129778F0D359A71C07B";
 var DIRECTION_NAME=(java.lang.System.getenv("SOL_W4_DIRECTION")||"");
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_INITIAL_LOAD_OHMS")||"");
 var INPUT_LIMIT=(java.lang.System.getenv("SOL_W4_INPUT_LIMIT_A")||"");
 var ACK=(java.lang.System.getenv("SOL_W4_GATES_ACK")||"").equals("1");
 var DIRECTION=0,RUN_ID=0,EXPECTED_INITIAL="",EXPECTED_TARGET="",STEP_TEXT="";
 if(DIRECTION_NAME.equals("HEAVIER")){
-  DIRECTION=1;RUN_ID=0x25090590;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
+  DIRECTION=1;RUN_ID=0x25090593;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
   STEP_TEXT="CR15_TO_CR12P5";
 }else if(DIRECTION_NAME.equals("LIGHTER")){
-  DIRECTION=2;RUN_ID=0x25090591;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
+  DIRECTION=2;RUN_ID=0x25090592;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
   STEP_TEXT="CR12P5_TO_CR15";
 }else{throw "direction-must-be-HEAVIER-or-LIGHTER";}
 if(!INITIAL_LOAD.equals(EXPECTED_INITIAL)){throw "initial-load-does-not-match-direction";}
@@ -89,6 +89,20 @@ try{
     if(failures){throw "stage-gate-"+s;}
   }
 
+  /* V10 host-chain gate: prove that target fast time tracks 200 ms of host
+   * time while PWM is still safely off. The first V9 attempt saw FTDI -150
+   * and only 3.4147 s of target time during a nominal 60.6 s host window. */
+  var clock0=rv32u("g_fast_tick");
+  run(200);
+  var clock1=rv32u("g_fast_tick");
+  var clockDelta=(clock1-clock0)>>>0;
+  print("PREFIRE_TARGET_CLOCK_DELTA_200MS="+clockDelta);
+  check("PREFIRE_TARGET_CLOCK_200MS",clockDelta>=9000 && clockDelta<=11000);
+  check("PREFIRE_STILL_PWM_OFF",rw("g_pwm_enabled")===0);
+  check("PREFIRE_STILL_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1);
+  check("PREFIRE_STILL_FAULT_ZERO",rv32u("g_fault_flags")===0);
+  if(failures){throw "prefire-target-clock-gate";}
+
   var hw0=rv32u("g_tz_hardware_trip_count");
   var active0=rv32u("g_tz_active_window_trip_count");
   var rise0=rv32u("g_enable_rising_count");
@@ -101,12 +115,14 @@ try{
   fired=true;
 
   session.target.runAsynch();
-  java.lang.Thread.sleep(8000);
+  java.lang.Thread.sleep(2000);
   print("W4_PHYSICAL_STEP_NOW="+STEP_TEXT);
   print("SET_ELOAD_OHMS_NOW="+EXPECTED_TARGET);
   print("TRACE_CAPTURE_CONTINUES_AUTONOMOUSLY__DO_NOT_CHANGE_VIN");
   java.lang.System.out.flush();
-  java.lang.Thread.sleep(52600);
+  /* Ten seconds of host margin beyond the firmware-owned 60 s terminal OST.
+   * There is still no JTAG read/halt inside the power window. */
+  java.lang.Thread.sleep(68000);
   session.target.halt();
 
   var state=rw("g_cal_hold_state"),reason=rw("g_cal_hold_stop_reason");

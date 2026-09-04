@@ -1,9 +1,9 @@
 # W5 10 V to 12 V reference-transition offline design
 
 This is a preflight design, not the `W5_12V_REFERENCE_TRANSITION_PASS`
-result. It is prepared while the exact W4 REAL image remains frozen for the
-pending CR15/CR12.5 A/B/A bench runs. No build-included source is changed by
-this document or its companion preflight test.
+result. It was initially prepared without changing the then-frozen W4 image.
+After the invalid V9 A/B/A attempt, W4 advanced to V10 for its own evidenced
+target-time fix; the W5 module remains absent from both W4 build lists.
 
 ## Fixed inputs and measured conversion
 

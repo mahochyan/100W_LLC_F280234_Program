@@ -35,6 +35,15 @@ function safe(tag){
 safe("PRE");
 if(failures){try{session.terminate();}catch(e){}throw "w4-ne-pre-gate";}
 
+/* Exercise the same V10 target-clock cadence gate while PWM remains off. */
+var clock0=rv32u("g_fast_tick");
+run(200);
+var clock1=rv32u("g_fast_tick"),clockDelta=(clock1-clock0)>>>0;
+check("PREFIRE_TARGET_CLOCK_200MS",clockDelta>=9000 && clockDelta<=11000,
+      "delta="+clockDelta);
+safe("PREFIRE_CLOCK");
+if(failures){try{session.terminate();}catch(e){}throw "w4-ne-clock-gate";}
+
 wv("g_no_energy_test_mode",1);
 wv("g_cal_hold_ne_bypass_charge",1);
 wv("g_bringup_stage",5);
@@ -68,7 +77,8 @@ function beginTrace(direction,baselineCycles,baselinePackets){
         " demand="+rv32u("g_w4_trace_baseline_demand_index"));
   check("BASELINE_EXACT_D"+direction,
         rw("g_w4_trace_baseline_cycles_per_5ms")==baselineCycles);
-  wv32("g_cal_hold_elapsed_ticks",250000);
+  /* V10 opens detection immediately after the completed 0.7 s baseline. */
+  wv32("g_cal_hold_elapsed_ticks",35000);
 }
 function ringExtrema(){
   var i,idx=rw("g_w4_trace_trigger_index"),base=addr("g_w4_trace_ring_raw");
