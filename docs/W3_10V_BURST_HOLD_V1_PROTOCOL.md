@@ -326,3 +326,14 @@ V6_NEXT=REAL_500MS_REQUALIFICATION
 
 Detailed evidence:
 `evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v6_packet128.txt`.
+
+### V6 REAL 500 ms result
+
+PASS: exactly 25000 ticks, raw1164..1245, steady average raw1227, only 32
+packets / 4096 cycles (3.2768% active time), and undersupply-confirm count0.
+The last packet started at raw1220 and ended at raw1230 (post-max1231) after
+128 cycles. No hard-limit event, fault, trip, or public enable edge occurred;
+final and cleanup were PWM0/OST1/TZINT0.
+
+Evidence:
+`evidence/sol_master_execution/w3_10v_burst_hold/real_v6_500ms_v1.txt`.

@@ -10,15 +10,15 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=19
-UPDATED_AT=2026-09-05T00:38:20+08:00
+STATE_VERSION=20
+UPDATED_AT=2026-09-05T00:39:53+08:00
 MASTER_STATUS=IN_PROGRESS
 CURRENT_WORK_ORDER=W3
-CURRENT_GATE=W3_10V_BURST_HOLD_REAL_500MS_V6
-CURRENT_CHECKPOINT=W3_V6_PACKET128_QUALIFIED__NEW_SHA_READY_FOR_REAL_500MS
+CURRENT_GATE=W3_10V_BURST_HOLD_REAL_2S_V6
+CURRENT_CHECKPOINT=W3_V6_REAL_500MS_PASS__SAME_SHA_READY_FOR_FORWARD_2S
 LAST_VERIFIED_WORK_ORDER=W2
-NEXT_ACTION=Run V6 REAL 500ms on exact SHA BD0CFFCB; on PASS advance same SHA through 2s, 10s, 60s.
-BOARD_LAST_STATE=AFTER_W3_V6_ON_TARGET_NE_AND_SAFE_W2_REGRESSIONS__PWM0_OST1_TZINT0
+NEXT_ACTION=Run V6 REAL 2000ms on the same passing exact SHA; then 10s and 60s only after each PASS.
+BOARD_LAST_STATE=AFTER_W3_V6_REAL_500MS_PASS_AND_CLEANUP__PWM0_OST1_TZINT0
 PHYSICAL_ACTION_REQUIRED=NONE__STANDING_USER_CONFIRMATION_VIN24_CR15_ACTIVE__NO_DISCHARGE_REASK
 ROOT_CAUSE_ITERATION_W1=1
 USER_MANDATORY_MILESTONE=Continue through W10 until 50W load is stable; then continue the same W0-W14 master task.
@@ -569,7 +569,7 @@ BOOT_DIAG_AFTER_V1=3/3 cold loads state0/mode_req0/mode_active0/request0/
 RESUME_POLICY=harness-only boot observation correction; capture all boot values
         once, print snapshot, use separate state/mode gates; same OUT/SHA allowed
         because g_cal_hold_request was never written and PWM was never released
-W3_REAL_POWER_ATTEMPT_COUNT=8
+W3_REAL_POWER_ATTEMPT_COUNT=9
 REAL_500MS_RESUME=PASS__stateCOMPLETE/reasonCOMPLETE__elapsed25000ticks__
         initial target1200 stop1209 max1209 phase4 TBPRD399 DB36__hold min1166
         max1235 steady1200..1235 avg1224 calavg1225/n7103__packets292__
@@ -710,5 +710,10 @@ V6_MEMORY=UNCHANGED__NE_EBSS0x3FF__REAL_EBSS0x3A4
 V6_REGRESSIONS=W2_OPEN_LOOP_PASS__W2_LIVE_EXACT1_2_3_5_PASS__BURST_REGION21_0_PASS
 V6_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/offline_qualification_v6_packet128.txt
 V6_QUALIFICATION=PASS__NEW_SHA_REQUALIFY_REAL_500MS_THEN_FORWARD_ONLY
-NEXT=REAL_500MS_V6__then_2S_10S_60S_only_after_each_PASS
+V6_REAL_500MS=PASS__elapsed25000__charge1202_cycles419__hold1164_to1245_avg1227__
+        packets32_all128_total4096_active3.2768pct__lastpacket1220_to1230_max1231__
+        undersupplyconfirm0_hardevents0_fault0_tripdeltas0_publicenable0__
+        final_cleanup_PWM0_OST1_TZINT0
+V6_REAL_500MS_EVIDENCE=evidence/sol_master_execution/w3_10v_burst_hold/real_v6_500ms_v1.txt
+NEXT=REAL_2S_V6_SAME_SHA__then_10S_60S_only_after_each_PASS
 ```
