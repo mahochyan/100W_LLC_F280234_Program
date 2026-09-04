@@ -1,0 +1,31 @@
+W4 user-requested CR10 stress — V8 REAL 2 s
+Captured: 2026-09-05T01:14:17+08:00
+
+Bench and identity
+- Vin: 24 V active
+- Load: CR 10 ohm, explicitly set by the user
+- REAL_OUT_SHA256=F972829DA35D4557A93ED2B4B11600672BDC5FB7DFF9B86D48E50CE883EF7BFA
+- REAL_SHA_HARD_GATE=PASS
+- No live JTAG reads occurred during the active request.
+
+Result
+PRE_FIRE raw=9 vout=0.009088925 hw_trip=0 active_trip=0 enable_rise=0
+RESULT state=4 reason=1 mode=1 elapsed_ticks=100000 fault=0x0
+CHARGE target=1200 stop=1205 accel_reason=2 accel_max=1205 phase=4 tbprd=399 db=36 completed_cycles=419
+HOLD raw=1174 min=1169 max=1279 steady_min=1171 steady_max=1279 steady_avg=1237 cal_avg=1236 cal_n=14576
+PACKETS count=1063 total_cycles=134853 min_cycles=95 max_cycles=128 hard_events=0 undersupply_confirm=0
+LAST_PACKET start_raw=1174 stop_raw=1145 post_max_raw=1174 post_last_raw=1145 cycles=86 final_db=70
+ACTIVE_FRACTION=134853/(2000ms*250cycles/ms)=26.9706%
+
+The final packet was cut by the exact duration boundary at cycle86. Its raw1145
+terminal sample is retained for W4 transient-quality analysis; it did not fail
+the sustained average or any safety gate.
+
+Terminal safety
+FINAL pwm=0 ost=1 tzint=0 hw_trip_delta=0 active_trip_delta=0 enable_rise_delta=0
+CLEANUP pwm=0 ost=1 tzint=0
+
+Verdict
+W4_CR10_V8_REAL_2S_PASS=TRUE
+POWER_REQUEST_FIRED=TRUE
+FORWARD_ONLY_NEXT=CR10_10S
