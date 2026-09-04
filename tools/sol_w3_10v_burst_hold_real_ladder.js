@@ -10,7 +10,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="B81DCB715BA8350E66B3C3114B1E9B5AF2D38C2AB7E38AB8473117B07B0496D2";
+var EXPECTED_SHA="CE206609D9469EBCEDADE7A56B81FD093422FEE641337439FEA7F4BC839C9F6F";
 var DURATION_MS=parseInt(java.lang.System.getenv("SOL_W3_DURATION_MS")||"0");
 var RUN_ID=0,CYCLE_CAP=0,WAIT_MS=0;
 if(DURATION_MS===2000){RUN_ID=0x25090352;CYCLE_CAP=50000;WAIT_MS=2500;}
@@ -139,6 +139,19 @@ try{
   print("FINAL pwm="+pwm+" ost="+ost+" tzint="+tzint+
         " hw_trip_delta="+(hw1-hw0)+" active_trip_delta="+(active1-active0)+
         " enable_rise_delta="+(rise1-rise0));
+  if(state!==4 || fault!==0){
+    print("TRIP_DIAG event_phase="+rw("g_tz_event_phase")+
+          " packet_active="+rw("g_cal_hold_packet_active")+
+          " packet_cycles="+rw("g_cal_hold_packet_cycles")+
+          " trip_tbctr="+rw("g_comp_trip_tbctr")+
+          " trip_raw="+rw("g_comp_trip_vout_raw")+
+          " trip_dac="+rw("g_comp_trip_dac_code")+
+          " tz_gpio15="+rw("g_tz_isr_gpio15")+
+          " tz_compsts="+rw("g_tz_isr_compsts")+
+          " tzflg="+rw("g_tz_isr_tzflg")+
+          " pre_reject="+rw("g_comp_prestart_reject")+
+          " pre_gpio15="+rw("g_comp_prestart_gpio15"));
+  }
 
   check("W3_MODE_LATCHED",rw("g_cal_hold_mode_active")===1);
   check("W3_"+DURATION_MS+"MS_COMPLETE",state===4 && reason===1);

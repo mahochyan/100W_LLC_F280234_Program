@@ -134,3 +134,8 @@ No threshold or protection authority changed. Static qualification passes 20
 gates; target no-energy qualification includes the negative pre-start-authority
 case and legacy 11 V packet authorization. All W2 regressions pass. V2 source
 commit is `80af931829393e2a6d7aaf035efc2d764a423d4d`.
+
+```text
+V2_REAL_OUT_SHA256=CE206609D9469EBCEDADE7A56B81FD093422FEE641337439FEA7F4BC839C9F6F
+V2_REAL_MAP_SHA256=F80992C3DA4D5599EFF6244469F55A14B7B30DD73E50109E156510062DA4BA43
+```
