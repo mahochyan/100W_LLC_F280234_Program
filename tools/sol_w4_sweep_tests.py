@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static, artifact, and executable-model gates for W4 CR20..CR5 sweep."""
+"""Static, artifact, and executable-model gates for W4 CR20..CR5 sweep V2."""
 
 import hashlib
 import re
@@ -12,29 +12,34 @@ SRC = (ROOT / "app" / "cal_hold_burst.c").read_text(encoding="utf-8")
 HOST = (ROOT / "tools" / "sol_w4_cr20_to_cr5_sweep_real.js").read_text(encoding="utf-8")
 BUILD_REAL = (ROOT / "tools" / "build_flash_open_loop_steady.bat").read_text(encoding="utf-8")
 BUILD_NE = (ROOT / "tools" / "build_open_loop_steady_noenergy.bat").read_text(encoding="utf-8")
-REAL_OUT = ROOT / "Stage6_W4_SWEEP" / "LLC_100W_F28034_OPEN_LOOP_STEADY.out"
-REAL_MAP = ROOT / "Stage6_W4_SWEEP" / "LLC_100W_F28034_OPEN_LOOP_STEADY.map"
-NE_OUT = ROOT / "Stage6_W4_SWEEP_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out"
-NE_MAP = ROOT / "Stage6_W4_SWEEP_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.map"
+REAL_OUT = ROOT / "Stage6_W4_SWEEP_V2" / "LLC_100W_F28034_OPEN_LOOP_STEADY.out"
+REAL_MAP = ROOT / "Stage6_W4_SWEEP_V2" / "LLC_100W_F28034_OPEN_LOOP_STEADY.map"
+NE_OUT = ROOT / "Stage6_W4_SWEEP_V2_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out"
+NE_MAP = ROOT / "Stage6_W4_SWEEP_V2_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.map"
 CANON_REAL = ROOT / "Stage6_OL_STEADY" / "LLC_100W_F28034_OPEN_LOOP_STEADY.out"
 CANON_NE = ROOT / "Stage6_OL_STEADY_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out"
 V14_HOST = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
 MASTER_STATE = (ROOT / "docs" / "SOL_MASTER_EXECUTION_STATE.md").read_text(encoding="utf-8")
 
-EXPECTED_REAL_SHA = "AEF6083F6E08BC65689F86F7F67FF6DCDB3D6409C8219F5C1FA7C1FAAF0A09AA"
-EXPECTED_NE_SHA = "17762888AF16B43D98DA9D5975189BF25B43BA95AA9CF7456EA0E8797346964D"
+EXPECTED_REAL_SHA = "D10284938BE15DEA5772DF8595F064E40321B2BF26898CED382DE0ABD2C3A8CD"
+EXPECTED_REAL_MAP_SHA = "442B64AA26B0801A3D6CF9D24F474159BE56C6683A77DDE9FE6C18BEF4D40562"
+EXPECTED_NE_SHA = "54376784D0143087545CE458E2B8B80455396F2909DE548771E7A24F99375FB6"
+EXPECTED_NE_MAP_SHA = "FD284C93CC720174F432D30B960CB67E8E463A20D6D99FD243A18FB648A22140"
 EXPECTED_CSV = (
     "D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\"
-    "w4_10v_quality\\cr20_to_cr5_sweep_run_0x2509059c.csv"
+    "w4_10v_quality\\cr20_to_cr5_sweep_v2_run_0x25090601.csv"
 )
-CHECKSUM_SEED = 0x53575015
-RUN_ID = 0x2509059C
-BINS = 480
+CHECKSUM_SEED = 0x53575016
+RUN_ID = 0x25090601
+BINS = 400
 LEVELS = 16
-BINS_PER_LEVEL = 30
-TRANSITION_BINS = 10
-PLATEAU_BINS = 20
-SAMPLES_PER_BIN = 20
+BINS_PER_LEVEL = 25
+TRANSITION_BINS = 15
+PLATEAU_BINS = 10
+CUE_OFF_BINS = 8
+SAMPLES_PER_BIN = 40
+BIN_MS = SAMPLES_PER_BIN * 5
+TARGET_COMPLETE_TICK = 4_600_000
 
 Sample = tuple[int, int, int, int]
 Bin = tuple[int, int, int, int, int, int]
@@ -61,6 +66,19 @@ def map_free(text: str, region: str) -> int:
     return int(match.group(1), 16)
 
 
+def legacy_sweep_env_fails_closed(text: str) -> bool:
+    """The retired V1 selector must stop, never alias the V2 build."""
+    match = re.search(
+        r'if\s+"%SOL_W4_SWEEP_BUILD%"=="1"\s*\((.*?)\)',
+        text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    return bool(
+        match and "exit /b" in match.group(1).lower() and
+        "retir" in match.group(1).lower()
+    )
+
+
 def mix32(checksum: int, value: int) -> int:
     checksum &= 0xFFFFFFFF
     return ((((checksum << 5) & 0xFFFFFFFF) | (checksum >> 27)) ^
@@ -68,9 +86,9 @@ def mix32(checksum: int, value: int) -> int:
 
 
 def reduce_bins(samples: list[Sample]) -> list[Bin]:
-    """Mirror the target's fixed 20-sample/100-ms reduction."""
+    """Mirror the target's fixed 40-sample/200-ms reduction."""
     if len(samples) != BINS * SAMPLES_PER_BIN:
-        raise ValueError("exact 48 s at 5 ms required")
+        raise ValueError("exact 80 s at 5 ms required")
     result: list[Bin] = []
     for offset in range(0, len(samples), SAMPLES_PER_BIN):
         part = samples[offset:offset + SAMPLES_PER_BIN]
@@ -107,7 +125,7 @@ def terminal_cookie(
     overflow: int,
 ) -> int:
     return (
-        0x57440000 ^ 0x00001405 ^ 0x00000015 ^ RUN_ID ^ (3 << 16) ^
+        0x57440000 ^ 0x00001405 ^ 0x00000016 ^ RUN_ID ^ (3 << 16) ^
         ((state & 0xFFFF) << 8) ^ (reason & 0xFFFF) ^ checksum ^
         ((count & 0xFFFF) << 16) ^ (overflow & 0xFFFF)
     ) & 0xFFFFFFFF
@@ -129,8 +147,8 @@ def structure_ok(bins: list[Bin]) -> bool:
 
 
 def assess_segments(bins: list[Bin]) -> tuple[bool, bool, list[int], int]:
-    """Mirror all sixteen fixed 1-s-transition + 2-s-plateau host gates."""
-    cadence_ok = len(bins) == BINS and all(4500 <= row[5] <= 5500 for row in bins)
+    """Mirror all sixteen fixed 3-s-transition + 2-s-plateau host gates."""
+    cadence_ok = len(bins) == BINS and all(9000 <= row[5] <= 11000 for row in bins)
     if len(bins) != BINS:
         return False, cadence_ok, [], 0
 
@@ -191,31 +209,37 @@ def main() -> None:
     )))
     gate("W4_SWEEP_EXACT_PROFILE", all(token in HDR for token in (
         "W4_SWEEP_LOAD_PROFILE_ID         0x1405UL",
-        "W4_SWEEP_ALGORITHM_ID            0x0015UL",
-        "W4_SWEEP_BIN_SAMPLES                 20U",
-        "W4_SWEEP_BINS                       480U",
+        "W4_SWEEP_ALGORITHM_ID            0x0016UL",
+        "W4_SWEEP_BIN_SAMPLES                 40U",
+        "W4_SWEEP_BINS                       400U",
         "W4_SWEEP_MARKER_TICKS            600000UL",
         "W4_SWEEP_LEVELS                       16U",
-        "W4_SWEEP_BINS_PER_LEVEL               30U",
-        "W4_SWEEP_TRANSITION_BINS               10U",
-        "W4_SWEEP_PLATEAU_BINS                  20U",
-        "W4_SWEEP_CUE_OFF_BINS                   5U",
-        "W4_SWEEP_CHECKSUM_SEED          0x53575015UL",
+        "W4_SWEEP_BINS_PER_LEVEL               25U",
+        "W4_SWEEP_TRANSITION_BINS               15U",
+        "W4_SWEEP_PLATEAU_BINS                  10U",
+        "W4_SWEEP_CUE_OFF_BINS                   8U",
+        "W4_SWEEP_CHECKSUM_SEED          0x53575016UL",
     )))
     gate(
         "W4_SWEEP_SEGMENT_ARITHMETIC",
         LEVELS * BINS_PER_LEVEL == BINS and
         TRANSITION_BINS + PLATEAU_BINS == BINS_PER_LEVEL and
-        BINS_PER_LEVEL * 100 == 3000 and TRANSITION_BINS * 100 == 1000 and
-        PLATEAU_BINS * 100 == 2000,
+        BIN_MS == 200 and BINS_PER_LEVEL * BIN_MS == 5000 and
+        TRANSITION_BINS * BIN_MS == 3000 and
+        PLATEAU_BINS * BIN_MS == 2000 and CUE_OFF_BINS * BIN_MS == 1600,
     )
-    gate("W4_SWEEP_BUILD_ISOLATED_DIRECTORIES", all(token in BUILD_REAL for token in (
-        'if "%SOL_W4_SWEEP_BUILD%"=="1" set BUILD=%PROJ%\\Stage6_W4_SWEEP',
-        "-DSTAGE6_W4_SWEEP_TEST=1",
+    gate("W4_SWEEP_V2_BUILD_ISOLATED_DIRECTORIES", all(token in BUILD_REAL for token in (
+        'if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set BUILD=%PROJ%\\Stage6_W4_SWEEP_V2',
+        'if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_SWEEP_TEST=1',
     )) and all(token in BUILD_NE for token in (
-        'if "%SOL_W4_SWEEP_BUILD%"=="1" set BUILD=%PROJ%\\Stage6_W4_SWEEP_NE',
-        "-DSTAGE6_W4_SWEEP_TEST=1",
+        'if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set BUILD=%PROJ%\\Stage6_W4_SWEEP_V2_NE',
+        'if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_SWEEP_TEST=1',
     )))
+    gate(
+        "W4_SWEEP_V1_BUILD_ENV_RETIRED_FAIL_CLOSED",
+        legacy_sweep_env_fails_closed(BUILD_REAL) and
+        legacy_sweep_env_fails_closed(BUILD_NE),
+    )
     # The ignored canonical build directories may be absent.  That is the
     # fail-closed state: the already-fired V14 host remains pinned to its
     # historical SHA, while no differently hashed rebuild may occupy that path
@@ -233,7 +257,13 @@ def main() -> None:
     )
     gate(
         "W4_SWEEP_ARTIFACT_HASH_BOUND",
-        sha(REAL_OUT) == EXPECTED_REAL_SHA and sha(NE_OUT) == EXPECTED_NE_SHA and
+        re.fullmatch(r"[0-9A-F]{64}", EXPECTED_REAL_SHA) is not None and
+        re.fullmatch(r"[0-9A-F]{64}", EXPECTED_REAL_MAP_SHA) is not None and
+        re.fullmatch(r"[0-9A-F]{64}", EXPECTED_NE_SHA) is not None and
+        re.fullmatch(r"[0-9A-F]{64}", EXPECTED_NE_MAP_SHA) is not None and
+        sha(REAL_OUT) == EXPECTED_REAL_SHA and
+        sha(REAL_MAP) == EXPECTED_REAL_MAP_SHA and
+        sha(NE_OUT) == EXPECTED_NE_SHA and sha(NE_MAP) == EXPECTED_NE_MAP_SHA and
         f'EXPECTED_SHA="{EXPECTED_REAL_SHA}"' in HOST,
     )
 
@@ -248,13 +278,13 @@ def main() -> None:
         "W4_SWEEP_SIX_ARRAYS_LINKED_IN_RAML3",
         all(f"{name}[W4_SWEEP_BINS]" in HDR for name in arrays) and
         all(symbol in real_map and symbol in ne_map for symbol in symbols) and
-        map_free(real_map, "RAML2") == 0x5C and map_free(real_map, "RAML3") == 0x1A0 and
-        map_free(ne_map, "RAML2") == 0x1 and map_free(ne_map, "RAML3") == 0x15D,
+        map_free(real_map, "RAML2") >= 0x1 and map_free(real_map, "RAML3") == 0x320 and
+        map_free(ne_map, "RAML2") >= 0x1 and map_free(ne_map, "RAML3") == 0x2ED,
     )
     gate(
-        "W4_SWEEP_MEMORY_ACCOUNTING_2880_WORDS",
-        BINS * len(arrays) == 2880 and 2880 < 3458 and
-        "480 x 100 ms bins use 2880 RAML3 words" in SRC,
+        "W4_SWEEP_MEMORY_ACCOUNTING_2400_WORDS",
+        BINS * len(arrays) == 2400 and 2400 < 3458 and
+        "400 x 200 ms bins use 2400 RAML3 words" in SRC,
     )
 
     recorder = SRC[
@@ -284,7 +314,7 @@ def main() -> None:
             "g_w4_sweep_overflow = 1U;",
             "g_w4_trace_fail_reason = W4_TRACE_FAIL_SWEEP_OVERFLOW;",
         )
-    ) and "if(td<4500||td>5500)cadenceOk=false;" in HOST and
+    ) and "if(td<9000||td>11000)cadenceOk=false;" in HOST and
         'check("SWEEP_CADENCE_ALL_BINS",cadenceOk);' in HOST)
     gate("W4_SWEEP_ROLLING_CHECKSUM", all(token in SRC for token in (
         "g_w4_sweep_data_checksum = W4_SWEEP_CHECKSUM_SEED;",
@@ -304,6 +334,7 @@ def main() -> None:
         "(Uint32)g_w4_sweep_overflow",
     )) and all(token in HOST for token in (
         "function cookie(runId,state,reason,dataChecksum,count,overflow)",
+        "0x00000016 ^ runId",
         "dataChecksum ^ ((count&0xffff)<<16) ^ (overflow&0xffff)",
         "var expectedCookie=cookie(RUN_ID,state,reason,dataChecksum,count,overflow);",
     )))
@@ -311,29 +342,66 @@ def main() -> None:
         "g_w4_trace_settle_pass = 0U;",
         "g_w4_trace_quality_pass = 0U;",
     )) and "g_w4_trace_count = g_w4_sweep_count" not in SRC)
-    gate("W4_SWEEP_EXACT_12_TO_60S_TIMING", 600_000 + BINS * 20 * 250 == 3_000_000)
+    duration_guard = SRC[
+        SRC.index("static Uint16 CALHOLD_DurationReached"):
+        SRC.index("/* One shared hard-stop sequence", SRC.index(
+            "static Uint16 CALHOLD_DurationReached"
+        ))
+    ]
+    gate(
+        "W4_SWEEP_EXACT_TARGET_COMPLETION_TICK_4600000",
+        600_000 + BINS * SAMPLES_PER_BIN * 250 == TARGET_COMPLETE_TICK and
+        TARGET_COMPLETE_TICK == 4_600_000 and all(token in duration_guard for token in (
+            "if (s_w4_trace_session_direction != 0U)",
+            "if (g_cal_hold_elapsed_ticks < W4_TRACE_MIN_HOLD_TICKS) return 0U;",
+            "return (Uint16)(g_w4_trace_state == W4_TRACE_STATE_COMPLETE ||",
+        )) and
+        "elapsed>=4600000&&elapsed<=4620000" in HOST,
+    )
 
     cue_bins = list(range(BINS_PER_LEVEL, BINS, BINS_PER_LEVEL))
-    gate("W4_SWEEP_YELLOW_15_CUES_EVERY_3S", all(token in recorder for token in (
+    cue_offsets_ms = [17_200 + index * 5_000 for index in range(15)]
+    gate("W4_SWEEP_TARGET_YELLOW_15_CUES_EVERY_5S", all(token in recorder for token in (
         "GpioDataRegs.GPASET.bit.GPIO21 = 1U;",
         "(g_w4_sweep_count % W4_SWEEP_BINS_PER_LEVEL) == 0U",
         "g_w4_sweep_count < W4_SWEEP_BINS",
         "GpioDataRegs.GPACLEAR.bit.GPIO21 = 1U;",
         "s_w4_sweep_cue_off_bins = W4_SWEEP_CUE_OFF_BINS;",
         "s_w4_sweep_cue_off_bins--;",
-    )) and cue_bins == list(range(30, 451, 30)) and len(cue_bins) == 15 and
-        [value // 10 for value in cue_bins] == list(range(3, 46, 3)) and
-        5 * 100 == 500 and all(token in HOST for token in (
-            "FIRST_YELLOW=KEEP_CR20__THEN_EACH_3S_YELLOW_BLINK_DECREASE_EXACTLY_1OHM",
-            "SEQUENCE=CR20_CR19_CR18_CR17_CR16_CR15_CR14_CR13_CR12_CR11_CR10_CR9_CR8_CR7_CR6_CR5",
-            "EACH_LEVEL=1S_TRANSITION_WINDOW_PLUS2S_STEADY_PLATEAU",
-        )))
+    )) and cue_bins == list(range(25, 376, 25)) and len(cue_bins) == 15 and
+        [value * BIN_MS // 1000 for value in cue_bins] == list(range(5, 76, 5)) and
+        CUE_OFF_BINS * BIN_MS == 1600 and cue_offsets_ms[0] == 17_200 and
+        cue_offsets_ms[-1] == 87_200 and
+        all(right - left == 5_000 for left, right in
+            zip(cue_offsets_ms, cue_offsets_ms[1:])))
+
+    cue_start = HOST.find("fireNs+17200000000")
+    cue_end = HOST.find("fireNs+105000000000", max(cue_start, 0))
+    host_cue_block = HOST[cue_start:cue_end] if cue_start >= 0 and cue_end > cue_start else ""
+    gate("W4_SWEEP_HOST_LOCAL_TIMED_TEXT_CUES", all(token in HOST for token in (
+        "var firstCue=fireNs+17200000000;",
+        "for(var cueStep=1;cueStep<=15;cueStep++)",
+        "firstCue+(cueStep-1)*5000000000",
+        "waitUntil(",
+        ".beep()",
+        "SET_CR",
+        "SEQUENCE=CR20_CR19_CR18_CR17_CR16_CR15_CR14_CR13_CR12_CR11_CR10_CR9_CR8_CR7_CR6_CR5",
+        "EACH_LEVEL=3S_TRANSITION_WINDOW_PLUS2S_STEADY_PLATEAU",
+    )) and bool(host_cue_block) and all(token not in host_cue_block for token in (
+        "session.", "rw(", "rv32u(", "wv(", "wv32(", "addr(", "reg(",
+        "memory.", "target.", "run(",
+    )))
 
     post_fire = HOST[HOST.index("fired=true;"):HOST.index('var state=rw("g_cal_hold_state")')]
     gate("W4_SWEEP_HOST_NO_STDIN_OR_ACTIVE_POLL", all(token not in HOST for token in (
         "readLine", "BufferedReader", "reader.ready", "waitForHalt",
     )) and ".halt()" not in post_fire and post_fire.count("session.target.isHalted()") == 2 and
-        "HOST_SILENT_UNTIL_70S=TRUE" in HOST)
+        all(token in post_fire for token in (
+            "waitUntil(fireNs+105000000000);",
+            "TERMINAL_PROBE_105S_IS_HALTED",
+            "waitUntil(fireNs+205000000000);",
+            "TERMINAL_PROBE_205S_IS_HALTED",
+        )))
     gate("W4_SWEEP_HOST_CONNECT_FAILS_CLOSED", all(token in HOST for token in (
         "session.target.connect();\n  connected=true;",
         'print("W4_SWEEP_REAL_EXCEPTION="+e);\n  failures++;',
@@ -342,8 +410,11 @@ def main() -> None:
     gate("W4_SWEEP_HOST_EXACT_PHYSICAL_CHAIN", all(token in HOST for token in (
         'INITIAL_LOAD.equals("20")', 'FINAL_LOAD.equals("5")',
         'STEP_OHMS.equals("1")', 'INPUT_LIMIT.equals("1.2")',
-        "FIRST_YELLOW=KEEP_CR20__THEN_EACH_3S_YELLOW_BLINK_DECREASE_EXACTLY_1OHM",
-        "NO_POINT_ACK_REQUIRED__TARGET_RECORDS_100MS_BINS=TRUE",
+        "var RUN_ID=0x25090601,DIRECTION=3,BINS=400,BIN_MS=200;",
+        # Uint16 duration stays 60000; nonzero W4 direction waits for trace
+        # COMPLETE after the minimum-hold gate, allowing the 4.6 M tick finish.
+        'wv("g_cal_hold_duration_ms",60000);',
+        "NO_POINT_ACK_REQUIRED__TARGET_RECORDS_200MS_BINS=TRUE",
     )))
     gate("W4_SWEEP_HOST_SIX_BULK_READS", all(
         f'session.memory.readWord(1,addr("{name}"),BINS)' in HOST for name in arrays
@@ -355,8 +426,9 @@ def main() -> None:
     )))
     gate("W4_SWEEP_HOST_FIXED_16_PLATEAUS", all(token in HOST for token in (
         "for(var level=0;level<16&&count===BINS;level++)",
-        "var levelStart=level*30,plateauStart=levelStart+10;",
-        "for(var j=0;j<20;j++)",
+        "var levelStart=level*25,plateauStart=levelStart+15;",
+        "for(var j=0;j<10;j++)",
+        "if(j<5){firstCycles+=pc;firstPackets+=pp;}",
         "var levelDemand=demand(levelCycles,levelPackets,400);",
         "var firstHalf=demand(firstCycles,firstPackets,200);",
         "var secondHalf=demand(secondCycles,secondPackets,200);",
@@ -370,11 +442,12 @@ def main() -> None:
          csv_path_match.group(1).replace("\\\\", "\\") == EXPECTED_CSV and
          all(token in HOST for token in (
         "new FileWriter(CSV_PATH,false)",
-        'csv.println("# run_id=0x2509059C,profile_id=0x1405,algorithm_id=0x0015,out_sha256="+actual);',
+        'csv.println("# run_id=0x25090601,profile_id=0x1405,algorithm_id=0x0016,out_sha256="+actual);',
         'csv.println("# data_checksum=0x"+dataChecksum.toString(16)+",count="+count+",overflow="+overflow);',
         'csv.println("# scope=supplemental_monotonic_16_level_map,scheduled_cr_not_independently_measured=true");',
         'csv.println("bin,t_end_ms_nominal,t_end_target_ticks,scheduled_cr_ohm,raw_min,raw_max,raw_avg,vout_avg_v,cycle_sum,packet_sum,tick_delta,demand_index");',
         "cumulativeTicks+=td;",
+        'check("SWEEP_CUMULATIVE_CAPTURE_TICKS",cumulativeTicks>=3800000&&cumulativeTicks<=4200000);',
         'new FileWriter(CSV_PATH,true)',
         'csvResult.println("# host_gate_result="+(failures===0?"PASS":"FAIL")+',
         'print("SWEEP_CSV_PATH="+CSV_PATH);',
@@ -385,8 +458,9 @@ def main() -> None:
         "scheduled_cr_not_independently_measured=true",
     )))
     gate("W4_SWEEP_HOST_TERMINAL_AND_SAFETY_GATES", all(token in HOST for token in (
-        "SWEEP_TERMINAL_CAPSULE", "SWEEP_CAPTURE_480_BINS", "SWEEP_HOLD_COMPLETE",
-        "SWEEP_DURATION_60S", "SWEEP_VOUT_GLOBAL_5PCT", "SWEEP_DATA_CHECKSUM",
+        "SWEEP_TERMINAL_CAPSULE", "SWEEP_CAPTURE_400_BINS", "SWEEP_HOLD_COMPLETE",
+        "SWEEP_DURATION_92S", "SWEEP_CUMULATIVE_CAPTURE_TICKS",
+        "SWEEP_VOUT_GLOBAL_5PCT", "SWEEP_DATA_CHECKSUM",
         "SWEEP_CADENCE_ALL_BINS", "SWEEP_STRUCTURE_ALL_BINS", "SWEEP_16_PLATEAUS",
         "SWEEP_15_MONOTONIC_STEPS", "SWEEP_ENDPOINT_DEMAND_INCREASE",
         "NO_HARD_LIMIT_EVENT", "NO_FAULT", "NO_HARDWARE_TZ_TRIP",
@@ -400,9 +474,10 @@ def main() -> None:
         samples.append((1239 + index % 3, 200 + level * 10, 2, 250))
     bins = reduce_bins(samples)
     gate(
-        "W4_SWEEP_REDUCER_MODEL_SIX_FIELDS_480_EXACT",
-        len(bins) == BINS and bins[0] == (1239, 1241, 1239, 4000, 40, 5000) and
-        bins[-1][3:] == (7000, 40, 5000),
+        "W4_SWEEP_REDUCER_MODEL_SIX_FIELDS_400_EXACT",
+        len(bins) == BINS and
+        bins[0] == (1239, 1241, 1239, 8000, 80, 10000) and
+        bins[-1][3:] == (14000, 80, 10000),
     )
     overflow_samples = [(1240, 4000, 1, 250)] * (BINS * SAMPLES_PER_BIN)
     try:
@@ -431,11 +506,11 @@ def main() -> None:
     segments_ok, cadence_ok, demands, monotonic_steps = assess_segments(bins)
     gate("W4_SWEEP_STRUCTURE_MODEL_ALL_BINS", structure_ok(bins))
     malformed_rows = (
-        (1241, 1241, 1240, 4000, 40, 5000),
-        (1239, 1241, 1242, 4000, 40, 5000),
-        (1239, 1241, 1240, 0, 40, 5000),
-        (1239, 1241, 1240, 4000, 0, 5000),
-        (1239, 1241, 1240, 40, 41, 5000),
+        (1241, 1241, 1240, 8000, 80, 10000),
+        (1239, 1241, 1242, 8000, 80, 10000),
+        (1239, 1241, 1240, 0, 80, 10000),
+        (1239, 1241, 1240, 8000, 0, 10000),
+        (1239, 1241, 1240, 80, 81, 10000),
     )
     structure_rejects_all = True
     for malformed_row in malformed_rows:
@@ -461,8 +536,21 @@ def main() -> None:
         zero_plateau[index] = (row[0], row[1], row[2], 0, 0, row[5])
     zero_segments_ok, _, _, _ = assess_segments(zero_plateau)
     gate("W4_SWEEP_FIXED_DURATION_MODEL_REJECTS_ZERO_PLATEAU", not zero_segments_ok)
+    unstable_plateau = list(bins)
+    unstable_start = 8 * BINS_PER_LEVEL + TRANSITION_BINS
+    for index in range(unstable_start + PLATEAU_BINS // 2,
+                       unstable_start + PLATEAU_BINS):
+        row = unstable_plateau[index]
+        unstable_plateau[index] = (
+            row[0], row[1], row[2], row[3] * 11 // 10, row[4], row[5]
+        )
+    unstable_segments_ok, _, _, _ = assess_segments(unstable_plateau)
+    gate(
+        "W4_SWEEP_STABILITY_MODEL_REJECTS_GT_3PCT_HALF_DRIFT",
+        not unstable_segments_ok and structure_ok(unstable_plateau),
+    )
     bad_tick = list(bins)
-    bad_tick[301] = (*bad_tick[301][:5], 4499)
+    bad_tick[301] = (*bad_tick[301][:5], 8999)
     _, bad_cadence_ok, _, _ = assess_segments(bad_tick)
     gate("W4_SWEEP_CADENCE_MODEL_REJECTS_OUT_OF_RANGE_BIN", not bad_cadence_ok)
     print("SOL_W4_SWEEP_STATIC_MODEL_PASS=TRUE")

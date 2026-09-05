@@ -9,8 +9,12 @@ set PROJ=D:\CCS21_workspace\Codex_Project
 set CGT=D:\CCS21\ccs\tools\compiler\ti-cgt-c2000_25.11.1.LTS
 set BUILD=%PROJ%\Stage6_OL_STEADY_NE
 set EXTRA_DEFINE=
-if "%SOL_W4_SWEEP_BUILD%"=="1" set BUILD=%PROJ%\Stage6_W4_SWEEP_NE
-if "%SOL_W4_SWEEP_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_SWEEP_TEST=1
+if "%SOL_W4_SWEEP_BUILD%"=="1" (
+    echo ERROR: SOL_W4_SWEEP_BUILD V1 is retired after its fired SHA; use SOL_W4_SWEEP_V2_BUILD=1.
+    exit /b 2
+)
+if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set BUILD=%PROJ%\Stage6_W4_SWEEP_V2_NE
+if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_SWEEP_TEST=1
 
 if exist "%BUILD%" rmdir /s /q "%BUILD%"
 mkdir "%BUILD%"

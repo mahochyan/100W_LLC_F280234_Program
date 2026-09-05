@@ -59,7 +59,7 @@ volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
 volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
 
 #if STAGE6_W4_SWEEP_TEST
-/* Supplemental CR20..CR5 recorder: 480 x 100 ms bins use 2880 RAML3 words.
+/* Supplemental CR20..CR5 recorder V2: 400 x 200 ms bins use 2400 RAML3 words.
  * The existing 5 ms observer reduces locally so no JTAG traffic occurs while
  * power is active. */
 #pragma DATA_SECTION(g_w4_sweep_raw_min, "ol_ram");
@@ -513,7 +513,7 @@ static Uint32 CALHOLD_W4SweepMix(Uint32 checksum, Uint16 value)
     return (((checksum << 5U) | (checksum >> 27U)) ^ (Uint32)value);
 }
 
-/* Compile-gated 100 ms reduction for the supplemental CR20..CR5 sweep. The
+/* Compile-gated 200 ms reduction for the supplemental CR20..CR5 sweep. The
  * recorder is observation-only: it neither writes PWM state nor changes any
  * controller/protection input. All JTAG access remains deferred until the
  * autonomous terminal snapshot. */

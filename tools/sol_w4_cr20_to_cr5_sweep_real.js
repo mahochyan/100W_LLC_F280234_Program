@@ -1,17 +1,18 @@
 // Supplemental W4 CR20 -> CR5 continuous load-map capture, 1 ohm per step.
-// Target owns all 100 ms reduction and the autonomous terminal; after fire the
-// host is completely silent until one bounded 70 s status query. No stdin or
-// per-point acknowledgement exists.
+// Target owns 200 ms recording bins and the autonomous terminal.  During the
+// active window the host performs only local timed text/beep cues; it makes no
+// DSS/JTAG calls until the bounded 105 s status query.  Target LED timing is
+// authoritative and no per-point acknowledgement exists.
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
 importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
-var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W4_SWEEP\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var CSV_PATH="D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\w4_10v_quality\\cr20_to_cr5_sweep_run_0x2509059c.csv";
-var EXPECTED_SHA="AEF6083F6E08BC65689F86F7F67FF6DCDB3D6409C8219F5C1FA7C1FAAF0A09AA";
-var RUN_ID=0x2509059C,DIRECTION=3,BINS=480,BIN_MS=100;
+var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W4_SWEEP_V2\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
+var CSV_PATH="D:\\CCS21_workspace\\Codex_Project\\evidence\\sol_master_execution\\w4_10v_quality\\cr20_to_cr5_sweep_v2_run_0x25090601.csv";
+var EXPECTED_SHA="D10284938BE15DEA5772DF8595F064E40321B2BF26898CED382DE0ABD2C3A8CD";
+var RUN_ID=0x25090601,DIRECTION=3,BINS=400,BIN_MS=200;
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_SWEEP_INITIAL_OHMS")||"");
 var FINAL_LOAD=(java.lang.System.getenv("SOL_W4_SWEEP_FINAL_OHMS")||"");
 var STEP_OHMS=(java.lang.System.getenv("SOL_W4_SWEEP_STEP_OHMS")||"");
@@ -52,7 +53,7 @@ function mix(checksum,value){
   return ((((checksum<<5)|(checksum>>>27))^(value&0xffff))>>>0);
 }
 function cookie(runId,state,reason,dataChecksum,count,overflow){
-  return (0x57440000 ^ 0x00001405 ^ 0x00000015 ^ runId ^
+  return (0x57440000 ^ 0x00001405 ^ 0x00000016 ^ runId ^
           (3<<16) ^ ((state&0xffff)<<8) ^ (reason&0xffff) ^
           dataChecksum ^ ((count&0xffff)<<16) ^ (overflow&0xffff))>>>0;
 }
@@ -75,8 +76,8 @@ function forceSafe(needHalt){
 
 var failures=0,connected=false,fired=false,terminalHaltObserved=false;
 var statusLinkFailed=false,statusProbes=0;
-print("=== SOL W4 SUPPLEMENTAL CR20_TO_CR5 STEP_1OHM ===");
-print("PROFILE_ID=0x1405 ALGORITHM_ID=0x0015 RUN_ID=0x2509059C");
+print("=== SOL W4 SUPPLEMENTAL CR20_TO_CR5 V2 STEP_1OHM ===");
+print("PROFILE_ID=0x1405 ALGORITHM_ID=0x0016 RUN_ID=0x25090601");
 print("VIN_V=24 INITIAL_CR=20 FINAL_CR=5 STEP_OHM=1 INPUT_LIMIT_A="+INPUT_LIMIT);
 var actual=sha256File(OUT);
 print("SWEEP_OUT_SHA256="+actual);print("EXPECTED_SHA256="+EXPECTED_SHA);
@@ -130,19 +131,28 @@ try{
   session.target.runAsynch();
   waitUntil(fireNs+8000000000);
   print("WAIT_FOR_TARGET_YELLOW_LED=TRUE");
-  print("FIRST_YELLOW=KEEP_CR20__THEN_EACH_3S_YELLOW_BLINK_DECREASE_EXACTLY_1OHM");
+  print("FIRST_YELLOW=KEEP_CR20__THEN_EACH_5S_YELLOW_OFF_BLINK_DECREASE_EXACTLY_1OHM");
   print("SEQUENCE=CR20_CR19_CR18_CR17_CR16_CR15_CR14_CR13_CR12_CR11_CR10_CR9_CR8_CR7_CR6_CR5");
-  print("EACH_LEVEL=1S_TRANSITION_WINDOW_PLUS2S_STEADY_PLATEAU");
-  print("NO_POINT_ACK_REQUIRED__TARGET_RECORDS_100MS_BINS=TRUE");
+  print("EACH_LEVEL=3S_TRANSITION_WINDOW_PLUS2S_STEADY_PLATEAU");
+  print("TARGET_YELLOW_OFF_CUE_DURATION=1.6S");
+  print("NO_POINT_ACK_REQUIRED__TARGET_RECORDS_200MS_BINS=TRUE");
   print("RESULT_SCOPE=SUPPLEMENTAL_MONOTONIC_16_LEVEL_MAP__SCHEDULED_CR_NOT_INDEPENDENTLY_MEASURED");
-  print("HOST_SILENT_UNTIL_70S=TRUE");
+  print("TARGET_LED_TIMING_AUTHORITATIVE__HOST_TIMED_CUES_APPROXIMATE=TRUE");
+  print("NO_DSS_OR_JTAG_CALLS_DURING_ACTIVE_CUE_WINDOW=TRUE");
   java.lang.System.out.flush();
-  waitUntil(fireNs+70000000000);
+  var firstCue=fireNs+17200000000;
+  for(var cueStep=1;cueStep<=15;cueStep++){
+    waitUntil(firstCue+(cueStep-1)*5000000000);
+    print("HOST_TIMED_CUE step="+cueStep+" SET_CR"+(20-cueStep)+"_NOW");
+    try{Packages.java.awt.Toolkit.getDefaultToolkit().beep();}catch(beepError){}
+    java.lang.System.out.flush();
+  }
+  waitUntil(fireNs+105000000000);
   try{
     statusProbes++;
     terminalHaltObserved=session.target.isHalted();
-    print("TERMINAL_PROBE_70S_IS_HALTED="+(terminalHaltObserved?"TRUE":"FALSE"));
-  }catch(e){statusLinkFailed=true;print("TERMINAL_PROBE_70S_EXCEPTION="+e);}
+    print("TERMINAL_PROBE_105S_IS_HALTED="+(terminalHaltObserved?"TRUE":"FALSE"));
+  }catch(e){statusLinkFailed=true;print("TERMINAL_PROBE_105S_EXCEPTION="+e);}
   if(!terminalHaltObserved&&!statusLinkFailed){
     print("TARGET_STILL_ACTIVE__SILENT_TO_205S=TRUE");
     waitUntil(fireNs+205000000000);
@@ -188,15 +198,15 @@ try{
   var cycles=session.memory.readWord(1,addr("g_w4_sweep_cycle_sum"),BINS);
   var packets=session.memory.readWord(1,addr("g_w4_sweep_packet_sum"),BINS);
   var ticks=session.memory.readWord(1,addr("g_w4_sweep_tick_delta"),BINS);
-  var demands=[],globalMin=65535,globalMax=0,recomputedChecksum=0x53575015;
+  var demands=[],globalMin=65535,globalMax=0,recomputedChecksum=0x53575016;
   var cadenceOk=true,structureOk=true,csvRows=[],cumulativeTicks=0;
   for(var i=0;i<count;i++){
     var mn=Number(mins[i]),mx=Number(maxs[i]),av=Number(avgs[i]);
     var cy=Number(cycles[i]),pk=Number(packets[i]),td=Number(ticks[i]);
     cumulativeTicks+=td;
-    var dm=demand(cy,pk,20);
+    var dm=demand(cy,pk,40);
     demands.push(dm);if(mn<globalMin)globalMin=mn;if(mx>globalMax)globalMax=mx;
-    if(td<4500||td>5500)cadenceOk=false;
+    if(td<9000||td>11000)cadenceOk=false;
     if(mn>av||av>mx||cy<=0||pk<=0||pk>cy)structureOk=false;
     recomputedChecksum=mix(recomputedChecksum,i);
     recomputedChecksum=mix(recomputedChecksum,mn);
@@ -210,19 +220,19 @@ try{
           " volts_avg="+vout(av).toFixed(4)+" cycles="+cy+
           " packets="+pk+" tick_delta="+td+" demand="+dm);
     csvRows.push(i+","+((i+1)*BIN_MS)+","+cumulativeTicks+","+
-                 (20-Math.floor(i/30))+","+
+                 (20-Math.floor(i/25))+","+
                  mn+","+mx+","+av+","+vout(av).toFixed(6)+","+
                  cy+","+pk+","+td+","+dm);
   }
   var segmentDemand=[],segmentsOk=(count===BINS),monotonicSteps=0;
   for(var level=0;level<16&&count===BINS;level++){
-    var levelStart=level*30,plateauStart=levelStart+10;
+    var levelStart=level*25,plateauStart=levelStart+15;
     var levelCycles=0,levelPackets=0,firstCycles=0,firstPackets=0;
     var secondCycles=0,secondPackets=0,levelMin=65535,levelMax=0;
-    for(var j=0;j<20;j++){
+    for(var j=0;j<10;j++){
       var p=plateauStart+j,pc=Number(cycles[p]),pp=Number(packets[p]);
       levelCycles+=pc;levelPackets+=pp;
-      if(j<10){firstCycles+=pc;firstPackets+=pp;}
+      if(j<5){firstCycles+=pc;firstPackets+=pp;}
       else{secondCycles+=pc;secondPackets+=pp;}
       if(Number(mins[p])<levelMin)levelMin=Number(mins[p]);
       if(Number(maxs[p])>levelMax)levelMax=Number(maxs[p]);
@@ -252,7 +262,7 @@ try{
 
   var csv=new PrintWriter(new BufferedWriter(new FileWriter(CSV_PATH,false)));
   try{
-    csv.println("# run_id=0x2509059C,profile_id=0x1405,algorithm_id=0x0015,out_sha256="+actual);
+    csv.println("# run_id=0x25090601,profile_id=0x1405,algorithm_id=0x0016,out_sha256="+actual);
     csv.println("# data_checksum=0x"+dataChecksum.toString(16)+",count="+count+",overflow="+overflow);
     csv.println("# scope=supplemental_monotonic_16_level_map,scheduled_cr_not_independently_measured=true");
     csv.println("bin,t_end_ms_nominal,t_end_target_ticks,scheduled_cr_ohm,raw_min,raw_max,raw_avg,vout_avg_v,cycle_sum,packet_sum,tick_delta,demand_index");
@@ -263,14 +273,15 @@ try{
   var fault=rv32u("g_fault_flags"),hw1=rv32u("g_tz_hardware_trip_count");
   var active1=rv32u("g_tz_active_window_trip_count");
   var rise1=rv32u("g_enable_rising_count");
-  check("SWEEP_CAPTURE_480_BINS",count===BINS&&overflow===0);
+  check("SWEEP_CAPTURE_400_BINS",count===BINS&&overflow===0);
+  check("SWEEP_CUMULATIVE_CAPTURE_TICKS",cumulativeTicks>=3800000&&cumulativeTicks<=4200000);
   check("SWEEP_DATA_CHECKSUM",recomputedChecksum===dataChecksum);
   check("SWEEP_CADENCE_ALL_BINS",cadenceOk);
   check("SWEEP_STRUCTURE_ALL_BINS",structureOk);
   check("SWEEP_16_PLATEAUS",segmentsOk&&segmentDemand.length===16);
   check("SWEEP_15_MONOTONIC_STEPS",monotonicSteps===15);
   check("SWEEP_HOLD_COMPLETE",state===4&&reason===1&&traceState===5&&traceFail===0);
-  check("SWEEP_DURATION_60S",elapsed>=3000000&&elapsed<=3020000);
+  check("SWEEP_DURATION_92S",elapsed>=4600000&&elapsed<=4620000);
   check("SWEEP_VOUT_GLOBAL_5PCT",globalMin>=1182&&globalMax<=1306);
   check("SWEEP_ENDPOINT_DEMAND_INCREASE",firstDemand>0&&lastDemand*2>=firstDemand*5);
   check("NO_FAULT",fault===0&&rw("g_system_state")===1);

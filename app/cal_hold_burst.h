@@ -129,19 +129,19 @@
 
 /* Compile-gated supplemental load-map recorder. It adds observation RAM only;
  * packet control and every protection threshold remain the qualified W3/W4
- * implementation. Starting at the 12 s yellow marker, twenty 5 ms samples are
- * reduced into each 100 ms bin until the 60 s hold terminates. */
+ * implementation. Starting at the 12 s yellow marker, forty 5 ms samples are
+ * reduced into each 200 ms bin. Sixteen 5 s levels finish at target tick 92 s. */
 #define W4_SWEEP_LOAD_PROFILE_ID         0x1405UL
-#define W4_SWEEP_ALGORITHM_ID            0x0015UL
-#define W4_SWEEP_BIN_SAMPLES                 20U
-#define W4_SWEEP_BINS                       480U
+#define W4_SWEEP_ALGORITHM_ID            0x0016UL
+#define W4_SWEEP_BIN_SAMPLES                 40U
+#define W4_SWEEP_BINS                       400U
 #define W4_SWEEP_MARKER_TICKS            600000UL
 #define W4_SWEEP_LEVELS                       16U
-#define W4_SWEEP_BINS_PER_LEVEL               30U
-#define W4_SWEEP_TRANSITION_BINS               10U
-#define W4_SWEEP_PLATEAU_BINS                  20U
-#define W4_SWEEP_CUE_OFF_BINS                   5U
-#define W4_SWEEP_CHECKSUM_SEED          0x53575015UL
+#define W4_SWEEP_BINS_PER_LEVEL               25U
+#define W4_SWEEP_TRANSITION_BINS               15U
+#define W4_SWEEP_PLATEAU_BINS                  10U
+#define W4_SWEEP_CUE_OFF_BINS                   8U
+#define W4_SWEEP_CHECKSUM_SEED          0x53575016UL
 
 #define W4_TRACE_STATE_IDLE                 0U
 #define W4_TRACE_STATE_WAIT_BASELINE        1U

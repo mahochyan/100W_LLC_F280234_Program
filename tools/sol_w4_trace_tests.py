@@ -12,6 +12,10 @@ HDR = (ROOT / "app" / "cal_hold_burst.h").read_text(encoding="utf-8")
 REAL = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
 NE = (ROOT / "tools" / "sol_w4_trace_noenergy.js").read_text(encoding="utf-8")
 LINK_NE = (ROOT / "tools" / "sol_w4_v14_link_idle_noenergy.js").read_text(encoding="utf-8")
+MASTER_STATE = (ROOT / "docs" / "SOL_MASTER_EXECUTION_STATE.md").read_text(encoding="utf-8")
+V14_EVIDENCE = (ROOT / "evidence" / "sol_master_execution" /
+                "w4_10v_quality" /
+                "offline_v14_warmed_frozen_target_marker_v1.txt").read_text(encoding="utf-8")
 REAL_OUT = (ROOT / "Stage6_OL_STEADY" /
             "LLC_100W_F28034_OPEN_LOOP_STEADY.out")
 REAL_MAP = (ROOT / "Stage6_OL_STEADY" /
@@ -20,6 +24,17 @@ NE_OUT = (ROOT / "Stage6_OL_STEADY_NE" /
            "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out")
 NE_MAP = (ROOT / "Stage6_OL_STEADY_NE" /
           "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.map")
+
+EXPECTED_REAL_OUT_SHA = "B4371EC608FDD0759FD3DEE52C125079CF3DE9A6CFE480BEA1181BD5DD588F2B"
+EXPECTED_REAL_MAP_SHA = "7EC1D057E128D450C5FBFCF3B8F48F14B33DDF9B970FAE137881A22B00A636A9"
+EXPECTED_NE_OUT_SHA = "A90BD9223F96D9D8168CD22EE30D7922A31C0088C9110653F578E222217EFCB8"
+EXPECTED_NE_MAP_SHA = "1FEE5E10F885C113A841A9D06425B93AE70A1A2F65EF48D678DE7F379D615F10"
+V14_ARTIFACTS = (
+    (REAL_OUT, EXPECTED_REAL_OUT_SHA),
+    (REAL_MAP, EXPECTED_REAL_MAP_SHA),
+    (NE_OUT, EXPECTED_NE_OUT_SHA),
+    (NE_MAP, EXPECTED_NE_MAP_SHA),
+)
 
 RING = 128
 BASELINE = 40
@@ -34,6 +49,16 @@ def gate(name: str, ok: bool) -> None:
     print(f"{name}={'TRUE' if ok else 'FALSE'}")
     if not ok:
         raise AssertionError(name)
+
+
+def guarded_four_piece_set(exists: tuple[bool, ...],
+                           actual: tuple[str, ...],
+                           expected: tuple[str, ...]) -> bool:
+    """Accept only an exact four-piece set or an intentional full quarantine."""
+    if len(exists) != 4 or len(actual) != 4 or len(expected) != 4:
+        return False
+    return (not any(exists) or
+            (all(exists) and actual == expected))
 
 
 def real_connect_failure_fails_closed(text: str) -> bool:
@@ -174,6 +199,38 @@ def make_step_stream(direction: int, transient_raw: int,
 
 
 def main() -> None:
+    expected_shas = tuple(expected for _, expected in V14_ARTIFACTS)
+    artifact_exists = tuple(path.exists() for path, _ in V14_ARTIFACTS)
+    artifact_shas = tuple(
+        hashlib.sha256(path.read_bytes()).hexdigest().upper()
+        if exists else ""
+        for (path, _), exists in zip(V14_ARTIFACTS, artifact_exists)
+    )
+    artifact_set_guarded = guarded_four_piece_set(
+        artifact_exists, artifact_shas, expected_shas)
+    artifact_set_absent = not any(artifact_exists)
+    artifact_set_exact = all(artifact_exists) and artifact_shas == expected_shas
+
+    gate("W4_V14_CANONICAL_FOUR_PIECE_ALL_ABSENT_OR_ALL_EXACT",
+         artifact_set_guarded and (artifact_set_absent or artifact_set_exact))
+    gate("W4_V14_CANONICAL_FOUR_PIECE_NEGATIVE_MODEL", all((
+        guarded_four_piece_set((False, False, False, False),
+                               ("", "", "", ""), expected_shas),
+        guarded_four_piece_set((True, True, True, True),
+                               expected_shas, expected_shas),
+        all(not guarded_four_piece_set(
+                tuple(index != missing for index in range(4)),
+                tuple(expected_shas[index] if index != missing else ""
+                      for index in range(4)),
+                expected_shas)
+            for missing in range(4)),
+        all(not guarded_four_piece_set(
+                (True, True, True, True),
+                tuple("0" * 64 if index == mismatch else expected_shas[index]
+                      for index in range(4)),
+                expected_shas)
+            for mismatch in range(4)),
+    )))
     gate("W4_TRACE_RING_POWER_OF_TWO", RING & (RING - 1) == 0)
     gate("W4_TRACE_STATIC_CONSTANTS", all(token in HDR for token in (
         "W4_TRACE_SAMPLES                  128U",
@@ -358,10 +415,12 @@ def main() -> None:
              ".terminate()", ".connect()",
          )) and "FIRMWARE_TERMINAL_HALT_OBSERVED=TRUE" in pre_read)
     sha_match = re.search(r'EXPECTED_SHA="([0-9A-F]{64})"', REAL)
-    actual_sha = (hashlib.sha256(REAL_OUT.read_bytes()).hexdigest().upper()
-                  if REAL_OUT.exists() else "")
     gate("W4_REAL_SHA_AND_PHYSICAL_GATES", sha_match is not None and
-         sha_match.group(1) == actual_sha and all(token in REAL for token in (
+         sha_match.group(1) == EXPECTED_REAL_OUT_SHA and
+         artifact_set_guarded and
+         f"REAL_OUT_SHA256={EXPECTED_REAL_OUT_SHA}" in V14_EVIDENCE and
+         f"W4_V14_REAL_OUT_SHA256={EXPECTED_REAL_OUT_SHA}" in MASTER_STATE and
+         all(token in REAL for token in (
         'SOL_W4_INPUT_LIMIT_A', 'SOL_W4_INITIAL_LOAD_OHMS',
         'PREFIRE_TARGET_CLOCK_200MS', 'W4_WAIT_FOR_YELLOW_LED_THEN_STEP=',
         'WHEN_YELLOW_LED_TURNS_ON_SET_ELOAD_OHMS=',
@@ -412,17 +471,33 @@ def main() -> None:
     gate("W4_REAL_CONNECT_THROW_STUB_NO_LOAD_OR_CLEANUP",
          calls == ["connect"] and not connected and not fired and
          connect_failures == 1)
-    real_map = REAL_MAP.read_text(encoding="utf-8", errors="replace")
-    ne_map = NE_MAP.read_text(encoding="utf-8", errors="replace")
-    gate("W4_V14_MAP_MEMORY_AND_TARGET_MARKER_SYMBOL", all(token in real_map for token in (
-        "RAML2                 00008c00   00000400  000003a4  0000005c",
-        "RAML3                 00009000   00001000  0000027e  00000d82",
-        "_g_w4_trace_operator_marker_tick",
-    )) and all(token in ne_map for token in (
-        "RAML2                 00008c00   00000400  000003ff  00000001",
-        "RAML3                 00009000   00001000  000002c3  00000d3d",
-        "_g_w4_trace_operator_marker_tick",
-    )))
+    historical_map_binding = all(token in V14_EVIDENCE for token in (
+        f"REAL_MAP_SHA256={EXPECTED_REAL_MAP_SHA}",
+        f"NE_MAP_SHA256={EXPECTED_NE_MAP_SHA}",
+        "REAL_MEMORY=RAML2_USED0x3A4_FREE0x5C__RAML3_USED0x27E_FREE0xD82",
+        "NE_MEMORY=RAML2_USED0x3FF_FREE0x1__RAML3_USED0x2C3_FREE0xD3D",
+        "MAP_TARGET_MARKER_SYMBOL=REAL0x9024__NE0x9026",
+        "SOL_W4_TRACE_STATIC_MODEL_PASS=TRUE",
+    )) and all(token in MASTER_STATE for token in (
+        f"W4_V14_REAL_MAP_SHA256={EXPECTED_REAL_MAP_SHA}",
+        f"W4_V14_NE_MAP_SHA256={EXPECTED_NE_MAP_SHA}",
+        "W4_V14_MEMORY=REAL_RAML2_FREE0x5C_RAML3_FREE0xD82__NE_RAML2_FREE0x1_RAML3_FREE0xD3D__NE_NO_RELAXATION",
+        "W4_V14_STATIC_MODEL=SOL_W4_TRACE_STATIC_MODEL_PASS",
+    ))
+    direct_map_gate = artifact_set_exact and all(token in
+        REAL_MAP.read_text(encoding="utf-8", errors="replace") for token in (
+            "RAML2                 00008c00   00000400  000003a4  0000005c",
+            "RAML3                 00009000   00001000  0000027e  00000d82",
+            "_g_w4_trace_operator_marker_tick",
+        )) and all(token in
+        NE_MAP.read_text(encoding="utf-8", errors="replace") for token in (
+            "RAML2                 00008c00   00000400  000003ff  00000001",
+            "RAML3                 00009000   00001000  000002c3  00000d3d",
+            "_g_w4_trace_operator_marker_tick",
+        ))
+    gate("W4_V14_MAP_MEMORY_AND_TARGET_MARKER_SYMBOL",
+         artifact_set_guarded and historical_map_binding and
+         (artifact_set_absent or direct_map_gate))
     gate("W4_V14_EXACT_15_12_HOST_DIRECTIONS", all(token in REAL for token in (
         'DIRECTION=1;RUN_ID=0x2509059A;EXPECTED_INITIAL="15";EXPECTED_TARGET="12";',
         'STEP_TEXT="CR15_TO_CR12";',
@@ -490,10 +565,11 @@ def main() -> None:
         "total<=proportionalCap+160", "total<=22500000+160",
     )))
     ne_sha_match = re.search(r'EXPECTED_SHA="([0-9A-F]{64})"', NE)
-    actual_ne_sha = (hashlib.sha256(NE_OUT.read_bytes()).hexdigest().upper()
-                     if NE_OUT.exists() else "")
     gate("W4_NE_SHA_HARD_GATE", ne_sha_match is not None and
-         ne_sha_match.group(1) == actual_ne_sha and
+         ne_sha_match.group(1) == EXPECTED_NE_OUT_SHA and
+         artifact_set_guarded and
+         f"NE_OUT_SHA256={EXPECTED_NE_OUT_SHA}" in V14_EVIDENCE and
+         f"W4_V14_NE_OUT_SHA256={EXPECTED_NE_OUT_SHA}" in MASTER_STATE and
          'check("NE_SHA_HARD_GATE",actualSha.equals(EXPECTED_SHA)' in NE and
          'g_w4_trace_operator_marker_tick' in NE and
          'g_enable_rising_count")==enableRise0' in NE and
