@@ -1,0 +1,172 @@
+SOL W4 10V 控制模式偏差与证据处置 V1
+记录时间：2026-09-06T01:04:00+08:00
+
+一、用途、依据和冻结快照
+
+- 本文核对主工作单 W4/W9 的原始要求与实际生成 W4 实功率证据的固件。
+  本文只记录偏差，不是 W4 PI/PFM 验收记录，也不授予继续升功率的资格。
+- 主工作单实际文件：
+  C:\Users\lapyin\Downloads\100W_LLC_SOL_MAX_一条龙总控工作单_2026-08-25.txt
+  SHA256=38313508AEC9E36D0F604B952682A5DFC53F0AA0BE36D1D6CB6D87B107B1C1BF
+- 操作者指定的仓库基线：36ef115。
+- V2 实际点火源码提交：
+  e62916edb18535d00bcd14c0edf4ecf23cba3e51。
+- 本次审计/协调提交：
+  9b819a3615870bf6aaf0331429ddc938305e0de1。
+- 下文所有仓库文件行号均以 V2 点火提交 e62916e 为准；所引控制路径文件在
+  e62916e 与 9b819a3 之间没有变化。为防后续开发导致行号漂移，冻结 Git blob：
+    3209244e8ed6afa3a0a9a7fe4157ea55cd2c5207  app/protection.c
+    6ad6d79feb464d8cb143b24e500dd67614aa159d  app/cal_hold_burst.c
+    16d53f3fac7bc68daa0554a3ff2214e7f37da2aa  app/cal_hold_burst.h
+    8c7667fb43091485b8462f7e5e3f897ce6c87c2b  app/control.c
+    3ef49212f236cb8485ae4523decb2f3bed3d29d6  llc_config.h
+    fbf504f8050e3c6f5f74f062d98fa0d0d11fa7be  tools/build_flash_open_loop_steady.bat
+    d4e9f74fdb1999b7db58ab8796276d88b77bd558  tools/sol_w4_cr20_to_cr5_sweep_real.js
+
+二、W4 和 W9 的原始门槛
+
+- 主工作单第 388..400 行要求在 10V 做 PI/PFM 质量定型：保存 PI 的 A 基线，
+  用片上 ADC 做辨识，只做 CR15 <-> CR12.5 受控阶跃，每次只改一个 PI 参数，
+  记录 Kp/Ki、峰值、下冲、整定时间、积分饱和时间和频率轨迹，并完成 A/B/A
+  复现。操作者后续为了调节方便同意用 CR15 <-> CR12，但这不改变 PI/PFM 和
+  A/B/A 的本质要求。
+- 主工作单第 402..408 行还要求：无 Burst、无 fmax 长期饱和，过冲/下冲不超过
+  5%，100ms 内进入并保持在 +/-2% 带，无持续振荡或积分 windup，ISR 不超过
+  900 cycles。只有这些事实成立后，第 411 行定义的原始令牌才可签发：
+  W4_10V_PI_PFM_BASELINE_ACCEPTED。
+- 主工作单第 186 行规定：10W 以上不能只依赖片上 ADC 判断开关安全，进入明显
+  增益区或高功率前必须满足 W9 仪器门。第 560..566 行列出示波器、隔离/差分
+  测量、原边电流观测、栅极/VOUT 测量、温度、校准功率和足额源/载条件；第
+  568..574 行要求每个新点观察栅极/死区、换相/直通、谐振电流/偏磁、Vds/ZVS
+  和输出纹波。
+- 在 10V 下 P=V^2/R：CR10=10.0W、CR9=11.1W、CR8=12.5W、CR5=20.0W。
+  因而 CR8 以及更低阻值均已经超过 10W 边界。V2 曾一次到达 CR8，并不构成
+  对 W9 的豁免；在 W9 合格前，不继续 CR8->CR7->...->CR5。这个结论是证据和
+  仪器门的结论，不表示 V2 曾发生功率、稳压或保护故障。
+
+三、V2 的物理事实、冻结身份与处置
+
+- 冻结记录
+  evidence/sol_master_execution/w4_10v_quality/
+  real_cr20_to_cr8_sweep_v2_coordination_invalid.txt:5..8 给出唯一点火身份：
+    SOURCE=e62916edb18535d00bcd14c0edf4ecf23cba3e51
+    REAL_OUT_SHA256=D10284938BE15DEA5772DF8595F064E40321B2BF26898CED382DE0ABD2C3A8CD
+    RUN/PROFILE/ALGORITHM/DIRECTION=0x25090601/0x1405/0x0016/3
+  该 SHA 只点火一次，不得重放。
+- 同一记录第 14..24 行冻结了安全终态：state=4、reason=1、elapsed=4627518、
+  trace_state=5、trace_fail=0、400 条记录、无 overflow、checksum/cookie 相符；
+  PWM=0、final PWM=0、OST=1、TZINT=0、fault=0、无 hard-limit/TZ 事件，且 raw
+  VOUT=1192..1270，位于 10V +/-5% 门内。
+- 操作者事后确认的物理事实具有最高优先级：实际只从 CR20 降到 CR8，没有到
+  CR5；该事实已冻结在同一记录第 26..31 行。因此计划中的 16 个 CR 标签及 CR5
+  终点无效；禁止事后给采样 bin 补标为某个精确阻值。
+- 冻结 CSV：
+  evidence/sol_master_execution/w4_10v_quality/
+  cr20_to_cr5_sweep_v2_run_0x25090601.csv
+  SHA256=CD57593E583D27124AE49C612D508DBFFCC48E75BC4631827E515ACC103E93B4
+  大小=27078 bytes，行数=405，host_gate_result=FAIL，failure_count=5。
+- 正式处置保持不变：
+  SOL_W4_CR20_TO_CR5_SWEEP_PASS=FALSE。
+  转换器的安全响应可保留为定性负载响应证据，但不能声称取得 16 个精确负载
+  平台或 CR5 终点。
+
+四、V2 cadence 的 tick 归一化审计
+
+- 点火 host 用名义 5ms 样本数计算聚合 demand，见提交 e62916e 的
+  tools/sol_w4_cr20_to_cr5_sweep_real.js:60..63、:227..248。实际 bin 比名义
+  时长更长时，该计算会把 demand 放大。冻结 CSV 第 395..404 行（bin390..399）
+  正好存在这种 tick 延长。
+- 本审计只保留 host 原聚合 demand 的量纲，并按实际时长去掉膨胀：
+    D_tick_normalized=floor(D_original*nominal_ticks/actual_ticks)。
+- 最后一个计划平台前半段，bin390..394：
+    actual_ticks=61916，D_original=48240，
+    D_tick_normalized=floor(48240*50000/61916)=38956。
+- 最后一个计划平台后半段，bin395..399：
+    actual_ticks=65518，D_original=51120，
+    D_tick_normalized=floor(51120*50000/65518)=39012。
+- 整个 bin390..399：
+    actual_ticks=127434，D_original=49680，
+    D_tick_normalized=floor(49680*100000/127434)=38985。
+- 两个归一化半段只相差 56，约为均值的 0.14%，明显位于 host 的 +/-3% 稳定
+  门内。因此，先前 48240 对 51120 所显示的“最后平台不稳定”是 recorder cadence
+  造成的假象，不是转换器终点不稳定的证据。
+- 此修正不会修复 cadence 门、计划单调门、时长门、终点比例门或物理协调门。
+  尤其不能把 bin390..399 变成 CR5 证据：操作者只到 CR8，且精确阶跃时间没有
+  独立记录。归一化审计不得新增或修补任何 CR 标签。
+
+五、实际 10V 控制模式：protected Burst，PI 旁路
+
+- 点火 build family 自身明确声明 PI 已旁路：提交 e62916e 的
+  tools/build_flash_open_loop_steady.bat:2、:22..25、:110 编译
+  STAGE6_OPEN_LOOP_STEADY_BUILD=1，并把二进制标为
+  “W2_OPEN_LOOP_STEADY REAL (PI fully bypassed)”。
+- e62916e:llc_config.h:24..30 明确该 open-loop build 与 bounded/real PI-shot
+  宏互斥；e62916e:llc_config.h:129、:136 冻结 LLC_CONTROL_DIRECTION=0 和
+  LLC_HARDWARE_PI_VALIDATED=0。
+- 在 20us 中断路径中，e62916e:app/protection.c:354..364 先执行
+  CALHOLD_FastTask；open-loop build 随后在 :360..361 调用 OPENLOOP_FastTask，
+  CTRL_FastTask 只存在于 :362..363 的非 open-loop 分支。因此 V2 实功率窗口没有
+  执行 PI/PFM fast task。
+- 10V cal-hold profile 明确是 protected Burst：
+  e62916e:app/cal_hold_burst.h:49..68 定义 raw=1220/1260/1300 的 recharge/
+  target/hard 门、160-cycle 单包上限和 DB36 终点；
+  e62916e:app/cal_hold_burst.c:1356..1379 以固定 250kHz（TBPRD=239）、DB110
+  启动每个包，:1191..1216 在包内把 DB110 逐步降到 DB36，:1232..1235 在有界
+  上限停包。
+- 即使在 controller-enabled build，e62916e:app/control.c:401..488 也只会在独立
+  授权的 shot 或 LLC_HARDWARE_PI_VALIDATED 条件下写真实 PWM；:484..488 的默认
+  分支仅更新 shadow，不写 PWM。
+- 因而 V2 及当前 W4 cal-hold trace 提供的是 Burst 包 demand/raw 证据，不是 active
+  PI 证据。它们没有施加过 Kp/Ki 改动，也没有 active integral 状态/饱和时间或
+  PI 驱动的频率轨迹。对该二进制，这些字段只能标为“不适用/未采集”，不得由
+  packet demand 推测。
+
+六、为什么原始 W4 令牌必须延期
+
+- protected Burst 直接违反主工作单第 404 行的“无 Burst”门；同时编译后的中断
+  分派已旁路 PI。VOUT、整定、终态和安全门即使通过，也不能替代缺失的 active
+  PI A/B/A 证据。
+- 独立的 CR15->CR12 V14 target trace 仍是有用的 plant evidence：
+  evidence/sol_master_execution/w4_10v_quality/
+  real_v14_heavier_target_pass_host_ack_invalid_v1.txt:5..6、:24..45、:57..59
+  冻结 REAL_SHA256=
+  B4371EC608FDD0759FD3DEE52C125079CF3DE9A6CFE480BEA1181BD5DD588F2B，
+  RUN=0x2509059A，trace_state=5/fail=0，demand 从 26475 变为
+  31284/31284/31561，post=30369，TARGET_AND_PLANT_EVIDENCE=PASS。其 host ACK
+  链无效，所以正式 load-step token 仍为 FALSE；它同样是 protected Burst，不是
+  W4 原文要求的 PI/PFM A/B/A。
+- 强制令牌状态：
+  W4_10V_PI_PFM_BASELINE_ACCEPTED=DEFERRED_NOT_ISSUED。
+  禁止把 V14/V2 改名或追认为该令牌。只有 protected-Burst 返回腿证据闭合后，
+  才可考虑另立明确带偏差字样的模式令牌；该令牌也不能替代原始 PI 令牌。
+
+七、后续有序路径
+
+1. 停止计划中的 supplemental CR20->CR5 V3。它会在没有 W9 的情况下把片上 ADC
+   实验进一步推进到 10W 以上，而且仍不执行 PI。
+2. 离线合格一份全新 protected-Burst CR12->CR15 返回腿 artifact：使用新的
+   run/profile/algorithm 身份和 OUT hash，target 自主有界终态，不依赖 stdin 的
+   可见提示，并明确报告 PI inactive。在 10V 下，CR12 约 8.33W，CR15 约 6.67W。
+   该运行只闭合 protected-Burst plant-response 的 lighter 返回腿，不签发
+   W4_10V_PI_PFM_BASELINE_ACCEPTED。
+3. 按主工作单第 416..450 行推进 W5 的 CR15 reference ladder：
+   10.0->10.5->11.0->11.5->12.0V；找到第一个无需 Burst、无饱和且具有真实控制
+   权限的 continuous-PFM 工作点即停止搜索。
+4. 在第一个合格 continuous-PFM 点做全新、有界、active-PI A/B/A，记录实际应用的
+   Kp/Ki、峰值/下冲、<=100ms 整定、积分状态/饱和时间、频率轨迹、ISR<=900、
+   保护状态和不可变 run/hash 身份。W9 合格前负载组合不得超过 10W；参考电压升高
+   后可能必须采用工作单原定 CR12.5，而不能用 CR12。
+5. 如果在不超过 11V 且负载不超过 10W 的范围内仍找不到 continuous-PFM A/B/A
+   工作点，则保持 W4 PI 令牌延期，把真实 PI 合格移到 W5/W6 边界；任何更低阻值
+   或更高功率步骤之前先通过 W9。
+
+八、审计结论
+
+W4_CONTROL_MODE_DEVIATION_RECORDED=TRUE
+V2_ACTUAL_PHYSICAL_RANGE=CR20_TO_CR8_ONLY
+V2_LAST_INTERVAL_TICK_NORMALIZED_STABILITY=PASS_0P14_PERCENT
+V2_EXACT_CR_LABELS_VALID=FALSE
+CONTINUE_BELOW_CR8_BEFORE_W9=FALSE
+CURRENT_10V_MODE=PROTECTED_BURST_PI_BYPASSED
+W4_10V_PI_PFM_BASELINE_ACCEPTED=DEFERRED_NOT_ISSUED
+NEXT_REAL_SCOPE=CR12_TO_CR15_PROTECTED_BURST_RETURN_ONLY_AFTER_OFFLINE_QUALIFICATION
