@@ -1,0 +1,69 @@
+SOL W4 SUPPLEMENTAL CR20-TO-CR5 SWEEP V2 OFFLINE QUALIFICATION
+Recorded: 2026-09-06T00:28:07+08:00
+
+SCOPE
+- Supplemental 16-level plant load map only. This does not replace the formal
+  W4 A/B/A requirement or later W9/W10 real-power acceptance.
+- V1 RUN 0x2509059C / SHA AEF6083F...A09AA completed safely but observed no
+  effective load change. That fired image is retired and was not replayed.
+
+SOURCE AND TUPLE
+- Source commit: e62916edb18535d00bcd14c0edf4ecf23cba3e51
+- Profile: 0x1405
+- Algorithm: 0x0016
+- Run ID: 0x25090601
+- Direction: 3 (scheduled CR20 to CR5, 1 ohm per cue)
+- Checksum seed: 0x53575016
+
+TARGET/HOST CONTRACT
+- Target marker: 600000 ticks (approximately 12 s).
+- Capture: 400 bins x 40 samples x 5 ms = 80 s after the marker.
+- Completion: 4600000 target ticks (approximately 92 s from fire).
+- Levels: 16 x 25 bins = 5 s/level; 15 transition bins (3 s) followed by
+  10 plateau bins (2 s).
+- Target yellow LED goes off for 8 bins = 1.6 s at count 25, 50, ... 375.
+- Host emits local-only text/beep cues at fire+17.2 s then every 5 s, 15 times.
+  Target LED timing is authoritative. No DSS/JTAG call exists in that cue window.
+- First target status probe is at 105 s; one bounded fallback is at 205 s.
+- Host bulk-reads all six arrays only after the autonomous terminal is confirmed.
+
+ARTIFACTS (CGT C2000 25.11.1.LTS, COFF)
+- REAL OUT SHA256: D10284938BE15DEA5772DF8595F064E40321B2BF26898CED382DE0ABD2C3A8CD
+- REAL MAP SHA256: 442B64AA26B0801A3D6CF9D24F474159BE56C6683A77DDE9FE6C18BEF4D40562
+- NE OUT SHA256:   54376784D0143087545CE458E2B8B80455396F2909DE548771E7A24F99375FB6
+- NE MAP SHA256:   FD284C93CC720174F432D30B960CB67E8E463A20D6D99FD243A18FB648A22140
+- REAL RAML1/RAML2/RAML3 free: 0x340 / 0x5C / 0x320.
+- NE RAML1/RAML2/RAML3 free: 0x340 / 0x1 / 0x2ED.
+- Six 400-word arrays are non-overlapping at 0x91C0 through 0x9A80.
+
+ISOLATION AND REPRODUCIBILITY
+- V2 build directories are Stage6_W4_SWEEP_V2 and Stage6_W4_SWEEP_V2_NE.
+- Retired SOL_W4_SWEEP_BUILD=1 returns exit 2 in both build scripts.
+- V1 REAL OUT/MAP and NE OUT/MAP hashes remained exactly AEF6083F...A09AA,
+  D4BB79C8...71C8, 17762888...964D and B1330EA0...A6B1 before and after tests.
+- An independent isolated REAL/NE rebuild completed. Debug-path metadata made raw
+  COFF hashes path-dependent, while normalized loadable sections were byte exact:
+  REAL 9E5854B2F98637A65A462B2BDBF0ED280A3B4E6FCD7BBCF63F0C909008741148;
+  NE   734877F716038EAFA2EE803C73EB993087396245FEAC86C8A71A12D667ABAC2C.
+
+VERIFICATION
+- SOL_W4_SWEEP_STATIC_MODEL_PASS=TRUE
+- SOL_W4_TRACE_STATIC_MODEL_PASS=TRUE
+- SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+- SOL_W2_LIVE_TAKEOVER_PACKET_STATIC_PASS=TRUE
+- SOL_W5_REFERENCE_TRANSITION_PREFLIGHT_PASS=TRUE
+- SOL_W5_REFERENCE_MODULE_STATIC_MODEL_PASS=TRUE
+- node --check and Python bytecode compilation pass; git diff --check passes.
+- Target timing, array bounds, LED cue duration, checksum, terminal cookie,
+  demand aggregation and active-window no-JTAG rule independently audited:
+  P0=0, P1=0, V2 P2=0.
+- Historical V14 canonical replay is fail-closed: all four pieces must be absent
+  or all four must match frozen hashes; mixed/wrong-hash models are rejected.
+
+BENCH STATE / NEXT
+- No debugger or target access occurred during this offline change.
+- Last target state remains the V1 autonomous safe terminal:
+  PWM=0, OST=1, TZINT=0, fault=0.
+- Vin=24 V and input limit=1.2 A were last confirmed by the operator.
+- V2 REAL has not fired. Confirm CR20 once, perform one quick XDS identity/process
+  check, then fire SHA D1028493...A8CD once and follow CR19 through CR5 cues.
