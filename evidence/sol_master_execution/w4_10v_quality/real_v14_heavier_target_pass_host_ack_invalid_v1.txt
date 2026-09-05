@@ -1,0 +1,62 @@
+SOL W4 V14 REAL HEAVIER target result; host ACK chain invalid
+Timestamp closed: 2026-09-05T23:32:22+08:00
+
+Immutable run identity
+REAL_SHA256=B4371EC608FDD0759FD3DEE52C125079CF3DE9A6CFE480BEA1181BD5DD588F2B
+RUN_ID=0x2509059A
+DIRECTION=CR15_TO_CR12
+POWER_REQUEST_FIRED=TRUE
+NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE
+
+Host coordination
+- Target printed ACK_LINE_REQUIRED=W4_STEP_2A099AAC9720.
+- The unified command had been started without a TTY. When the operator
+  confirmed CR12, write_stdin rejected the nonce because stdin was closed.
+- W4_STEP_ACK_HOST_DEADLINE_160S_EXPIRED=TRUE.
+- Therefore W4_PHYSICAL_STEP_ACK_CHAIN=FAIL and the formal V14 PASS token is
+  FALSE. This is a host-launch defect, not a target, converter, or protection
+  failure.
+
+Frozen target evidence
+PREFIRE_TARGET_CLOCK_DELTA_200MS=10367 PASS
+TERMINAL_CAPSULE=state4 reason1 elapsed3000000 packet0 pwm0 final_ost1 hw_ost1
+RUN_STOP=0x2509059A
+TRACE_STATE=5
+TRACE_FAIL=0
+TERMINAL_COOKIE=0x724C0E83 MATCH
+HOLD_MIN=1209
+HOLD_MAX=1278
+HOLD_AVG=1238
+PACKETS=28003
+TOTAL_CYCLES=4238046
+BASELINE_RAW=1245
+BASELINE_DEMAND=26475
+TRIGGER_CONFIRM_TICK=2724580
+OPERATOR_MARKER_TICK=600074
+TRACE_MIN=1217
+TRACE_MAX=1261
+TRACE_SETTLE_MS=0
+TRACE_PEAK_PASS=1
+TRACE_SETTLE_PASS=1
+TRACE_QUALITY_PASS=1
+TRACE_B1_DEMAND=31284
+TRACE_B2_DEMAND=31284
+TRACE_B3_DEMAND=31561
+TRACE_POST200MS_DEMAND=30369
+
+All target-side gates passed:
+- hold complete and duration bounded
+- trace complete, marker/guard, direction, baseline and trigger telemetry
+- three-block direction and post-200ms persistence
+- +/-5% peak, <=100ms settling, ring and write-index match
+- 10V average, packet count and proportional energy cap
+- no hard-limit event, no fault, no hardware TZ trip, no public enable edge
+- run-id chain, terminal cookie, final and cleanup PWM0/OST1/TZINT0
+
+Disposition
+TARGET_AND_PLANT_EVIDENCE=PASS
+FORMAL_V14_HOST_ACK_CHAIN=INVALID
+SOL_W4_10V_CR15_TO_CR12_PASS=FALSE
+The operator subsequently requested a distinct continuous CR20-to-CR5 sweep
+in 1 ohm steps. That requires a new compile-bound algorithm, run id, and SHA;
+this fired tuple will not be replayed.
