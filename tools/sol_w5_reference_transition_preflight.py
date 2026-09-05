@@ -3,8 +3,8 @@
 
 This preflight deliberately does not claim the W5 real-power PASS token.  It
 checks the measured ADC conversion, the proposed immutable ladder/ceilings,
-the known protection migration points, and that the frozen W4 image remains
-byte-for-byte unchanged while W5 is being designed.
+the known protection migration points, and that historical W4 replay remains
+fail-closed while W5 is being designed.
 """
 
 from hashlib import sha256
@@ -17,6 +17,9 @@ CAL = (ROOT / "app" / "board_calibration.h").read_text(encoding="utf-8")
 SHOT = (ROOT / "app" / "shot.c").read_text(encoding="utf-8")
 CFG = (ROOT / "llc_config.h").read_text(encoding="utf-8")
 COMP = (ROOT / "app" / "comparator.c").read_text(encoding="utf-8")
+V14_REAL_HOST = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
+V14_NE_HOST = (ROOT / "tools" / "sol_w4_trace_noenergy.js").read_text(encoding="utf-8")
+MASTER_STATE = (ROOT / "docs" / "SOL_MASTER_EXECUTION_STATE.md").read_text(encoding="utf-8")
 
 RUNG_VOLTS = (10.0, 10.5, 11.0, 11.5, 12.0)
 EXPECTED_TARGET_RAW = (1244, 1306, 1368, 1430, 1491)
@@ -90,10 +93,23 @@ def main() -> None:
     gate("W5_PREFLIGHT_COMP_IS_PRIMARY_CURRENT_NOT_VOUT",
          "primary-current protection" in COMP and "COMP1OUT(GPIO42)" in COMP)
 
-    for rel, expected in W4_ARTIFACTS.items():
-        gate("W4_FROZEN_SHA_" + Path(rel).suffix[1:].upper() + "_" +
-             ("NE" if "_NE/" in rel else "REAL"),
-             file_sha(ROOT / rel) == expected)
+    artifact_paths = tuple((ROOT / rel, expected) for rel, expected in W4_ARTIFACTS.items())
+    existence = tuple(path.exists() for path, _ in artifact_paths)
+    artifact_set_guarded = (
+        not any(existence) or
+        (all(existence) and all(file_sha(path) == expected
+                                for path, expected in artifact_paths))
+    )
+    real_sha = W4_ARTIFACTS[
+        "Stage6_OL_STEADY/LLC_100W_F28034_OPEN_LOOP_STEADY.out"]
+    ne_sha = W4_ARTIFACTS[
+        "Stage6_OL_STEADY_NE/LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out"]
+    gate("W4_HISTORICAL_REPLAY_ARTIFACT_SET_GUARDED",
+         artifact_set_guarded and
+         f'EXPECTED_SHA="{real_sha}"' in V14_REAL_HOST and
+         f'EXPECTED_SHA="{ne_sha}"' in V14_NE_HOST and
+         f"W4_V14_REAL_OUT_SHA256={real_sha}" in MASTER_STATE and
+         f"W4_V14_NE_OUT_SHA256={ne_sha}" in MASTER_STATE)
 
     print("VREF_V,TARGET_RAW,ERROR_HIGH_3PCT_RAW,STAGE_ABORT_5PCT_RAW,MAX_10PCT_RAW")
     for row in zip(RUNG_VOLTS, targets, error_high, stage_gates, max_gates):

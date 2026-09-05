@@ -11,6 +11,9 @@ HDR = (ROOT / "app" / "w5_reference_transition.h").read_text(encoding="utf-8")
 SRC = (ROOT / "app" / "w5_reference_transition.c").read_text(encoding="utf-8")
 REAL_BUILD = (ROOT / "tools" / "build_flash_open_loop_steady.bat").read_text(encoding="utf-8")
 NE_BUILD = (ROOT / "tools" / "build_open_loop_steady_noenergy.bat").read_text(encoding="utf-8")
+V14_REAL_HOST = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
+V14_NE_HOST = (ROOT / "tools" / "sol_w4_trace_noenergy.js").read_text(encoding="utf-8")
+MASTER_STATE = (ROOT / "docs" / "SOL_MASTER_EXECUTION_STATE.md").read_text(encoding="utf-8")
 
 EXPECTED_ROWS = (
     (1244, 1207, 1281, 1306),
@@ -86,10 +89,19 @@ def main() -> None:
              EXPECTED_ROWS[i][3] < EXPECTED_ROWS[i + 1][3]
              for i in range(len(EXPECTED_ROWS) - 1)))
 
-    gate("W4_REAL_OUT_SHA_STILL_FROZEN", file_sha(
-        ROOT / "Stage6_OL_STEADY" / "LLC_100W_F28034_OPEN_LOOP_STEADY.out") == W4_REAL_SHA)
-    gate("W4_NE_OUT_SHA_STILL_FROZEN", file_sha(
-        ROOT / "Stage6_OL_STEADY_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out") == W4_NE_SHA)
+    real_out = ROOT / "Stage6_OL_STEADY" / "LLC_100W_F28034_OPEN_LOOP_STEADY.out"
+    ne_out = ROOT / "Stage6_OL_STEADY_NE" / "LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out"
+    # Ignored build artifacts may be deliberately absent after quarantine.
+    # Absence is fail-closed; if a canonical artifact reappears it must be the
+    # exact historical V14 SHA before any old host can use it.
+    gate("W4_REAL_REPLAY_GUARDED",
+         (not real_out.exists() or file_sha(real_out) == W4_REAL_SHA) and
+         f'EXPECTED_SHA="{W4_REAL_SHA}"' in V14_REAL_HOST and
+         f"W4_V14_REAL_OUT_SHA256={W4_REAL_SHA}" in MASTER_STATE)
+    gate("W4_NE_REPLAY_GUARDED",
+         (not ne_out.exists() or file_sha(ne_out) == W4_NE_SHA) and
+         f'EXPECTED_SHA="{W4_NE_SHA}"' in V14_NE_HOST and
+         f"W4_V14_NE_OUT_SHA256={W4_NE_SHA}" in MASTER_STATE)
     print("W5_MODULE_LINKED_TO_W4=FALSE")
     print("W5_REAL_POWER_PASS_CLAIMED=FALSE")
     print("SOL_W5_REFERENCE_MODULE_STATIC_MODEL_PASS=TRUE")
