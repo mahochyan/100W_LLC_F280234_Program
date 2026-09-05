@@ -1,0 +1,54 @@
+SOL W4 SUPPLEMENTAL SWEEP V2 REAL RESULT - SAFE, COORDINATION INVALID
+Recorded: 2026-09-06T00:47:30+08:00
+
+IDENTITY
+- Source commit: e62916edb18535d00bcd14c0edf4ecf23cba3e51
+- REAL OUT SHA256: D10284938BE15DEA5772DF8595F064E40321B2BF26898CED382DE0ABD2C3A8CD
+- Run/profile/algorithm/direction: 0x25090601 / 0x1405 / 0x0016 / 3
+- This SHA fired exactly once and must not be retried.
+
+PREFIRE AND TERMINAL
+- All boot, loopback, stage, PWM-off, OST, fault and target-clock gates passed.
+- Target clock delta over 200 ms: 10326 ticks.
+- First bounded 105 s probe observed the autonomous terminal halted.
+- Terminal: state=4, reason=1, elapsed=4627518, trace_state=5,
+  trace_fail=0, count=400, overflow=0.
+- Data checksum 0x0DD05003 matched the host recomputation.
+- Terminal cookie 0x7E0E4610 matched the run/profile/algorithm/direction,
+  terminal state, checksum, count and overflow chain.
+
+SAFETY / OUTPUT
+- PWM=0, final PWM=0, hardware/final OST=1, TZINT=0, fault=0.
+- No hard-limit event, hardware TZ trip, active-window trip or public-enable edge.
+- Global raw VOUT range was 1192..1270, within the frozen 10 V +/-5% gate.
+- The run is not a control, regulation or protection failure.
+
+PHYSICAL TRUTH AND INVALIDATION
+- After the run, the operator explicitly reported that the physical sweep only
+  reached CR8, not CR5.
+- Therefore scheduled CR labels, the claimed sixteen physical plateaus and the
+  scheduled endpoint are invalid. They must not be relabeled post hoc or used as
+  exact-ohm evidence.
+- Demand did change materially (scheduled first plateau 21384; scheduled last
+  plateau 49680), unlike V1, but this is qualitative load-response evidence only.
+- Only 10 of 15 scheduled monotonic-step gates passed. The scheduled last
+  plateau halves were 48240 and 51120, outside the +/-3% stability gate.
+- Bins 391..399 exceeded the 9000..11000 tick cadence band; maximum was 13202.
+  Capture tick total was 4027477 and terminal elapsed was 4627518.
+- Failed host gates: cadence, all-16-plateaus, 15 monotonic steps, narrow 92 s
+  duration, and endpoint demand >=2.5x.
+
+CSV
+- Path: evidence/sol_master_execution/w4_10v_quality/
+  cr20_to_cr5_sweep_v2_run_0x25090601.csv
+- SHA256: CD57593E583D27124AE49C612D508DBFFCC48E75BC4631827E515ACC103E93B4
+- Size/lines: 27078 bytes / 405 lines.
+- Host trailer: host_gate_result=FAIL,failure_count=5.
+
+DISPOSITION / NEXT
+- SOL_W4_CR20_TO_CR5_SWEEP_PASS=FALSE.
+- V2 is retired after one safe fired attempt; do not replay its SHA.
+- Current physical condition: Vin=24 V, input limit=1.2 A, electronic load CR8.
+- Keep CR8 unchanged during offline work. Build a distinct V3 with longer manual
+  intervals and cues shown directly in a visible terminal as well as on the
+  target LED, requalify, then request one return to CR20 before firing.
