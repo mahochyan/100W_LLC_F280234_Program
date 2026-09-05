@@ -24,6 +24,13 @@
 
 #include "DSP2803x_Device.h"
 
+#ifndef STAGE6_W4_SWEEP_TEST
+#define STAGE6_W4_SWEEP_TEST 0
+#endif
+#if STAGE6_W4_SWEEP_TEST && !STAGE6_OPEN_LOOP_STEADY_BUILD
+#error "STAGE6_W4_SWEEP_TEST requires STAGE6_OPEN_LOOP_STEADY_BUILD"
+#endif
+
 #define CAL_HOLD_RECHARGE_LOW_RAW       1380U
 #define CAL_HOLD_RECHARGE_TARGET_RAW    1400U
 #define CAL_HOLD_HARD_LIMIT_RAW         1450U
@@ -118,6 +125,23 @@
 
 #define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12 */
 #define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12 -> CR15 */
+#define W4_TRACE_DIRECTION_SWEEP             3U     /* CR20 -> CR5, supplemental */
+
+/* Compile-gated supplemental load-map recorder. It adds observation RAM only;
+ * packet control and every protection threshold remain the qualified W3/W4
+ * implementation. Starting at the 12 s yellow marker, twenty 5 ms samples are
+ * reduced into each 100 ms bin until the 60 s hold terminates. */
+#define W4_SWEEP_LOAD_PROFILE_ID         0x1405UL
+#define W4_SWEEP_ALGORITHM_ID            0x0015UL
+#define W4_SWEEP_BIN_SAMPLES                 20U
+#define W4_SWEEP_BINS                       480U
+#define W4_SWEEP_MARKER_TICKS            600000UL
+#define W4_SWEEP_LEVELS                       16U
+#define W4_SWEEP_BINS_PER_LEVEL               30U
+#define W4_SWEEP_TRANSITION_BINS               10U
+#define W4_SWEEP_PLATEAU_BINS                  20U
+#define W4_SWEEP_CUE_OFF_BINS                   5U
+#define W4_SWEEP_CHECKSUM_SEED          0x53575015UL
 
 #define W4_TRACE_STATE_IDLE                 0U
 #define W4_TRACE_STATE_WAIT_BASELINE        1U
@@ -132,6 +156,7 @@
 #define W4_TRACE_FAIL_ZERO_BASELINE         2U
 #define W4_TRACE_FAIL_NO_COMPLETE_WINDOW    3U
 #define W4_TRACE_FAIL_BAD_SESSION            4U
+#define W4_TRACE_FAIL_SWEEP_OVERFLOW          5U
 
 extern volatile Uint16 g_w4_trace_arm;
 extern volatile Uint16 g_w4_trace_expected_direction;
@@ -162,6 +187,17 @@ extern volatile Uint32 g_w4_trace_terminal_cookie;
 extern volatile Uint16 g_w4_trace_ring_raw[W4_TRACE_SAMPLES];
 extern volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
 extern volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
+#if STAGE6_W4_SWEEP_TEST
+extern volatile Uint16 g_w4_sweep_count;
+extern volatile Uint16 g_w4_sweep_overflow;
+extern volatile Uint16 g_w4_sweep_raw_min[W4_SWEEP_BINS];
+extern volatile Uint16 g_w4_sweep_raw_max[W4_SWEEP_BINS];
+extern volatile Uint16 g_w4_sweep_raw_avg[W4_SWEEP_BINS];
+extern volatile Uint16 g_w4_sweep_cycle_sum[W4_SWEEP_BINS];
+extern volatile Uint16 g_w4_sweep_packet_sum[W4_SWEEP_BINS];
+extern volatile Uint16 g_w4_sweep_tick_delta[W4_SWEEP_BINS];
+extern volatile Uint32 g_w4_sweep_data_checksum;
+#endif
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
 extern volatile Uint16 g_w4_trace_ne_cycle_delta;
 extern volatile Uint16 g_w4_trace_ne_packet_delta;

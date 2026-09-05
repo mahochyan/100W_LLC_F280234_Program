@@ -8,6 +8,9 @@ setlocal
 set PROJ=D:\CCS21_workspace\Codex_Project
 set CGT=D:\CCS21\ccs\tools\compiler\ti-cgt-c2000_25.11.1.LTS
 set BUILD=%PROJ%\Stage6_OL_STEADY
+set EXTRA_DEFINE=
+if "%SOL_W4_SWEEP_BUILD%"=="1" set BUILD=%PROJ%\Stage6_W4_SWEEP
+if "%SOL_W4_SWEEP_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_SWEEP_TEST=1
 
 if exist "%BUILD%" rmdir /s /q "%BUILD%"
 mkdir "%BUILD%"
@@ -16,6 +19,7 @@ echo === CGT 25.11.1.LTS clean Stage6_OL_STEADY compile (COFF, W2_OPEN_LOOP_STEA
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O4 --opt_for_speed=5 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
     -DSTAGE6_FLASH_BUILD=1 ^
     -DSTAGE6_OPEN_LOOP_STEADY_BUILD=1 ^
+    %EXTRA_DEFINE% ^
     -I"%PROJ%" -I"%PROJ%\app" -I"%PROJ%\driver" -I"%PROJ%\device" -I"%PROJ%\device\include" -I"%PROJ%\IQmath\c28\include" ^
     -c ^
     "%PROJ%\main.c" ^
@@ -57,6 +61,7 @@ echo === compile soft_start.c (-O2, size) ===
 "%CGT%\bin\cl2000.exe" --abi=coffabi -v28 -ml -mt -g -O2 --opt_for_speed=5 -ms --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections ^
     -DSTAGE6_FLASH_BUILD=1 ^
     -DSTAGE6_OPEN_LOOP_STEADY_BUILD=1 ^
+    %EXTRA_DEFINE% ^
     -I"%PROJ%" -I"%PROJ%\app" -I"%PROJ%\driver" -I"%PROJ%\device" -I"%PROJ%\device\include" -I"%PROJ%\IQmath\c28\include" ^
     -c "%PROJ%\app\soft_start.c" --obj_directory="%BUILD%" || exit /b 1
 

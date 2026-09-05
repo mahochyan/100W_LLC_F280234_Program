@@ -58,6 +58,46 @@ volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
 #pragma DATA_SECTION(g_w4_trace_ring_packet_delta, "ol_ram");
 volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
 
+#if STAGE6_W4_SWEEP_TEST
+/* Supplemental CR20..CR5 recorder: 480 x 100 ms bins use 2880 RAML3 words.
+ * The existing 5 ms observer reduces locally so no JTAG traffic occurs while
+ * power is active. */
+#pragma DATA_SECTION(g_w4_sweep_raw_min, "ol_ram");
+volatile Uint16 g_w4_sweep_raw_min[W4_SWEEP_BINS];
+#pragma DATA_SECTION(g_w4_sweep_raw_max, "ol_ram");
+volatile Uint16 g_w4_sweep_raw_max[W4_SWEEP_BINS];
+#pragma DATA_SECTION(g_w4_sweep_raw_avg, "ol_ram");
+volatile Uint16 g_w4_sweep_raw_avg[W4_SWEEP_BINS];
+#pragma DATA_SECTION(g_w4_sweep_cycle_sum, "ol_ram");
+volatile Uint16 g_w4_sweep_cycle_sum[W4_SWEEP_BINS];
+#pragma DATA_SECTION(g_w4_sweep_packet_sum, "ol_ram");
+volatile Uint16 g_w4_sweep_packet_sum[W4_SWEEP_BINS];
+#pragma DATA_SECTION(g_w4_sweep_tick_delta, "ol_ram");
+volatile Uint16 g_w4_sweep_tick_delta[W4_SWEEP_BINS];
+#pragma DATA_SECTION(g_w4_sweep_count, "ol_ram");
+volatile Uint16 g_w4_sweep_count = 0U;
+#pragma DATA_SECTION(g_w4_sweep_overflow, "ol_ram");
+volatile Uint16 g_w4_sweep_overflow = 0U;
+#pragma DATA_SECTION(g_w4_sweep_data_checksum, "ol_ram");
+volatile Uint32 g_w4_sweep_data_checksum = W4_SWEEP_CHECKSUM_SEED;
+#pragma DATA_SECTION(s_w4_sweep_bin_count, "ol_ram");
+static Uint16 s_w4_sweep_bin_count = 0U;
+#pragma DATA_SECTION(s_w4_sweep_raw_min, "ol_ram");
+static Uint16 s_w4_sweep_raw_min = 0xFFFFU;
+#pragma DATA_SECTION(s_w4_sweep_raw_max, "ol_ram");
+static Uint16 s_w4_sweep_raw_max = 0U;
+#pragma DATA_SECTION(s_w4_sweep_raw_sum, "ol_ram");
+static Uint32 s_w4_sweep_raw_sum = 0UL;
+#pragma DATA_SECTION(s_w4_sweep_cycle_sum, "ol_ram");
+static Uint32 s_w4_sweep_cycle_sum = 0UL;
+#pragma DATA_SECTION(s_w4_sweep_packet_sum, "ol_ram");
+static Uint32 s_w4_sweep_packet_sum = 0UL;
+#pragma DATA_SECTION(s_w4_sweep_last_bin_tick, "ol_ram");
+static Uint32 s_w4_sweep_last_bin_tick = 0UL;
+#pragma DATA_SECTION(s_w4_sweep_cue_off_bins, "ol_ram");
+static Uint16 s_w4_sweep_cue_off_bins = 0U;
+#endif
+
 #pragma DATA_SECTION(g_w4_trace_arm, "ol_ram");
 volatile Uint16 g_w4_trace_arm = 0U;
 #pragma DATA_SECTION(g_w4_trace_expected_direction, "ol_ram");
@@ -321,6 +361,19 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     s_w4_trace_baseline_raw_sum = 0UL;
     s_w4_trace_baseline_cycle_sum = 0UL;
     s_w4_trace_baseline_packet_sum = 0UL;
+#if STAGE6_W4_SWEEP_TEST
+    g_w4_sweep_count = 0U;
+    g_w4_sweep_overflow = 0U;
+    g_w4_sweep_data_checksum = W4_SWEEP_CHECKSUM_SEED;
+    s_w4_sweep_bin_count = 0U;
+    s_w4_sweep_raw_min = 0xFFFFU;
+    s_w4_sweep_raw_max = 0U;
+    s_w4_sweep_raw_sum = 0UL;
+    s_w4_sweep_cycle_sum = 0UL;
+    s_w4_sweep_packet_sum = 0UL;
+    s_w4_sweep_last_bin_tick = 0UL;
+    s_w4_sweep_cue_off_bins = 0U;
+#endif
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     g_w4_trace_ne_cycle_delta = 0U;
     g_w4_trace_ne_packet_delta = 0U;
@@ -337,7 +390,11 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
         return;
     }
     if (requested != W4_TRACE_DIRECTION_HEAVIER &&
-        requested != W4_TRACE_DIRECTION_LIGHTER)
+        requested != W4_TRACE_DIRECTION_LIGHTER
+#if STAGE6_W4_SWEEP_TEST
+        && requested != W4_TRACE_DIRECTION_SWEEP
+#endif
+       )
     {
         g_w4_trace_state = W4_TRACE_STATE_FAIL;
         g_w4_trace_fail_reason = W4_TRACE_FAIL_BAD_DIRECTION;
@@ -440,6 +497,161 @@ static void CALHOLD_W4TraceFinalize(void)
     g_w4_trace_state = W4_TRACE_STATE_COMPLETE;
 }
 
+#if STAGE6_W4_SWEEP_TEST
+static void CALHOLD_W4SweepResetBin(void)
+{
+    s_w4_sweep_bin_count = 0U;
+    s_w4_sweep_raw_min = 0xFFFFU;
+    s_w4_sweep_raw_max = 0U;
+    s_w4_sweep_raw_sum = 0UL;
+    s_w4_sweep_cycle_sum = 0UL;
+    s_w4_sweep_packet_sum = 0UL;
+}
+
+static Uint32 CALHOLD_W4SweepMix(Uint32 checksum, Uint16 value)
+{
+    return (((checksum << 5U) | (checksum >> 27U)) ^ (Uint32)value);
+}
+
+/* Compile-gated 100 ms reduction for the supplemental CR20..CR5 sweep. The
+ * recorder is observation-only: it neither writes PWM state nor changes any
+ * controller/protection input. All JTAG access remains deferred until the
+ * autonomous terminal snapshot. */
+static void CALHOLD_W4SweepSample(void)
+{
+    Uint16 cycle_clock;
+    Uint16 packet_clock;
+    Uint16 cycle_delta;
+    Uint16 packet_delta;
+    Uint16 raw;
+    Uint16 index;
+
+    if (g_w4_trace_state == W4_TRACE_STATE_IDLE ||
+        g_w4_trace_state == W4_TRACE_STATE_COMPLETE ||
+        g_w4_trace_state == W4_TRACE_STATE_FAIL) return;
+    if (g_cal_hold_elapsed_ticks < W4_SWEEP_MARKER_TICKS)
+    {
+        g_w4_trace_state = W4_TRACE_STATE_WAIT_BASELINE;
+        return;
+    }
+    if (g_w4_trace_operator_marker_tick == 0UL)
+    {
+        g_w4_trace_operator_marker_tick = g_cal_hold_elapsed_ticks;
+        s_w4_trace_last_cycle_clock = s_w4_trace_cycle_clock;
+        s_w4_trace_last_packet_clock = s_w4_trace_packet_clock;
+        s_w4_sweep_last_bin_tick = g_cal_hold_elapsed_ticks;
+        s_w4_sweep_cue_off_bins = 0U;
+        CALHOLD_W4SweepResetBin();
+        g_w4_trace_state = W4_TRACE_STATE_ARMED;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+        GpioDataRegs.GPASET.bit.GPIO21 = 1U;
+#endif
+        return;
+    }
+    if (g_w4_sweep_count >= W4_SWEEP_BINS)
+    {
+        g_w4_trace_state = W4_TRACE_STATE_COMPLETE;
+        return;
+    }
+
+    cycle_clock = s_w4_trace_cycle_clock;
+    packet_clock = s_w4_trace_packet_clock;
+    cycle_delta = (Uint16)(cycle_clock - s_w4_trace_last_cycle_clock);
+    packet_delta = (Uint16)(packet_clock - s_w4_trace_last_packet_clock);
+    s_w4_trace_last_cycle_clock = cycle_clock;
+    s_w4_trace_last_packet_clock = packet_clock;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U && g_w4_trace_ne_cycle_delta != 0U)
+    {
+        cycle_delta = g_w4_trace_ne_cycle_delta;
+        packet_delta = g_w4_trace_ne_packet_delta;
+    }
+#endif
+    raw = g_cal_hold_raw;
+    if (raw < s_w4_sweep_raw_min) s_w4_sweep_raw_min = raw;
+    if (raw > s_w4_sweep_raw_max) s_w4_sweep_raw_max = raw;
+    if (g_w4_sweep_count == 0U && s_w4_sweep_bin_count == 0U)
+    {
+        g_w4_trace_min_raw = raw;
+        g_w4_trace_max_raw = raw;
+    }
+    else
+    {
+        if (raw < g_w4_trace_min_raw) g_w4_trace_min_raw = raw;
+        if (raw > g_w4_trace_max_raw) g_w4_trace_max_raw = raw;
+    }
+    s_w4_sweep_raw_sum += raw;
+    s_w4_sweep_cycle_sum += cycle_delta;
+    s_w4_sweep_packet_sum += packet_delta;
+    s_w4_sweep_bin_count++;
+    if (s_w4_sweep_bin_count < W4_SWEEP_BIN_SAMPLES) return;
+
+    if (s_w4_sweep_cycle_sum > 0xFFFFUL ||
+        s_w4_sweep_packet_sum > 0xFFFFUL ||
+        (g_cal_hold_elapsed_ticks - s_w4_sweep_last_bin_tick) > 0xFFFFUL)
+    {
+        g_w4_sweep_overflow = 1U;
+        g_w4_trace_state = W4_TRACE_STATE_FAIL;
+        g_w4_trace_fail_reason = W4_TRACE_FAIL_SWEEP_OVERFLOW;
+        return;
+    }
+    index = g_w4_sweep_count;
+    g_w4_sweep_raw_min[index] = s_w4_sweep_raw_min;
+    g_w4_sweep_raw_max[index] = s_w4_sweep_raw_max;
+    g_w4_sweep_raw_avg[index] = (Uint16)
+        (s_w4_sweep_raw_sum / W4_SWEEP_BIN_SAMPLES);
+    g_w4_sweep_cycle_sum[index] = (Uint16)s_w4_sweep_cycle_sum;
+    g_w4_sweep_packet_sum[index] = (Uint16)s_w4_sweep_packet_sum;
+    g_w4_sweep_tick_delta[index] = (Uint16)
+        (g_cal_hold_elapsed_ticks - s_w4_sweep_last_bin_tick);
+    s_w4_sweep_last_bin_tick = g_cal_hold_elapsed_ticks;
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, index);
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, g_w4_sweep_raw_min[index]);
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, g_w4_sweep_raw_max[index]);
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, g_w4_sweep_raw_avg[index]);
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, g_w4_sweep_cycle_sum[index]);
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, g_w4_sweep_packet_sum[index]);
+    g_w4_sweep_data_checksum = CALHOLD_W4SweepMix(
+        g_w4_sweep_data_checksum, g_w4_sweep_tick_delta[index]);
+    g_w4_sweep_count = (Uint16)(index + 1U);
+    CALHOLD_W4SweepResetBin();
+
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (s_w4_sweep_cue_off_bins > 0U)
+    {
+        s_w4_sweep_cue_off_bins--;
+        if (s_w4_sweep_cue_off_bins == 0U)
+            GpioDataRegs.GPASET.bit.GPIO21 = 1U;
+    }
+    if ((g_w4_sweep_count % W4_SWEEP_BINS_PER_LEVEL) == 0U &&
+        g_w4_sweep_count < W4_SWEEP_BINS)
+    {
+        GpioDataRegs.GPACLEAR.bit.GPIO21 = 1U;
+        s_w4_sweep_cue_off_bins = W4_SWEEP_CUE_OFF_BINS;
+    }
+#endif
+
+    if (g_w4_sweep_count >= W4_SWEEP_BINS)
+    {
+        g_w4_trace_trigger_confirm_tick = g_cal_hold_elapsed_ticks;
+        g_w4_trace_peak_pass =
+            (g_w4_trace_min_raw >= W4_TRACE_5PCT_LOW_RAW &&
+             g_w4_trace_max_raw <= W4_TRACE_5PCT_HIGH_RAW) ? 1U : 0U;
+        /* W4 step-quality fields are deliberately N/A for a multi-level map;
+         * the host validates all sixteen fixed plateau segments separately. */
+        g_w4_trace_settle_pass = 0U;
+        g_w4_trace_quality_pass = 0U;
+        g_w4_trace_state = W4_TRACE_STATE_COMPLETE;
+    }
+}
+#endif
+
 /* Passive 5 ms observer. Three consecutive 20 ms demand blocks must differ by
  * >=12.5% in the requested direction before a step is accepted. */
 static void CALHOLD_W4TraceSample(void)
@@ -471,6 +683,14 @@ static void CALHOLD_W4TraceSample(void)
     Uint32 b1_demand_index;
     Uint32 b2_demand_index;
     Uint32 b3_demand_index;
+
+#if STAGE6_W4_SWEEP_TEST
+    if (s_w4_trace_session_direction == W4_TRACE_DIRECTION_SWEEP)
+    {
+        CALHOLD_W4SweepSample();
+        return;
+    }
+#endif
 
     if (g_w4_trace_state == W4_TRACE_STATE_IDLE ||
         g_w4_trace_state == W4_TRACE_STATE_COMPLETE ||
@@ -773,6 +993,21 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
         /* Commit marker is the final public W4 evidence write. A debugger
          * reconnect can distinguish this terminal snapshot from stale RAM or
          * a target stopped before CALHOLD_End completed. */
+#if STAGE6_W4_SWEEP_TEST
+        if (w4_direction == W4_TRACE_DIRECTION_SWEEP)
+            g_w4_trace_terminal_cookie =
+                W4_TRACE_TERMINAL_COOKIE_BASE ^
+                W4_SWEEP_LOAD_PROFILE_ID ^
+                W4_SWEEP_ALGORITHM_ID ^
+                g_cal_hold_run_id_at_stop ^
+                ((Uint32)w4_direction << 16) ^
+                ((Uint32)state << 8) ^
+                (Uint32)reason ^
+                g_w4_sweep_data_checksum ^
+                ((Uint32)g_w4_sweep_count << 16) ^
+                (Uint32)g_w4_sweep_overflow;
+        else
+#endif
         g_w4_trace_terminal_cookie =
             W4_TRACE_TERMINAL_COOKIE_BASE ^
             W4_TRACE_LOAD_PROFILE_ID ^
