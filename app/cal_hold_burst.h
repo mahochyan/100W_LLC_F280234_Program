@@ -64,12 +64,13 @@
 #define W3_HOLD_CYCLE_CAP_10S            1250000UL
 #define W3_HOLD_CYCLE_CAP_60S            7500000UL
 
-/* W4 CR15 <-> CR12.5 A/B/A observer. It is diagnostic-only: the host arms a
- * direction while PWM is safely stopped, then the 5 ms slow task records a
- * circular VOUT / packet-demand history. A sustained >=12.5% change in a
- * packet-demand proxy (cycle rate times average packet depth) freezes 200 ms
- * after the detected step. No value below grants PWM authority or changes the
- * W3 packet controller. */
+/* W4 CR15 <-> CR12.5 A/B/A observer. Trace fields never grant PWM authority
+ * or change a packet/protection threshold. Only the firmware-consumed exact
+ * tuple W3_10V + 60000 ms + arm==1 + valid direction creates a private W4
+ * session. That private session alone selects the bounded 60..180 s diagnostic
+ * window and proportional aggregate-cycle envelope; every per-cycle target,
+ * hard-limit, comparator and TZ protection remains unchanged. */
+#define W4_TRACE_ARM_REQUEST                1U
 #define W4_TRACE_SAMPLES                  128U    /* 640 ms at 5 ms/sample */
 #define W4_TRACE_BASELINE_SAMPLES         40U     /* 200 ms */
 #define W4_TRACE_DETECT_BLOCK_SAMPLES     4U      /* 20 ms */
@@ -83,6 +84,15 @@
  * advance while target time remains below the old 5 s gate, hiding a genuine
  * operator step already visible in the ring. */
 #define W4_TRACE_DETECT_START_TICKS        35000UL /* 700 ms */
+#define W4_TRACE_MIN_HOLD_TICKS           3000000UL /* 60 s */
+#define W4_TRACE_MAX_HOLD_TICKS           9000000UL /* 180 s operator backstop */
+/* 180 s at 250 kHz with the unchanged 50% aggregate active-time ceiling. */
+#define W4_TRACE_MAX_TOTAL_PACKET_CYCLES 22500000UL
+/* W4 may wait longer than 60 s for the physical step. Freeze only the three
+ * Uint32 sum/count pairs at this private sample count; instantaneous raw and
+ * all extrema continue for the full run. With raw<1300 required to continue,
+ * (N-1)*1299 + one terminal Uint16 sample remains below UINT32_MAX. */
+#define W4_TRACE_STATS_MAX_ACCUM_SAMPLES  3000000UL
 #define W4_TRACE_5PCT_LOW_RAW              1182U
 #define W4_TRACE_5PCT_HIGH_RAW             1306U
 #define W4_TRACE_2PCT_LOW_RAW              1215U
@@ -104,6 +114,7 @@
 #define W4_TRACE_FAIL_BAD_DIRECTION         1U
 #define W4_TRACE_FAIL_ZERO_BASELINE         2U
 #define W4_TRACE_FAIL_NO_COMPLETE_WINDOW    3U
+#define W4_TRACE_FAIL_BAD_SESSION            4U
 
 extern volatile Uint16 g_w4_trace_arm;
 extern volatile Uint16 g_w4_trace_expected_direction;

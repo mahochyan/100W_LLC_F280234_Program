@@ -57,14 +57,21 @@ function resetIdle(){
   wv("g_cal_hold_packet_active",0);wv("g_cal_measure_active",0);
   wv("g_cal_hold_ne_raw",1240);
 }
-function beginTrace(direction,baselineCycles,baselinePackets){
+function requestHold(mode,duration,arm,direction){
   resetIdle();
+  if(mode==0)wv("g_cal_hold_ne_raw",1400);
   wv("g_w4_trace_expected_direction",direction);
-  wv("g_w4_trace_arm",1);
-  wv("g_cal_hold_mode_request",1);
-  wv("g_cal_hold_duration_ms",60000);
+  wv("g_w4_trace_arm",arm);
+  wv("g_cal_hold_mode_request",mode);
+  wv("g_cal_hold_duration_ms",duration);
   wv("g_cal_hold_request",1);
-  run(12);
+  /* One uninterrupted interval lets the main-loop 5 ms task consume the
+   * request despite debugger scheduling jitter; it remains below the shortest
+   * 100 ms legacy duration and below W4's 500 ms baseline start. */
+  run(80);
+}
+function beginTrace(direction,baselineCycles,baselinePackets){
+  requestHold(1,60000,1,direction);
   check("ARM_CONSUMED_D"+direction,rw("g_w4_trace_arm")==0);
   check("TRACE_WAIT_D"+direction,rw("g_w4_trace_state")==1);
   wv("g_w4_trace_ne_cycle_delta",baselineCycles);
@@ -114,10 +121,65 @@ function finishStep(tag,stepCycles,stepPackets,transientRaw,expectQuality){
   safe(tag);
 }
 
+/* Public observer metadata must not authorize a longer hold. */
+requestHold(0,100,1,1);
+check("LEGACY_ARM_CONSUMED",rw("g_w4_trace_arm")==0);
+check("LEGACY_TRACE_BAD_SESSION",rw("g_w4_trace_state")==6 &&
+      rw("g_w4_trace_fail_reason")==4 && rw("g_w4_trace_direction_active")==0);
+wv("g_w4_trace_direction_active",1); /* deliberate public telemetry tamper */
+wv32("g_cal_hold_elapsed_ticks",4998);run(3);
+check("LEGACY_PUBLIC_DIRECTION_CANNOT_EXTEND",rw("g_cal_hold_state")==4 &&
+      rw("g_cal_hold_stop_reason")==1 &&
+      rv32u("g_cal_hold_elapsed_ticks")>=5000);
+safe("LEGACY_ISOLATION");
+
+requestHold(1,10000,1,1);
+check("W3_10S_TRACE_BAD_SESSION",rw("g_w4_trace_state")==6 &&
+      rw("g_w4_trace_fail_reason")==4 && rw("g_w4_trace_direction_active")==0);
+wv("g_w4_trace_direction_active",1); /* old V11 draft would extend this */
+wv32("g_cal_hold_elapsed_ticks",499998);run(3);
+check("W3_10S_PUBLIC_DIRECTION_CANNOT_EXTEND",rw("g_cal_hold_state")==4 &&
+      rw("g_cal_hold_stop_reason")==1 &&
+      rv32u("g_cal_hold_elapsed_ticks")>=500000);
+safe("W3_10S_ISOLATION");
+
+/* A malformed 60 s trace request also retains the original 7.5 M cap. */
+requestHold(1,60000,1,9);
+check("INVALID_DIRECTION_FAILS_CLOSED",rw("g_w4_trace_state")==6 &&
+      rw("g_w4_trace_fail_reason")==1 && rw("g_w4_trace_direction_active")==0);
+wv("g_w4_trace_direction_active",1);
+wv32("g_cal_hold_total_packet_cycles",7500000);
+wv32("g_cal_hold_elapsed_ticks",40000);wv("g_cal_hold_ne_raw",1210);run(2);
+check("INVALID_DIRECTION_RETAINS_60S_CAP",rw("g_cal_hold_state")==5 &&
+      rw("g_cal_hold_stop_reason")==6);
+safe("INVALID_DIRECTION_CAP");
+
 beginTrace(1,100,4);
+wv("g_w4_trace_direction_active",2); /* cannot change private direction */
 finishStep("HEAVIER",100,3,1185,1);
+check("PUBLIC_DIRECTION_TAMPER_CANNOT_REDIRECT",
+      rw("g_w4_trace_state")==5 && rw("g_w4_trace_direction_active")==2);
 check("HEAVIER_PEAK_GATE",rw("g_w4_trace_min_raw")==1185 &&
       rw("g_w4_trace_peak_pass")==1);
+wv32("g_cal_hold_elapsed_ticks",2999998);
+run(3);
+check("EARLY_STEP_STILL_COMPLETES_AT_60S",rw("g_cal_hold_state")==4 &&
+      rw("g_cal_hold_stop_reason")==1 &&
+      rv32u("g_cal_hold_elapsed_ticks")>=3000000);
+safe("EARLY_STEP_MIN60S");
+
+/* PACKET terminal uses StopPacket -> End and freezes truthful PWM0. */
+beginTrace(1,100,4);
+finishStep("PACKET_TERMINAL_PREP",100,3,1185,1);
+wv32("g_cal_hold_elapsed_ticks",2999998);
+wv("g_cal_hold_state",3);wv("g_cal_hold_packet_active",0);
+wv("g_cal_hold_packet_cycles",37);wv("g_pwm_enabled",1);
+run(3);
+check("PACKET_TERMINAL_COMPLETE",rw("g_cal_hold_state")==4 &&
+      rw("g_cal_hold_stop_reason")==1);
+check("PACKET_TERMINAL_SOFTWARE_SAFE",rw("g_cal_hold_packet_active")==0 &&
+      rw("g_pwm_enabled")==0 && rw("g_cal_hold_final_pwm")==0);
+safe("PACKET_TERMINAL");
 
 beginTrace(2,100,3);
 finishStep("LIGHTER",100,4,1295,1);
@@ -131,9 +193,29 @@ check("BAD_PEAK_REJECTED",rw("g_w4_trace_peak_pass")==0);
 beginTrace(1,100,4);
 wv32("g_cal_hold_elapsed_ticks",2999998);
 run(3);
-check("INCOMPLETE_WINDOW_FAILS",rw("g_cal_hold_state")==4 &&
+check("NO_STEP_EXTENDS_PAST_60S",rw("g_cal_hold_state")==2 &&
+      rw("g_w4_trace_state")==3);
+wv32("g_cal_hold_elapsed_ticks",8999998);
+run(3);
+check("INCOMPLETE_WINDOW_FAILS_AT_180S",rw("g_cal_hold_state")==4 &&
       rw("g_w4_trace_state")==6 && rw("g_w4_trace_fail_reason")==3);
 safe("INCOMPLETE");
+
+beginTrace(2,100,3);
+wv32("g_cal_hold_elapsed_ticks",3500000);
+finishStep("LATE_LIGHTER",100,4,1295,1);
+check("LATE_STEP_ENDS_AFTER_TRACE",rw("g_cal_hold_state")==4 &&
+      rw("g_cal_hold_stop_reason")==1 &&
+      rv32u("g_cal_hold_elapsed_ticks")>=3500000);
+safe("LATE_STEP");
+
+beginTrace(1,100,4);
+wv("g_cal_hold_ne_raw",1300);run(3);
+check("EARLY_HARD_LIMIT_ABORT",rw("g_cal_hold_state")==5 &&
+      rw("g_cal_hold_stop_reason")==2 && rw("g_cal_hold_hard_limit_events")>0);
+check("EARLY_ABORT_TERMINAL_SOFTWARE_SAFE",rw("g_cal_hold_packet_active")==0 &&
+      rw("g_pwm_enabled")==0 && rw("g_cal_hold_final_pwm")==0);
+safe("EARLY_ABORT");
 
 check("NE_NEVER_RELEASED_PWM",rw("g_first_start_seen")==startSeen0 &&
       rv32u("g_probe_tzclr_write_count")==tzclr0);

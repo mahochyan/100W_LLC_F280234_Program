@@ -43,6 +43,11 @@ static void CALHOLD_StatsPublish(void);
 static Uint16 s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
 #pragma DATA_SECTION(s_w3_packet_write_auth, "ol_ram");
 static Uint16 s_w3_packet_write_auth = 0U;
+/* Private one-shot W4 authorization and immutable direction. Zero means no
+ * W4 session; the CCS-visible observer telemetry is never an authorization
+ * surface for the longer diagnostic envelope. */
+#pragma DATA_SECTION(s_w4_trace_session_direction, "ol_ram");
+static Uint16 s_w4_trace_session_direction = 0U;
 
 /* W4 diagnostic observer. The three ring arrays live in roomy RAML3; all
  * control and protection variables remain separate. */
@@ -224,6 +229,17 @@ static Uint16 CALHOLD_RequestValid(Uint16 mode, Uint16 duration)
 
 static Uint32 CALHOLD_CycleCap(void)
 {
+    if (s_w4_trace_session_direction != 0U)
+    {
+        Uint32 trace_ticks = g_cal_hold_elapsed_ticks;
+        if (trace_ticks < W4_TRACE_MIN_HOLD_TICKS)
+            trace_ticks = W4_TRACE_MIN_HOLD_TICKS;
+        if (trace_ticks > W4_TRACE_MAX_HOLD_TICKS)
+            trace_ticks = W4_TRACE_MAX_HOLD_TICKS;
+        /* 250 kHz packet cycles / 50 kHz fast ticks = 5. Retain the
+         * previously qualified 50% aggregate active-time ceiling. */
+        return (trace_ticks * 5UL) / 2UL;
+    }
     if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
     {
         if (g_cal_hold_duration_ms == W3_HOLD_DURATION_500MS)
@@ -270,10 +286,13 @@ static void CALHOLD_StatsReset(void)
 
 /* Reset/consume the W4 observer arm. This function never changes PWM state or
  * a controller threshold. Invalid observer metadata only fails the observer. */
-static void CALHOLD_W4TraceReset(void)
+static void CALHOLD_W4TraceReset(Uint16 requested_mode,
+                                 Uint16 requested_duration)
 {
+    Uint16 arm = g_w4_trace_arm;
     Uint16 requested = g_w4_trace_expected_direction;
 
+    s_w4_trace_session_direction = 0U;
     g_w4_trace_direction_active = 0U;
     g_w4_trace_state = W4_TRACE_STATE_IDLE;
     g_w4_trace_fail_reason = W4_TRACE_FAIL_NONE;
@@ -313,8 +332,16 @@ static void CALHOLD_W4TraceReset(void)
     g_w4_trace_ne_packet_delta = 0U;
 #endif
 
-    if (g_w4_trace_arm == 0U) return;
+    if (arm == 0U) return;
     g_w4_trace_arm = 0U;  /* one-shot consume; cannot retrigger during power */
+    if (arm != W4_TRACE_ARM_REQUEST ||
+        requested_mode != CAL_HOLD_MODE_W3_10V ||
+        requested_duration != W3_HOLD_DURATION_60S)
+    {
+        g_w4_trace_state = W4_TRACE_STATE_FAIL;
+        g_w4_trace_fail_reason = W4_TRACE_FAIL_BAD_SESSION;
+        return;
+    }
     if (requested != W4_TRACE_DIRECTION_HEAVIER &&
         requested != W4_TRACE_DIRECTION_LIGHTER)
     {
@@ -322,6 +349,7 @@ static void CALHOLD_W4TraceReset(void)
         g_w4_trace_fail_reason = W4_TRACE_FAIL_BAD_DIRECTION;
         return;
     }
+    s_w4_trace_session_direction = requested;
     g_w4_trace_direction_active = requested;
     g_w4_trace_state = W4_TRACE_STATE_WAIT_BASELINE;
 }
@@ -490,7 +518,7 @@ static void CALHOLD_W4TraceSample(void)
             block_demand_index =
                 ((Uint32)block_cycles_per_5ms *
                  block_cycles_per_packet) >> 1;
-            if (g_w4_trace_direction_active == W4_TRACE_DIRECTION_HEAVIER)
+            if (s_w4_trace_session_direction == W4_TRACE_DIRECTION_HEAVIER)
             {
                 if (((Uint32)block_demand_index * 8UL) >=
                     ((Uint32)g_w4_trace_baseline_demand_index * 9UL))
@@ -557,6 +585,22 @@ static void CALHOLD_W4TraceEnd(void)
     }
 }
 
+/* V11: a W4 load-step capture always proves at least the original 60 s hold,
+ * but it may wait up to 180 s for the operator step. Once the passive trace is
+ * complete (or has failed closed) after 60 s, the firmware owns the terminal
+ * OST immediately. Non-W4 W3 runs retain their exact requested duration. */
+static Uint16 CALHOLD_DurationReached(Uint32 normal_limit)
+{
+    if (s_w4_trace_session_direction != 0U)
+    {
+        if (g_cal_hold_elapsed_ticks >= W4_TRACE_MAX_HOLD_TICKS) return 1U;
+        if (g_cal_hold_elapsed_ticks < W4_TRACE_MIN_HOLD_TICKS) return 0U;
+        return (Uint16)(g_w4_trace_state == W4_TRACE_STATE_COMPLETE ||
+                        g_w4_trace_state == W4_TRACE_STATE_FAIL);
+    }
+    return (g_cal_hold_elapsed_ticks >= normal_limit) ? 1U : 0U;
+}
+
 /* One shared hard-stop sequence (OST force + EPWM1 INT off). */
 static void CALHOLD_HardStop(void)
 {
@@ -610,34 +654,62 @@ static void CALHOLD_FreezeFinal(void)
 /* Single terminal transition (COMPLETE or ABORT). */
 static void CALHOLD_End(Uint16 state, Uint16 reason)
 {
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    Uint16 w4_terminal;
+#endif
     if (g_cal_hold_state == CAL_HOLD_ABORT ||
         g_cal_hold_state == CAL_HOLD_COMPLETE) return;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    w4_terminal = (s_w4_trace_session_direction != 0U) ? 1U : 0U;
+#endif
     CALHOLD_HardStop();
     CALHOLD_AdcPollMode(0U);
+    g_cal_hold_packet_active = 0U;
+    g_pwm_enabled = 0U;
+    g_pwm_enable_result = 0U;
     g_cal_measure_active = 0U;
     CALHOLD_W4TraceEnd();
+    CALHOLD_StatsPublish();
+    if (g_cal_hold_cal_raw_samples > 0UL)
+        g_cal_hold_cal_raw_avg =
+            (Uint16)(g_cal_hold_cal_raw_sum / g_cal_hold_cal_raw_samples);
     g_cal_hold_state = state;
     g_cal_hold_stop_reason = reason;
     CALHOLD_FreezeFinal();
+    s_w4_trace_session_direction = 0U; /* consume private terminal latch */
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* W4 REAL only: wake DSS after hardware and all terminal evidence are
+     * already frozen. The NE image compiles this instruction out. */
+    if (w4_terminal != 0U) ESTOP0;
+#endif
 }
 
 /* Record one software-trigger VOUT sample (OFF phase). */
 static void CALHOLD_RecordRaw(Uint16 raw)
 {
     Uint32 elapsed_ms = g_cal_hold_elapsed_ticks / 50UL;
+    Uint16 accumulate =
+        (s_w4_trace_session_direction == 0U ||
+         s_stats.samples < W4_TRACE_STATS_MAX_ACCUM_SAMPLES) ? 1U : 0U;
 
     s_stats.raw = raw;
     if (raw < s_stats.min) s_stats.min = raw;
     if (raw > s_stats.max) s_stats.max = raw;
-    s_stats.sum += raw;
-    s_stats.samples++;
+    if (accumulate != 0U)
+    {
+        s_stats.sum += raw;
+        s_stats.samples++;
+    }
 
     if (elapsed_ms >= CAL_HOLD_SETTLING_MS)
     {
         if (raw < s_stats.steady_min) s_stats.steady_min = raw;
         if (raw > s_stats.steady_max) s_stats.steady_max = raw;
-        s_stats.steady_sum += raw;
-        s_stats.steady_samples++;
+        if (accumulate != 0U)
+        {
+            s_stats.steady_sum += raw;
+            s_stats.steady_samples++;
+        }
     }
 
     /* Calibration window: 200ms..duration — the true ADC_HOLD_RAW source. */
@@ -645,8 +717,11 @@ static void CALHOLD_RecordRaw(Uint16 raw)
     {
         if (raw < g_cal_hold_cal_raw_min) g_cal_hold_cal_raw_min = raw;
         if (raw > g_cal_hold_cal_raw_max) g_cal_hold_cal_raw_max = raw;
-        g_cal_hold_cal_raw_sum += raw;
-        g_cal_hold_cal_raw_samples++;
+        if (accumulate != 0U)
+        {
+            g_cal_hold_cal_raw_sum += raw;
+            g_cal_hold_cal_raw_samples++;
+        }
     }
 
     g_cal_hold_raw = raw;
@@ -843,6 +918,16 @@ void CALHOLD_FastTask(void)
             g_cal_hold_hold_active_ticks++;
             g_cal_hold_off_ticks++;
 
+            /* A W4 trace terminal/max tick must reach OST before any same-tick
+             * ADC-triggered recharge decision can start a new packet. */
+            if (g_cal_measure_active == 0U &&
+                s_w4_trace_session_direction != 0U &&
+                CALHOLD_DurationReached(limit) != 0U)
+            {
+                CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
+                return;
+            }
+
             if ((g_cal_hold_elapsed_ticks & 1U) != 0U)
             {
                 AdcRegs.ADCINTOVFCLR.all = 0xFFFFU;  /* stale-flag hygiene */
@@ -995,7 +1080,7 @@ void CALHOLD_FastTask(void)
                     CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
                 }
             }
-            else if (g_cal_hold_elapsed_ticks >= limit)
+            else if (CALHOLD_DurationReached(limit) != 0U)
             {
                 CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
             }
@@ -1017,7 +1102,7 @@ void CALHOLD_FastTask(void)
                     CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
                 }
             }
-            else if (g_cal_hold_elapsed_ticks >= limit)
+            else if (CALHOLD_DurationReached(limit) != 0U)
             {
                 CALHOLD_StopPacket(0U);
                 CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
@@ -1059,10 +1144,11 @@ void CALHOLD_SlowTask(void)
     if (g_cal_hold_request != 0U)
     {
         Uint16 requested_mode = g_cal_hold_mode_request;
+        Uint16 requested_duration = g_cal_hold_duration_ms;
         g_cal_hold_request = 0U;
 
         if (g_cal_hold_state != CAL_HOLD_IDLE ||
-            CALHOLD_RequestValid(requested_mode, g_cal_hold_duration_ms) == 0U)
+            CALHOLD_RequestValid(requested_mode, requested_duration) == 0U)
         {
             CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_REJECTED);
             return;
@@ -1070,7 +1156,7 @@ void CALHOLD_SlowTask(void)
 
         s_cal_hold_mode = requested_mode;
         g_cal_hold_mode_active = s_cal_hold_mode;
-        CALHOLD_W4TraceReset();
+        CALHOLD_W4TraceReset(requested_mode, requested_duration);
         /* CHARGE: legacy uses 1400 raw; W3 uses the already authorized 1200
          * raw Profile C target before entering the 10 V packet band. */
         g_cal_hold_state = CAL_HOLD_CHARGE;
@@ -1194,7 +1280,7 @@ void CALHOLD_Init(void)
     s_w4_trace_packet_clock = 0U;
     g_w4_trace_arm = 0U;
     g_w4_trace_expected_direction = 0U;
-    CALHOLD_W4TraceReset();
+    CALHOLD_W4TraceReset(CAL_HOLD_MODE_LEGACY_11V, 100U);
     g_cal_hold_request = 0U;
     g_cal_hold_duration_ms = 100U;
     g_cal_measure_request = 0U;

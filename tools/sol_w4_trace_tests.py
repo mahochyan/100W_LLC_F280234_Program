@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Static and executable model gates for the W4 5 ms A/B/A observer."""
 
+import hashlib
+import re
 from pathlib import Path
 
 
@@ -8,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / "app" / "cal_hold_burst.c").read_text(encoding="utf-8")
 HDR = (ROOT / "app" / "cal_hold_burst.h").read_text(encoding="utf-8")
 REAL = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
+REAL_OUT = (ROOT / "Stage6_OL_STEADY" /
+            "LLC_100W_F28034_OPEN_LOOP_STEADY.out")
 
 RING = 128
 BASELINE = 40
@@ -102,6 +106,11 @@ def main() -> None:
         "W4_TRACE_DETECT_BLOCK_SAMPLES     4U",
         "W4_TRACE_POST_SAMPLES             40U",
         "W4_TRACE_DETECT_START_TICKS        35000UL",
+        "W4_TRACE_MIN_HOLD_TICKS           3000000UL",
+        "W4_TRACE_MAX_HOLD_TICKS           9000000UL",
+        "W4_TRACE_MAX_TOTAL_PACKET_CYCLES 22500000UL",
+        "W4_TRACE_STATS_MAX_ACCUM_SAMPLES  3000000UL",
+        "W4_TRACE_FAIL_BAD_SESSION            4U",
         "W4_TRACE_5PCT_LOW_RAW              1182U",
         "W4_TRACE_2PCT_LOW_RAW              1215U",
         "W4_TRACE_SETTLE_LIMIT_MS            100U",
@@ -112,11 +121,37 @@ def main() -> None:
         "g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES]",
     )))
     gate("W4_TRACE_ONE_SHOT_ARM", "g_w4_trace_arm = 0U;  /* one-shot consume" in SRC)
+    reset = SRC[SRC.index("static void CALHOLD_W4TraceReset"):
+                SRC.index("static Uint16 CALHOLD_W4TraceStore")]
+    gate("W4_TRACE_PRIVATE_EXACT_SESSION_LATCH", all(token in reset for token in (
+        "arm != W4_TRACE_ARM_REQUEST",
+        "requested_mode != CAL_HOLD_MODE_W3_10V",
+        "requested_duration != W3_HOLD_DURATION_60S",
+        "W4_TRACE_FAIL_BAD_SESSION",
+        "s_w4_trace_session_direction = requested;",
+    )) and "static Uint16 s_w4_trace_session_direction" in SRC and
+         "extern" not in SRC[SRC.index("s_w4_trace_session_direction") - 20:
+                             SRC.index("s_w4_trace_session_direction")])
     gate("W4_TRACE_DETECTS_IMMEDIATELY_AFTER_BASELINE",
          "W4_TRACE_BASELINE_START_TICKS      25000UL" in HDR and
          "W4_TRACE_DETECT_START_TICKS        35000UL" in HDR and
          "W4_TRACE_BASELINE_SAMPLES         40U" in HDR and
          "W4_TRACE_SAMPLE_MS                 5U" in HDR)
+    duration = SRC[SRC.index("static Uint16 CALHOLD_DurationReached"):
+                   SRC.index("static void CALHOLD_HardStop")]
+    cycle_cap = SRC[SRC.index("static Uint32 CALHOLD_CycleCap"):
+                    SRC.index("static Uint16 CALHOLD_ReadOffRaw")]
+    gate("W4_TRACE_OPERATOR_WINDOW_BOUNDED", all(token in duration for token in (
+        "g_cal_hold_elapsed_ticks >= W4_TRACE_MAX_HOLD_TICKS",
+        "g_cal_hold_elapsed_ticks < W4_TRACE_MIN_HOLD_TICKS",
+    )) and "CALHOLD_DurationReached(limit)" in SRC and
+         "g_w4_trace_direction_active" not in duration)
+    gate("W4_TRACE_DYNAMIC_50PCT_CYCLE_CAP", all(token in cycle_cap for token in (
+        "s_w4_trace_session_direction != 0U",
+        "trace_ticks = W4_TRACE_MIN_HOLD_TICKS",
+        "trace_ticks = W4_TRACE_MAX_HOLD_TICKS",
+        "return (trace_ticks * 5UL) / 2UL;",
+    )) and "g_w4_trace_direction_active" not in cycle_cap)
     gate("W4_TRACE_DIRECTIONAL_PERSISTENCE", all(token in SRC for token in (
         "g_w4_trace_baseline_demand_index * 9UL",
         "g_w4_trace_baseline_demand_index * 7UL",
@@ -135,17 +170,65 @@ def main() -> None:
         "CALHOLD_W4TraceEnd();",
         "W4_TRACE_FAIL_NO_COMPLETE_WINDOW",
     )))
-    fire = REAL[REAL.index('wv("g_cal_hold_request",1);'):
-                REAL.index('session.target.halt();',
-                           REAL.index('wv("g_cal_hold_request",1);'))]
+    record_start = SRC.index("static void CALHOLD_RecordRaw")
+    record = SRC[record_start:
+                 SRC.index("static void CALHOLD_StatsPublish", record_start)]
+    max_sum = (3_000_000 - 1) * 1299 + 65535
+    gate("W4_TRACE_UINT32_SUM_BOUND", max_sum == 3_897_064_236 and
+         max_sum < 0xFFFFFFFF)
+    gate("W4_TRACE_SUMS_SHARE_PRIVATE_SAMPLE_CAP", all(token in record for token in (
+        "s_stats.samples < W4_TRACE_STATS_MAX_ACCUM_SAMPLES",
+        "if (accumulate != 0U)",
+        "s_stats.sum += raw;",
+        "s_stats.steady_sum += raw;",
+        "g_cal_hold_cal_raw_sum += raw;",
+    )) and record.index("if (raw < s_stats.min)") <
+         record.index("if (accumulate != 0U)"))
+    end = SRC[SRC.index("static void CALHOLD_End"):
+              SRC.index("static void CALHOLD_RecordRaw")]
+    gate("W4_REAL_TERMINAL_ESTOP_AFTER_FROZEN_SAFE_STATE", all(token in end for token in (
+        "CALHOLD_HardStop();",
+        "g_cal_hold_packet_active = 0U;",
+        "CALHOLD_StatsPublish();",
+        "CALHOLD_FreezeFinal();",
+        "s_w4_trace_session_direction = 0U",
+        "if (w4_terminal != 0U) ESTOP0;",
+    )) and end.index("CALHOLD_HardStop();") < end.index("CALHOLD_FreezeFinal();") <
+         end.index("ESTOP0") and
+         "#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST" in end)
+    fast_task = SRC.index("void CALHOLD_FastTask")
+    off_start = SRC.index("case CAL_HOLD_OFF:", fast_task)
+    off = SRC[off_start:SRC.index("case CAL_HOLD_PACKET:", off_start)]
+    gate("W4_OFF_TERMINAL_PRECEDES_RECHARGE", all(token in off for token in (
+        "s_w4_trace_session_direction != 0U",
+        "CALHOLD_DurationReached(limit)",
+        "CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);",
+        "ADC_SoftwareTrigger();",
+    )) and off.index("g_cal_hold_elapsed_ticks++;") <
+         off.index("CALHOLD_DurationReached(limit)") < off.index("ADC_SoftwareTrigger();"))
+
+    fire_start = REAL.index("session.target.runAsynch();",
+                            REAL.index('wv("g_cal_hold_request",1);'))
+    fire_end = REAL.index("session.target.waitForHalt();", fire_start)
+    fire = REAL[fire_start:fire_end]
     gate("W4_REAL_UNINTERRUPTED_POWER_WINDOW", all(token not in fire for token in (
-        "rw(", "rv32u(", "reg(", "session.memory.readWord",
+        "rw(", "rv32u(", "reg(", "session.memory", ".halt()",
     )))
-    gate("W4_REAL_SHA_AND_PHYSICAL_GATES", all(token in REAL for token in (
-        'EXPECTED_SHA="B10587C6FF8BE3F438E18CB229DAB9733087FE62BC091129778F0D359A71C07B"',
+    sha_match = re.search(r'EXPECTED_SHA="([0-9A-F]{64})"', REAL)
+    actual_sha = (hashlib.sha256(REAL_OUT.read_bytes()).hexdigest().upper()
+                  if REAL_OUT.exists() else "")
+    gate("W4_REAL_SHA_AND_PHYSICAL_GATES", sha_match is not None and
+         sha_match.group(1) == actual_sha and all(token in REAL for token in (
         'SOL_W4_INPUT_LIMIT_A', 'SOL_W4_INITIAL_LOAD_OHMS',
         'PREFIRE_TARGET_CLOCK_200MS', 'W4_PHYSICAL_STEP_NOW=',
+        'env.setScriptTimeout(-1)', 'session.target.waitForHalt();',
+        'FIRMWARE_TERMINAL_HALT_OBSERVED=TRUE',
+        'if(!fired || terminalHaltObserved)',
+        'HOST_DID_NOT_HALT_UNCONFIRMED_ACTIVE_TARGET=TRUE',
         'NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE',
+    )) and "readLine(" not in REAL and "currentTimeMillis" not in REAL)
+    gate("W4_REAL_DYNAMIC_CYCLE_CAP_CHECK", all(token in REAL for token in (
+        "total<=proportionalCap+160", "total<=22500000+160",
     )))
 
     heavy = model(1, 100, 4, 100, 3, [1185] * 4)

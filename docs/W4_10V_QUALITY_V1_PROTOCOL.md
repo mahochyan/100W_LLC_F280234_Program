@@ -108,3 +108,30 @@ fast ticks during a 200 ms safe, PWM-off interval. The operator marker moves
 to 2 s host time and the host waits 70 s total, leaving ten seconds beyond the
 unchanged firmware-owned 60 s terminal OST. This is a new source and SHA; V9
 will not be retried.
+
+The V10 return attempt then completed an exact, fully safe 60 s hold but the
+operator response arrived only after the process had terminated, so no step
+was present in the power window. V11 makes the coordination deterministic.
+Only an exact firmware-consumed tuple (W3 10 V mode, 60000 ms, one-shot arm=1,
+valid direction) creates a private W4 session. CCS-visible direction/state
+telemetry cannot grant the longer envelope. A valid session runs at least
+60 s, terminates after trace COMPLETE/FAIL, and fails closed at a 180 s
+target-time backstop. Its cycle cap grows proportionally from the original
+7.5 M at 60 s to 22.5 M at 180 s, preserving the 50% ceiling. All normal W3
+and legacy duration/energy caps are unchanged.
+
+The extended window also hard-bounds the three Uint32 sum/count pairs at three
+million accepted samples; instantaneous raw and extrema continue throughout.
+The continuation raw ceiling proves a worst-case sum of 3,897,064,236, below
+Uint32 maximum. At every terminal path firmware first forces OST, disables the
+packet interrupt, clears software PWM-active state, publishes statistics, and
+freezes final evidence. Only then does the REAL W4 image execute `ESTOP0`.
+The no-energy image compiles that instruction out.
+
+After printing the physical marker the DSS host calls `waitForHalt()` with an
+infinite scripting timeout. It performs no memory access and never issues a
+guessed wall-clock halt during the power window. The Codex command remains
+alive while the operator changes the load; firmware's terminal `ESTOP0` wakes
+the host for post-stop evidence collection. If DebugServer loses the terminal
+event, automatic host cleanup is deliberately suppressed rather than halting
+an unconfirmed active packet.

@@ -1,24 +1,24 @@
 // W4 10 V CR15 <-> CR12.5 REAL load-step capture, one direction per run.
-// Firmware owns the 60 s power window and its terminal OST.  The host performs
-// no JTAG access between firing the request and the immutable on-chip stop.
+// Firmware owns the 60..180 s power window, terminal OST and diagnostic ESTOP.
+// The host performs no memory access or active halt between firing the request
+// and waitForHalt returning on that immutable on-chip terminal instruction.
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
-importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="B10587C6FF8BE3F438E18CB229DAB9733087FE62BC091129778F0D359A71C07B";
+var EXPECTED_SHA="EA79E8714CDF39F634E7A332A9BDB94F345117D375EA1AD30A102E53D6478642";
 var DIRECTION_NAME=(java.lang.System.getenv("SOL_W4_DIRECTION")||"");
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_INITIAL_LOAD_OHMS")||"");
 var INPUT_LIMIT=(java.lang.System.getenv("SOL_W4_INPUT_LIMIT_A")||"");
 var ACK=(java.lang.System.getenv("SOL_W4_GATES_ACK")||"").equals("1");
 var DIRECTION=0,RUN_ID=0,EXPECTED_INITIAL="",EXPECTED_TARGET="",STEP_TEXT="";
 if(DIRECTION_NAME.equals("HEAVIER")){
-  DIRECTION=1;RUN_ID=0x25090593;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
+  DIRECTION=1;RUN_ID=0x25090594;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
   STEP_TEXT="CR15_TO_CR12P5";
 }else if(DIRECTION_NAME.equals("LIGHTER")){
-  DIRECTION=2;RUN_ID=0x25090592;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
+  DIRECTION=2;RUN_ID=0x25090595;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
   STEP_TEXT="CR12P5_TO_CR15";
 }else{throw "direction-must-be-HEAVIER-or-LIGHTER";}
 if(!INITIAL_LOAD.equals(EXPECTED_INITIAL)){throw "initial-load-does-not-match-direction";}
@@ -35,6 +35,7 @@ function sha256File(path){
 }
 
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
+env.setScriptTimeout(-1);
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
 function addr(n){return session.expression.evaluate("&"+n);}
@@ -58,7 +59,7 @@ function forceSafe(){
   }catch(e){print("FORCE_SAFE_EXCEPTION="+e);}
 }
 
-var failures=0,connected=false,fired=false;
+var failures=0,connected=false,fired=false,terminalHaltObserved=false;
 print("=== SOL W4 REAL "+STEP_TEXT+" ===");
 print("VIN_V=24 INITIAL_LOAD_OHMS="+INITIAL_LOAD+" TARGET_LOAD_OHMS="+
       EXPECTED_TARGET+" INPUT_CURRENT_LIMIT_A="+INPUT_LIMIT);
@@ -119,11 +120,15 @@ try{
   print("W4_PHYSICAL_STEP_NOW="+STEP_TEXT);
   print("SET_ELOAD_OHMS_NOW="+EXPECTED_TARGET);
   print("TRACE_CAPTURE_CONTINUES_AUTONOMOUSLY__DO_NOT_CHANGE_VIN");
+  print("WAITING_FOR_FIRMWARE_TERMINAL_HALT=TRUE");
+  print("FIRMWARE_TARGET_WINDOW_TICKS=3000000_TO_9000000");
   java.lang.System.out.flush();
-  /* Ten seconds of host margin beyond the firmware-owned 60 s terminal OST.
-   * There is still no JTAG read/halt inside the power window. */
-  java.lang.Thread.sleep(68000);
-  session.target.halt();
+  /* This is a passive debugger wait, not a guessed wall-clock halt. The W4
+   * firmware executes ESTOP0 only after HardStop, terminal state and final
+   * telemetry are complete. Default/injected DSS timeout is forced infinite. */
+  session.target.waitForHalt();
+  terminalHaltObserved=true;
+  print("FIRMWARE_TERMINAL_HALT_OBSERVED=TRUE");
 
   var state=rw("g_cal_hold_state"),reason=rw("g_cal_hold_stop_reason");
   var elapsed=rv32u("g_cal_hold_elapsed_ticks"),fault=rv32u("g_fault_flags");
@@ -178,7 +183,7 @@ try{
   }
 
   check("W4_HOLD_COMPLETE",state===4 && reason===1);
-  check("FIRMWARE_DURATION_EXACT",elapsed>=3000000 && elapsed<=3000010);
+  check("FIRMWARE_DURATION_BOUNDED",elapsed>=3000000 && elapsed<=9000000);
   check("W4_TRACE_COMPLETE",traceState===5 && traceFail===0);
   check("W4_TRACE_DIRECTION",rw("g_w4_trace_direction_active")===DIRECTION);
   check("W4_DEMAND_DIRECTION",DIRECTION===1 ?
@@ -191,8 +196,13 @@ try{
   check("W4_TRACE_QUALITY_PASS",rw("g_w4_trace_quality_pass")===1);
   check("W4_TRACE_RING_MATCH",traceMin===hostMin && traceMax===hostMax);
   check("W4_HOLD_AVERAGE_10V",ssn>0 && ssavg>=1180 && ssavg<1300);
+  var capTicks=elapsed;
+  if(capTicks<3000000)capTicks=3000000;
+  if(capTicks>9000000)capTicks=9000000;
+  var proportionalCap=Math.floor((capTicks*5)/2);
   check("W4_PACKETS_PRESENT_BOUNDED",packets>0 &&
-        rw("g_cal_hold_packet_max_cycles")<=160 && total<7500000);
+        rw("g_cal_hold_packet_max_cycles")<=160 &&
+        total<=proportionalCap+160 && total<=22500000+160);
   check("NO_HARD_LIMIT_EVENT",rw("g_cal_hold_hard_limit_events")===0);
   check("NO_FAULT",fault===0 && rw("g_system_state")===1);
   check("NO_HARDWARE_TZ_TRIP",hw1===hw0 && active1===active0);
@@ -208,13 +218,20 @@ try{
   if(fired)failures++;
 }finally{
   if(connected){
-    forceSafe();
-    try{
-      check("CLEANUP_PWM_OFF",rw("g_pwm_enabled")===0);
-      check("CLEANUP_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1);
-      check("CLEANUP_TZINT_ZERO",reg("EPwm1Regs.TZFLG.bit.INT")===0);
-    }catch(e){print("CLEANUP_READ_EXCEPTION="+e);failures++;}
-    try{session.terminate();}catch(e){}
+    if(!fired || terminalHaltObserved){
+      forceSafe();
+      try{
+        check("CLEANUP_PWM_OFF",rw("g_pwm_enabled")===0);
+        check("CLEANUP_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1);
+        check("CLEANUP_TZINT_ZERO",reg("EPwm1Regs.TZFLG.bit.INT")===0);
+      }catch(e){print("CLEANUP_READ_EXCEPTION="+e);failures++;}
+      try{session.terminate();}catch(e){}
+    }else{
+      /* A DebugServer error after fire is not permission to recreate V9's
+       * mid-packet halt. The autonomous firmware still owns max-180 s OST. */
+      print("CLEANUP_DEFERRED_UNTIL_FIRMWARE_TERMINAL=TRUE");
+      print("HOST_DID_NOT_HALT_UNCONFIRMED_ACTIVE_TARGET=TRUE");
+    }
   }
 }
 
