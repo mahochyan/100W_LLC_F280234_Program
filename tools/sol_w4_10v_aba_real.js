@@ -1,8 +1,8 @@
-// W4 10 V CR15 <-> CR12 REAL load-step capture, one direction per run.
+// W4 V14 10 V CR15 <-> CR12 REAL load-step capture, one direction per run.
 // Firmware owns the 60..180 s power window, terminal OST and diagnostic ESTOP.
-// After the physical-step marker the host blocks only on stdin and a silent
-// monotonic-clock wait. It never continuously polls FTDI and never actively
-// halts an unconfirmed target.
+// After an early instruction prompt the host blocks only on stdin and a silent
+// monotonic-clock wait. The target's yellow LED is the exact physical marker;
+// the host never continuously polls FTDI or actively halts an unconfirmed target.
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
@@ -10,17 +10,17 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="71EF1073DD520AB15BB5480CE0ECCA078AE509C64246F55A58C94D4D7125F7EC";
+var EXPECTED_SHA="21E7537FE264F7FA030EDE1588E98DAA557167C52DD388ED253DE6235187EE92";
 var DIRECTION_NAME=(java.lang.System.getenv("SOL_W4_DIRECTION")||"");
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_INITIAL_LOAD_OHMS")||"");
 var INPUT_LIMIT=(java.lang.System.getenv("SOL_W4_INPUT_LIMIT_A")||"");
 var ACK=(java.lang.System.getenv("SOL_W4_GATES_ACK")||"").equals("1");
 var DIRECTION=0,RUN_ID=0,EXPECTED_INITIAL="",EXPECTED_TARGET="",STEP_TEXT="";
 if(DIRECTION_NAME.equals("HEAVIER")){
-  DIRECTION=1;RUN_ID=0x25090598;EXPECTED_INITIAL="15";EXPECTED_TARGET="12";
+  DIRECTION=1;RUN_ID=0x2509059A;EXPECTED_INITIAL="15";EXPECTED_TARGET="12";
   STEP_TEXT="CR15_TO_CR12";
 }else if(DIRECTION_NAME.equals("LIGHTER")){
-  DIRECTION=2;RUN_ID=0x25090599;EXPECTED_INITIAL="12";EXPECTED_TARGET="15";
+  DIRECTION=2;RUN_ID=0x2509059B;EXPECTED_INITIAL="12";EXPECTED_TARGET="15";
   STEP_TEXT="CR12_TO_CR15";
 }else{throw "direction-must-be-HEAVIER-or-LIGHTER";}
 if(!INITIAL_LOAD.equals(EXPECTED_INITIAL)){throw "initial-load-does-not-match-direction";}
@@ -53,6 +53,9 @@ function check(name,ok){print(name+"="+(ok?"PASS":"FAIL"));if(!ok)failures++;}
 function monotonicNs(){return Number(java.lang.System.nanoTime());}
 var HOST_QUIET_MIN_NS=70000000000;
 var HOST_QUIET_MAX_NS=205000000000;
+var HOST_PROMPT_DELAY_NS=8000000000;
+var TARGET_OPERATOR_MARKER_TICKS=600000;
+var HOST_ACK_DEADLINE_NS=160000000000;
 var POST_FIRE_STATUS_PROBES_MAX=2;
 var terminalProbeCount=0;
 function silentWaitUntil(deadlineNs){
@@ -60,7 +63,8 @@ function silentWaitUntil(deadlineNs){
   if(remainingMs>0)java.lang.Thread.sleep(remainingMs);
 }
 function terminalCookie(runId,direction,state,reason){
-  return (0x57440000 ^ 0x00000F0C ^ runId ^ ((direction&0xffff)<<16) ^
+  return (0x57440000 ^ 0x00000F0C ^ 0x00000014 ^ runId ^
+          ((direction&0xffff)<<16) ^
           ((state&0xffff)<<8) ^ (reason&0xffff))>>>0;
 }
 var terminalProbeLinkFailed=false;
@@ -92,9 +96,10 @@ function forceSafe(needHalt){
 }
 
 var failures=0,connected=false,fired=false,terminalHaltObserved=false;
-var stepAcknowledged=false;
+var stepAcknowledged=false,promptNs=0,ackNs=0;
 print("=== SOL W4 REAL "+STEP_TEXT+" ===");
-print("LOAD_PROFILE_OHMS=15<->12 PROFILE_ID=0x0F0C");
+print("LOAD_PROFILE_OHMS=15<->12 PROFILE_ID=0x0F0C ALGORITHM_ID=0x0014");
+print("TARGET_REFERENCE_FREEZE_TICKS=500000 TARGET_YELLOW_MARKER_TICKS=600000");
 print("VIN_V=24 INITIAL_LOAD_OHMS="+INITIAL_LOAD+" TARGET_LOAD_OHMS="+
       EXPECTED_TARGET+" INPUT_CURRENT_LIMIT_A="+INPUT_LIMIT);
 var actual=sha256File(OUT);
@@ -111,6 +116,7 @@ try{
   check("INIT_FAULT_ZERO",rv32u("g_fault_flags")===0);
   check("INIT_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1);
   check("INIT_TZINT_ZERO",reg("EPwm1Regs.TZFLG.bit.INT")===0);
+  check("INIT_YELLOW_MARKER_OFF",reg("GpioDataRegs.GPADAT.bit.GPIO21")===0);
   check("INIT_VOUT_CAL_VALID",rw("g_board_vout_cal_valid")===1);
   check("INIT_CALHOLD_IDLE",rw("g_cal_hold_state")===0);
   if(failures){throw "boot-gates";}
@@ -152,9 +158,12 @@ try{
 
   var fireNs=monotonicNs();
   session.target.runAsynch();
-  java.lang.Thread.sleep(2000);
-  print("W4_PHYSICAL_STEP_NOW="+STEP_TEXT);
-  print("SET_ELOAD_OHMS_NOW="+EXPECTED_TARGET);
+  /* No DSS access.  Prompt early, then let the target's own yellow LED at
+   * elapsed tick 600000 define the physical marker without host/JTAG timing. */
+  silentWaitUntil(fireNs+HOST_PROMPT_DELAY_NS);
+  promptNs=monotonicNs();
+  print("W4_WAIT_FOR_YELLOW_LED_THEN_STEP="+STEP_TEXT);
+  print("WHEN_YELLOW_LED_TURNS_ON_SET_ELOAD_OHMS="+EXPECTED_TARGET);
   var ackNonce="W4_STEP_"+
       java.lang.Long.toHexString(java.lang.System.nanoTime()).toUpperCase();
   print("ACK_LINE_REQUIRED="+ackNonce);
@@ -167,8 +176,16 @@ try{
    * changes the load. Only this task sends the exact run-specific token after
    * observing the user's physical acknowledgement. */
   var reader=new BufferedReader(new InputStreamReader(java.lang.System["in"]));
-  var ackInputClosed=false,ackNs=0;
+  var ackInputClosed=false;
   while(!stepAcknowledged && !ackInputClosed){
+    if(!reader.ready()){
+      if(monotonicNs()>=fireNs+HOST_ACK_DEADLINE_NS){
+        print("W4_STEP_ACK_HOST_DEADLINE_160S_EXPIRED=TRUE");
+        break;
+      }
+      java.lang.Thread.sleep(50);
+      continue;
+    }
     var line=reader.readLine();
     if(line===null){
       print("W4_STEP_ACK_INPUT_CLOSED__TARGET_LEFT_AUTONOMOUS=TRUE");
@@ -180,6 +197,8 @@ try{
       stepAcknowledged=true;
       ackNs=monotonicNs();
       print("W4_PHYSICAL_STEP_ACK_ACCEPTED=TRUE");
+      print("W4_PHYSICAL_STEP_ACK_ELAPSED_MS="+
+            Math.ceil((ackNs-fireNs)/1000000.0));
     }else{
       print("W4_PHYSICAL_STEP_ACK_IGNORED=TOKEN_MISMATCH");
     }
@@ -252,6 +271,8 @@ try{
   var traceMin=rw("g_w4_trace_min_raw"),traceMax=rw("g_w4_trace_max_raw");
   var baselineDemand=rv32u("g_w4_trace_baseline_demand_index");
   var triggerDemand=rv32u("g_w4_trace_trigger_demand_index");
+  var triggerConfirmTick=rv32u("g_w4_trace_trigger_confirm_tick");
+  var operatorMarkerTick=rv32u("g_w4_trace_operator_marker_tick");
 
   print("RESULT state="+state+" reason="+reason+" elapsed_ticks="+elapsed+
         " fault=0x"+fault.toString(16));
@@ -271,6 +292,8 @@ try{
         " trigger_packets_20ms="+rw("g_w4_trace_trigger_packets_20ms")+
         " trigger_cpp="+rw("g_w4_trace_trigger_cycles_per_packet")+
         " trigger_demand="+triggerDemand+
+        " operator_marker_tick="+operatorMarkerTick+
+        " trigger_confirm_tick="+triggerConfirmTick+
         " min="+traceMin+" max="+traceMax+
         " settle_ms="+rw("g_w4_trace_settle_ms")+
         " peak_pass="+rw("g_w4_trace_peak_pass")+
@@ -281,29 +304,88 @@ try{
   var cycRing=session.memory.readWord(1,addr("g_w4_trace_ring_cycle_delta"),128);
   var pktRing=session.memory.readWord(1,addr("g_w4_trace_ring_packet_delta"),128);
   var trigger=rw("g_w4_trace_trigger_index"),hostMin=65535,hostMax=0;
-  for(var i=0;i<48;i++){
-    var index=(trigger+i)&127;
+  var traceComplete=(traceState===5 && traceFail===0 &&
+                      triggerDemand>0 && triggerConfirmTick>0);
+  function ringDemand(start,count){
+    var cycles=0,packets=0;
+    for(var k=0;k<count;k++){
+      cycles+=Number(cycRing[(start+k)&127]);
+      packets+=Number(pktRing[(start+k)&127]);
+    }
+    var cpp=packets>0?Math.floor(cycles/packets):0;
+    var per5=count>0?Math.floor(cycles/count):0;
+    return {cycles:cycles,packets:packets,cpp:cpp,per5:per5,
+            demand:(cycles>0&&packets>0)?Math.floor((per5*cpp)/2):0};
+  }
+  var b1=ringDemand(trigger,4),b2=ringDemand(trigger+4,4),
+      b3=ringDemand(trigger+8,4),post=ringDemand(trigger+12,40);
+  var baselineCycles5=rw("g_w4_trace_baseline_cycles_per_5ms");
+  var baselineCpp=rw("g_w4_trace_baseline_cycles_per_packet");
+  var baselineTelemetryOk=baselineCycles5>0 && baselineCpp>0 &&
+      baselineDemand===Math.floor((baselineCycles5*baselineCpp)/2);
+  var triggerTelemetryOk=b3.cycles===rw("g_w4_trace_trigger_cycles_20ms") &&
+      b3.packets===rw("g_w4_trace_trigger_packets_20ms") &&
+      b3.cpp===rw("g_w4_trace_trigger_cycles_per_packet") &&
+      b3.demand===triggerDemand;
+  var threeBlocksValid=b1.demand>0 && b2.demand>0 && b3.demand>0;
+  var threeBlocksDirection=threeBlocksValid && (DIRECTION===1 ?
+      (b1.demand*8>=baselineDemand*9 &&
+       b2.demand*8>=baselineDemand*9 &&
+       b3.demand*8>=baselineDemand*9) :
+      (b1.demand*8<=baselineDemand*7 &&
+       b2.demand*8<=baselineDemand*7 &&
+       b3.demand*8<=baselineDemand*7));
+  var postDirection=post.demand>0 && (DIRECTION===1 ?
+      post.demand*8>=baselineDemand*9 :
+      post.demand*8<=baselineDemand*7);
+  print("TRACE_BLOCKS b1_demand="+b1.demand+" b2_demand="+b2.demand+
+        " b3_demand="+b3.demand+" post200ms_demand="+post.demand+
+        " baseline_demand="+baselineDemand);
+  var rowStart=traceComplete ? trigger :
+      ((rw("g_w4_trace_write_index")+128-52)&127);
+  if(!traceComplete)
+    print("TRACE_NOT_COMPLETE__ROWS_ARE_LATEST_RING_NOT_TRIGGER_RELATIVE=TRUE");
+  for(var i=0;i<52;i++){
+    var index=(rowStart+i)&127;
     var vr=Number(rawRing[index]);
     var vc=Number(cycRing[index]);
     var vp=Number(pktRing[index]);
     if(vr<hostMin)hostMin=vr;if(vr>hostMax)hostMax=vr;
-    print("TRACE_ROW i="+i+" t_ms="+(i*5)+" raw="+vr+
+    print((traceComplete?"TRACE_ROW":"DIAGNOSTIC_RING_ROW")+" i="+i+
+          (traceComplete?(" t_ms="+(i*5)):"")+" raw="+vr+
           " volts="+vout(vr).toFixed(4)+" cycles="+vc+" packets="+vp);
   }
 
   check("W4_HOLD_COMPLETE",state===4 && reason===1);
   check("FIRMWARE_DURATION_BOUNDED",elapsed>=3000000 && elapsed<=9000000);
-  check("W4_TRACE_COMPLETE",traceState===5 && traceFail===0);
+  check("W4_PHYSICAL_STEP_ACK_CHAIN",stepAcknowledged &&
+        promptNs>=fireNs+HOST_PROMPT_DELAY_NS &&
+        ackNs>=promptNs && ackNs<=fireNs+HOST_ACK_DEADLINE_NS);
+  check("W4_TRACE_COMPLETE",traceComplete);
+  check("W4_TARGET_OPERATOR_MARKER_COMMITTED",traceComplete &&
+        operatorMarkerTick>=TARGET_OPERATOR_MARKER_TICKS &&
+        operatorMarkerTick<=9000000);
+  check("W4_TRIGGER_AT_OR_AFTER_TARGET_MARKER",traceComplete &&
+        triggerConfirmTick>=operatorMarkerTick &&
+        triggerConfirmTick<=9000000);
   check("W4_TRACE_DIRECTION",rw("g_w4_trace_direction_active")===DIRECTION);
-  check("W4_DEMAND_DIRECTION",DIRECTION===1 ?
-        (triggerDemand*8>=baselineDemand*9) :
-        (triggerDemand*8<=baselineDemand*7));
-  check("W4_TRACE_PEAK_LE_5PCT",traceMin>=1182 && traceMax<=1306 &&
+  check("W4_BASELINE_TELEMETRY_CONSISTENT",traceComplete && baselineTelemetryOk);
+  check("W4_TRIGGER_BLOCK_TELEMETRY_MATCH",traceComplete && triggerTelemetryOk);
+  check("W4_POST_STEP_DEMAND_PERSISTS",traceComplete && postDirection);
+  check("W4_DEMAND_DIRECTION",traceComplete && baselineTelemetryOk &&
+        triggerTelemetryOk && threeBlocksDirection && postDirection);
+  check("W4_TRACE_PEAK_LE_5PCT",traceComplete &&
+        traceMin>=1182 && traceMax<=1306 &&
         rw("g_w4_trace_peak_pass")===1);
-  check("W4_TRACE_SETTLE_LE_100MS",rw("g_w4_trace_settle_ms")<=100 &&
+  check("W4_TRACE_SETTLE_LE_100MS",traceComplete &&
+        rw("g_w4_trace_settle_ms")<=100 &&
         rw("g_w4_trace_settle_pass")===1);
-  check("W4_TRACE_QUALITY_PASS",rw("g_w4_trace_quality_pass")===1);
-  check("W4_TRACE_RING_MATCH",traceMin===hostMin && traceMax===hostMax);
+  check("W4_TRACE_QUALITY_PASS",traceComplete &&
+        rw("g_w4_trace_quality_pass")===1);
+  check("W4_TRACE_RING_MATCH",traceComplete &&
+        traceMin===hostMin && traceMax===hostMax);
+  check("W4_TRACE_WRITE_INDEX_MATCH",traceComplete &&
+        rw("g_w4_trace_write_index")===((trigger+52)&127));
   check("W4_HOLD_AVERAGE_10V",ssn>0 && ssavg>=1180 && ssavg<1300);
   var capTicks=elapsed;
   if(capTicks<3000000)capTicks=3000000;

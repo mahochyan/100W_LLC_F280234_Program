@@ -5,8 +5,11 @@
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
+importPackage(Packages.java.io);
+importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY_NE\\LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out";
+var EXPECTED_SHA="29D526DC20601D5D2AAFB3B76CD688707DCB14E086E8CD6A96075609DEDD5D42";
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
@@ -18,11 +21,22 @@ function wv32(n,v){var a=addr(n);session.memory.writeWord(1,a,v&0xffff);session.
 function reg(e){return parseInt(session.expression.evaluate(e));}
 function run(ms){session.target.runAsynch();java.lang.Thread.sleep(ms);session.target.halt();}
 function check(name,ok,detail){print(name+"="+(ok?"TRUE":"FALSE")+(detail?(" "+detail):""));if(!ok)failures++;}
+function sha256File(path){
+  var md=MessageDigest.getInstance("SHA-256"),fis=new FileInputStream(path);
+  var buf=java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE,8192),n;
+  while((n=fis.read(buf))>0){md.update(buf,0,n);}fis.close();
+  var d=md.digest(),sb=new StringBuilder();
+  for(var i=0;i<d.length;i++){
+    var h=(d[i]&0xff).toString(16);if(h.length<2)h="0"+h;sb.append(h.toUpperCase());
+  }
+  return sb.toString();
+}
 
 var failures=0;
 var currentW4RunId=0;
 function expectedTerminalCookie(runId,direction,state,reason){
-  return (0x57440000 ^ 0x00000F0C ^ runId ^ ((direction&0xffff)<<16) ^
+  return (0x57440000 ^ 0x00000F0C ^ 0x00000014 ^ runId ^
+          ((direction&0xffff)<<16) ^
           ((state&0xffff)<<8) ^ (reason&0xffff))>>>0;
 }
 function checkTerminalCookie(tag,direction,state,reason){
@@ -32,11 +46,17 @@ function checkTerminalCookie(tag,direction,state,reason){
         "cookie=0x"+rv32u("g_w4_trace_terminal_cookie").toString(16));
 }
 print("=== SOL W4 PASSIVE TRACE NOENERGY ===");
+var actualSha=sha256File(OUT);
+check("NE_SHA_HARD_GATE",actualSha.equals(EXPECTED_SHA),"actual="+actualSha);
+if(failures)throw "w4-ne-sha-gate";
 session.target.connect();try{session.target.halt();}catch(e){}
 session.memory.loadProgram(OUT);run(400);
 
 var startSeen0=rw("g_first_start_seen");
 var tzclr0=rv32u("g_probe_tzclr_write_count");
+var enableRise0=rv32u("g_enable_rising_count");
+var hardwareTrip0=rv32u("g_tz_hardware_trip_count");
+var activeTrip0=rv32u("g_tz_active_window_trip_count");
 function safe(tag){
   check(tag+"_PWM0",rw("g_pwm_enabled")==0);
   check(tag+"_OST1",reg("EPwm1Regs.TZFLG.bit.OST")==1);
@@ -82,31 +102,79 @@ function requestHold(mode,duration,arm,direction){
    * 100 ms legacy duration and below W4's 500 ms baseline start. */
   run(80);
 }
-function beginTrace(direction,baselineCycles,baselinePackets){
+function beginTrace(direction,baselineCycles,baselinePackets,
+                    startupCycles,startupPackets){
+  if(startupCycles===undefined)startupCycles=baselineCycles;
+  if(startupPackets===undefined)startupPackets=baselinePackets;
   currentW4RunId=(0x250905A0+direction)>>>0;
   wv32("g_test_run_id",currentW4RunId);
   requestHold(1,60000,1,direction);
   check("ARM_CONSUMED_D"+direction,rw("g_w4_trace_arm")==0);
   check("TRACE_WAIT_D"+direction,rw("g_w4_trace_state")==1);
+  check("NEW_ARM_MARKER_CLEAR_D"+direction,
+        rv32u("g_w4_trace_operator_marker_tick")==0);
   check("NEW_ARM_COOKIE_CLEAR_D"+direction,
         rv32u("g_w4_trace_terminal_cookie")==0);
-  wv("g_w4_trace_ne_cycle_delta",baselineCycles);
-  wv("g_w4_trace_ne_packet_delta",baselinePackets);
+  wv("g_w4_trace_ne_cycle_delta",startupCycles);
+  wv("g_w4_trace_ne_packet_delta",startupPackets);
   wv32("g_cal_hold_elapsed_ticks",24998);
   run(260);
-  check("BASELINE_ARMED_D"+direction,rw("g_w4_trace_state")==3,
+  check("STARTUP_SEED_ARMED_D"+direction,rw("g_w4_trace_state")==3,
         "cycles="+rw("g_w4_trace_baseline_cycles_per_5ms")+
         " cpp="+rw("g_w4_trace_baseline_cycles_per_packet")+
         " demand="+rv32u("g_w4_trace_baseline_demand_index"));
-  check("BASELINE_EXACT_D"+direction,
-        rw("g_w4_trace_baseline_cycles_per_5ms")==baselineCycles);
-  /* V10 opens detection immediately after the completed 0.7 s baseline. */
-  wv32("g_cal_hold_elapsed_ticks",35000);
+  check("STARTUP_SEED_EXACT_D"+direction,
+        rw("g_w4_trace_baseline_cycles_per_5ms")==startupCycles);
+  /* Reproduce V13's stale-startup failure mode: replace the seed with a
+   * settled A demand for more than the full 52-sample sliding window while
+   * the 10 s gate is closed. A large startup rise must not false-trigger. */
+  wv("g_w4_trace_ne_cycle_delta",baselineCycles);
+  wv("g_w4_trace_ne_packet_delta",baselinePackets);
+  wv32("g_cal_hold_elapsed_ticks",400000);
+  run(1000);
+  check("STARTUP_TRANSIENT_IGNORED_D"+direction,
+        rw("g_w4_trace_state")==3 &&
+        rv32u("g_w4_trace_trigger_confirm_tick")==0);
+  wv32("g_cal_hold_elapsed_ticks",500000);
+  run(12);
+  check("ROLLING_BASELINE_EXACT_D"+direction,
+        rw("g_w4_trace_baseline_cycles_per_5ms")==baselineCycles &&
+        rw("g_w4_trace_baseline_cycles_per_packet")==
+          Math.floor(baselineCycles/baselinePackets),
+        "cycles="+rw("g_w4_trace_baseline_cycles_per_5ms")+
+         " cpp="+rw("g_w4_trace_baseline_cycles_per_packet")+
+         " demand="+rv32u("g_w4_trace_baseline_demand_index"));
+  var frozenRaw=rw("g_w4_trace_baseline_raw");
+  var frozenCycles=rw("g_w4_trace_baseline_cycles_per_5ms");
+  var frozenCpp=rw("g_w4_trace_baseline_cycles_per_packet");
+  var frozenDemand=rv32u("g_w4_trace_baseline_demand_index");
+  /* The 10..12 s guard interval must neither track a slow knob movement nor
+   * permit a pre-marker trigger.  Use a sub-threshold perturbation so the
+   * candidate ring is still representative when detection opens. */
+  wv("g_w4_trace_ne_cycle_delta",baselineCycles+4);
+  wv32("g_cal_hold_elapsed_ticks",550000);
+  run(200);
+  check("REFERENCE_FROZEN_10_TO_12S_D"+direction,
+        rw("g_w4_trace_baseline_raw")==frozenRaw &&
+        rw("g_w4_trace_baseline_cycles_per_5ms")==frozenCycles &&
+        rw("g_w4_trace_baseline_cycles_per_packet")==frozenCpp &&
+        rv32u("g_w4_trace_baseline_demand_index")==frozenDemand);
+  check("DETECT_CLOSED_BEFORE_12S_D"+direction,
+        rw("g_w4_trace_state")==3 &&
+        rv32u("g_w4_trace_trigger_confirm_tick")==0);
+  wv("g_w4_trace_ne_cycle_delta",baselineCycles);
+  wv32("g_cal_hold_elapsed_ticks",599998);
+  run(8);
+  check("DETECT_OPENS_AT_12S_D"+direction,
+        rv32u("g_cal_hold_elapsed_ticks")>=600000 &&
+        rw("g_w4_trace_state")==3 &&
+        rv32u("g_w4_trace_trigger_confirm_tick")==0 &&
+        rv32u("g_w4_trace_operator_marker_tick")>=600000);
 }
 function ringExtrema(){
   var i,idx=rw("g_w4_trace_trigger_index"),base=addr("g_w4_trace_ring_raw");
   var mn=65535,mx=0;
-  for(i=0;i<48;i++){
+  for(i=0;i<52;i++){
     var v=session.memory.readWord(1,base+((idx+i)&127));
     if(v<mn)mn=v;if(v>mx)mx=v;
   }
@@ -130,6 +198,10 @@ function finishStep(tag,stepCycles,stepPackets,transientRaw,expectQuality){
         " ring_min="+ex.mn+" ring_max="+ex.mx);
   check(tag+"_COMPLETE",rw("g_w4_trace_state")==5 &&
         rw("g_w4_trace_fail_reason")==0);
+  check(tag+"_TRIGGER_AFTER_WARMUP",
+        rv32u("g_w4_trace_trigger_confirm_tick")>=
+          rv32u("g_w4_trace_operator_marker_tick") &&
+        rv32u("g_w4_trace_operator_marker_tick")>=600000);
   check(tag+"_RING_MATCH",rw("g_w4_trace_min_raw")==ex.mn &&
         rw("g_w4_trace_max_raw")==ex.mx);
   check(tag+"_QUALITY",rw("g_w4_trace_quality_pass")==expectQuality);
@@ -172,9 +244,9 @@ check("INVALID_DIRECTION_RETAINS_60S_CAP",rw("g_cal_hold_state")==5 &&
       rw("g_cal_hold_stop_reason")==6);
 safe("INVALID_DIRECTION_CAP");
 
-beginTrace(1,100,4);
+beginTrace(1,300,3,80,1);
 wv("g_w4_trace_direction_active",2); /* cannot change private direction */
-finishStep("HEAVIER",100,3,1185,1);
+finishStep("HEAVIER",300,2,1185,1);
 check("PUBLIC_DIRECTION_TAMPER_CANNOT_REDIRECT",
       rw("g_w4_trace_state")==5 && rw("g_w4_trace_direction_active")==2);
 check("HEAVIER_PEAK_GATE",rw("g_w4_trace_min_raw")==1185 &&
@@ -201,8 +273,8 @@ check("PACKET_TERMINAL_SOFTWARE_SAFE",rw("g_cal_hold_packet_active")==0 &&
 checkTerminalCookie("PACKET_TERMINAL",1,4,1);
 safe("PACKET_TERMINAL");
 
-beginTrace(2,100,3);
-finishStep("LIGHTER",100,4,1295,1);
+beginTrace(2,300,2,80,1);
+finishStep("LIGHTER",300,3,1295,1);
 check("LIGHTER_PEAK_GATE",rw("g_w4_trace_max_raw")==1295 &&
       rw("g_w4_trace_peak_pass")==1);
 
@@ -241,7 +313,10 @@ checkTerminalCookie("EARLY_ABORT",1,5,2);
 safe("EARLY_ABORT");
 
 check("NE_NEVER_RELEASED_PWM",rw("g_first_start_seen")==startSeen0 &&
-      rv32u("g_probe_tzclr_write_count")==tzclr0);
+      rv32u("g_probe_tzclr_write_count")==tzclr0 &&
+      rv32u("g_enable_rising_count")==enableRise0 &&
+      rv32u("g_tz_hardware_trip_count")==hardwareTrip0 &&
+      rv32u("g_tz_active_window_trip_count")==activeTrip0);
 print("SOL_W4_TRACE_NOENERGY_PASS="+(failures==0?"TRUE":"FALSE"));
 try{session.terminate();}catch(e){}
 if(failures){throw "w4-ne-failures="+failures;}

@@ -74,16 +74,21 @@
 #define W4_TRACE_SAMPLES                  128U    /* 640 ms at 5 ms/sample */
 #define W4_TRACE_BASELINE_SAMPLES         40U     /* 200 ms */
 #define W4_TRACE_DETECT_BLOCK_SAMPLES     4U      /* 20 ms */
-#define W4_TRACE_DETECT_STREAK_BLOCKS     2U      /* 40 ms persistence */
+#define W4_TRACE_DETECT_STREAK_BLOCKS     3U      /* 60 ms; rejects one-block spikes */
 #define W4_TRACE_POST_SAMPLES             40U     /* 200 ms after detection */
-#define W4_TRACE_EVAL_SAMPLES             48U     /* two detect blocks + post */
+#define W4_TRACE_EVAL_SAMPLES             52U     /* three detect blocks + post */
 #define W4_TRACE_SAMPLE_MS                 5U
 #define W4_TRACE_BASELINE_START_TICKS      25000UL /* 500 ms */
-/* V10: detection opens as soon as the 500 ms + 200 ms baseline is complete.
- * The first real attempt proved that an FTDI stall can let host wall time
- * advance while target time remains below the old 5 s gate, hiding a genuine
- * operator step already visible in the ring. */
-#define W4_TRACE_DETECT_START_TICKS        35000UL /* 700 ms */
+/* V14: the first 200 ms window is only a seed.  Refresh the latest 200 ms
+ * reference every 5 ms through a 10 s warm-up, then freeze it before the
+ * operator is asked to move the load.  Detection opens at the nominal 12 s
+ * target-side operator marker and compares three consecutive 20 ms candidate
+ * blocks with the frozen reference.  The REAL image turns on the yellow LED
+ * at that same target tick; the operator changes load only after seeing it.
+ * A slow manual CR15/CR12 adjustment therefore cannot be absorbed by a
+ * continuously following reference. */
+#define W4_TRACE_REFERENCE_FREEZE_TICKS   500000UL /* 10 s */
+#define W4_TRACE_DETECT_START_TICKS       600000UL /* 12 s */
 #define W4_TRACE_MIN_HOLD_TICKS           3000000UL /* 60 s */
 #define W4_TRACE_MAX_HOLD_TICKS           9000000UL /* 180 s operator backstop */
 /* 180 s at 250 kHz with the unchanged 50% aggregate active-time ceiling. */
@@ -108,6 +113,7 @@
 #define W4_TRACE_LOAD_LIGHT_OHM_X10       150U
 #define W4_TRACE_LOAD_HEAVY_OHM_X10       120U
 #define W4_TRACE_LOAD_PROFILE_ID       0x0F0CUL
+#define W4_TRACE_ALGORITHM_ID          0x0014UL
 
 #define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12 */
 #define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12 -> CR15 */
@@ -143,6 +149,8 @@ extern volatile Uint16 g_w4_trace_trigger_cycles_20ms;
 extern volatile Uint16 g_w4_trace_trigger_packets_20ms;
 extern volatile Uint16 g_w4_trace_trigger_cycles_per_packet;
 extern volatile Uint32 g_w4_trace_trigger_demand_index;
+extern volatile Uint32 g_w4_trace_trigger_confirm_tick;
+extern volatile Uint32 g_w4_trace_operator_marker_tick;
 extern volatile Uint16 g_w4_trace_min_raw;
 extern volatile Uint16 g_w4_trace_max_raw;
 extern volatile Uint16 g_w4_trace_settle_ms;

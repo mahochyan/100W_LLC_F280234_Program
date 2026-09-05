@@ -92,6 +92,10 @@ volatile Uint16 g_w4_trace_trigger_packets_20ms = 0U;
 volatile Uint16 g_w4_trace_trigger_cycles_per_packet = 0U;
 #pragma DATA_SECTION(g_w4_trace_trigger_demand_index, "ol_ram");
 volatile Uint32 g_w4_trace_trigger_demand_index = 0UL;
+#pragma DATA_SECTION(g_w4_trace_trigger_confirm_tick, "ol_ram");
+volatile Uint32 g_w4_trace_trigger_confirm_tick = 0UL;
+#pragma DATA_SECTION(g_w4_trace_operator_marker_tick, "ol_ram");
+volatile Uint32 g_w4_trace_operator_marker_tick = 0UL;
 #pragma DATA_SECTION(g_w4_trace_min_raw, "ol_ram");
 volatile Uint16 g_w4_trace_min_raw = 0U;
 #pragma DATA_SECTION(g_w4_trace_max_raw, "ol_ram");
@@ -123,12 +127,6 @@ static Uint16 s_w4_trace_last_cycle_clock = 0U;
 static Uint16 s_w4_trace_last_packet_clock = 0U;
 #pragma DATA_SECTION(s_w4_trace_baseline_count, "ol_ram");
 static Uint16 s_w4_trace_baseline_count = 0U;
-#pragma DATA_SECTION(s_w4_trace_block_count, "ol_ram");
-static Uint16 s_w4_trace_block_count = 0U;
-#pragma DATA_SECTION(s_w4_trace_detect_streak, "ol_ram");
-static Uint16 s_w4_trace_detect_streak = 0U;
-#pragma DATA_SECTION(s_w4_trace_candidate_index, "ol_ram");
-static Uint16 s_w4_trace_candidate_index = 0U;
 #pragma DATA_SECTION(s_w4_trace_post_remaining, "ol_ram");
 static Uint16 s_w4_trace_post_remaining = 0U;
 #pragma DATA_SECTION(s_w4_trace_baseline_raw_sum, "ol_ram");
@@ -137,10 +135,6 @@ static Uint32 s_w4_trace_baseline_raw_sum = 0UL;
 static Uint32 s_w4_trace_baseline_cycle_sum = 0UL;
 #pragma DATA_SECTION(s_w4_trace_baseline_packet_sum, "ol_ram");
 static Uint32 s_w4_trace_baseline_packet_sum = 0UL;
-#pragma DATA_SECTION(s_w4_trace_block_cycle_sum, "ol_ram");
-static Uint32 s_w4_trace_block_cycle_sum = 0UL;
-#pragma DATA_SECTION(s_w4_trace_block_packet_sum, "ol_ram");
-static Uint32 s_w4_trace_block_packet_sum = 0UL;
 
 Uint16 CALHOLD_W3PacketAuthOk(void)
 {
@@ -312,6 +306,8 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     g_w4_trace_trigger_packets_20ms = 0U;
     g_w4_trace_trigger_cycles_per_packet = 0U;
     g_w4_trace_trigger_demand_index = 0UL;
+    g_w4_trace_trigger_confirm_tick = 0UL;
+    g_w4_trace_operator_marker_tick = 0UL;
     g_w4_trace_min_raw = 0U;
     g_w4_trace_max_raw = 0U;
     g_w4_trace_settle_ms = 0U;
@@ -321,15 +317,10 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     s_w4_trace_last_cycle_clock = s_w4_trace_cycle_clock;
     s_w4_trace_last_packet_clock = s_w4_trace_packet_clock;
     s_w4_trace_baseline_count = 0U;
-    s_w4_trace_block_count = 0U;
-    s_w4_trace_detect_streak = 0U;
-    s_w4_trace_candidate_index = 0U;
     s_w4_trace_post_remaining = 0U;
     s_w4_trace_baseline_raw_sum = 0UL;
     s_w4_trace_baseline_cycle_sum = 0UL;
     s_w4_trace_baseline_packet_sum = 0UL;
-    s_w4_trace_block_cycle_sum = 0UL;
-    s_w4_trace_block_packet_sum = 0UL;
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     g_w4_trace_ne_cycle_delta = 0U;
     g_w4_trace_ne_packet_delta = 0U;
@@ -369,6 +360,31 @@ static Uint16 CALHOLD_W4TraceStore(Uint16 raw, Uint16 cycle_delta,
                                       (W4_TRACE_SAMPLES - 1U));
     if (g_w4_trace_count < W4_TRACE_SAMPLES) g_w4_trace_count++;
     return index;
+}
+
+/* Publish the current 200 ms reference sums. The same helper is used for the
+ * initial seed and each sliding pre-candidate reference, keeping threshold
+ * arithmetic identical. A zero-demand reference fails only the observer. */
+static Uint16 CALHOLD_W4TracePublishBaseline(void)
+{
+    if (s_w4_trace_baseline_cycle_sum == 0UL ||
+        s_w4_trace_baseline_packet_sum == 0UL)
+    {
+        g_w4_trace_state = W4_TRACE_STATE_FAIL;
+        g_w4_trace_fail_reason = W4_TRACE_FAIL_ZERO_BASELINE;
+        return 0U;
+    }
+    g_w4_trace_baseline_raw = (Uint16)
+        (s_w4_trace_baseline_raw_sum / W4_TRACE_BASELINE_SAMPLES);
+    g_w4_trace_baseline_cycles_per_5ms = (Uint16)
+        (s_w4_trace_baseline_cycle_sum / W4_TRACE_BASELINE_SAMPLES);
+    g_w4_trace_baseline_cycles_per_packet = (Uint16)
+        (s_w4_trace_baseline_cycle_sum /
+         s_w4_trace_baseline_packet_sum);
+    g_w4_trace_baseline_demand_index =
+        ((Uint32)g_w4_trace_baseline_cycles_per_5ms *
+         g_w4_trace_baseline_cycles_per_packet) >> 1;
+    return 1U;
 }
 
 /* Freeze extrema and 20 ms moving-average settling from the detected step.
@@ -424,7 +440,7 @@ static void CALHOLD_W4TraceFinalize(void)
     g_w4_trace_state = W4_TRACE_STATE_COMPLETE;
 }
 
-/* Passive 5 ms observer. Two consecutive 20 ms demand blocks must differ by
+/* Passive 5 ms observer. Three consecutive 20 ms demand blocks must differ by
  * >=12.5% in the requested direction before a step is accepted. */
 static void CALHOLD_W4TraceSample(void)
 {
@@ -434,10 +450,27 @@ static void CALHOLD_W4TraceSample(void)
     Uint16 packet_delta;
     Uint16 raw;
     Uint16 index;
+    Uint16 i;
+    Uint16 ref_index;
+    Uint16 b1_index;
+    Uint16 b2_index;
+    Uint16 b3_index;
     Uint16 changed = 0U;
-    Uint16 block_cycles_per_5ms = 0U;
-    Uint16 block_cycles_per_packet = 0U;
-    Uint32 block_demand_index = 0UL;
+    Uint16 b1_cycles_per_5ms;
+    Uint16 b1_cycles_per_packet;
+    Uint16 b2_cycles_per_5ms;
+    Uint16 b2_cycles_per_packet;
+    Uint16 b3_cycles_per_5ms;
+    Uint16 b3_cycles_per_packet;
+    Uint32 b1_cycle_sum = 0UL;
+    Uint32 b1_packet_sum = 0UL;
+    Uint32 b2_cycle_sum = 0UL;
+    Uint32 b2_packet_sum = 0UL;
+    Uint32 b3_cycle_sum = 0UL;
+    Uint32 b3_packet_sum = 0UL;
+    Uint32 b1_demand_index;
+    Uint32 b2_demand_index;
+    Uint32 b3_demand_index;
 
     if (g_w4_trace_state == W4_TRACE_STATE_IDLE ||
         g_w4_trace_state == W4_TRACE_STATE_COMPLETE ||
@@ -478,95 +511,134 @@ static void CALHOLD_W4TraceSample(void)
         s_w4_trace_baseline_count++;
         if (s_w4_trace_baseline_count >= W4_TRACE_BASELINE_SAMPLES)
         {
-            g_w4_trace_baseline_raw = (Uint16)
-                (s_w4_trace_baseline_raw_sum / W4_TRACE_BASELINE_SAMPLES);
-            g_w4_trace_baseline_cycles_per_5ms = (Uint16)
-                (s_w4_trace_baseline_cycle_sum / W4_TRACE_BASELINE_SAMPLES);
-            if (g_w4_trace_baseline_cycles_per_5ms == 0U ||
-                s_w4_trace_baseline_packet_sum == 0UL)
-            {
-                g_w4_trace_state = W4_TRACE_STATE_FAIL;
-                g_w4_trace_fail_reason = W4_TRACE_FAIL_ZERO_BASELINE;
-            }
-            else
-            {
-                g_w4_trace_baseline_cycles_per_packet = (Uint16)
-                    (s_w4_trace_baseline_cycle_sum /
-                     s_w4_trace_baseline_packet_sum);
-                g_w4_trace_baseline_demand_index =
-                    ((Uint32)g_w4_trace_baseline_cycles_per_5ms *
-                     g_w4_trace_baseline_cycles_per_packet) >> 1;
+            if (CALHOLD_W4TracePublishBaseline() != 0U)
                 g_w4_trace_state = W4_TRACE_STATE_ARMED;
-            }
         }
         return;
     }
 
     if (g_w4_trace_state == W4_TRACE_STATE_ARMED)
     {
-        if (g_cal_hold_elapsed_ticks < W4_TRACE_DETECT_START_TICKS) return;
-        s_w4_trace_block_cycle_sum += cycle_delta;
-        s_w4_trace_block_packet_sum += packet_delta;
-        s_w4_trace_block_count++;
-        if (s_w4_trace_block_count < W4_TRACE_DETECT_BLOCK_SAMPLES) return;
-
-        if (s_w4_trace_block_packet_sum != 0UL)
+        /* Replace the nonstationary 0.5..0.7 s seed with the latest complete
+         * 200 ms reference throughout warm-up.  At 10 s this reference is
+         * frozen; subsequent manual adjustment cannot be tracked away. */
+        if (g_cal_hold_elapsed_ticks < W4_TRACE_REFERENCE_FREEZE_TICKS)
         {
-            block_cycles_per_5ms = (Uint16)
-                (s_w4_trace_block_cycle_sum /
-                 W4_TRACE_DETECT_BLOCK_SAMPLES);
-            block_cycles_per_packet = (Uint16)
-                (s_w4_trace_block_cycle_sum /
-                 s_w4_trace_block_packet_sum);
-            block_demand_index =
-                ((Uint32)block_cycles_per_5ms *
-                 block_cycles_per_packet) >> 1;
-            if (s_w4_trace_session_direction == W4_TRACE_DIRECTION_HEAVIER)
+            if (g_w4_trace_count < W4_TRACE_BASELINE_SAMPLES) return;
+            s_w4_trace_baseline_raw_sum = 0UL;
+            s_w4_trace_baseline_cycle_sum = 0UL;
+            s_w4_trace_baseline_packet_sum = 0UL;
+            for (i = 0U; i < W4_TRACE_BASELINE_SAMPLES; i++)
             {
-                if (((Uint32)block_demand_index * 8UL) >=
-                    ((Uint32)g_w4_trace_baseline_demand_index * 9UL))
-                    changed = 1U;
+                ref_index = (Uint16)
+                    ((index + W4_TRACE_SAMPLES -
+                      (W4_TRACE_BASELINE_SAMPLES - 1U) + i) &
+                     (W4_TRACE_SAMPLES - 1U));
+                s_w4_trace_baseline_raw_sum +=
+                    g_w4_trace_ring_raw[ref_index];
+                s_w4_trace_baseline_cycle_sum +=
+                    g_w4_trace_ring_cycle_delta[ref_index];
+                s_w4_trace_baseline_packet_sum +=
+                    g_w4_trace_ring_packet_delta[ref_index];
             }
-            else
-            {
-                if (((Uint32)block_demand_index * 8UL) <=
-                    ((Uint32)g_w4_trace_baseline_demand_index * 7UL))
-                    changed = 1U;
-            }
+            (void)CALHOLD_W4TracePublishBaseline();
+            return;
         }
+
+        /* The detector stays closed until the nominal 12 s host marker.  At
+         * every later 5 ms phase compare B1=[i-11..i-8], B2=[i-7..i-4] and
+         * B3=[i-3..i] with the frozen 10 s reference.  A single 20 ms demand
+         * spike cannot satisfy all three blocks. */
+        if (g_cal_hold_elapsed_ticks < W4_TRACE_DETECT_START_TICKS) return;
+        if (g_w4_trace_operator_marker_tick == 0UL)
+        {
+            /* This target-clock marker, not host wall time, is the physical
+             * coordination point.  Yellow-on is diagnostic only; it grants
+             * no PWM authority and changes no controller/protection state. */
+            g_w4_trace_operator_marker_tick = g_cal_hold_elapsed_ticks;
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+            GpioDataRegs.GPASET.bit.GPIO21 = 1U;
+#endif
+        }
+        if (g_w4_trace_count < (W4_TRACE_DETECT_STREAK_BLOCKS *
+                                W4_TRACE_DETECT_BLOCK_SAMPLES)) return;
+
+        for (i = 0U; i < W4_TRACE_DETECT_BLOCK_SAMPLES; i++)
+        {
+            b1_index = (Uint16)
+                ((index + W4_TRACE_SAMPLES -
+                   ((W4_TRACE_DETECT_STREAK_BLOCKS *
+                     W4_TRACE_DETECT_BLOCK_SAMPLES) - 1U) + i) &
+                  (W4_TRACE_SAMPLES - 1U));
+            b2_index = (Uint16)
+                ((index + W4_TRACE_SAMPLES -
+                   (((W4_TRACE_DETECT_STREAK_BLOCKS - 1U) *
+                     W4_TRACE_DETECT_BLOCK_SAMPLES) - 1U) + i) &
+                  (W4_TRACE_SAMPLES - 1U));
+            b3_index = (Uint16)
+                ((index + W4_TRACE_SAMPLES -
+                   (W4_TRACE_DETECT_BLOCK_SAMPLES - 1U) + i) &
+                  (W4_TRACE_SAMPLES - 1U));
+            b1_cycle_sum += g_w4_trace_ring_cycle_delta[b1_index];
+            b1_packet_sum += g_w4_trace_ring_packet_delta[b1_index];
+            b2_cycle_sum += g_w4_trace_ring_cycle_delta[b2_index];
+            b2_packet_sum += g_w4_trace_ring_packet_delta[b2_index];
+            b3_cycle_sum += g_w4_trace_ring_cycle_delta[b3_index];
+            b3_packet_sum += g_w4_trace_ring_packet_delta[b3_index];
+        }
+        if (b1_cycle_sum == 0UL || b1_packet_sum == 0UL ||
+            b2_cycle_sum == 0UL || b2_packet_sum == 0UL ||
+            b3_cycle_sum == 0UL || b3_packet_sum == 0UL) return;
+
+        b1_cycles_per_5ms = (Uint16)
+            (b1_cycle_sum / W4_TRACE_DETECT_BLOCK_SAMPLES);
+        b1_cycles_per_packet = (Uint16)(b1_cycle_sum / b1_packet_sum);
+        b1_demand_index = ((Uint32)b1_cycles_per_5ms *
+                           b1_cycles_per_packet) >> 1;
+        b2_cycles_per_5ms = (Uint16)
+            (b2_cycle_sum / W4_TRACE_DETECT_BLOCK_SAMPLES);
+        b2_cycles_per_packet = (Uint16)(b2_cycle_sum / b2_packet_sum);
+        b2_demand_index = ((Uint32)b2_cycles_per_5ms *
+                           b2_cycles_per_packet) >> 1;
+        b3_cycles_per_5ms = (Uint16)
+            (b3_cycle_sum / W4_TRACE_DETECT_BLOCK_SAMPLES);
+        b3_cycles_per_packet = (Uint16)(b3_cycle_sum / b3_packet_sum);
+        b3_demand_index = ((Uint32)b3_cycles_per_5ms *
+                           b3_cycles_per_packet) >> 1;
+
+        if (s_w4_trace_session_direction == W4_TRACE_DIRECTION_HEAVIER)
+        {
+            if ((b1_demand_index * 8UL) >=
+                (g_w4_trace_baseline_demand_index * 9UL) &&
+                (b2_demand_index * 8UL) >=
+                    (g_w4_trace_baseline_demand_index * 9UL) &&
+                (b3_demand_index * 8UL) >=
+                    (g_w4_trace_baseline_demand_index * 9UL)) changed = 1U;
+        }
+        else if ((b1_demand_index * 8UL) <=
+                     (g_w4_trace_baseline_demand_index * 7UL) &&
+                 (b2_demand_index * 8UL) <=
+                     (g_w4_trace_baseline_demand_index * 7UL) &&
+                 (b3_demand_index * 8UL) <=
+                     (g_w4_trace_baseline_demand_index * 7UL)) changed = 1U;
 
         if (changed != 0U)
         {
-            if (s_w4_trace_detect_streak == 0U)
-            {
-                s_w4_trace_candidate_index = (Uint16)
-                    ((index - (W4_TRACE_DETECT_BLOCK_SAMPLES - 1U)) &
-                     (W4_TRACE_SAMPLES - 1U));
-            }
-            s_w4_trace_detect_streak++;
-            if (s_w4_trace_detect_streak >= W4_TRACE_DETECT_STREAK_BLOCKS)
-            {
-                g_w4_trace_trigger_index = s_w4_trace_candidate_index;
-                g_w4_trace_trigger_raw =
-                    g_w4_trace_ring_raw[g_w4_trace_trigger_index];
-                g_w4_trace_trigger_cycles_20ms =
-                    (Uint16)s_w4_trace_block_cycle_sum;
-                g_w4_trace_trigger_packets_20ms =
-                    (Uint16)s_w4_trace_block_packet_sum;
-                g_w4_trace_trigger_cycles_per_packet =
-                    block_cycles_per_packet;
-                g_w4_trace_trigger_demand_index = block_demand_index;
-                s_w4_trace_post_remaining = W4_TRACE_POST_SAMPLES;
-                g_w4_trace_state = W4_TRACE_STATE_POST;
-            }
+            g_w4_trace_trigger_index = (Uint16)
+                ((index + W4_TRACE_SAMPLES -
+                  ((W4_TRACE_DETECT_STREAK_BLOCKS *
+                    W4_TRACE_DETECT_BLOCK_SAMPLES) - 1U)) &
+                 (W4_TRACE_SAMPLES - 1U));
+            g_w4_trace_trigger_raw =
+                g_w4_trace_ring_raw[g_w4_trace_trigger_index];
+            g_w4_trace_trigger_cycles_20ms = (Uint16)b3_cycle_sum;
+            g_w4_trace_trigger_packets_20ms = (Uint16)b3_packet_sum;
+            g_w4_trace_trigger_cycles_per_packet = b3_cycles_per_packet;
+            g_w4_trace_trigger_demand_index = b3_demand_index;
+            g_w4_trace_trigger_confirm_tick = g_cal_hold_elapsed_ticks;
+            s_w4_trace_post_remaining = W4_TRACE_POST_SAMPLES;
+            g_w4_trace_state = W4_TRACE_STATE_POST;
         }
-        else
-        {
-            s_w4_trace_detect_streak = 0U;
-        }
-        s_w4_trace_block_count = 0U;
-        s_w4_trace_block_cycle_sum = 0UL;
-        s_w4_trace_block_packet_sum = 0UL;
         return;
     }
 
@@ -700,6 +772,7 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
         g_w4_trace_terminal_cookie =
             W4_TRACE_TERMINAL_COOKIE_BASE ^
             W4_TRACE_LOAD_PROFILE_ID ^
+            W4_TRACE_ALGORITHM_ID ^
             g_cal_hold_run_id_at_stop ^
             ((Uint32)w4_direction << 16) ^
             ((Uint32)state << 8) ^

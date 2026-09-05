@@ -1,4 +1,4 @@
-// V13 XDS100v2 quiet-link qualification with the no-energy image.
+// V14 XDS100v2 quiet-link qualification with the no-energy image.
 // The target is deliberately left running behind a latched OST for 205 s.
 // Host traffic during that interval is exactly two bounded isHalted queries
 // (at 70 s and 205 s). The only active halt is explicitly NE-only, after the
@@ -10,7 +10,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY_NE\\LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out";
-var EXPECTED_SHA="38C8C3E027B6C1D52E15F2A0264F756D771BF0C3E7BE32BA7BA525E3053AEBC2";
+var EXPECTED_SHA="29D526DC20601D5D2AAFB3B76CD688707DCB14E086E8CD6A96075609DEDD5D42";
 var QUIET_FIRST_NS=70000000000;
 var QUIET_FINAL_NS=205000000000;
 
@@ -48,7 +48,7 @@ function check(name,ok,detail){
 }
 
 var failures=0,linkFailed=false;
-print("=== SOL W4 V13 QUIET LINK IDLE NOENERGY ===");
+print("=== SOL W4 V14 QUIET LINK IDLE NOENERGY ===");
 var actual=sha256File(OUT);
 print("NE_OUT_SHA256="+actual);
 check("NE_SHA_HARD_GATE",actual.equals(EXPECTED_SHA));
@@ -110,6 +110,6 @@ check("POST_OST1",reg("EPwm1Regs.TZFLG.bit.OST")==1);
 check("POST_TZINT0",reg("EPwm1Regs.TZFLG.bit.INT")==0);
 check("POST_FAULT0",rv32u("g_fault_flags")==0);
 session.terminate();
-print("SOL_W4_V13_QUIET_LINK_IDLE_NOENERGY_PASS="+
+print("SOL_W4_V14_QUIET_LINK_IDLE_NOENERGY_PASS="+
       (failures==0?"TRUE":"FALSE"));
 if(failures)throw "quiet-link-failures="+failures;
