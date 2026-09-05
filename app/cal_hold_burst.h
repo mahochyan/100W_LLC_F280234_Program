@@ -89,6 +89,7 @@
  * continuously following reference. */
 #define W4_TRACE_REFERENCE_FREEZE_TICKS   500000UL /* 10 s */
 #define W4_TRACE_DETECT_START_TICKS       600000UL /* 12 s */
+#define W4_TRACE_POST_MARKER_GUARD_TICKS    3000UL /* 12 new samples / 60 ms */
 #define W4_TRACE_MIN_HOLD_TICKS           3000000UL /* 60 s */
 #define W4_TRACE_MAX_HOLD_TICKS           9000000UL /* 180 s operator backstop */
 /* 180 s at 250 kHz with the unchanged 50% aggregate active-time ceiling. */

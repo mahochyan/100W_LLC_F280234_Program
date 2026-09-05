@@ -10,7 +10,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="21E7537FE264F7FA030EDE1588E98DAA557167C52DD388ED253DE6235187EE92";
+var EXPECTED_SHA="B4371EC608FDD0759FD3DEE52C125079CF3DE9A6CFE480BEA1181BD5DD588F2B";
 var DIRECTION_NAME=(java.lang.System.getenv("SOL_W4_DIRECTION")||"");
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_INITIAL_LOAD_OHMS")||"");
 var INPUT_LIMIT=(java.lang.System.getenv("SOL_W4_INPUT_LIMIT_A")||"");
@@ -366,7 +366,7 @@ try{
         operatorMarkerTick>=TARGET_OPERATOR_MARKER_TICKS &&
         operatorMarkerTick<=9000000);
   check("W4_TRIGGER_AT_OR_AFTER_TARGET_MARKER",traceComplete &&
-        triggerConfirmTick>=operatorMarkerTick &&
+        triggerConfirmTick>=operatorMarkerTick+3000 &&
         triggerConfirmTick<=9000000);
   check("W4_TRACE_DIRECTION",rw("g_w4_trace_direction_active")===DIRECTION);
   check("W4_BASELINE_TELEMETRY_CONSISTENT",traceComplete && baselineTelemetryOk);

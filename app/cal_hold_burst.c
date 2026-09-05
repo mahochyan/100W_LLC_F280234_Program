@@ -559,7 +559,11 @@ static void CALHOLD_W4TraceSample(void)
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
             GpioDataRegs.GPASET.bit.GPIO21 = 1U;
 #endif
+            return; /* the marker sample itself is never a candidate sample */
         }
+        if (g_cal_hold_elapsed_ticks <
+            (g_w4_trace_operator_marker_tick +
+             W4_TRACE_POST_MARKER_GUARD_TICKS)) return;
         if (g_w4_trace_count < (W4_TRACE_DETECT_STREAK_BLOCKS *
                                 W4_TRACE_DETECT_BLOCK_SAMPLES)) return;
 

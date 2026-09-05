@@ -83,7 +83,10 @@ def frozen_model(direction: int, samples: list[tuple[int, int, int]],
     trigger = None
     confirm = None
     trigger_demand = 0
-    for i in range(max(3 * BLOCK - 1, detect_sample), len(samples)):
+    # The marker sample is stored before the yellow LED is asserted.  Require
+    # twelve entirely new 5 ms samples after that marker before evaluating.
+    first_confirm_sample = detect_sample + 3 * BLOCK
+    for i in range(max(3 * BLOCK - 1, first_confirm_sample), len(samples)):
         first = samples[i - 11:i - 7]
         second = samples[i - 7:i - 3]
         third = samples[i - 3:i + 1]
@@ -157,6 +160,7 @@ def main() -> None:
         "W4_TRACE_EVAL_SAMPLES             52U",
         "W4_TRACE_REFERENCE_FREEZE_TICKS   500000UL",
         "W4_TRACE_DETECT_START_TICKS       600000UL",
+        "W4_TRACE_POST_MARKER_GUARD_TICKS    3000UL",
         "W4_TRACE_MIN_HOLD_TICKS           3000000UL",
         "W4_TRACE_MAX_HOLD_TICKS           9000000UL",
         "W4_TRACE_MAX_TOTAL_PACKET_CYCLES 22500000UL",
@@ -239,8 +243,11 @@ def main() -> None:
         "if (g_w4_trace_operator_marker_tick == 0UL)",
         "g_w4_trace_operator_marker_tick = g_cal_hold_elapsed_ticks;",
         "GpioDataRegs.GPASET.bit.GPIO21 = 1U;",
+        "return; /* the marker sample itself is never a candidate sample */",
+        "W4_TRACE_POST_MARKER_GUARD_TICKS",
         "g_w4_trace_trigger_confirm_tick = g_cal_hold_elapsed_ticks;",
     )) and sample.index("g_w4_trace_operator_marker_tick = g_cal_hold_elapsed_ticks;") <
+         sample.index("W4_TRACE_POST_MARKER_GUARD_TICKS") <
          sample.index("g_w4_trace_trigger_confirm_tick = g_cal_hold_elapsed_ticks;"))
     helper = SRC[SRC.index("static void CALHOLD_W4TraceReset"):
                  SRC.index("static Uint16 CALHOLD_DurationReached")]
@@ -382,7 +389,7 @@ def main() -> None:
         'check("W4_TARGET_OPERATOR_MARKER_COMMITTED",traceComplete',
         'operatorMarkerTick>=TARGET_OPERATOR_MARKER_TICKS',
         'check("W4_TRIGGER_AT_OR_AFTER_TARGET_MARKER",traceComplete',
-        'triggerConfirmTick>=operatorMarkerTick',
+        'triggerConfirmTick>=operatorMarkerTick+3000',
         'traceState===5 && traceFail===0',
         'triggerDemand>0 && triggerConfirmTick>0',
         'TRACE_NOT_COMPLETE__ROWS_ARE_LATEST_RING_NOT_TRIGGER_RELATIVE=TRUE',
@@ -452,6 +459,14 @@ def main() -> None:
          light["baseline_demand"] != ((80 * 80) >> 1) and
          14_000 <= light["confirm"] <= 14_011 and
          13_989 <= light["trigger"] <= 14_000)
+    marker_guard_stream = make_step_stream(1, 1185, step_sample=2_200)
+    marker_guard_stream += [(1240, 300, 2)] * 300
+    marker_guard = frozen_model(1, marker_guard_stream)
+    gate("W4_TRACE_MODEL_ALL_CANDIDATE_SAMPLES_POST_TARGET_MARKER",
+         marker_guard["complete"] == 1 and
+         marker_guard["trigger"] >= DETECT_SAMPLE + 1 and
+         marker_guard["confirm"] >= DETECT_SAMPLE + 3 * BLOCK and
+         marker_guard["confirm"] - marker_guard["trigger"] == 11)
     bad = frozen_model(1, make_step_stream(1, 1170))
     gate("W4_TRACE_MODEL_REJECTS_PEAK", bad["complete"] == 1 and bad["quality"] == 0)
 

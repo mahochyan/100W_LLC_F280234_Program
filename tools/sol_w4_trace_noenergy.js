@@ -9,7 +9,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY_NE\\LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out";
-var EXPECTED_SHA="29D526DC20601D5D2AAFB3B76CD688707DCB14E086E8CD6A96075609DEDD5D42";
+var EXPECTED_SHA="A90BD9223F96D9D8168CD22EE30D7922A31C0088C9110653F578E222217EFCB8";
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
@@ -200,7 +200,7 @@ function finishStep(tag,stepCycles,stepPackets,transientRaw,expectQuality){
         rw("g_w4_trace_fail_reason")==0);
   check(tag+"_TRIGGER_AFTER_WARMUP",
         rv32u("g_w4_trace_trigger_confirm_tick")>=
-          rv32u("g_w4_trace_operator_marker_tick") &&
+          rv32u("g_w4_trace_operator_marker_tick")+3000 &&
         rv32u("g_w4_trace_operator_marker_tick")>=600000);
   check(tag+"_RING_MATCH",rw("g_w4_trace_min_raw")==ex.mn &&
         rw("g_w4_trace_max_raw")==ex.mx);
