@@ -271,6 +271,11 @@ __interrupt void EPWM1_TZINT_ISR(void)
 
 __interrupt void TINT0_ISR(void)
 {
+#if STAGE6_W4_RETURN_V15_TEST
+    /* V15 REAL and NE use an isolated passive ISR-body timer.  This is not a
+     * control input and cannot grant PWM authority. */
+    Uint32 w4_v15_isr_entry = CpuTimer2Regs.TIM.all;
+#endif
 #if STAGE6_FIRST_REAL_PI_SHOT_REAL_BUILD
     Uint16 r_entry_pws = g_power_window_state;
     Uint32 r_entry = CpuTimer2Regs.TIM.all;
@@ -517,6 +522,23 @@ __interrupt void TINT0_ISR(void)
 
     CpuTimer0Regs.TCR.bit.TIF = 1U;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+
+#if STAGE6_W4_RETURN_V15_TEST
+    if (g_w4_trace_direction_active == W4_TRACE_DIRECTION_LIGHTER &&
+        (g_cal_hold_state == CAL_HOLD_OFF ||
+         g_cal_hold_state == CAL_HOLD_PACKET))
+    {
+        Uint32 w4_v15_isr_exit = CpuTimer2Regs.TIM.all;
+        Uint32 w4_v15_isr_cycles =
+            (Uint32)((Uint32)(w4_v15_isr_entry - w4_v15_isr_exit) &
+                     0xFFFFFFFFUL);
+        if (w4_v15_isr_cycles > g_w4_v15_isr_cycles_max)
+            g_w4_v15_isr_cycles_max = w4_v15_isr_cycles;
+        g_w4_v15_isr_sample_count++;
+        if (w4_v15_isr_cycles >= W4_V15_ISR_OVERRUN_CYCLES)
+            g_w4_v15_isr_overrun_count++;
+    }
+#endif
 
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     /* Whole-ISR budget snapshot: taken at the very end of the ISR body (after

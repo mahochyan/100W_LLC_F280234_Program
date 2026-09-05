@@ -15,6 +15,12 @@ if "%SOL_W4_SWEEP_BUILD%"=="1" (
 )
 if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set BUILD=%PROJ%\Stage6_W4_SWEEP_V2
 if "%SOL_W4_SWEEP_V2_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_SWEEP_TEST=1
+if "%SOL_W4_RETURN_V15_BUILD%"=="1" if "%SOL_W4_SWEEP_V2_BUILD%"=="1" (
+    echo ERROR: SOL_W4_RETURN_V15_BUILD and SOL_W4_SWEEP_V2_BUILD are mutually exclusive.
+    exit /b 2
+)
+if "%SOL_W4_RETURN_V15_BUILD%"=="1" set BUILD=%PROJ%\Stage6_W4_RETURN_V15
+if "%SOL_W4_RETURN_V15_BUILD%"=="1" set EXTRA_DEFINE=-DSTAGE6_W4_RETURN_V15_TEST=1
 
 if exist "%BUILD%" rmdir /s /q "%BUILD%"
 mkdir "%BUILD%"

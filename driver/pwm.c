@@ -434,6 +434,16 @@ Uint16 LLC_SetFrequencyHz(Uint32 hz)
          * period is often unchanged and the write/CMPB cost is skipped). */
         ADC_UpdatePwmSyncPointKeepCadence((Uint16)period);
         g_actual_switching_frequency_hz = LLC_TBCLK_HZ / (period + 1UL);
+#if STAGE6_W4_RETURN_V15_TEST
+        /* V15 runtime proof: count only actual generic frequency-period
+         * writes after the protected hold has entered OFF/PACKET.  Profile-C
+         * initial charge writes occur in CHARGE and are intentionally not PI
+         * evidence; PWM_PrepareStart owns the expected fixed burst packets. */
+        if (g_w4_trace_direction_active == W4_TRACE_DIRECTION_LIGHTER &&
+            (g_cal_hold_state == CAL_HOLD_OFF ||
+             g_cal_hold_state == CAL_HOLD_PACKET))
+            g_w4_v15_frequency_apply_count++;
+#endif
     }
 
     g_pwm_period = (Uint16)period;

@@ -27,8 +27,17 @@
 #ifndef STAGE6_W4_SWEEP_TEST
 #define STAGE6_W4_SWEEP_TEST 0
 #endif
+#ifndef STAGE6_W4_RETURN_V15_TEST
+#define STAGE6_W4_RETURN_V15_TEST 0
+#endif
 #if STAGE6_W4_SWEEP_TEST && !STAGE6_OPEN_LOOP_STEADY_BUILD
 #error "STAGE6_W4_SWEEP_TEST requires STAGE6_OPEN_LOOP_STEADY_BUILD"
+#endif
+#if STAGE6_W4_RETURN_V15_TEST && !STAGE6_OPEN_LOOP_STEADY_BUILD
+#error "STAGE6_W4_RETURN_V15_TEST requires STAGE6_OPEN_LOOP_STEADY_BUILD"
+#endif
+#if STAGE6_W4_RETURN_V15_TEST && STAGE6_W4_SWEEP_TEST
+#error "W4 return V15 and W4 sweep are mutually exclusive images"
 #endif
 
 #define CAL_HOLD_RECHARGE_LOW_RAW       1380U
@@ -121,7 +130,24 @@
 #define W4_TRACE_LOAD_LIGHT_OHM_X10       150U
 #define W4_TRACE_LOAD_HEAVY_OHM_X10       120U
 #define W4_TRACE_LOAD_PROFILE_ID       0x0F0CUL
+#if STAGE6_W4_RETURN_V15_TEST
+#define W4_TRACE_ALGORITHM_ID          0x0017UL
+#else
 #define W4_TRACE_ALGORITHM_ID          0x0014UL
+#endif
+
+/* V15 is an isolated CR12 -> CR15 protected-Burst return image.  These
+ * constants identify the controller that actually owns the power window;
+ * they must not be presented as active PI/PFM evidence.  The burst profile
+ * identifier packs TBPRD=0xEF, 250 kHz=0xFA, DB start=0x6E and DB min=0x24. */
+#define W4_V15_CONTROL_MODE_PROTECTED_BURST 0x42525354UL /* "BRST" */
+#define W4_V15_BURST_PROFILE_ID             0xEFFA6E24UL
+#define W4_V15_BURST_CARRIER_HZ              250000UL
+#define W4_V15_BURST_TBPRD                      239U
+#define W4_V15_BURST_DB_START                   110U
+#define W4_V15_BURST_DB_MIN                      36U
+#define W4_V15_ISR_LIMIT_CYCLES                  900UL
+#define W4_V15_ISR_OVERRUN_CYCLES               1200UL
 
 #define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12 */
 #define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12 -> CR15 */
@@ -187,6 +213,26 @@ extern volatile Uint32 g_w4_trace_terminal_cookie;
 extern volatile Uint16 g_w4_trace_ring_raw[W4_TRACE_SAMPLES];
 extern volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
 extern volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
+#if STAGE6_W4_RETURN_V15_TEST
+extern volatile Uint32 g_w4_v15_control_mode_id;
+extern volatile Uint32 g_w4_v15_burst_profile_id;
+extern volatile Uint32 g_w4_v15_burst_carrier_hz;
+extern volatile Uint16 g_w4_v15_burst_tbprd;
+extern volatile Uint16 g_w4_v15_burst_db_start;
+extern volatile Uint16 g_w4_v15_burst_db_min;
+extern volatile Uint16 g_w4_v15_recharge_low_raw;
+extern volatile Uint16 g_w4_v15_recharge_target_raw;
+extern volatile Uint16 g_w4_v15_hard_limit_raw;
+extern volatile Uint16 g_w4_v15_max_packet_cycles;
+extern volatile Uint32 g_w4_v15_pi_update_count_start;
+extern volatile Uint32 g_w4_v15_pi_update_count_end;
+extern volatile int32 g_w4_v15_pi_integral_q12_start;
+extern volatile int32 g_w4_v15_pi_integral_q12_end;
+extern volatile Uint32 g_w4_v15_frequency_apply_count;
+extern volatile Uint32 g_w4_v15_isr_cycles_max;
+extern volatile Uint32 g_w4_v15_isr_sample_count;
+extern volatile Uint32 g_w4_v15_isr_overrun_count;
+#endif
 #if STAGE6_W4_SWEEP_TEST
 extern volatile Uint16 g_w4_sweep_count;
 extern volatile Uint16 g_w4_sweep_overflow;

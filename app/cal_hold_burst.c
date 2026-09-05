@@ -58,6 +58,48 @@ volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
 #pragma DATA_SECTION(g_w4_trace_ring_packet_delta, "ol_ram");
 volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
 
+#if STAGE6_W4_RETURN_V15_TEST
+/* V15-only evidence capsule.  Values are populated only after an exact valid
+ * CR12 -> CR15 arm is consumed, then the end snapshots are frozen before the
+ * terminal cookie is committed. */
+#pragma DATA_SECTION(g_w4_v15_control_mode_id, "ol_ram");
+volatile Uint32 g_w4_v15_control_mode_id = 0UL;
+#pragma DATA_SECTION(g_w4_v15_burst_profile_id, "ol_ram");
+volatile Uint32 g_w4_v15_burst_profile_id = 0UL;
+#pragma DATA_SECTION(g_w4_v15_burst_carrier_hz, "ol_ram");
+volatile Uint32 g_w4_v15_burst_carrier_hz = 0UL;
+#pragma DATA_SECTION(g_w4_v15_burst_tbprd, "ol_ram");
+volatile Uint16 g_w4_v15_burst_tbprd = 0U;
+#pragma DATA_SECTION(g_w4_v15_burst_db_start, "ol_ram");
+volatile Uint16 g_w4_v15_burst_db_start = 0U;
+#pragma DATA_SECTION(g_w4_v15_burst_db_min, "ol_ram");
+volatile Uint16 g_w4_v15_burst_db_min = 0U;
+#pragma DATA_SECTION(g_w4_v15_recharge_low_raw, "ol_ram");
+volatile Uint16 g_w4_v15_recharge_low_raw = 0U;
+#pragma DATA_SECTION(g_w4_v15_recharge_target_raw, "ol_ram");
+volatile Uint16 g_w4_v15_recharge_target_raw = 0U;
+#pragma DATA_SECTION(g_w4_v15_hard_limit_raw, "ol_ram");
+volatile Uint16 g_w4_v15_hard_limit_raw = 0U;
+#pragma DATA_SECTION(g_w4_v15_max_packet_cycles, "ol_ram");
+volatile Uint16 g_w4_v15_max_packet_cycles = 0U;
+#pragma DATA_SECTION(g_w4_v15_pi_update_count_start, "ol_ram");
+volatile Uint32 g_w4_v15_pi_update_count_start = 0UL;
+#pragma DATA_SECTION(g_w4_v15_pi_update_count_end, "ol_ram");
+volatile Uint32 g_w4_v15_pi_update_count_end = 0UL;
+#pragma DATA_SECTION(g_w4_v15_pi_integral_q12_start, "ol_ram");
+volatile int32 g_w4_v15_pi_integral_q12_start = 0;
+#pragma DATA_SECTION(g_w4_v15_pi_integral_q12_end, "ol_ram");
+volatile int32 g_w4_v15_pi_integral_q12_end = 0;
+#pragma DATA_SECTION(g_w4_v15_frequency_apply_count, "ol_ram");
+volatile Uint32 g_w4_v15_frequency_apply_count = 0UL;
+#pragma DATA_SECTION(g_w4_v15_isr_cycles_max, "ol_ram");
+volatile Uint32 g_w4_v15_isr_cycles_max = 0UL;
+#pragma DATA_SECTION(g_w4_v15_isr_sample_count, "ol_ram");
+volatile Uint32 g_w4_v15_isr_sample_count = 0UL;
+#pragma DATA_SECTION(g_w4_v15_isr_overrun_count, "ol_ram");
+volatile Uint32 g_w4_v15_isr_overrun_count = 0UL;
+#endif
+
 #if STAGE6_W4_SWEEP_TEST
 /* Supplemental CR20..CR5 recorder V2: 400 x 200 ms bins use 2400 RAML3 words.
  * The existing 5 ms observer reduces locally so no JTAG traffic occurs while
@@ -361,6 +403,26 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     s_w4_trace_baseline_raw_sum = 0UL;
     s_w4_trace_baseline_cycle_sum = 0UL;
     s_w4_trace_baseline_packet_sum = 0UL;
+#if STAGE6_W4_RETURN_V15_TEST
+    g_w4_v15_control_mode_id = 0UL;
+    g_w4_v15_burst_profile_id = 0UL;
+    g_w4_v15_burst_carrier_hz = 0UL;
+    g_w4_v15_burst_tbprd = 0U;
+    g_w4_v15_burst_db_start = 0U;
+    g_w4_v15_burst_db_min = 0U;
+    g_w4_v15_recharge_low_raw = 0U;
+    g_w4_v15_recharge_target_raw = 0U;
+    g_w4_v15_hard_limit_raw = 0U;
+    g_w4_v15_max_packet_cycles = 0U;
+    g_w4_v15_pi_update_count_start = 0UL;
+    g_w4_v15_pi_update_count_end = 0UL;
+    g_w4_v15_pi_integral_q12_start = 0;
+    g_w4_v15_pi_integral_q12_end = 0;
+    g_w4_v15_frequency_apply_count = 0UL;
+    g_w4_v15_isr_cycles_max = 0UL;
+    g_w4_v15_isr_sample_count = 0UL;
+    g_w4_v15_isr_overrun_count = 0UL;
+#endif
 #if STAGE6_W4_SWEEP_TEST
     g_w4_sweep_count = 0U;
     g_w4_sweep_overflow = 0U;
@@ -389,12 +451,16 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
         g_w4_trace_fail_reason = W4_TRACE_FAIL_BAD_SESSION;
         return;
     }
+#if STAGE6_W4_RETURN_V15_TEST
+    if (requested != W4_TRACE_DIRECTION_LIGHTER)
+#else
     if (requested != W4_TRACE_DIRECTION_HEAVIER &&
         requested != W4_TRACE_DIRECTION_LIGHTER
 #if STAGE6_W4_SWEEP_TEST
         && requested != W4_TRACE_DIRECTION_SWEEP
 #endif
        )
+#endif
     {
         g_w4_trace_state = W4_TRACE_STATE_FAIL;
         g_w4_trace_fail_reason = W4_TRACE_FAIL_BAD_DIRECTION;
@@ -403,6 +469,22 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     s_w4_trace_session_direction = requested;
     g_w4_trace_direction_active = requested;
     g_w4_trace_state = W4_TRACE_STATE_WAIT_BASELINE;
+#if STAGE6_W4_RETURN_V15_TEST
+    g_w4_v15_control_mode_id = W4_V15_CONTROL_MODE_PROTECTED_BURST;
+    g_w4_v15_burst_profile_id = W4_V15_BURST_PROFILE_ID;
+    g_w4_v15_burst_carrier_hz = W4_V15_BURST_CARRIER_HZ;
+    g_w4_v15_burst_tbprd = W4_V15_BURST_TBPRD;
+    g_w4_v15_burst_db_start = W4_V15_BURST_DB_START;
+    g_w4_v15_burst_db_min = W4_V15_BURST_DB_MIN;
+    g_w4_v15_recharge_low_raw = W3_HOLD_RECHARGE_LOW_RAW;
+    g_w4_v15_recharge_target_raw = W3_HOLD_RECHARGE_TARGET_RAW;
+    g_w4_v15_hard_limit_raw = W3_HOLD_HARD_LIMIT_RAW;
+    g_w4_v15_max_packet_cycles = W3_HOLD_MAX_PACKET_CYCLES;
+    g_w4_v15_pi_update_count_start = g_control_pi_update_count;
+    g_w4_v15_pi_update_count_end = g_control_pi_update_count;
+    g_w4_v15_pi_integral_q12_start = g_pi_integral_q12;
+    g_w4_v15_pi_integral_q12_end = g_pi_integral_q12;
+#endif
 }
 
 /* Store one 5 ms sample and return its physical ring index. */
@@ -970,6 +1052,13 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
     g_cal_measure_active = 0U;
     CALHOLD_W4TraceEnd();
     CALHOLD_StatsPublish();
+#if STAGE6_W4_RETURN_V15_TEST
+    if (w4_direction == W4_TRACE_DIRECTION_LIGHTER)
+    {
+        g_w4_v15_pi_update_count_end = g_control_pi_update_count;
+        g_w4_v15_pi_integral_q12_end = g_pi_integral_q12;
+    }
+#endif
     if (g_cal_hold_cal_raw_samples > 0UL)
         g_cal_hold_cal_raw_avg =
             (Uint16)(g_cal_hold_cal_raw_sum / g_cal_hold_cal_raw_samples);
@@ -1012,6 +1101,10 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
             W4_TRACE_TERMINAL_COOKIE_BASE ^
             W4_TRACE_LOAD_PROFILE_ID ^
             W4_TRACE_ALGORITHM_ID ^
+#if STAGE6_W4_RETURN_V15_TEST
+            W4_V15_CONTROL_MODE_PROTECTED_BURST ^
+            W4_V15_BURST_PROFILE_ID ^
+#endif
             g_cal_hold_run_id_at_stop ^
             ((Uint32)w4_direction << 16) ^
             ((Uint32)state << 8) ^
