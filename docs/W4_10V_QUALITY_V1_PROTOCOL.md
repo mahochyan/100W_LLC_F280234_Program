@@ -128,10 +128,22 @@ packet interrupt, clears software PWM-active state, publishes statistics, and
 freezes final evidence. Only then does the REAL W4 image execute `ESTOP0`.
 The no-energy image compiles that instruction out.
 
-After printing the physical marker the DSS host calls `waitForHalt()` with an
-infinite scripting timeout. It performs no memory access and never issues a
-guessed wall-clock halt during the power window. The Codex command remains
-alive while the operator changes the load; firmware's terminal `ESTOP0` wakes
-the host for post-stop evidence collection. If DebugServer loses the terminal
-event, automatic host cleanup is deliberately suppressed rather than halting
-an unconfirmed active packet.
+V11 used `waitForHalt()` and an infinite scripting timeout. The real attempt
+showed that this event path can fail with FTDI `-150` and leave the host unable
+to observe the autonomous terminal, so V12 removes it completely.
+
+After printing the physical marker V12 generates a monotonic, run-specific
+nonce and blocks only on stdin. Once the exact nonce is acknowledged, the host
+performs no DebugServer access until both fire+70 s and acknowledgement+2 s.
+It then makes one five-second-bounded `isHalted()` query. A clean `false`
+defers one final query until fire+205 s; an exception forbids any retry. Until
+halt is confirmed the host never reads memory, actively halts, disconnects, or
+terminates the target session.
+
+Firmware now commits a 32-bit terminal cookie only after HardStop, packet/PWM
+shutdown, trace/stat publication, state/reason, final OST and run-id snapshots.
+The REAL image then fixes red+yellow LEDs on and green off, executes `DINT`,
+`ESTOP0`, and an unconditional self-loop. Thus a missing debug event cannot
+return execution to control code. Once halt is confirmed, the host validates a
+minimal terminal capsule before any full capture and reads each 128-word trace
+ring in one block transaction.
