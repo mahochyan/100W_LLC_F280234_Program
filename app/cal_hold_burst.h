@@ -64,7 +64,7 @@
 #define W3_HOLD_CYCLE_CAP_10S            1250000UL
 #define W3_HOLD_CYCLE_CAP_60S            7500000UL
 
-/* W4 CR15 <-> CR12.5 A/B/A observer. Trace fields never grant PWM authority
+/* W4 operator-selected CR15 <-> CR12 A/B/A observer. Trace fields never grant PWM authority
  * or change a packet/protection threshold. Only the firmware-consumed exact
  * tuple W3_10V + 60000 ms + arm==1 + valid direction creates a private W4
  * session. That private session alone selects the bounded 60..180 s diagnostic
@@ -102,9 +102,15 @@
  * The host combines this base with the frozen run id, immutable private
  * direction, terminal state and reason to reject stale or partial RAM. */
 #define W4_TRACE_TERMINAL_COOKIE_BASE 0x57440000UL
+/* Compile-time profile binding: 0x0F0C is 15 ohm / 12 ohm. Including it in
+ * the terminal cookie prevents an older CR15/CR12.5 image from being accepted
+ * as evidence for the user-selected, easier-to-set CR15/CR12 boundary. */
+#define W4_TRACE_LOAD_LIGHT_OHM_X10       150U
+#define W4_TRACE_LOAD_HEAVY_OHM_X10       120U
+#define W4_TRACE_LOAD_PROFILE_ID       0x0F0CUL
 
-#define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12.5 */
-#define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12.5 -> CR15 */
+#define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12 */
+#define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12 -> CR15 */
 
 #define W4_TRACE_STATE_IDLE                 0U
 #define W4_TRACE_STATE_WAIT_BASELINE        1U

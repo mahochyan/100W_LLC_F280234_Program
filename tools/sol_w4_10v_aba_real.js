@@ -1,4 +1,4 @@
-// W4 10 V CR15 <-> CR12.5 REAL load-step capture, one direction per run.
+// W4 10 V CR15 <-> CR12 REAL load-step capture, one direction per run.
 // Firmware owns the 60..180 s power window, terminal OST and diagnostic ESTOP.
 // After the physical-step marker the host blocks only on stdin and a silent
 // monotonic-clock wait. It never continuously polls FTDI and never actively
@@ -10,18 +10,18 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="968CD9669DE6C46E4323A457696A0E5DAAA7338D89C72717402237F529A4FAFC";
+var EXPECTED_SHA="71EF1073DD520AB15BB5480CE0ECCA078AE509C64246F55A58C94D4D7125F7EC";
 var DIRECTION_NAME=(java.lang.System.getenv("SOL_W4_DIRECTION")||"");
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_INITIAL_LOAD_OHMS")||"");
 var INPUT_LIMIT=(java.lang.System.getenv("SOL_W4_INPUT_LIMIT_A")||"");
 var ACK=(java.lang.System.getenv("SOL_W4_GATES_ACK")||"").equals("1");
 var DIRECTION=0,RUN_ID=0,EXPECTED_INITIAL="",EXPECTED_TARGET="",STEP_TEXT="";
 if(DIRECTION_NAME.equals("HEAVIER")){
-  DIRECTION=1;RUN_ID=0x25090596;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
-  STEP_TEXT="CR15_TO_CR12P5";
+  DIRECTION=1;RUN_ID=0x25090598;EXPECTED_INITIAL="15";EXPECTED_TARGET="12";
+  STEP_TEXT="CR15_TO_CR12";
 }else if(DIRECTION_NAME.equals("LIGHTER")){
-  DIRECTION=2;RUN_ID=0x25090597;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
-  STEP_TEXT="CR12P5_TO_CR15";
+  DIRECTION=2;RUN_ID=0x25090599;EXPECTED_INITIAL="12";EXPECTED_TARGET="15";
+  STEP_TEXT="CR12_TO_CR15";
 }else{throw "direction-must-be-HEAVIER-or-LIGHTER";}
 if(!INITIAL_LOAD.equals(EXPECTED_INITIAL)){throw "initial-load-does-not-match-direction";}
 if(!INPUT_LIMIT.equals("0.5")){throw "w4-input-limit-must-be-explicit-0.5A";}
@@ -60,7 +60,7 @@ function silentWaitUntil(deadlineNs){
   if(remainingMs>0)java.lang.Thread.sleep(remainingMs);
 }
 function terminalCookie(runId,direction,state,reason){
-  return (0x57440000 ^ runId ^ ((direction&0xffff)<<16) ^
+  return (0x57440000 ^ 0x00000F0C ^ runId ^ ((direction&0xffff)<<16) ^
           ((state&0xffff)<<8) ^ (reason&0xffff))>>>0;
 }
 var terminalProbeLinkFailed=false;
@@ -94,6 +94,7 @@ function forceSafe(needHalt){
 var failures=0,connected=false,fired=false,terminalHaltObserved=false;
 var stepAcknowledged=false;
 print("=== SOL W4 REAL "+STEP_TEXT+" ===");
+print("LOAD_PROFILE_OHMS=15<->12 PROFILE_ID=0x0F0C");
 print("VIN_V=24 INITIAL_LOAD_OHMS="+INITIAL_LOAD+" TARGET_LOAD_OHMS="+
       EXPECTED_TARGET+" INPUT_CURRENT_LIMIT_A="+INPUT_LIMIT);
 var actual=sha256File(OUT);

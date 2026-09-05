@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / "app" / "cal_hold_burst.c").read_text(encoding="utf-8")
 HDR = (ROOT / "app" / "cal_hold_burst.h").read_text(encoding="utf-8")
 REAL = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
-LINK_NE = (ROOT / "tools" / "sol_w4_v12_link_idle_noenergy.js").read_text(encoding="utf-8")
+NE = (ROOT / "tools" / "sol_w4_trace_noenergy.js").read_text(encoding="utf-8")
+LINK_NE = (ROOT / "tools" / "sol_w4_v13_link_idle_noenergy.js").read_text(encoding="utf-8")
 REAL_OUT = (ROOT / "Stage6_OL_STEADY" /
             "LLC_100W_F28034_OPEN_LOOP_STEADY.out")
 
@@ -116,6 +117,9 @@ def main() -> None:
         "W4_TRACE_2PCT_LOW_RAW              1215U",
         "W4_TRACE_SETTLE_LIMIT_MS            100U",
         "W4_TRACE_TERMINAL_COOKIE_BASE 0x57440000UL",
+        "W4_TRACE_LOAD_LIGHT_OHM_X10       150U",
+        "W4_TRACE_LOAD_HEAVY_OHM_X10       120U",
+        "W4_TRACE_LOAD_PROFILE_ID       0x0F0CUL",
     )))
     gate("W4_TRACE_THREE_FIELD_RING", all(token in SRC for token in (
         "g_w4_trace_ring_raw[W4_TRACE_SAMPLES]",
@@ -202,6 +206,7 @@ def main() -> None:
         "s_w4_trace_session_direction = 0U",
         "g_w4_trace_terminal_cookie =",
         "W4_TRACE_TERMINAL_COOKIE_BASE",
+        "W4_TRACE_LOAD_PROFILE_ID",
         "DINT;",
         "ESTOP0;",
         "for (;;) { }",
@@ -256,6 +261,7 @@ def main() -> None:
         'SOL_W4_INPUT_LIMIT_A', 'SOL_W4_INITIAL_LOAD_OHMS',
         'PREFIRE_TARGET_CLOCK_200MS', 'W4_PHYSICAL_STEP_NOW=',
         'java.lang.System.nanoTime()', 'ACK_LINE_REQUIRED=',
+        'LOAD_PROFILE_OHMS=15<->12 PROFILE_ID=0x0F0C',
         'java.lang.Long.toHexString', 'line.equals(ackNonce)',
         'var HOST_QUIET_MIN_NS=70000000000',
         'var HOST_QUIET_MAX_NS=205000000000',
@@ -266,6 +272,15 @@ def main() -> None:
         'NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE',
     )) and "readLine(" in REAL and "currentTimeMillis" not in REAL and
          "waitForHalt(" not in REAL and "setScriptTimeout(-1)" not in REAL)
+    gate("W4_V13_EXACT_15_12_HOST_DIRECTIONS", all(token in REAL for token in (
+        'DIRECTION=1;RUN_ID=0x25090598;EXPECTED_INITIAL="15";EXPECTED_TARGET="12";',
+        'STEP_TEXT="CR15_TO_CR12";',
+        'DIRECTION=2;RUN_ID=0x25090599;EXPECTED_INITIAL="12";EXPECTED_TARGET="15";',
+        'STEP_TEXT="CR12_TO_CR15";',
+    )))
+    gate("W4_V13_REAL_AND_NE_COOKIE_PROFILE_BOUND",
+         "0x57440000 ^ 0x00000F0C ^ runId" in REAL and
+         "0x57440000 ^ 0x00000F0C ^ runId" in NE)
     gate("W4_REAL_TERMINAL_CAPSULE_BEFORE_BULK_CAPTURE", all(token in REAL for token in (
         'W4_TERMINAL_CAPSULE_COMMITTED',
         'packetActive===0', 'pwmNow===0', 'finalPwm===0', 'finalOst===1',
@@ -279,7 +294,7 @@ def main() -> None:
         'session.memory.readWord(1,addr("g_w4_trace_ring_packet_delta"),128)',
     )) and "rawBase+index" not in REAL and "cycBase+index" not in REAL and
          "pktBase+index" not in REAL)
-    gate("W4_V12_LINK_IDLE_NOENERGY_PROTOCOL", all(token in LINK_NE for token in (
+    gate("W4_V13_LINK_IDLE_NOENERGY_PROTOCOL", all(token in LINK_NE for token in (
         "QUIET_FIRST_NS=70000000000",
         "QUIET_FINAL_NS=205000000000",
         "session.setScriptTimeout(5000);",
@@ -287,7 +302,7 @@ def main() -> None:
         "FINAL_BOUNDED_IS_HALTED_FALSE",
         "LINK_QUARANTINE__NO_MORE_DSS_CALLS=TRUE",
         "NOENERGY_ONLY_ACTIVE_HALT_AFTER_PROTOCOL=TRUE",
-        "SOL_W4_V12_QUIET_LINK_IDLE_NOENERGY_PASS=",
+        "SOL_W4_V13_QUIET_LINK_IDLE_NOENERGY_PASS=",
     )) and LINK_NE.count("session.target.isHalted()") == 2 and
          "waitForHalt(" not in LINK_NE)
     gate("W4_REAL_DYNAMIC_CYCLE_CAP_CHECK", all(token in REAL for token in (

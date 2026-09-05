@@ -2,9 +2,11 @@
 
 W4 starts from the protected-Burst control baseline because W2 proved
 that continuous PFM cannot regulate 10 V inside the frozen plant envelope.
-The original CR15/CR12.5 A/B/A load-step quality gate remains required. At the
-user's explicit request, a CR10 60 s stress point is inserted first and is
-advanced only through forward duration gates.
+The current required A/B/A load-step quality gate is CR15/CR12. At the user's
+explicit request on 2026-09-05, V13 supersedes the earlier planned CR15/CR12.5
+boundary so the electronic load can be set repeatably. Older CR12.5 references
+below are retained as historical records of V9--V12. The CR10 60 s stress point
+was inserted first and advanced only through forward duration gates.
 
 ## CR10 V8 finding
 

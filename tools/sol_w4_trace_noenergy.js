@@ -1,4 +1,4 @@
-// W4 CR15 <-> CR12.5 passive trace observer on-target no-energy proof.
+// W4 CR15 <-> CR12 passive trace observer on-target no-energy proof.
 // The NE binary keeps EPWM OST latched for the whole run.  Synthetic VOUT
 // and packet-cycle deltas exercise the exact 5 ms observer compiled into the
 // REAL image; they do not grant PWM authority or alter controller thresholds.
@@ -22,7 +22,7 @@ function check(name,ok,detail){print(name+"="+(ok?"TRUE":"FALSE")+(detail?(" "+d
 var failures=0;
 var currentW4RunId=0;
 function expectedTerminalCookie(runId,direction,state,reason){
-  return (0x57440000 ^ runId ^ ((direction&0xffff)<<16) ^
+  return (0x57440000 ^ 0x00000F0C ^ runId ^ ((direction&0xffff)<<16) ^
           ((state&0xffff)<<8) ^ (reason&0xffff))>>>0;
 }
 function checkTerminalCookie(tag,direction,state,reason){

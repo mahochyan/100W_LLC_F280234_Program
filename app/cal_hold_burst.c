@@ -699,6 +699,7 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
          * a target stopped before CALHOLD_End completed. */
         g_w4_trace_terminal_cookie =
             W4_TRACE_TERMINAL_COOKIE_BASE ^
+            W4_TRACE_LOAD_PROFILE_ID ^
             g_cal_hold_run_id_at_stop ^
             ((Uint32)w4_direction << 16) ^
             ((Uint32)state << 8) ^
