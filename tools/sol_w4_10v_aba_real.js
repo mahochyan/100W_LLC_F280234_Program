@@ -1,7 +1,8 @@
 // W4 10 V CR15 <-> CR12.5 REAL load-step capture, one direction per run.
 // Firmware owns the 60..180 s power window, terminal OST and diagnostic ESTOP.
-// The host performs no memory access or active halt between firing the request
-// and waitForHalt returning on that immutable on-chip terminal instruction.
+// After the physical-step marker the host blocks only on stdin and a silent
+// monotonic-clock wait. It never continuously polls FTDI and never actively
+// halts an unconfirmed target.
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
 importPackage(Packages.java.lang);
@@ -9,17 +10,17 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_OL_STEADY\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="EA79E8714CDF39F634E7A332A9BDB94F345117D375EA1AD30A102E53D6478642";
+var EXPECTED_SHA="968CD9669DE6C46E4323A457696A0E5DAAA7338D89C72717402237F529A4FAFC";
 var DIRECTION_NAME=(java.lang.System.getenv("SOL_W4_DIRECTION")||"");
 var INITIAL_LOAD=(java.lang.System.getenv("SOL_W4_INITIAL_LOAD_OHMS")||"");
 var INPUT_LIMIT=(java.lang.System.getenv("SOL_W4_INPUT_LIMIT_A")||"");
 var ACK=(java.lang.System.getenv("SOL_W4_GATES_ACK")||"").equals("1");
 var DIRECTION=0,RUN_ID=0,EXPECTED_INITIAL="",EXPECTED_TARGET="",STEP_TEXT="";
 if(DIRECTION_NAME.equals("HEAVIER")){
-  DIRECTION=1;RUN_ID=0x25090594;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
+  DIRECTION=1;RUN_ID=0x25090596;EXPECTED_INITIAL="15";EXPECTED_TARGET="12.5";
   STEP_TEXT="CR15_TO_CR12P5";
 }else if(DIRECTION_NAME.equals("LIGHTER")){
-  DIRECTION=2;RUN_ID=0x25090595;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
+  DIRECTION=2;RUN_ID=0x25090597;EXPECTED_INITIAL="12.5";EXPECTED_TARGET="15";
   STEP_TEXT="CR12P5_TO_CR15";
 }else{throw "direction-must-be-HEAVIER-or-LIGHTER";}
 if(!INITIAL_LOAD.equals(EXPECTED_INITIAL)){throw "initial-load-does-not-match-direction";}
@@ -36,9 +37,10 @@ function sha256File(path){
 }
 
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
-env.setScriptTimeout(-1);
+env.setScriptTimeout(30000);
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
+session.setScriptTimeout(30000);
 function addr(n){return session.expression.evaluate("&"+n);}
 function rw(n){return session.memory.readWord(1,addr(n));}
 function rv32u(n){var a=addr(n),lo=session.memory.readWord(1,a),hi=session.memory.readWord(1,a+1);return (lo|(hi<<16))>>>0;}
@@ -48,8 +50,37 @@ function reg(e){return parseInt(session.expression.evaluate(e));}
 function run(ms){session.target.runAsynch();java.lang.Thread.sleep(ms);session.target.halt();}
 function vout(raw){return raw*0.008089325-0.063715;}
 function check(name,ok){print(name+"="+(ok?"PASS":"FAIL"));if(!ok)failures++;}
-function forceSafe(){
-  try{session.target.halt();}catch(e){}
+function monotonicNs(){return Number(java.lang.System.nanoTime());}
+var HOST_QUIET_MIN_NS=70000000000;
+var HOST_QUIET_MAX_NS=205000000000;
+var POST_FIRE_STATUS_PROBES_MAX=2;
+var terminalProbeCount=0;
+function silentWaitUntil(deadlineNs){
+  var remainingMs=Math.ceil((deadlineNs-monotonicNs())/1000000.0);
+  if(remainingMs>0)java.lang.Thread.sleep(remainingMs);
+}
+function terminalCookie(runId,direction,state,reason){
+  return (0x57440000 ^ runId ^ ((direction&0xffff)<<16) ^
+          ((state&0xffff)<<8) ^ (reason&0xffff))>>>0;
+}
+var terminalProbeLinkFailed=false;
+function probeTerminalHalt(tag){
+  if(terminalProbeCount>=POST_FIRE_STATUS_PROBES_MAX){
+    throw "post-fire-status-probe-budget-exhausted";
+  }
+  terminalProbeCount++;
+  try{
+    var halted=session.target.isHalted();
+    print(tag+"_BOUNDED_IS_HALTED="+(halted?"TRUE":"FALSE"));
+    return halted;
+  }catch(e){
+    terminalProbeLinkFailed=true;
+    print(tag+"_BOUNDED_IS_HALTED_EXCEPTION="+e);
+    return false;
+  }
+}
+function forceSafe(needHalt){
+  if(needHalt){try{session.target.halt();}catch(e){}}
   try{wv("g_pwm_enable_request",0);}catch(e){}
   try{
     var tze=reg("EPwm1Regs.TZEINT.all");
@@ -61,6 +92,7 @@ function forceSafe(){
 }
 
 var failures=0,connected=false,fired=false,terminalHaltObserved=false;
+var stepAcknowledged=false;
 print("=== SOL W4 REAL "+STEP_TEXT+" ===");
 print("VIN_V=24 INITIAL_LOAD_OHMS="+INITIAL_LOAD+" TARGET_LOAD_OHMS="+
       EXPECTED_TARGET+" INPUT_CURRENT_LIMIT_A="+INPUT_LIMIT);
@@ -114,25 +146,100 @@ try{
   wv("g_cal_hold_mode_request",1);
   wv("g_cal_hold_duration_ms",60000);
   wv("g_cal_hold_request",1);
+  session.setScriptTimeout(5000);
   fired=true;
 
+  var fireNs=monotonicNs();
   session.target.runAsynch();
   java.lang.Thread.sleep(2000);
   print("W4_PHYSICAL_STEP_NOW="+STEP_TEXT);
   print("SET_ELOAD_OHMS_NOW="+EXPECTED_TARGET);
+  var ackNonce="W4_STEP_"+
+      java.lang.Long.toHexString(java.lang.System.nanoTime()).toUpperCase();
+  print("ACK_LINE_REQUIRED="+ackNonce);
   print("TRACE_CAPTURE_CONTINUES_AUTONOMOUSLY__DO_NOT_CHANGE_VIN");
-  print("WAITING_FOR_FIRMWARE_TERMINAL_HALT=TRUE");
+  print("HOST_FTDI_SILENT_UNTIL_STEP_ACK_AND_TERMINAL_FLOOR=TRUE");
   print("FIRMWARE_TARGET_WINDOW_TICKS=3000000_TO_9000000");
   java.lang.System.out.flush();
-  /* This is a passive debugger wait, not a guessed wall-clock halt. The W4
-   * firmware executes ESTOP0 only after HardStop, terminal state and final
-   * telemetry are complete. Default/injected DSS timeout is forced infinite. */
-  session.target.waitForHalt();
-  terminalHaltObserved=true;
+
+  /* stdin is a host-only barrier: no DebugServer call occurs while the user
+   * changes the load. Only this task sends the exact run-specific token after
+   * observing the user's physical acknowledgement. */
+  var reader=new BufferedReader(new InputStreamReader(java.lang.System["in"]));
+  var ackInputClosed=false,ackNs=0;
+  while(!stepAcknowledged && !ackInputClosed){
+    var line=reader.readLine();
+    if(line===null){
+      print("W4_STEP_ACK_INPUT_CLOSED__TARGET_LEFT_AUTONOMOUS=TRUE");
+      ackInputClosed=true;
+      break;
+    }
+    line=line.trim();
+    if(line.equals(ackNonce)){
+      stepAcknowledged=true;
+      ackNs=monotonicNs();
+      print("W4_PHYSICAL_STEP_ACK_ACCEPTED=TRUE");
+    }else{
+      print("W4_PHYSICAL_STEP_ACK_IGNORED=TOKEN_MISMATCH");
+    }
+  }
+
+  /* With a timely step the firmware ends at 60 target seconds. Wait until
+   * both fire+70 s and ACK+2 s before one bounded read-only status query.
+   * If it is cleanly still running, make no further JTAG access until the
+   * autonomous 180 s backstop plus margin. A link exception forbids retries. */
+  var firstProbeNs=stepAcknowledged ?
+      Math.max(fireNs+HOST_QUIET_MIN_NS,ackNs+2000000000) :
+      fireNs+HOST_QUIET_MAX_NS;
+  print("HOST_SILENT_FIRST_PROBE_FLOOR_MS="+
+        Math.ceil((firstProbeNs-fireNs)/1000000.0));
+  java.lang.System.out.flush();
+  silentWaitUntil(firstProbeNs);
+  terminalHaltObserved=probeTerminalHalt("FIRST_TERMINAL_PROBE");
+  if(stepAcknowledged && !terminalHaltObserved && !terminalProbeLinkFailed){
+    print("TARGET_STILL_ACTIVE__SILENT_TO_205S_BACKSTOP=TRUE");
+    java.lang.System.out.flush();
+    silentWaitUntil(fireNs+HOST_QUIET_MAX_NS);
+    terminalHaltObserved=probeTerminalHalt("FINAL_TERMINAL_PROBE");
+  }
+  if(terminalProbeLinkFailed){
+    print("FTDI_STATUS_ERROR__NO_MORE_DSS_CALLS=TRUE");
+    silentWaitUntil(fireNs+HOST_QUIET_MAX_NS);
+  }
+  if(!terminalHaltObserved){
+    print("TERMINAL_UNCONFIRMED__HOST_WILL_NOT_HALT_OR_TOUCH_TARGET=TRUE");
+    throw "firmware-terminal-unconfirmed";
+  }
   print("FIRMWARE_TERMINAL_HALT_OBSERVED=TRUE");
 
+  /* Minimal terminal capsule first. No full capture is attempted unless the
+   * CPU is halted and the autonomous HardStop/freeze/cookie chain is intact. */
   var state=rw("g_cal_hold_state"),reason=rw("g_cal_hold_stop_reason");
-  var elapsed=rv32u("g_cal_hold_elapsed_ticks"),fault=rv32u("g_fault_flags");
+  var elapsed=rv32u("g_cal_hold_elapsed_ticks");
+  var packetActive=rw("g_cal_hold_packet_active");
+  var finalPwm=rw("g_cal_hold_final_pwm"),finalOst=rw("g_cal_hold_final_ost");
+  var pwmNow=rw("g_pwm_enabled");
+  var runStop=rv32u("g_cal_hold_run_id_at_stop");
+  var traceState=rw("g_w4_trace_state");
+  var traceFail=rw("g_w4_trace_fail_reason");
+  var cookie=rv32u("g_w4_trace_terminal_cookie");
+  var expectedCookie=terminalCookie(RUN_ID,DIRECTION,state,reason);
+  var hwOst=reg("EPwm1Regs.TZFLG.bit.OST");
+  var capsuleOk=(state===4 || state===5) && packetActive===0 &&
+      pwmNow===0 && finalPwm===0 && finalOst===1 && runStop===RUN_ID &&
+      elapsed<=9000000 && (traceState===5 || traceState===6) &&
+      hwOst===1 && cookie===expectedCookie;
+  print("TERMINAL_CAPSULE state="+state+" reason="+reason+
+        " elapsed_ticks="+elapsed+" packet_active="+packetActive+
+        " pwm_now="+pwmNow+" final_pwm="+finalPwm+" final_ost="+finalOst+
+        " run_stop=0x"+runStop.toString(16)+" trace_state="+traceState+
+        " trace_fail="+traceFail+" hw_ost="+hwOst+
+        " cookie=0x"+cookie.toString(16)+
+        " expected_cookie=0x"+expectedCookie.toString(16));
+  check("W4_TERMINAL_CAPSULE_COMMITTED",capsuleOk);
+  if(!capsuleOk){throw "terminal-capsule-invalid";}
+
+  var fault=rv32u("g_fault_flags");
   var hw1=rv32u("g_tz_hardware_trip_count");
   var active1=rv32u("g_tz_active_window_trip_count");
   var rise1=rv32u("g_enable_rising_count");
@@ -141,14 +248,14 @@ try{
   var ssn=rv32u("g_cal_hold_steady_samples");
   var sssum=rv32u("g_cal_hold_steady_sum");
   var ssavg=ssn?Math.floor(sssum/ssn):0;
-  var traceState=rw("g_w4_trace_state");
-  var traceFail=rw("g_w4_trace_fail_reason");
   var traceMin=rw("g_w4_trace_min_raw"),traceMax=rw("g_w4_trace_max_raw");
   var baselineDemand=rv32u("g_w4_trace_baseline_demand_index");
   var triggerDemand=rv32u("g_w4_trace_trigger_demand_index");
 
   print("RESULT state="+state+" reason="+reason+" elapsed_ticks="+elapsed+
         " fault=0x"+fault.toString(16));
+  print("TERMINAL_COOKIE=0x"+cookie.toString(16)+
+        " expected=0x"+expectedCookie.toString(16));
   print("HOLD steady_min="+rw("g_cal_hold_steady_min")+
         " steady_max="+rw("g_cal_hold_steady_max")+" steady_avg="+ssavg+
         " packets="+packets+" total_cycles="+total);
@@ -169,15 +276,15 @@ try{
         " settle_pass="+rw("g_w4_trace_settle_pass")+
         " quality_pass="+rw("g_w4_trace_quality_pass"));
 
-  var rawBase=addr("g_w4_trace_ring_raw");
-  var cycBase=addr("g_w4_trace_ring_cycle_delta");
-  var pktBase=addr("g_w4_trace_ring_packet_delta");
+  var rawRing=session.memory.readWord(1,addr("g_w4_trace_ring_raw"),128);
+  var cycRing=session.memory.readWord(1,addr("g_w4_trace_ring_cycle_delta"),128);
+  var pktRing=session.memory.readWord(1,addr("g_w4_trace_ring_packet_delta"),128);
   var trigger=rw("g_w4_trace_trigger_index"),hostMin=65535,hostMax=0;
   for(var i=0;i<48;i++){
     var index=(trigger+i)&127;
-    var vr=session.memory.readWord(1,rawBase+index);
-    var vc=session.memory.readWord(1,cycBase+index);
-    var vp=session.memory.readWord(1,pktBase+index);
+    var vr=Number(rawRing[index]);
+    var vc=Number(cycRing[index]);
+    var vp=Number(pktRing[index]);
     if(vr<hostMin)hostMin=vr;if(vr>hostMax)hostMax=vr;
     print("TRACE_ROW i="+i+" t_ms="+(i*5)+" raw="+vr+
           " volts="+vout(vr).toFixed(4)+" cycles="+vc+" packets="+vp);
@@ -210,6 +317,7 @@ try{
   check("NO_PUBLIC_ENABLE_EDGE",rise1===rise0 && rw("g_pwm_enable_request")===0);
   check("RUN_ID_CHAIN",rv32u("g_cal_hold_run_id_at_arm")===RUN_ID &&
         rv32u("g_cal_hold_run_id_at_stop")===RUN_ID);
+  check("W4_TERMINAL_COOKIE_COMMITTED",cookie===expectedCookie);
   check("FINAL_PWM_OFF",rw("g_pwm_enabled")===0 && rw("g_cal_hold_final_pwm")===0);
   check("FINAL_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1 &&
         rw("g_cal_hold_final_ost")===1);
@@ -220,7 +328,7 @@ try{
 }finally{
   if(connected){
     if(!fired || terminalHaltObserved){
-      forceSafe();
+      forceSafe(!fired);
       try{
         check("CLEANUP_PWM_OFF",rw("g_pwm_enabled")===0);
         check("CLEANUP_OST_LATCHED",reg("EPwm1Regs.TZFLG.bit.OST")===1);

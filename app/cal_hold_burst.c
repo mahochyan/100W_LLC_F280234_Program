@@ -104,6 +104,8 @@ volatile Uint16 g_w4_trace_peak_pass = 0U;
 volatile Uint16 g_w4_trace_settle_pass = 0U;
 #pragma DATA_SECTION(g_w4_trace_quality_pass, "ol_ram");
 volatile Uint16 g_w4_trace_quality_pass = 0U;
+#pragma DATA_SECTION(g_w4_trace_terminal_cookie, "ol_ram");
+volatile Uint32 g_w4_trace_terminal_cookie = 0UL;
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
 #pragma DATA_SECTION(g_w4_trace_ne_cycle_delta, "ol_ram");
 volatile Uint16 g_w4_trace_ne_cycle_delta = 0U;
@@ -292,6 +294,8 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     Uint16 arm = g_w4_trace_arm;
     Uint16 requested = g_w4_trace_expected_direction;
 
+    /* Clear the prior commit before touching this new armed attempt. */
+    if (arm != 0U) g_w4_trace_terminal_cookie = 0UL;
     s_w4_trace_session_direction = 0U;
     g_w4_trace_direction_active = 0U;
     g_w4_trace_state = W4_TRACE_STATE_IDLE;
@@ -314,7 +318,6 @@ static void CALHOLD_W4TraceReset(Uint16 requested_mode,
     g_w4_trace_peak_pass = 0U;
     g_w4_trace_settle_pass = 0U;
     g_w4_trace_quality_pass = 0U;
-
     s_w4_trace_last_cycle_clock = s_w4_trace_cycle_clock;
     s_w4_trace_last_packet_clock = s_w4_trace_packet_clock;
     s_w4_trace_baseline_count = 0U;
@@ -654,13 +657,14 @@ static void CALHOLD_FreezeFinal(void)
 /* Single terminal transition (COMPLETE or ABORT). */
 static void CALHOLD_End(Uint16 state, Uint16 reason)
 {
+    Uint16 w4_direction = s_w4_trace_session_direction;
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     Uint16 w4_terminal;
 #endif
     if (g_cal_hold_state == CAL_HOLD_ABORT ||
         g_cal_hold_state == CAL_HOLD_COMPLETE) return;
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
-    w4_terminal = (s_w4_trace_session_direction != 0U) ? 1U : 0U;
+    w4_terminal = (w4_direction != 0U) ? 1U : 0U;
 #endif
     CALHOLD_HardStop();
     CALHOLD_AdcPollMode(0U);
@@ -678,9 +682,39 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
     CALHOLD_FreezeFinal();
     s_w4_trace_session_direction = 0U; /* consume private terminal latch */
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (w4_terminal != 0U)
+    {
+        /* Same active-high diagnostic LEDs as the verified tutorial:
+         * red+yellow on and green off persistently mean autonomous safe
+         * terminal reached. Pass/fail still comes only from frozen evidence. */
+        GpioDataRegs.GPACLEAR.bit.GPIO24 = 1U;
+        GpioDataRegs.GPASET.bit.GPIO20 = 1U;
+        GpioDataRegs.GPASET.bit.GPIO21 = 1U;
+    }
+#endif
+    if (w4_direction != 0U)
+    {
+        /* Commit marker is the final public W4 evidence write. A debugger
+         * reconnect can distinguish this terminal snapshot from stale RAM or
+         * a target stopped before CALHOLD_End completed. */
+        g_w4_trace_terminal_cookie =
+            W4_TRACE_TERMINAL_COOKIE_BASE ^
+            g_cal_hold_run_id_at_stop ^
+            ((Uint32)w4_direction << 16) ^
+            ((Uint32)state << 8) ^
+            (Uint32)reason;
+    }
+#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     /* W4 REAL only: wake DSS after hardware and all terminal evidence are
-     * already frozen. The NE image compiles this instruction out. */
-    if (w4_terminal != 0U) ESTOP0;
+     * already frozen. If ESTOP0 cannot halt because the debug link vanished,
+     * the terminal spin still prevents any return to control code. The NE
+     * image compiles all three instructions out. */
+    if (w4_terminal != 0U)
+    {
+        DINT;
+        ESTOP0;
+        for (;;) { }
+    }
 #endif
 }
 
@@ -1280,6 +1314,7 @@ void CALHOLD_Init(void)
     s_w4_trace_packet_clock = 0U;
     g_w4_trace_arm = 0U;
     g_w4_trace_expected_direction = 0U;
+    g_w4_trace_terminal_cookie = 0UL;
     CALHOLD_W4TraceReset(CAL_HOLD_MODE_LEGACY_11V, 100U);
     g_cal_hold_request = 0U;
     g_cal_hold_duration_ms = 100U;

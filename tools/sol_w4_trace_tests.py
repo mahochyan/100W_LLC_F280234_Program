@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / "app" / "cal_hold_burst.c").read_text(encoding="utf-8")
 HDR = (ROOT / "app" / "cal_hold_burst.h").read_text(encoding="utf-8")
 REAL = (ROOT / "tools" / "sol_w4_10v_aba_real.js").read_text(encoding="utf-8")
+LINK_NE = (ROOT / "tools" / "sol_w4_v12_link_idle_noenergy.js").read_text(encoding="utf-8")
 REAL_OUT = (ROOT / "Stage6_OL_STEADY" /
             "LLC_100W_F28034_OPEN_LOOP_STEADY.out")
 
@@ -114,6 +115,7 @@ def main() -> None:
         "W4_TRACE_5PCT_LOW_RAW              1182U",
         "W4_TRACE_2PCT_LOW_RAW              1215U",
         "W4_TRACE_SETTLE_LIMIT_MS            100U",
+        "W4_TRACE_TERMINAL_COOKIE_BASE 0x57440000UL",
     )))
     gate("W4_TRACE_THREE_FIELD_RING", all(token in SRC for token in (
         "g_w4_trace_ring_raw[W4_TRACE_SAMPLES]",
@@ -132,6 +134,12 @@ def main() -> None:
     )) and "static Uint16 s_w4_trace_session_direction" in SRC and
          "extern" not in SRC[SRC.index("s_w4_trace_session_direction") - 20:
                              SRC.index("s_w4_trace_session_direction")])
+    gate("W4_TRACE_COOKIE_CLEARS_ONLY_ON_NEW_ARM", all(token in reset for token in (
+        "if (arm != 0U) g_w4_trace_terminal_cookie = 0UL;",
+        "s_w4_trace_session_direction = 0U;",
+    )) and reset.index("g_w4_trace_terminal_cookie = 0UL;") <
+         reset.index("s_w4_trace_session_direction = 0U;") and
+         "g_w4_trace_terminal_cookie = 0UL;\n    CALHOLD_W4TraceReset" in SRC)
     gate("W4_TRACE_DETECTS_IMMEDIATELY_AFTER_BASELINE",
          "W4_TRACE_BASELINE_START_TICKS      25000UL" in HDR and
          "W4_TRACE_DETECT_START_TICKS        35000UL" in HDR and
@@ -186,15 +194,21 @@ def main() -> None:
          record.index("if (accumulate != 0U)"))
     end = SRC[SRC.index("static void CALHOLD_End"):
               SRC.index("static void CALHOLD_RecordRaw")]
-    gate("W4_REAL_TERMINAL_ESTOP_AFTER_FROZEN_SAFE_STATE", all(token in end for token in (
+    gate("W4_REAL_TERMINAL_COOKIE_AND_SPIN_AFTER_FROZEN_SAFE_STATE", all(token in end for token in (
         "CALHOLD_HardStop();",
         "g_cal_hold_packet_active = 0U;",
         "CALHOLD_StatsPublish();",
         "CALHOLD_FreezeFinal();",
         "s_w4_trace_session_direction = 0U",
-        "if (w4_terminal != 0U) ESTOP0;",
+        "g_w4_trace_terminal_cookie =",
+        "W4_TRACE_TERMINAL_COOKIE_BASE",
+        "DINT;",
+        "ESTOP0;",
+        "for (;;) { }",
     )) and end.index("CALHOLD_HardStop();") < end.index("CALHOLD_FreezeFinal();") <
-         end.index("ESTOP0") and
+         end.index("s_w4_trace_session_direction = 0U") <
+         end.index("g_w4_trace_terminal_cookie =") < end.index("DINT;") <
+         end.index("ESTOP0;") < end.index("for (;;) { }") and
          "#if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST" in end)
     fast_task = SRC.index("void CALHOLD_FastTask")
     off_start = SRC.index("case CAL_HOLD_OFF:", fast_task)
@@ -209,11 +223,31 @@ def main() -> None:
 
     fire_start = REAL.index("session.target.runAsynch();",
                             REAL.index('wv("g_cal_hold_request",1);'))
-    fire_end = REAL.index("session.target.waitForHalt();", fire_start)
+    fire_end = REAL.index('terminalHaltObserved=probeTerminalHalt(', fire_start)
     fire = REAL[fire_start:fire_end]
-    gate("W4_REAL_UNINTERRUPTED_POWER_WINDOW", all(token not in fire for token in (
-        "rw(", "rv32u(", "reg(", "session.memory", ".halt()",
-    )))
+    gate("W4_REAL_FTDI_SILENT_TO_FIRST_BOUNDED_PROBE",
+         all(token not in fire for token in (
+             "rw(", "rv32u(", "reg(", "session.memory", ".halt()",
+             ".isHalted()", ".terminate()", ".connect()",
+         )) and fire.count("session.target.runAsynch();") == 1)
+    probe = REAL[REAL.index("function probeTerminalHalt"):
+                 REAL.index("function forceSafe")]
+    gate("W4_REAL_BOUNDED_STATUS_ONLY", all(token in REAL for token in (
+        "session.setScriptTimeout(5000);",
+        "var POST_FIRE_STATUS_PROBES_MAX=2;",
+        "terminalProbeCount>=POST_FIRE_STATUS_PROBES_MAX",
+        "session.target.isHalted();",
+        "FTDI_STATUS_ERROR__NO_MORE_DSS_CALLS=TRUE",
+    )) and probe.count("session.target.isHalted();") == 1 and
+         all(token not in probe for token in (
+             "session.memory", ".halt()", ".run", ".terminate()",
+         )))
+    pre_read = REAL[fire_start:REAL.index("var state=rw(", fire_start)]
+    gate("W4_REAL_NO_READ_OR_ACTIVE_HALT_BEFORE_CONFIRMED_HALT",
+         all(token not in pre_read for token in (
+             "session.memory", "rw(", "rv32u(", "reg(", ".halt()",
+             ".terminate()", ".connect()",
+         )) and "FIRMWARE_TERMINAL_HALT_OBSERVED=TRUE" in pre_read)
     sha_match = re.search(r'EXPECTED_SHA="([0-9A-F]{64})"', REAL)
     actual_sha = (hashlib.sha256(REAL_OUT.read_bytes()).hexdigest().upper()
                   if REAL_OUT.exists() else "")
@@ -221,12 +255,41 @@ def main() -> None:
          sha_match.group(1) == actual_sha and all(token in REAL for token in (
         'SOL_W4_INPUT_LIMIT_A', 'SOL_W4_INITIAL_LOAD_OHMS',
         'PREFIRE_TARGET_CLOCK_200MS', 'W4_PHYSICAL_STEP_NOW=',
-        'env.setScriptTimeout(-1)', 'session.target.waitForHalt();',
+        'java.lang.System.nanoTime()', 'ACK_LINE_REQUIRED=',
+        'java.lang.Long.toHexString', 'line.equals(ackNonce)',
+        'var HOST_QUIET_MIN_NS=70000000000',
+        'var HOST_QUIET_MAX_NS=205000000000',
         'FIRMWARE_TERMINAL_HALT_OBSERVED=TRUE',
         'if(!fired || terminalHaltObserved)',
+        'forceSafe(!fired)',
         'HOST_DID_NOT_HALT_UNCONFIRMED_ACTIVE_TARGET=TRUE',
         'NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE',
-    )) and "readLine(" not in REAL and "currentTimeMillis" not in REAL)
+    )) and "readLine(" in REAL and "currentTimeMillis" not in REAL and
+         "waitForHalt(" not in REAL and "setScriptTimeout(-1)" not in REAL)
+    gate("W4_REAL_TERMINAL_CAPSULE_BEFORE_BULK_CAPTURE", all(token in REAL for token in (
+        'W4_TERMINAL_CAPSULE_COMMITTED',
+        'packetActive===0', 'pwmNow===0', 'finalPwm===0', 'finalOst===1',
+        'runStop===RUN_ID', 'hwOst===1', 'cookie===expectedCookie',
+        'if(!capsuleOk){throw "terminal-capsule-invalid";}',
+    )) and REAL.index('if(!capsuleOk){throw "terminal-capsule-invalid";}') <
+         REAL.index('session.memory.readWord(1,addr("g_w4_trace_ring_raw"),128)'))
+    gate("W4_REAL_THREE_BULK_RING_READS", all(token in REAL for token in (
+        'session.memory.readWord(1,addr("g_w4_trace_ring_raw"),128)',
+        'session.memory.readWord(1,addr("g_w4_trace_ring_cycle_delta"),128)',
+        'session.memory.readWord(1,addr("g_w4_trace_ring_packet_delta"),128)',
+    )) and "rawBase+index" not in REAL and "cycBase+index" not in REAL and
+         "pktBase+index" not in REAL)
+    gate("W4_V12_LINK_IDLE_NOENERGY_PROTOCOL", all(token in LINK_NE for token in (
+        "QUIET_FIRST_NS=70000000000",
+        "QUIET_FINAL_NS=205000000000",
+        "session.setScriptTimeout(5000);",
+        "FIRST_BOUNDED_IS_HALTED_FALSE",
+        "FINAL_BOUNDED_IS_HALTED_FALSE",
+        "LINK_QUARANTINE__NO_MORE_DSS_CALLS=TRUE",
+        "NOENERGY_ONLY_ACTIVE_HALT_AFTER_PROTOCOL=TRUE",
+        "SOL_W4_V12_QUIET_LINK_IDLE_NOENERGY_PASS=",
+    )) and LINK_NE.count("session.target.isHalted()") == 2 and
+         "waitForHalt(" not in LINK_NE)
     gate("W4_REAL_DYNAMIC_CYCLE_CAP_CHECK", all(token in REAL for token in (
         "total<=proportionalCap+160", "total<=22500000+160",
     )))

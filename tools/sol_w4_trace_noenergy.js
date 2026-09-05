@@ -20,6 +20,17 @@ function run(ms){session.target.runAsynch();java.lang.Thread.sleep(ms);session.t
 function check(name,ok,detail){print(name+"="+(ok?"TRUE":"FALSE")+(detail?(" "+detail):""));if(!ok)failures++;}
 
 var failures=0;
+var currentW4RunId=0;
+function expectedTerminalCookie(runId,direction,state,reason){
+  return (0x57440000 ^ runId ^ ((direction&0xffff)<<16) ^
+          ((state&0xffff)<<8) ^ (reason&0xffff))>>>0;
+}
+function checkTerminalCookie(tag,direction,state,reason){
+  check(tag+"_TERMINAL_COOKIE",
+        rv32u("g_w4_trace_terminal_cookie")===
+        expectedTerminalCookie(currentW4RunId,direction,state,reason),
+        "cookie=0x"+rv32u("g_w4_trace_terminal_cookie").toString(16));
+}
 print("=== SOL W4 PASSIVE TRACE NOENERGY ===");
 session.target.connect();try{session.target.halt();}catch(e){}
 session.memory.loadProgram(OUT);run(400);
@@ -33,6 +44,7 @@ function safe(tag){
   check(tag+"_FAULT0",rv32u("g_fault_flags")==0);
 }
 safe("PRE");
+check("PRE_TERMINAL_COOKIE_CLEAR",rv32u("g_w4_trace_terminal_cookie")==0);
 if(failures){try{session.terminate();}catch(e){}throw "w4-ne-pre-gate";}
 
 /* Exercise the same V10 target-clock cadence gate while PWM remains off. */
@@ -71,9 +83,13 @@ function requestHold(mode,duration,arm,direction){
   run(80);
 }
 function beginTrace(direction,baselineCycles,baselinePackets){
+  currentW4RunId=(0x250905A0+direction)>>>0;
+  wv32("g_test_run_id",currentW4RunId);
   requestHold(1,60000,1,direction);
   check("ARM_CONSUMED_D"+direction,rw("g_w4_trace_arm")==0);
   check("TRACE_WAIT_D"+direction,rw("g_w4_trace_state")==1);
+  check("NEW_ARM_COOKIE_CLEAR_D"+direction,
+        rv32u("g_w4_trace_terminal_cookie")==0);
   wv("g_w4_trace_ne_cycle_delta",baselineCycles);
   wv("g_w4_trace_ne_packet_delta",baselinePackets);
   wv32("g_cal_hold_elapsed_ticks",24998);
@@ -126,6 +142,7 @@ requestHold(0,100,1,1);
 check("LEGACY_ARM_CONSUMED",rw("g_w4_trace_arm")==0);
 check("LEGACY_TRACE_BAD_SESSION",rw("g_w4_trace_state")==6 &&
       rw("g_w4_trace_fail_reason")==4 && rw("g_w4_trace_direction_active")==0);
+check("LEGACY_BAD_SESSION_COOKIE_CLEAR",rv32u("g_w4_trace_terminal_cookie")==0);
 wv("g_w4_trace_direction_active",1); /* deliberate public telemetry tamper */
 wv32("g_cal_hold_elapsed_ticks",4998);run(3);
 check("LEGACY_PUBLIC_DIRECTION_CANNOT_EXTEND",rw("g_cal_hold_state")==4 &&
@@ -147,6 +164,7 @@ safe("W3_10S_ISOLATION");
 requestHold(1,60000,1,9);
 check("INVALID_DIRECTION_FAILS_CLOSED",rw("g_w4_trace_state")==6 &&
       rw("g_w4_trace_fail_reason")==1 && rw("g_w4_trace_direction_active")==0);
+check("INVALID_DIRECTION_COOKIE_CLEAR",rv32u("g_w4_trace_terminal_cookie")==0);
 wv("g_w4_trace_direction_active",1);
 wv32("g_cal_hold_total_packet_cycles",7500000);
 wv32("g_cal_hold_elapsed_ticks",40000);wv("g_cal_hold_ne_raw",1210);run(2);
@@ -166,6 +184,7 @@ run(3);
 check("EARLY_STEP_STILL_COMPLETES_AT_60S",rw("g_cal_hold_state")==4 &&
       rw("g_cal_hold_stop_reason")==1 &&
       rv32u("g_cal_hold_elapsed_ticks")>=3000000);
+checkTerminalCookie("EARLY_STEP",1,4,1);
 safe("EARLY_STEP_MIN60S");
 
 /* PACKET terminal uses StopPacket -> End and freezes truthful PWM0. */
@@ -179,6 +198,7 @@ check("PACKET_TERMINAL_COMPLETE",rw("g_cal_hold_state")==4 &&
       rw("g_cal_hold_stop_reason")==1);
 check("PACKET_TERMINAL_SOFTWARE_SAFE",rw("g_cal_hold_packet_active")==0 &&
       rw("g_pwm_enabled")==0 && rw("g_cal_hold_final_pwm")==0);
+checkTerminalCookie("PACKET_TERMINAL",1,4,1);
 safe("PACKET_TERMINAL");
 
 beginTrace(2,100,3);
@@ -199,6 +219,7 @@ wv32("g_cal_hold_elapsed_ticks",8999998);
 run(3);
 check("INCOMPLETE_WINDOW_FAILS_AT_180S",rw("g_cal_hold_state")==4 &&
       rw("g_w4_trace_state")==6 && rw("g_w4_trace_fail_reason")==3);
+checkTerminalCookie("INCOMPLETE_WINDOW",1,4,1);
 safe("INCOMPLETE");
 
 beginTrace(2,100,3);
@@ -207,6 +228,7 @@ finishStep("LATE_LIGHTER",100,4,1295,1);
 check("LATE_STEP_ENDS_AFTER_TRACE",rw("g_cal_hold_state")==4 &&
       rw("g_cal_hold_stop_reason")==1 &&
       rv32u("g_cal_hold_elapsed_ticks")>=3500000);
+checkTerminalCookie("LATE_STEP",2,4,1);
 safe("LATE_STEP");
 
 beginTrace(1,100,4);
@@ -215,6 +237,7 @@ check("EARLY_HARD_LIMIT_ABORT",rw("g_cal_hold_state")==5 &&
       rw("g_cal_hold_stop_reason")==2 && rw("g_cal_hold_hard_limit_events")>0);
 check("EARLY_ABORT_TERMINAL_SOFTWARE_SAFE",rw("g_cal_hold_packet_active")==0 &&
       rw("g_pwm_enabled")==0 && rw("g_cal_hold_final_pwm")==0);
+checkTerminalCookie("EARLY_ABORT",1,5,2);
 safe("EARLY_ABORT");
 
 check("NE_NEVER_RELEASED_PWM",rw("g_first_start_seen")==startSeen0 &&

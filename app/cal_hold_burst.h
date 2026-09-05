@@ -98,6 +98,10 @@
 #define W4_TRACE_2PCT_LOW_RAW              1215U
 #define W4_TRACE_2PCT_HIGH_RAW             1265U
 #define W4_TRACE_SETTLE_LIMIT_MS            100U
+/* Written only after the W4 terminal safety/evidence snapshot is complete.
+ * The host combines this base with the frozen run id, immutable private
+ * direction, terminal state and reason to reject stale or partial RAM. */
+#define W4_TRACE_TERMINAL_COOKIE_BASE 0x57440000UL
 
 #define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12.5 */
 #define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12.5 -> CR15 */
@@ -139,6 +143,7 @@ extern volatile Uint16 g_w4_trace_settle_ms;
 extern volatile Uint16 g_w4_trace_peak_pass;
 extern volatile Uint16 g_w4_trace_settle_pass;
 extern volatile Uint16 g_w4_trace_quality_pass;
+extern volatile Uint32 g_w4_trace_terminal_cookie;
 extern volatile Uint16 g_w4_trace_ring_raw[W4_TRACE_SAMPLES];
 extern volatile Uint16 g_w4_trace_ring_cycle_delta[W4_TRACE_SAMPLES];
 extern volatile Uint16 g_w4_trace_ring_packet_delta[W4_TRACE_SAMPLES];
