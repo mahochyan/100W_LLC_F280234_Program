@@ -36,6 +36,30 @@ def gate(name: str, ok: bool) -> None:
         raise AssertionError(name)
 
 
+def real_connect_failure_fails_closed(text: str) -> bool:
+    """Reject any REAL host path that advances after connect() throws."""
+    try:
+        connect_block = "try{\n  session.target.connect();\n  connected=true;\n"
+        connect_start = text.index(connect_block)
+        load_start = text.index("session.memory.loadProgram(OUT);", connect_start)
+        catch_start = text.index("}catch(e){", load_start)
+        exception_log = text.index('print("W4_REAL_EXCEPTION="+e);', catch_start)
+        finally_start = text.index("}finally{", exception_log)
+        catch_body = text[catch_start:finally_start]
+        finally_body = text[finally_start:]
+    except ValueError:
+        return False
+    return (
+        connect_start < load_start < catch_start < exception_log < finally_start and
+        "try{session.target.connect();}catch" not in text[:load_start] and
+        "failures++;" in catch_body and
+        "if(fired)failures++;" not in catch_body and
+        finally_body.startswith("}finally{\n  if(connected){") and
+        "forceSafe(!fired);" in finally_body and
+        "try{session.terminate();}catch(e){}" in finally_body
+    )
+
+
 def window_demand(samples: list[tuple[int, int, int]]) -> int | None:
     cycles = sum(item[1] for item in samples)
     packets = sum(item[2] for item in samples)
@@ -358,6 +382,36 @@ def main() -> None:
         'NO_RETRY_SAME_SHA_AFTER_FIRE=TRUE',
     )) and "readLine(" in REAL and "currentTimeMillis" not in REAL and
          "waitForHalt(" not in REAL and "setScriptTimeout(-1)" not in REAL)
+    gate("W4_REAL_CONNECT_FAILURE_FAILS_CLOSED",
+         real_connect_failure_fails_closed(REAL))
+    swallowed_connect = REAL.replace(
+        "try{\n  session.target.connect();\n  connected=true;\n",
+        "try{\n  try{session.target.connect();}catch(e){}connected=true;\n",
+        1)
+    conditional_exception = REAL.replace(
+        'print("W4_REAL_EXCEPTION="+e);\n  failures++;\n}finally{',
+        'print("W4_REAL_EXCEPTION="+e);\n  if(fired)failures++;\n}finally{',
+        1)
+    gate("W4_REAL_CONNECT_FAIL_CLOSED_NEGATIVE_MUTATIONS",
+         swallowed_connect != REAL and conditional_exception != REAL and
+         not real_connect_failure_fails_closed(swallowed_connect) and
+         not real_connect_failure_fails_closed(conditional_exception))
+    calls: list[str] = []
+    connected = False
+    fired = False
+    connect_failures = 0
+    try:
+        calls.append("connect")
+        raise RuntimeError("connect failure stub")
+        connected = True  # pragma: no cover - post-connect path must be unreachable
+        calls.append("loadProgram")
+    except RuntimeError:
+        connect_failures += 1
+    if connected:
+        calls.append("cleanup")
+    gate("W4_REAL_CONNECT_THROW_STUB_NO_LOAD_OR_CLEANUP",
+         calls == ["connect"] and not connected and not fired and
+         connect_failures == 1)
     real_map = REAL_MAP.read_text(encoding="utf-8", errors="replace")
     ne_map = NE_MAP.read_text(encoding="utf-8", errors="replace")
     gate("W4_V14_MAP_MEMORY_AND_TARGET_MARKER_SYMBOL", all(token in real_map for token in (
@@ -383,6 +437,11 @@ def main() -> None:
              "0x57440000 ^ 0x00000F0C ^ 0x00000014 ^ runId",
              "expectedTerminalCookie(currentW4RunId,direction,state,reason)",
          )))
+    gate("W4_V14_NE_TRANSIENT_CROSSES_POST_MARKER_GUARD",
+         "two target ticks before V14's 60 ms" in NE and
+         'wv32("g_cal_hold_elapsed_ticks",marker+2998);' in NE and
+         'wv("g_cal_hold_ne_raw",transientRaw);' in NE and
+         "run(22);" in NE)
     gate("W4_REAL_ACK_AND_TRIGGER_ARE_HARD_GATES", all(token in REAL for token in (
         'check("W4_PHYSICAL_STEP_ACK_CHAIN",stepAcknowledged',
         'promptNs>=fireNs+HOST_PROMPT_DELAY_NS',

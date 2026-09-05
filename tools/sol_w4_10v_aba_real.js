@@ -108,7 +108,8 @@ if(!actual.equals(EXPECTED_SHA)){throw "sha-mismatch";}
 print("REAL_SHA_HARD_GATE=PASS");
 
 try{
-  try{session.target.connect();}catch(e){}connected=true;
+  session.target.connect();
+  connected=true;
   try{session.target.halt();}catch(e){}
   session.memory.loadProgram(OUT);run(400);
   check("INIT_SYS_IDLE",rw("g_system_state")===1);
@@ -407,7 +408,7 @@ try{
   check("FINAL_TZINT_ZERO",reg("EPwm1Regs.TZFLG.bit.INT")===0);
 }catch(e){
   print("W4_REAL_EXCEPTION="+e);
-  if(fired)failures++;
+  failures++;
 }finally{
   if(connected){
     if(!fired || terminalHaltObserved){

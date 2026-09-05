@@ -1,0 +1,45 @@
+SOL W4 V14 USB recovery and de-energized on-target qualification
+Timestamp: 2026-09-05T23:19:32+08:00
+Physical state: user-confirmed Vin24 OFF; electronic load setting CR15 carried forward.
+
+USB recovery gate
+- Strict full gate completed before this run: XDS100SERIAL_ENUMERATED=20/20,
+  XDS_PNP_STABLE_CHECKS=20/20, SOL_XDS100_STABILITY_GATE=PASS.
+- Immediate pre-run and post-run enumeration each returned the unique row:
+  0403/a6d0  XDS100v1/v2  XDS100v2  Texas Instruments Inc.XDS100 Ver 2.0
+- Composite, MI_00 debug port, and MI_01 auxiliary port were all Present/OK.
+- Post-run residual debug process count: 0.
+
+Host fail-closed repair
+- sol_w4_10v_aba_real.js now advances connected=true only after connect() returns.
+- Any outer exception increments failures unconditionally.
+- Static source-order gate, two negative mutations, and connect-throw stub passed.
+- node --check, py_compile, and all sol_w4_trace_tests.py gates passed.
+- Independent reviewer verdict: GO.
+
+No-energy fixture correction
+- V14 intentionally ignores the first 3000 target ticks (60 ms) after its
+  yellow marker. The older synthetic 22 ms transient therefore sometimes fell
+  entirely outside the capture window.
+- The fixture now positions only forward to marker+2998 before the 22 ms
+  synthetic transient; it never rewinds the deliberate late-step scenario.
+- Two diagnostic fixture runs failed only those expected synthetic peak/timing
+  assertions. Both retained PWM0, OST1, TZINT0, FAULT0, and
+  NE_NEVER_RELEASED_PWM=TRUE throughout. No real-power request was possible.
+
+Final de-energized on-target run
+NE_OUT_SHA256=A90BD9223F96D9D8168CD22EE30D7922A31C0088C9110653F578E222217EFCB8
+PREFIRE_TARGET_CLOCK_200MS=TRUE delta=10106
+HEAVIER_COMPLETE=TRUE min=1185 max=1240 settle_ms=40 quality=TRUE
+PACKET_TERMINAL_PREP_COMPLETE=TRUE min=1185 max=1240 settle_ms=50 quality=TRUE
+LIGHTER_COMPLETE=TRUE min=1240 max=1295 settle_ms=50 quality=TRUE
+BAD_PEAK_REJECTED=TRUE min=1170 max=1240
+INCOMPLETE_WINDOW_FAILS_AT_180S=TRUE
+LATE_LIGHTER_COMPLETE=TRUE min=1240 max=1295 settle_ms=45 quality=TRUE
+LATE_STEP_ENDS_AFTER_TRACE=TRUE
+EARLY_HARD_LIMIT_ABORT=TRUE
+NE_NEVER_RELEASED_PWM=TRUE
+SOL_W4_TRACE_NOENERGY_PASS=TRUE
+
+Disposition: V14 REAL artifact remains byte-identical and qualified for the
+unfired HEAVIER tuple 0x2509059A, CR15 -> CR12, after Vin24 is restored.

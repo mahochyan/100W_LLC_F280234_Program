@@ -181,6 +181,13 @@ function ringExtrema(){
   return {mn:mn,mx:mx};
 }
 function finishStep(tag,stepCycles,stepPackets,transientRaw,expectQuality){
+  var marker=rv32u("g_w4_trace_operator_marker_tick");
+  /* Pin this synthetic-only scenario two target ticks before V14's 60 ms
+   * post-marker guard ends.  This removes DebugServer host-sleep jitter while
+   * still exercising the exact compiled target-side capture boundary.  Never
+   * rewind the deliberate late-step scenario. */
+  if(rv32u("g_cal_hold_elapsed_ticks")<marker+2998)
+    wv32("g_cal_hold_elapsed_ticks",marker+2998);
   wv("g_w4_trace_ne_cycle_delta",stepCycles);
   wv("g_w4_trace_ne_packet_delta",stepPackets);
   wv("g_cal_hold_ne_raw",transientRaw);
