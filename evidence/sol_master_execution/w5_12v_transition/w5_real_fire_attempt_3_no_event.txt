@@ -1,0 +1,16 @@
+W5_REAL_FIRE_ATTEMPT_3_NO_EVENT__FAULT_FLAG_2_LATCHED
+====================================================
+EXECUTED_AT=2026-09-06 after operator USB reseat (link held).
+PROGRESS: SHA gate TRUE; LOOPBACK PASS=TRUE (diag=1, verified=1) - the
+attempt-2 JTAG instability is cleared by the reseat.
+NEW BLOCKER: g_fault_flags=2 latched at fresh boot (bit1, exact fault
+identity TBD - bit map not yet decoded from firmware sources). Session
+request correctly REJECTED by the fails-closed session creation (state
+stayed 0/IDLE, algorithm/profile ids unset, cookie 0x0). Stage confirm
+also did not stick (stage=0) - likely gated by the same fault latch.
+NO plant event: PWM never enabled (3rd attempt), charge never authorized.
+DISPOSITION: no plant-failure credit consumed. NEXT (software): decode
+fault bit 1 in app/protection.c, find the sanctioned clear path (state
+machine fault-clear request, not debugger write), clear, re-verify
+loopback+stage, then fire with SAME frozen SHA 78C60382...
+W5_REAL_POWER_PASS_CLAIMED=FALSE
