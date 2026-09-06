@@ -1660,8 +1660,7 @@ void CALHOLD_FastTask(void)
                     COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC);
                     if (g_comp_prestart_reject != 0U ||
                         g_comp_inject_test_armed == 0U ||
-                        g_comp_prestart_gpio15 == 0U ||
-                        GpioDataRegs.GPADAT.bit.GPIO15 == 0U)
+                        g_comp_prestart_gpio15 == 0U)
                     {
                         ADC_SetSoftwareTriggerMode();
                         CALHOLD_End(CAL_HOLD_ABORT,

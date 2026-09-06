@@ -9,7 +9,8 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W5_LADDER_NE\\LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out";
-var EXPECTED_SHA="2851777096A87E739D59E7A4BB7C0EC7E33E1BE4E31F4E51A78A9E4F1A61B05A";
+var EXPECTED_SHA="F43B769DC4D39B2AD646A687DA01C39C4B539652BD69F3791F6F2B66E0C1B5C3";
+var RUN_ID=0x25090610;
 var TARGET=[1244,1306,1368,1430,1491];
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
@@ -50,13 +51,14 @@ wv("g_pwm_enable_result",0);wv("g_cal_hold_request",0);
 wv("g_cal_hold_state",0);wv("g_cal_hold_stop_reason",0);
 wv("g_cal_hold_packet_active",0);wv("g_cal_measure_active",0);
 wv("g_cal_hold_ne_raw",TARGET[0]);
+wv32("g_test_run_id",RUN_ID);
 wv("g_cal_hold_mode_request",2);
 wv("g_cal_hold_duration_ms",10500);
 wv("g_cal_hold_request",1);
 run(80);
 check("W5_SESSION_ACCEPTED",rw("g_cal_hold_state")!=0&&rw("g_cal_hold_state")!=5,
       "state="+rw("g_cal_hold_state")+" reason="+rw("g_cal_hold_stop_reason"));
-check("W5_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x0018);
+check("W5_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x0019);
 check("W5_LOAD_PROFILE_ID",rv32u("g_w5_ladder_load_profile_id")===0x0F0F);
 
 // Walk: pin synthetic raw to the active rung target; poll in 500 ms bursts.
@@ -90,6 +92,8 @@ sum=(sum+rw("g_w5_ladder_abort_reason")+rw("g_w5_ladder_abort_rung"))>>>0;
 var expCookie=(0x57350000^sum)>>>0;
 check("W5NE_TERMINAL_COOKIE",rv32u("g_w5_ladder_terminal_cookie")===expCookie,
       "cookie=0x"+rv32u("g_w5_ladder_terminal_cookie").toString(16)+" exp=0x"+expCookie.toString(16));
+check("W5NE_RUN_ID_AT_STOP",rv32u("g_cal_hold_run_id_at_stop")===RUN_ID,
+      "run_id=0x"+rv32u("g_cal_hold_run_id_at_stop").toString(16));
 check("W5NE_FINAL_PWM_SAFE",rw("g_cal_hold_final_pwm")==0);
 check("W5NE_NO_TZCLR_WRITES",rv32u("g_probe_tzclr_write_count")===tzclr0);
 check("W5NE_NO_ENABLE_RISES",rv32u("g_enable_rising_count")===enableRise0);

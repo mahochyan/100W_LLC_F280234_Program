@@ -12,6 +12,7 @@ PROBE = (ROOT / "app" / "power_probe.c").read_text(encoding="utf-8")
 PROBE_H = (ROOT / "app" / "power_probe.h").read_text(encoding="utf-8")
 PWM = (ROOT / "driver" / "pwm.c").read_text(encoding="utf-8")
 SHOT = (ROOT / "app" / "shot.c").read_text(encoding="utf-8")
+COMP = (ROOT / "app" / "comparator.c").read_text(encoding="utf-8")
 
 
 def gate(name: str, condition: bool) -> None:
@@ -132,12 +133,19 @@ def main() -> None:
          "PWM_PrepareStart(239UL, 110U, 1U)" in SRC and
          "W3_HOLD_MAX_PACKET_CYCLES        160U" in HDR and
          "W3_HOLD_PACKET_DB_MIN            36U" in HDR)
+    arm_common = COMP[COMP.index("static Uint16 COMP_ArmCommon"):
+                      COMP.index("void COMP_ArmForPowerStart")]
+    packet_call = SRC.index("COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC)")
+    packet_start = SRC[packet_call:SRC.index("s_w3_packet_write_auth = 1U", packet_call)]
     gate("STATIC_PACKET_PRESTART_SETTLE_GATE",
          "COMP_ArmForSingleCycleStart(LLC_SINGLE_CYCLE_PROBE_DAC)" in SRC and
          "g_comp_prestart_reject != 0U" in SRC and
          "g_comp_prestart_gpio15 == 0U" in SRC and
          "CAL_HOLD_REASON_PRESTART_REJECT" in SRC and
-         "Comp1Regs.COMPCTL.all = 0U" not in SRC)
+         "Comp1Regs.COMPCTL.all = 0U" not in SRC and
+         arm_common.count("DELAY_US(2L);") >= 2 and
+         "first_gpio15 == 0U || g_comp_prestart_gpio15 == 0U" in arm_common and
+         "GpioDataRegs.GPADAT.bit.GPIO15" not in packet_start)
     gate("STATIC_LEGACY_PACKET_AUTH_RETAINED",
          "s_cal_hold_mode == CAL_HOLD_MODE_LEGACY_11V ||" in SRC and
          "s_cal_hold_mode == CAL_HOLD_MODE_W3_10V" in SRC)

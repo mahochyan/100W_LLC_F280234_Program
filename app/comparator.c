@@ -268,6 +268,7 @@ void COMP_DisarmInjectionTest(void)
 static Uint16 COMP_ArmCommon(Uint16 requested_dac, Uint16 require_softstart)
 {
     Uint16 dac;
+    Uint16 first_gpio15;
 
     g_comp_inject_test_armed = 0U;
     g_comp_prestart_reject = 0U;
@@ -338,7 +339,24 @@ static Uint16 COMP_ArmCommon(Uint16 requested_dac, Uint16 require_softstart)
     }
 #endif
 
-    if (g_comp_prestart_gpio15 == 0U)
+    /* Require two qualified-safe GPIO15 observations. Attempt 5 proved that
+     * a single observation could still be the pre-change value immediately
+     * after the comparator/DAC mux transition. Keep OST latched throughout,
+     * wait one more bounded 2 us interval, and publish the second observation
+     * as the authoritative pre-start snapshot. */
+    first_gpio15 = g_comp_prestart_gpio15;
+    DELAY_US(2L);
+    g_comp_prestart_status = Comp1Regs.COMPSTS.bit.COMPSTS;
+    g_comp_prestart_gpio15 = GpioDataRegs.GPADAT.bit.GPIO15;
+    g_comp_prestart_tzflg = EPwm1Regs.TZFLG.all;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    if (g_no_energy_test_mode != 0U)
+    {
+        g_comp_prestart_gpio15 = 1U;
+    }
+#endif
+
+    if (first_gpio15 == 0U || g_comp_prestart_gpio15 == 0U)
     {
         g_comp_prestart_reject = 1U;
         EALLOW;

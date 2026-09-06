@@ -1,0 +1,48 @@
+W5 ATTEMPT 6 CANDIDATE -- PRESTART RACE FIX + NO-ENERGY PASS
+================================================================
+EXECUTED_AT=2026-09-06
+
+ATTEMPT 5 ATTACH-ONLY TERMINAL READBACK (old REAL SHA 78C60382...):
+  target already halted; state=5, stop_reason=8, system=1, fault=0,
+  final_pwm=0, final_ost=1, prestart_reject=0, inject_test_armed=1,
+  helper gpio15_snapshot=1, helper tzflg_snapshot=0x4, dac=300.
+  start_prepared=0, packet_cycles=0, initial charge stopped normally at
+  raw=1202 for target=1200 after 417 cycles. No ladder rung was entered.
+
+ROOT CAUSE:
+  COMP_ArmCommon accepted its settled comparator/GPIO15 snapshot, but the
+  caller sampled asynchronous GPIO15 again outside the helper. That duplicate
+  read raced low and generated CAL_HOLD_REASON_PRESTART_REJECT=8 before
+  PWM_PrepareStart. This was not a threshold, fault, or authorization failure.
+
+CHANGE (algorithm 0x0019, run id 0x25090610):
+  COMP_ArmCommon now takes two bounded samples separated by two 2-us settle
+  intervals while OST remains latched, and requires both GPIO15 samples high.
+  cal_hold_burst consumes only the helper's authoritative result/snapshot; it
+  no longer repeats the asynchronous GPIO read. PWM_StartDeterministic remains
+  the sole OST release, and the hardware OSHT1 path remains armed.
+
+OFFLINE GATES:
+  SOL_W5_PRESTART_RACE_STATIC_MODEL_PASS=TRUE
+  SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+  SOL_W5_REFERENCE_MODULE_STATIC_MODEL_PASS=TRUE
+  SOL_W5_REFERENCE_TRANSITION_PREFLIGHT_PASS=TRUE
+  REAL and NE clean builds exit 0; git diff --check clean.
+
+FROZEN CANDIDATE:
+  REAL_OUT_SHA256=0D1387540A182E94F9DCB63FE63D5FD9E80E00E19A390C7AE175DCFAA9D60FEB
+  REAL_MAP_SHA256=2A12CA80488DCD592935C28A5D7A6115CFC91397B0F40C7BE3A3160C62BDE285
+  NE_OUT_SHA256=F43B769DC4D39B2AD646A687DA01C39C4B539652BD69F3791F6F2B66E0C1B5C3
+  NE_MAP_SHA256=B02AE79F87709D849451C160DB355580EC6B3C4FCB975BFF3ABB9059712BDB96
+
+ON-TARGET NO-ENERGY WALK:
+  SHA hard gate TRUE; session accepted; algorithm=0x0019;
+  load_profile=0x0F0F; state=4, reason=1, ticks=519999;
+  5/5 rungs accepted; abort=0; min/max match pinned targets;
+  terminal cookie=0x57353573 matched; run_id_at_stop=0x25090610;
+  final_pwm=0; zero TZCLR writes; zero enable rises; OST stayed latched;
+  FAILURES=0; SOL_W5_LADDER_NE_WALK_PASS=TRUE.
+
+REAL_POWER_STATUS=NOT_FIRED_FOR_THIS_SHA
+NEXT_GATE=single fresh bench confirmation CR15 + Vin24V + input limit 0.7A,
+then one real fire of the exact REAL SHA above; no same-SHA retry on abort.

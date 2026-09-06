@@ -9,7 +9,8 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W5_LADDER\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="78C60382C86B6A15F0A870E046CDBB3089BB2495320CF002CF45A5BC44CFD43B";
+var EXPECTED_SHA="0D1387540A182E94F9DCB63FE63D5FD9E80E00E19A390C7AE175DCFAA9D60FEB";
+var RUN_ID=0x25090610;
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
@@ -63,7 +64,7 @@ check("PREFIRE_STILL_OST_LATCHED",session.expression.evaluate("EPwm1Regs.TZFLG.b
 check("PREFIRE_STILL_FAULT_ZERO",rv32u("g_fault_flags")===0);
 if(failures)throw "prefire-gates";
 check("W5REAL_FAULTS_ZERO",rv32u("g_fault_flags")===0,"flags="+rv32u("g_fault_flags"));
-wv32("g_test_run_id",1);
+wv32("g_test_run_id",RUN_ID);
 wv("g_cal_hold_mode_request",2);
 wv("g_cal_hold_duration_ms",10500);
 wv("g_cal_hold_request",1);
@@ -92,8 +93,10 @@ sum=(sum+rw("g_w5_ladder_abort_reason")+rw("g_w5_ladder_abort_rung"))>>>0;
 var expCookie=(0x57350000^sum)>>>0;
 check("W5REAL_TERMINAL_COOKIE",rv32u("g_w5_ladder_terminal_cookie")===expCookie,
       "cookie=0x"+rv32u("g_w5_ladder_terminal_cookie").toString(16));
-check("W5REAL_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x0018);
+check("W5REAL_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x0019);
 check("W5REAL_LOAD_PROFILE_ID",rv32u("g_w5_ladder_load_profile_id")===0x0F0F);
+check("W5REAL_RUN_ID_AT_STOP",rv32u("g_cal_hold_run_id_at_stop")===RUN_ID,
+      "run_id=0x"+rv32u("g_cal_hold_run_id_at_stop").toString(16));
 check("W5REAL_FINAL_PWM_SAFE",rw("g_cal_hold_final_pwm")==0);
 print("FAILURES="+failures);
 if(failures)throw "w5-real-fire-failed";
