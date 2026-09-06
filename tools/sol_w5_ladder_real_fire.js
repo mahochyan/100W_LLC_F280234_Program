@@ -35,14 +35,33 @@ check("W5REAL_SHA_HARD_GATE",actualSha.equals(EXPECTED_SHA),"actual="+actualSha)
 if(failures)throw "w5-real-sha-gate";
 session.target.connect();try{session.target.halt();}catch(e){}
 session.memory.loadProgram(OUT);run(400);
-// FULL pre-arm authorization (root-cause fix for attempt 1 stall):
+// Boot gates (V15-exact):
+check("INIT_SYS_IDLE",rw("g_system_state")===1);
+check("INIT_PWM_OFF",rw("g_pwm_enabled")===0);
+check("INIT_FAULT_ZERO",rv32u("g_fault_flags")===0);
+check("INIT_OST_LATCHED",session.expression.evaluate("EPwm1Regs.TZFLG.bit.OST")===1);
+check("INIT_TZINT_ZERO",session.expression.evaluate("EPwm1Regs.TZFLG.bit.INT")===0);
+check("INIT_CALHOLD_IDLE",rw("g_cal_hold_state")===0);
+if(failures)throw "boot-gates";
+// Full pre-arm authorization (V15-exact ladder):
 wv("g_loopback_diag_request",1);run(50);
 check("W5REAL_LOOPBACK_PASS",rw("g_loopback_diag_result")===1&&
       rw("g_comp_tz_loopback_verified")===1,
       "diag="+rw("g_loopback_diag_result")+" verified="+rw("g_comp_tz_loopback_verified"));
-wv("g_stage_confirm_request",5);run(50);
-check("W5REAL_STAGE_CONFIRM",rw("g_bringup_stage")===5,"stage="+rw("g_bringup_stage"));
-run(200);
+if(failures)throw "loopback-gate";
+for(var s=1;s<=5;s++){
+  wv("g_stage_confirm_request",s);run(50);
+  check("STAGE_CONFIRM_"+s,rw("g_bringup_stage")===s,"stage="+rw("g_bringup_stage"));
+  if(failures)throw "stage-gate-"+s;
+}
+var clock0=rv32u("g_fast_tick");run(200);
+var clockDelta=(rv32u("g_fast_tick")-clock0)>>>0;
+print("PREFIRE_TARGET_CLOCK_DELTA_200MS="+clockDelta);
+check("PREFIRE_TARGET_CLOCK_200MS",clockDelta>=9000&&clockDelta<=11000,"delta="+clockDelta);
+check("PREFIRE_STILL_PWM_OFF",rw("g_pwm_enabled")===0);
+check("PREFIRE_STILL_OST_LATCHED",session.expression.evaluate("EPwm1Regs.TZFLG.bit.OST")===1);
+check("PREFIRE_STILL_FAULT_ZERO",rv32u("g_fault_flags")===0);
+if(failures)throw "prefire-gates";
 check("W5REAL_FAULTS_ZERO",rv32u("g_fault_flags")===0,"flags="+rv32u("g_fault_flags"));
 wv32("g_test_run_id",1);
 wv("g_cal_hold_mode_request",2);

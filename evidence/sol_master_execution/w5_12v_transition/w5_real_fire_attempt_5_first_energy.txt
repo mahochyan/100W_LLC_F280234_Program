@@ -1,0 +1,23 @@
+W5_REAL_FIRE_ATTEMPT_5__FIRST_ENERGY_EVENT__PRESTART_REJECT
+=========================================================
+EXECUTED_AT=2026-09-06 (autonomous; operator supervising bench)
+FULL PRE-ARM SEQUENCE NOW PASSES (host script V15-exact):
+  boot gates all TRUE (idle/pwm-off/faults0/OST-latched/TZint0/CHOLD-idle)
+  loopback PASS; stage ladder 1..5 ALL confirmed; prefire clock delta
+  10212 in [9000,11000]; faults zero. ROOT CAUSE OF ATTEMPTS 3/4 SOLVED:
+  out-of-order stage-5-only confirm armed the injector with polarity=0
+  (packet path sets g_comp_polarity=1) -> TZ1 trip -> fault latch.
+  Firmware is sound; the defect was host-side sequencing.
+ATTEMPT 5 = FIRST REAL ENERGY TRANSFER:
+  charge completed (rung0 min=max=1200 raw ~9.7V real plant), ladder
+  entered rung0, first RECHARGE packet start rejected by the proven
+  pre-start gate -> CALHOLD_End(ABORT, PRESTART_REJECT=8), final_pwm=0,
+  cookie 0x5731095c verified (host checksum), OST latched, plant safe.
+  The protection chain behaved exactly as designed end-to-end.
+RULE 0.5: root cause of the reject is next decode target:
+  COMP_ArmForSingleCycleStart internals (comparator.c) - which of
+  {prestart_reject, inject_test_armed, GPIO15-low, TZFLG.OST-pending}
+  fired in the W5 first-packet context; W3-vs-W5 diff (HardLimitRaw is
+  now rung stage_abort 1306 vs 1367 - check any DAC/polarity dependence).
+  No attempt 6 until decoded.
+W5_REAL_POWER_PASS_CLAIMED=FALSE
