@@ -24,7 +24,7 @@ var BURST_PROFILE_ID=0xEFFA6E24;
 var V14_CR12_DEMAND_ANCHOR=30369;
 var V14_CR15_DEMAND_ANCHOR=26475;
 if(!INITIAL_LOAD.equals(EXPECTED_INITIAL)){throw "v15-initial-load-must-be-CR12";}
-if(!INPUT_LIMIT.equals("0.5")){throw "w4-v15-input-limit-must-be-explicit-0.5A";}
+if(!INPUT_LIMIT.equals("1.2")){throw "w4-v15-input-limit-must-match-carried-1.2A";}
 if(!GATES_ACK){throw "w4-v15-prefire-gates-not-acknowledged";}
 
 function sha256File(path){
@@ -175,11 +175,13 @@ try{
   print("WATCH_TARGET_YELLOW_LED__THEN_SET_CR15_AND_HOLD=TRUE");
   print("HOST_NO_STDIN_OR_NONCE_ACK_REQUIRED=TRUE");
   print("HOST_DSS_SILENT_UNTIL_70S_TERMINAL_FLOOR=TRUE");
+  try{Packages.java.awt.Toolkit.getDefaultToolkit().beep();}catch(beepError){}
   java.lang.System.out.flush();
   var cueMs=[12200,22200,32200,42200,52200];
   for(var ci=0;ci<cueMs.length;ci++){
     silentWaitUntil(fireNs+cueMs[ci]*1000000);
     print("SET_CR15_NOW_AND_HOLD__LOCAL_CUE_"+(ci+1)+"=TRUE elapsed_ms="+cueMs[ci]);
+    try{Packages.java.awt.Toolkit.getDefaultToolkit().beep();}catch(beepError){}
     java.lang.System.out.flush();
   }
 

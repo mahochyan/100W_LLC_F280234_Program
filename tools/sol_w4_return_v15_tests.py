@@ -310,7 +310,7 @@ def main() -> None:
 
     gate("W4_V15_HOST_FIXED_CR12_TO_CR15", all(token in host for token in (
         "0x25090602", "DIRECTION=2", 'EXPECTED_INITIAL="12"', 'EXPECTED_TARGET="15"',
-        'INPUT_LIMIT.equals("0.5")', "CR12_TO_CR15",
+        'INPUT_LIMIT.equals("1.2")', "CR12_TO_CR15",
     )) and "SOL_W4_DIRECTION" not in host)
     gate("W4_V15_HOST_NO_STDIN_NONCE_ACK_DEPENDENCY", host_has_no_stdin_dependency(host))
     injected_stdin = host + '\nvar reader=new BufferedReader(new InputStreamReader(System["in"]));\nreader.readLine();\n'
@@ -336,7 +336,8 @@ def main() -> None:
     gate("W4_V15_HOST_TARGET_OWNS_ACTIVE_WINDOW", all(token not in post_fire for token in (
         "session.memory", "rw(", "rv32u(", "rv32s(", "reg(", ".halt()", ".terminate()",
     )) and post_fire.count("session.target.isHalted()") <= 2 and
-        "SET_CR15_NOW_AND_HOLD" in post_fire)
+        "SET_CR15_NOW_AND_HOLD" in post_fire and
+        "Toolkit.getDefaultToolkit().beep()" in post_fire)
     gate("W4_V15_HOST_BOUNDED_TERMINAL_PROBES", all(token in host for token in (
         "POST_FIRE_STATUS_PROBES_MAX=2", "session.target.isHalted()",
         "70000000000", "205000000000", "HOST_DID_NOT_HALT_UNCONFIRMED_ACTIVE_TARGET=TRUE",
