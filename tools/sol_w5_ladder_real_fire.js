@@ -35,6 +35,14 @@ check("W5REAL_SHA_HARD_GATE",actualSha.equals(EXPECTED_SHA),"actual="+actualSha)
 if(failures)throw "w5-real-sha-gate";
 session.target.connect();try{session.target.halt();}catch(e){}
 session.memory.loadProgram(OUT);run(400);
+// FULL pre-arm authorization (root-cause fix for attempt 1 stall):
+wv("g_loopback_diag_request",1);run(50);
+check("W5REAL_LOOPBACK_PASS",rw("g_loopback_diag_result")===1&&
+      rw("g_comp_tz_loopback_verified")===1,
+      "diag="+rw("g_loopback_diag_result")+" verified="+rw("g_comp_tz_loopback_verified"));
+wv("g_stage_confirm_request",5);run(50);
+check("W5REAL_STAGE_CONFIRM",rw("g_bringup_stage")===5,"stage="+rw("g_bringup_stage"));
+run(200);
 check("W5REAL_FAULTS_ZERO",rv32u("g_fault_flags")===0,"flags="+rv32u("g_fault_flags"));
 wv32("g_test_run_id",1);
 wv("g_cal_hold_mode_request",2);

@@ -1,0 +1,27 @@
+W5_REAL_FIRE_ATTEMPTS_1_2_NO_EVENT__DEBUG_LINK_UNSTABLE
+=====================================================
+EXECUTED_AT=2026-09-06, operator-confirmed bench (CR15/Vin24V/input-limit-ready)
+
+ATTEMPT 1 (host script defect): armed OK but stayed in CHARGE 12s (no
+  packets; capsule zeros). ROOT CAUSE: fire script skipped the pre-arm
+  authorization sequence (comparator/TZ loopback verify + stage confirm)
+  that V15 real flow performs before arming. PWM never enabled; no plant
+  event. Fixed script locally (loopback diag + stage 5 confirm added).
+
+ATTEMPT 2 (pre-arm fix in place): connect+load OK, SHA gate TRUE, but
+  DSE reported "Lost debug connection" (Error -1140) during post-load
+  runs -> loopback interrupted (diag=1, verified=0), reads stale.
+  CONCLUSION: JTAG/probe link instability (XDS100 under switching-adjacent
+  EMI or USB path), NOT a firmware/plant fault. PWM never enabled; hard
+  limit events 0; converter never charged (capsule untouched, cookie 0x0).
+
+Also observed: a stale hung DSS java session was cleared (taskkill) after
+attempt 1; one reload reported probe-level "Power Failure"/ETIMEDOUT while
+operator instruments showed input present -> probe/session-layer, board ok.
+
+DISPOSITION: no W5 real event exists; both attempts consumed NO plant
+failure credit (rule 0.5 intact: root cause external to firmware+plant).
+NEXT: operator reseat/replace USB debug path (+ optional power-cycle),
+then single re-fire with the SAME frozen SHA 78C60382... using the fixed
+script (loopback PASS is now a hard gate before arming).
+W5_REAL_POWER_PASS_CLAIMED=FALSE
