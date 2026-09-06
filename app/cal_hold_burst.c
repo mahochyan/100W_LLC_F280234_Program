@@ -39,6 +39,7 @@ typedef struct
 
 static cal_hold_stats_t s_stats;
 static void CALHOLD_StatsPublish(void);
+static void CALHOLD_End(Uint16 state, Uint16 reason);
 #pragma DATA_SECTION(s_cal_hold_mode, "ol_ram");
 static Uint16 s_cal_hold_mode = CAL_HOLD_MODE_LEGACY_11V;
 #pragma DATA_SECTION(s_w3_packet_write_auth, "ol_ram");
@@ -263,32 +264,180 @@ Uint16 CALHOLD_W3PacketRampAuthOk(void)
             g_fault_flags == 0UL && output_state_ok != 0U) ? 1U : 0U;
 }
 
+#if STAGE6_W5_LADDER_TEST
+#include "w5_reference_transition.h"
+#pragma DATA_SECTION(g_w5_ladder_algorithm_id, "ol_ram");
+volatile Uint32 g_w5_ladder_algorithm_id = 0UL;
+#pragma DATA_SECTION(g_w5_ladder_load_profile_id, "ol_ram");
+volatile Uint32 g_w5_ladder_load_profile_id = 0UL;
+#pragma DATA_SECTION(g_w5_ladder_active_rung, "ol_ram");
+volatile Uint16 g_w5_ladder_active_rung = 0U;
+#pragma DATA_SECTION(g_w5_ladder_rung_phase, "ol_ram");
+volatile Uint16 g_w5_ladder_rung_phase = 0U;
+#pragma DATA_SECTION(g_w5_ladder_rung_min_raw, "ol_ram");
+volatile Uint16 g_w5_ladder_rung_min_raw[W5REF_RUNG_COUNT];
+#pragma DATA_SECTION(g_w5_ladder_rung_max_raw, "ol_ram");
+volatile Uint16 g_w5_ladder_rung_max_raw[W5REF_RUNG_COUNT];
+#pragma DATA_SECTION(g_w5_ladder_rung_accept_pass, "ol_ram");
+volatile Uint16 g_w5_ladder_rung_accept_pass[W5REF_RUNG_COUNT];
+#pragma DATA_SECTION(g_w5_ladder_abort_reason, "ol_ram");
+volatile Uint16 g_w5_ladder_abort_reason = 0U;
+#pragma DATA_SECTION(g_w5_ladder_abort_rung, "ol_ram");
+volatile Uint16 g_w5_ladder_abort_rung = 0U;
+#pragma DATA_SECTION(g_w5_ladder_terminal_cookie, "ol_ram");
+volatile Uint32 g_w5_ladder_terminal_cookie = 0UL;
+
+#pragma DATA_SECTION(s_w5_rung, "ol_ram");
+static W5REF_Rung s_w5_rung;                 /* current rung cache (accessors read it) */
+#pragma DATA_SECTION(s_w5_active_rung, "ol_ram");
+static Uint16 s_w5_active_rung = 0U;
+#pragma DATA_SECTION(s_w5_rung_phase, "ol_ram");
+static Uint16 s_w5_rung_phase = 0U;          /* 0 = 100 ms leg, 1 = 2 s leg */
+#pragma DATA_SECTION(s_w5_ticks, "ol_ram");
+static Uint32 s_w5_ticks = 0UL;              /* 20 us ticks inside OFF/PACKET only */
+#pragma DATA_SECTION(s_w5_rung_loaded, "ol_ram");
+static Uint16 s_w5_rung_loaded = 0U;
+
+static Uint16 CALHOLD_W5LoadRung(Uint16 rung_index)
+{
+    if (W5REF_GetRung(rung_index, &s_w5_rung) == 0U)
+    {
+        s_w5_rung_loaded = 0U;
+        return 0U;
+    }
+    s_w5_active_rung = rung_index;
+    g_w5_ladder_active_rung = rung_index;
+    s_w5_rung_loaded = 1U;
+    return 1U;
+}
+
+static void CALHOLD_W5Reset(void)
+{
+    Uint16 i;
+    s_w5_ticks = 0UL;
+    s_w5_rung_phase = 0U;
+    g_w5_ladder_rung_phase = 0U;
+    g_w5_ladder_abort_reason = W5REF_ABORT_NONE;
+    g_w5_ladder_abort_rung = 0U;
+    g_w5_ladder_terminal_cookie = 0UL;
+    for (i = 0U; i < W5REF_RUNG_COUNT; i++)
+    {
+        g_w5_ladder_rung_min_raw[i] = 0xFFFFU;
+        g_w5_ladder_rung_max_raw[i] = 0U;
+        g_w5_ladder_rung_accept_pass[i] = 0U;
+    }
+    (void)CALHOLD_W5LoadRung(0U);
+}
+
+/* 20 us ladder scheduler.  Runs only inside an active OFF/PACKET hold.
+ * All protection thresholds are re-read through the accessors, so loading
+ * the next rung atomically retargets recharge/stage/low-abort gates. */
+static void CALHOLD_W5LadderTick(void)
+{
+    Uint32 base;
+    Uint32 boundary;
+    Uint16 last_raw;
+
+    if (s_cal_hold_mode != CAL_HOLD_MODE_W5_LADDER) return;
+    if (s_w5_rung_loaded == 0U) return;
+    if (g_cal_hold_state != CAL_HOLD_OFF &&
+        g_cal_hold_state != CAL_HOLD_PACKET) return;
+
+    last_raw = g_adc_vout_raw;
+    if (g_w5_ladder_rung_min_raw[s_w5_active_rung] > last_raw)
+        g_w5_ladder_rung_min_raw[s_w5_active_rung] = last_raw;
+    if (g_w5_ladder_rung_max_raw[s_w5_active_rung] < last_raw)
+        g_w5_ladder_rung_max_raw[s_w5_active_rung] = last_raw;
+
+    s_w5_ticks++;
+    g_w5_ladder_rung_phase = s_w5_rung_phase;
+
+    base = (Uint32)s_w5_active_rung *
+           (W5REF_DURATION_100MS_TICKS + W5REF_DURATION_2S_TICKS);
+    boundary = base + ((s_w5_rung_phase == 0U) ? W5REF_DURATION_100MS_TICKS
+                                               : W5REF_DURATION_2S_TICKS);
+    if (s_w5_ticks < boundary) return;
+
+    if (s_w5_rung_phase == 0U)
+    {
+        /* 100 ms level gate: the work order requires the level to hold
+         * before the 2 s leg may run. */
+        if (W5REF_SteadyRawAccepted(s_w5_active_rung, last_raw) == 0U)
+        {
+            g_w5_ladder_abort_reason = W5_LADDER_ABORT_ACCEPT_100MS;
+            g_w5_ladder_abort_rung = s_w5_active_rung;
+            CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_REJECTED);
+            return;
+        }
+        s_w5_rung_phase = 1U;
+        g_w5_ladder_rung_phase = 1U;
+        return;
+    }
+
+    /* 2 s leg done: record acceptance, then advance or complete. */
+    g_w5_ladder_rung_accept_pass[s_w5_active_rung] =
+        W5REF_SteadyRawAccepted(s_w5_active_rung, last_raw);
+    if ((Uint16)(s_w5_active_rung + 1U) >= W5REF_RUNG_COUNT)
+    {
+        CALHOLD_End(CAL_HOLD_COMPLETE, CAL_HOLD_REASON_COMPLETE);
+        return;
+    }
+    (void)CALHOLD_W5LoadRung((Uint16)(s_w5_active_rung + 1U));
+    s_w5_rung_phase = 0U;
+    g_w5_ladder_rung_phase = 0U;
+}
+#endif /* STAGE6_W5_LADDER_TEST */
+
 static Uint16 CALHOLD_RechargeLowRaw(void)
 {
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return (s_w5_rung.target_raw > W5_HOLD_RECHARGE_HYSTERESIS_RAW)
+            ? (Uint16)(s_w5_rung.target_raw - W5_HOLD_RECHARGE_HYSTERESIS_RAW)
+            : s_w5_rung.target_raw;
+#endif
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
         ? W3_HOLD_RECHARGE_LOW_RAW : CAL_HOLD_RECHARGE_LOW_RAW;
 }
 
 static Uint16 CALHOLD_RechargeTargetRaw(void)
 {
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return s_w5_rung.target_raw;
+#endif
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
         ? W3_HOLD_RECHARGE_TARGET_RAW : CAL_HOLD_RECHARGE_TARGET_RAW;
 }
 
 static Uint16 CALHOLD_HardLimitRaw(void)
 {
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return s_w5_rung.stage_abort_raw;
+#endif
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
         ? W3_HOLD_HARD_LIMIT_RAW : CAL_HOLD_HARD_LIMIT_RAW;
 }
 
 static Uint16 CALHOLD_DiagLowRaw(void)
 {
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return (s_w5_rung.target_raw > W5_HOLD_DIAG_LOW_DROP_RAW)
+            ? (Uint16)(s_w5_rung.target_raw - W5_HOLD_DIAG_LOW_DROP_RAW)
+            : 0U;
+#endif
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
         ? W3_HOLD_DIAG_LOW_ABORT_RAW : CAL_HOLD_DIAG_LOW_ABORT_RAW;
 }
 
 static Uint16 CALHOLD_MaxPacketCycles(void)
 {
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return W3_HOLD_MAX_PACKET_CYCLES;  /* same 160-cycle packet ceiling */
+#endif
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
         ? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES;
 }
@@ -302,6 +451,10 @@ static Uint16 CALHOLD_RequestValid(Uint16 mode, Uint16 duration)
                 duration == W3_HOLD_DURATION_2S ||
                 duration == W3_HOLD_DURATION_10S ||
                 duration == W3_HOLD_DURATION_60S) ? 1U : 0U;
+#if STAGE6_W5_LADDER_TEST
+    if (mode == CAL_HOLD_MODE_W5_LADDER)
+        return (duration == W5_LADDER_TOTAL_DURATION_MS) ? 1U : 0U;
+#endif
     return 0U;
 }
 
@@ -318,6 +471,10 @@ static Uint32 CALHOLD_CycleCap(void)
          * previously qualified 50% aggregate active-time ceiling. */
         return (trace_ticks * 5UL) / 2UL;
     }
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return W5_LADDER_CYCLE_CAP;
+#endif
     if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
     {
         if (g_cal_hold_duration_ms == W3_HOLD_DURATION_500MS)
@@ -1042,7 +1199,11 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
     if (g_cal_hold_state == CAL_HOLD_ABORT ||
         g_cal_hold_state == CAL_HOLD_COMPLETE) return;
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
-    w4_terminal = (w4_direction != 0U) ? 1U : 0U;
+    w4_terminal = ((w4_direction != 0U)
+#if STAGE6_W5_LADDER_TEST
+        || (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+#endif
+        ) ? 1U : 0U;
 #endif
     CALHOLD_HardStop();
     CALHOLD_AdcPollMode(0U);
@@ -1065,6 +1226,29 @@ static void CALHOLD_End(Uint16 state, Uint16 reason)
     g_cal_hold_state = state;
     g_cal_hold_stop_reason = reason;
     CALHOLD_FreezeFinal();
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+    {
+        Uint32 w5_sum = 0UL;
+        Uint16 w5_i;
+        if (g_cal_hold_state == CAL_HOLD_ABORT &&
+            g_w5_ladder_abort_reason == W5REF_ABORT_NONE)
+        {
+            g_w5_ladder_abort_reason =
+                W5REF_VoutAbortReason(s_w5_active_rung, g_adc_vout_raw);
+            g_w5_ladder_abort_rung = s_w5_active_rung;
+        }
+        for (w5_i = 0U; w5_i < W5REF_RUNG_COUNT; w5_i++)
+        {
+            w5_sum += (Uint32)g_w5_ladder_rung_min_raw[w5_i];
+            w5_sum += (Uint32)g_w5_ladder_rung_max_raw[w5_i];
+            w5_sum += (Uint32)g_w5_ladder_rung_accept_pass[w5_i];
+        }
+        w5_sum += (Uint32)g_w5_ladder_abort_reason;
+        w5_sum += (Uint32)g_w5_ladder_abort_rung;
+        g_w5_ladder_terminal_cookie = W5_LADDER_TERMINAL_COOKIE_BASE ^ w5_sum;
+    }
+#endif
     s_w4_trace_session_direction = 0U; /* consume private terminal latch */
 #if STAGE6_OPEN_LOOP_STEADY_BUILD && !STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     if (w4_terminal != 0U)
@@ -1335,6 +1519,11 @@ void CALHOLD_FastTask(void)
     Uint16 prepare_ok;
     Uint32 limit = 0UL;
     if (g_cal_hold_state == CAL_HOLD_IDLE) return;
+#if STAGE6_W5_LADDER_TEST
+    CALHOLD_W5LadderTick();
+    if (g_cal_hold_state == CAL_HOLD_ABORT ||
+        g_cal_hold_state == CAL_HOLD_COMPLETE) return;
+#endif
 
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
     /* The NE 20 us Group-1 harness can starve lower-priority Group-3. Drive
@@ -1404,7 +1593,11 @@ void CALHOLD_FastTask(void)
                      * single low OFF sample. Legacy semantics remain immediate;
                      * W3 requires consecutive below-floor evidence across
                      * bounded recharge attempts before declaring undersupply. */
-                    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+                    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V
+#if STAGE6_W5_LADDER_TEST
+                        || s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER
+#endif
+                       )
                     {
                         if (g_cal_hold_undersupply_low_samples <
                             W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES)
@@ -1604,6 +1797,20 @@ void CALHOLD_SlowTask(void)
         g_cal_hold_run_id_at_arm = g_test_run_id;
         g_accel_vout_target_raw = (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
             ? W3_HOLD_INITIAL_CHARGE_RAW : CAL_HOLD_RECHARGE_TARGET_RAW;
+#if STAGE6_W5_LADDER_TEST
+        if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        {
+            g_accel_vout_target_raw = W5_HOLD_INITIAL_CHARGE_RAW;
+            CALHOLD_W5Reset();
+            g_w5_ladder_algorithm_id = W5_LADDER_ALGORITHM_ID;
+            g_w5_ladder_load_profile_id = W5_LADDER_LOAD_PROFILE_ID;
+            if (s_w5_rung_loaded == 0U)
+            {
+                CALHOLD_End(CAL_HOLD_ABORT, CAL_HOLD_REASON_REJECTED);
+                return;
+            }
+        }
+#endif
 #if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
         if (g_no_energy_test_mode != 0U && g_cal_hold_ne_bypass_charge != 0U)
         {

@@ -1,0 +1,60 @@
+W5_OFFLINE_CANDIDATE_QUALIFICATION_V1
+=====================================
+EXECUTED_AT=2026-09-06 (session after W4 audit option B closure, state v83)
+OPERATOR_ROLE=SOL software path only; no target power applied (offline only)
+
+INTEGRATION (root-cause consistent with W5 preflight known-migration list):
+  1. app/cal_hold_burst.{h,c}: new engine mode CAL_HOLD_MODE_W5_LADDER (2U).
+     Walks the immutable W5REF rung table inside one protected-Burst session:
+     per rung 100 ms leg (acceptance gate) then 2 s leg; per-rung thresholds
+     driven by W5REF table via the existing mode accessors:
+       recharge_low = target-40, recharge_target = rung target,
+       hard_limit   = rung stage_abort (+5%), diag_low = target-250,
+       packet cap 160 cycles (W3-qualified), cycle cap 1312500 (50% agg).
+     Undersupply uses the W3 3-consecutive-OFF-sample confirmation.
+     Terminal cookie = 0x57350000 ^ checksum(per-rung min/max/accept, abort).
+     Ladder tick runs only in OFF/PACKET; CALHOLD_End remains idempotent.
+  2. Fixed-guard migration in the W5 image only (STAGE6_W5_LADDER_TEST):
+     open_loop_steady.h WARNING 1304->1565, HARD 1367->1640 (W5REF absolute
+     12 V +10% ceiling). GENERIC_RAW_LIMITS_DISABLED honored: no fixed raw
+     guard can abort a legal 11.5 V / 12.0 V rung.
+  3. Build-variant mechanism: SOL_W5_LADDER_BUILD=1 ->
+     Stage6_W5_LADDER / Stage6_W5_LADDER_NE, -DSTAGE6_W5_LADDER_TEST=1,
+     app/w5_reference_transition.c compiled+linked (W4 variants untouched;
+     frozen W4 SHAs unchanged). Mutual exclusion with W4 sweep/return
+     enforced in both bats and by compile-time #error.
+
+OFFLINE GATES (all executed this session, final source):
+  python tools/sol_w5_reference_module_tests.py
+    -> SOL_W5_REFERENCE_MODULE_STATIC_MODEL_PASS=TRUE (all 20 gates TRUE;
+       gate W5REF_NOT_LINKED_IN_FROZEN_W4 refined to check that every bat
+       mention of the module is SOL_W5_LADDER_BUILD-gated or a neutral
+       %W5_SRC%/%W5_OBJ% slot -- intent "not linked in frozen W4" preserved)
+  python tools/sol_w5_reference_transition_preflight.py
+    -> SOL_W5_REFERENCE_TRANSITION_PREFLIGHT_PASS=TRUE (all gates TRUE)
+  Build: CGT 25.11.1.LTS, COFF, clean compile+link, REAL and NE: BUILD OK
+  (fixed en route: CALHOLD_End forward declaration; W5 statics moved to
+   ol_ram after .ebss 0x409>0x400 RAML2 overflow in NE link)
+
+FROZEN SHA TUPLE (this candidate, before any on-target run):
+  W5_REAL_OUT_SHA256=63481DBE6A191266ADDB03ED9C89FCF35D20988905E1D58DEFA1965FAF52A99A
+  W5_REAL_MAP_SHA256=36FC58118F43C7DACDC1F31218176B07FFC24EE7DD3E33E314271DABFEED4BF1
+  W5_NE_OUT_SHA256=7277B5AACF64221F28DCA5F51879744E8AB3F5687A5C87E352FE817BAB66248A
+  W5_NE_MAP_SHA256=96DFAFBD21FEC16429A8D5A08E99288F285C8732A36EAAA540652D1EE33414FA
+
+BENCH STATE AT RESUME (user message, no power applied by this path):
+  LOAD=CR15 (electronic load, constant resistance 15 ohm)
+  VIN=24V INPUT Present; INPUT LIMIT NOT YET CONFIRMED=0.7A (W5 declaration)
+
+NEXT GATES (this candidate may NOT fire until all pass):
+  1. On-target NO-POWER NE ladder walk (Stage6_W5_LADDER_NE via CCS, USB
+     only, PSU disconnected): mode-2 session must walk 5 rungs logically
+     with OST clamped, no energy; host reads capsule+cookie.
+  2. Single-message bench confirm immediately before real ladder:
+     "CR15 connected, Vin 24 V, input limit 0.7 A, reply 0P7A_READY=1"
+     (process fix: load AND limit must match this offline declaration;
+      confirm window <= 5 min; no mid-window operator actions).
+  3. Real ladder 10.0->12.0 V: any abort => stop, no same-SHA retry
+     (rule 0.5); W5 real pass claim only from frozen on-chip evidence.
+
+W5_REAL_POWER_PASS_CLAIMED=FALSE

@@ -101,6 +101,20 @@
 #define OPEN_LOOP_VOUT_HARD_ABORT_RAW   \
     ((Uint16)((11.0f - BOARD_VOUT_OFFSET_V) / BOARD_VOUT_GAIN_V_PER_RAW))
 
+#ifndef STAGE6_W5_LADDER_TEST
+#define STAGE6_W5_LADDER_TEST 0
+#endif
+#if STAGE6_W5_LADDER_TEST
+/* W5 migration: the fixed 10 V warning / 11 V hard experiment guards yield
+ * to the immutable calibrated ladder ceiling (12 V +10% = 1640 raw) so no
+ * fixed guard can abort a legal 11.5 V or 12.0 V rung.  1565 raw is the
+ * highest per-rung stage-abort (12.0 V +5%). */
+#undef OPEN_LOOP_VOUT_WARNING_RAW
+#undef OPEN_LOOP_VOUT_HARD_ABORT_RAW
+#define OPEN_LOOP_VOUT_WARNING_RAW      ((Uint16)1565U)
+#define OPEN_LOOP_VOUT_HARD_ABORT_RAW   ((Uint16)1640U)
+#endif
+
 /* Steady-state windows (20 us TINT0 ticks): rolling 100 ms window, first
  * 200 ms after slew completion excluded from the steady decision, steady
  * reached after 2 consecutive windows whose means differ by <= 3 raw. */

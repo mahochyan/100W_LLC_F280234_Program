@@ -39,6 +39,18 @@
 #if STAGE6_W4_RETURN_V15_TEST && STAGE6_W4_SWEEP_TEST
 #error "W4 return V15 and W4 sweep are mutually exclusive images"
 #endif
+#ifndef STAGE6_W5_LADDER_TEST
+#define STAGE6_W5_LADDER_TEST 0
+#endif
+#if STAGE6_W5_LADDER_TEST && !STAGE6_OPEN_LOOP_STEADY_BUILD
+#error "STAGE6_W5_LADDER_TEST requires STAGE6_OPEN_LOOP_STEADY_BUILD"
+#endif
+#if STAGE6_W5_LADDER_TEST && (STAGE6_W4_SWEEP_TEST || STAGE6_W4_RETURN_V15_TEST)
+#error "STAGE6_W5_LADDER_TEST is mutually exclusive with the W4 sweep/return images"
+#endif
+#if STAGE6_W5_LADDER_TEST
+#include "w5_reference_transition.h"
+#endif
 
 #define CAL_HOLD_RECHARGE_LOW_RAW       1380U
 #define CAL_HOLD_RECHARGE_TARGET_RAW    1400U
@@ -149,6 +161,26 @@
 #define W4_V15_ISR_LIMIT_CYCLES                  900UL
 #define W4_V15_ISR_OVERRUN_CYCLES               1200UL
 
+/* W5 10 V -> 12 V reference ladder.  The engine mode walks the immutable
+ * W5REF calibrated rung table inside one protected-Burst hold session:
+ * each rung holds 100 ms then 2 s against its own target; per-rung recharge
+ * and stage-abort thresholds derive from that rung, and the immutable 12 V
+ * +10% absolute ceiling (1640 raw) replaces every fixed 11 V guard in this
+ * image.  Packet cadence, DB ramp, comparator and TZ protection remain the
+ * qualified W3 implementation. */
+#define CAL_HOLD_MODE_W5_LADDER                  2U
+#define W5_HOLD_INITIAL_CHARGE_RAW             1200U  /* same legal accelerated Profile C charge */
+#define W5_HOLD_RECHARGE_HYSTERESIS_RAW          40U  /* ~0.32 V below the rung target */
+#define W5_HOLD_DIAG_LOW_DROP_RAW               250U  /* ~2 V below the rung target */
+#define W5_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES       3U  /* consecutive OFF samples, like W3 */
+#define W5_LADDER_ABORT_ACCEPT_100MS              4U  /* local: 100 ms leg acceptance failed */
+#define W5_LADDER_TOTAL_DURATION_MS           10500U  /* 5 rungs x (100 ms + 2 s) */
+#define W5_LADDER_TICKS_PER_MS                    50UL /* 20 us fast task */
+#define W5_LADDER_CYCLE_CAP                 1312500UL /* 50% aggregate ceiling over 525000 ticks */
+#define W5_LADDER_ALGORITHM_ID               0x0018UL
+#define W5_LADDER_LOAD_PROFILE_ID            0x0F0FUL /* CR15 held across all rungs */
+#define W5_LADDER_TERMINAL_COOKIE_BASE   0x57350000UL
+
 #define W4_TRACE_DIRECTION_HEAVIER          1U     /* CR15 -> CR12 */
 #define W4_TRACE_DIRECTION_LIGHTER          2U     /* CR12 -> CR15 */
 #define W4_TRACE_DIRECTION_SWEEP             3U     /* CR20 -> CR5, supplemental */
@@ -232,6 +264,18 @@ extern volatile Uint32 g_w4_v15_frequency_apply_count;
 extern volatile Uint32 g_w4_v15_isr_cycles_max;
 extern volatile Uint32 g_w4_v15_isr_sample_count;
 extern volatile Uint32 g_w4_v15_isr_overrun_count;
+#endif
+#if STAGE6_W5_LADDER_TEST
+extern volatile Uint32 g_w5_ladder_algorithm_id;
+extern volatile Uint32 g_w5_ladder_load_profile_id;
+extern volatile Uint16 g_w5_ladder_active_rung;                /* 0..4 */
+extern volatile Uint16 g_w5_ladder_rung_phase;                 /* 0 = 100 ms leg, 1 = 2 s leg */
+extern volatile Uint16 g_w5_ladder_rung_min_raw[W5REF_RUNG_COUNT];
+extern volatile Uint16 g_w5_ladder_rung_max_raw[W5REF_RUNG_COUNT];
+extern volatile Uint16 g_w5_ladder_rung_accept_pass[W5REF_RUNG_COUNT];
+extern volatile Uint16 g_w5_ladder_abort_reason;               /* W5REF_ABORT_* or W5_LADDER_ABORT_ACCEPT_100MS */
+extern volatile Uint16 g_w5_ladder_abort_rung;
+extern volatile Uint32 g_w5_ladder_terminal_cookie;
 #endif
 #if STAGE6_W4_SWEEP_TEST
 extern volatile Uint16 g_w4_sweep_count;

@@ -71,9 +71,25 @@ def main() -> None:
         "rung_index >= W5REF_RUNG_COUNT || result == 0",
         "return W5REF_ABORT_INVALID_RUNG;",
     )))
+    def _module_only_in_w5_variant(text: str) -> bool:
+        # The frozen W4 images must not link the module.  Every mention of
+        # the module in a build script must therefore be either inside a
+        # SOL_W5_LADDER_BUILD-gated line or a neutral %W5_SRC%/%W5_OBJ%
+        # slot that expands empty for every non-W5 variant.
+        for line in text.splitlines():
+            if "w5_reference_transition" not in line:
+                continue
+            s = line.strip()
+            if s.startswith('if "%SOL_W5_LADDER_BUILD%"=="1"'):
+                continue
+            if s in ("%W5_SRC% ^", "%W5_OBJ% ^"):
+                continue
+            return False
+        return True
+
     gate("W5REF_NOT_LINKED_IN_FROZEN_W4",
-         "w5_reference_transition" not in REAL_BUILD and
-         "w5_reference_transition" not in NE_BUILD)
+         _module_only_in_w5_variant(REAL_BUILD) and
+         _module_only_in_w5_variant(NE_BUILD))
 
     gate("W5REF_MODEL_BELOW_STAGE_CONTINUES",
          all(abort_reason(i, row[3] - 1) == 0 for i, row in enumerate(EXPECTED_ROWS)))
