@@ -25,7 +25,12 @@ NEXT STEPS (next segment):
      1; diff W3_10V vs W5_LADDER startup w.r.t. inject-test handshake
      (g_comp_inject_test_armed) - the trip fires between loopback PASS
      and stage confirm, i.e. in/around the arm window.
-  3. Decide firmware fix (quiesce COMP1OUT/TZ path across diag+arm as
+  3. LEAD (fresh): cal_hold_burst.c:1658 writes g_comp1_dac_code =
+     LLC_SINGLE_CYCLE_PROBE_DAC inside the engine path - check which mode
+     gates that write (mode1 vs mode2) and whether the W5 charge start
+     reprograms the probe DAC vs W3; that DAC change in the idle/charge
+     window plausibly produces the TZ1 edge the ISR latches.
+  4. Decide firmware fix (quiesce COMP1OUT/TZ path across diag+arm as
      the W4 image effectively did, or route the expected arm-window trip
      to the benign path) -> rebuild both images -> new SHA tuple -> NE
      walk re-run -> fire with full pre-arm sequence.
