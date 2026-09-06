@@ -64,7 +64,8 @@ def main() -> None:
          "g_cal_hold_packet_active != 0U" in SRC and
          "CALHOLD_W3PacketRampAuthOk() != 0U" in PWM and
          "write_ok = PWM_SetDeadbandOnly(next_db)" in SRC and
-         "next_db >= W3_HOLD_PACKET_DB_MIN" in SRC)
+         "next_db >= CALHOLD_PacketDbMin()" in SRC and
+         "return W3_HOLD_PACKET_DB_MIN;" in SRC)
     phase_a_schedule = (
         (15, 105), (25, 100), (35, 95), (45, 90),
         (55, 85), (65, 80), (75, 75), (85, 70),

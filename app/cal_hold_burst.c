@@ -256,7 +256,11 @@ Uint16 CALHOLD_W3PacketRampAuthOk(void)
                            EPwm1Regs.TZFLG.bit.OST == 0U) ? 1U : 0U;
 
     return (s_w3_packet_write_auth != 0U &&
-            s_cal_hold_mode == CAL_HOLD_MODE_W3_10V &&
+            (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V
+#if STAGE6_W5_LADDER_TEST
+             || s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER
+#endif
+             ) &&
             g_cal_hold_state == CAL_HOLD_PACKET &&
             g_cal_hold_packet_active != 0U &&
             g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
@@ -449,10 +453,28 @@ static Uint16 CALHOLD_MaxPacketCycles(void)
 {
 #if STAGE6_W5_LADDER_TEST
     if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
-        return W3_HOLD_MAX_PACKET_CYCLES;  /* same 160-cycle packet ceiling */
+        return W5_HOLD_MAX_PACKET_CYCLES;
 #endif
     return (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
         ? W3_HOLD_MAX_PACKET_CYCLES : CAL_HOLD_MAX_PACKET_CYCLES;
+}
+
+static Uint16 CALHOLD_PacketDbMin(void)
+{
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return W5_HOLD_PACKET_DB_MIN;
+#endif
+    return W3_HOLD_PACKET_DB_MIN;
+}
+
+static Uint16 CALHOLD_UndersupplyConfirmSamples(void)
+{
+#if STAGE6_W5_LADDER_TEST
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER)
+        return W5_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES;
+#endif
+    return W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES;
 }
 
 static Uint16 CALHOLD_RequestValid(Uint16 mode, Uint16 duration)
@@ -1485,7 +1507,11 @@ void CALHOLD_PacketIsr(void)
      * needs a one-call private active-packet authorization and a failed write
      * immediately returns to OST. */
     next_db = EPwm1Regs.DBRED;
-    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V)
+    if (s_cal_hold_mode == CAL_HOLD_MODE_W3_10V
+#if STAGE6_W5_LADDER_TEST
+        || s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER
+#endif
+       )
     {
         switch (g_cal_hold_packet_cycles)
         {
@@ -1507,7 +1533,7 @@ void CALHOLD_PacketIsr(void)
             default: break;
         }
     }
-    if (next_db < EPwm1Regs.DBRED && next_db >= W3_HOLD_PACKET_DB_MIN)
+    if (next_db < EPwm1Regs.DBRED && next_db >= CALHOLD_PacketDbMin())
     {
         s_w3_packet_write_auth = 1U;
         write_ok = PWM_SetDeadbandOnly(next_db);
@@ -1613,10 +1639,10 @@ void CALHOLD_FastTask(void)
                        )
                     {
                         if (g_cal_hold_undersupply_low_samples <
-                            W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES)
+                            CALHOLD_UndersupplyConfirmSamples())
                             g_cal_hold_undersupply_low_samples++;
                         if (g_cal_hold_undersupply_low_samples >=
-                            W3_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES)
+                            CALHOLD_UndersupplyConfirmSamples())
                         {
                             CALHOLD_End(CAL_HOLD_ABORT,
                                         CAL_HOLD_REASON_UNDERSUPPLIED);

@@ -9,8 +9,8 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W5_LADDER_NE\\LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out";
-var EXPECTED_SHA="3D9F61289285FFCCD849E1AA7B5D0993D61A950DAE7B658DA796DF22AE323837";
-var RUN_ID=0x25090611;
+var EXPECTED_SHA="8517B890807993C7446C4EBC216246E4171A0A0B1EF769014A796FB072582E85";
+var RUN_ID=0x25090616;
 var TARGET=[1244,1306,1368,1430,1491];
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
@@ -58,7 +58,7 @@ wv("g_cal_hold_request",1);
 run(80);
 check("W5_SESSION_ACCEPTED",rw("g_cal_hold_state")!=0&&rw("g_cal_hold_state")!=5,
       "state="+rw("g_cal_hold_state")+" reason="+rw("g_cal_hold_stop_reason"));
-check("W5_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x001A);
+check("W5_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x001F);
 check("W5_LOAD_PROFILE_ID",rv32u("g_w5_ladder_load_profile_id")===0x0F0F);
 
 // Walk: pin synthetic raw to the active rung target; poll in 500 ms bursts.

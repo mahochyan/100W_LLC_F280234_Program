@@ -172,12 +172,14 @@
 #define W5_HOLD_INITIAL_CHARGE_RAW             1200U  /* same legal accelerated Profile C charge */
 #define W5_HOLD_RECHARGE_HYSTERESIS_RAW          40U  /* ~0.32 V below the rung target */
 #define W5_HOLD_DIAG_LOW_DROP_RAW               250U  /* ~2 V below the rung target */
-#define W5_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES       3U  /* consecutive OFF samples, like W3 */
+#define W5_HOLD_UNDERSUPPLY_CONFIRM_SAMPLES       8U  /* <=5.5 ms for bounded multi-packet recovery */
+#define W5_HOLD_MAX_PACKET_CYCLES                 45U  /* stop before observed active TZ at cycle53 */
+#define W5_HOLD_PACKET_DB_MIN                     95U  /* never enter tripping DB90 region */
 #define W5_LADDER_ABORT_ACCEPT_100MS              4U  /* local: 100 ms leg acceptance failed */
 #define W5_LADDER_TOTAL_DURATION_MS           10500U  /* 5 rungs x (100 ms + 2 s) */
 #define W5_LADDER_TICKS_PER_MS                    50UL /* 20 us fast task */
 #define W5_LADDER_CYCLE_CAP                 1312500UL /* 50% aggregate ceiling over 525000 ticks */
-#define W5_LADDER_ALGORITHM_ID               0x001AUL
+#define W5_LADDER_ALGORITHM_ID               0x001FUL
 #define W5_LADDER_LOAD_PROFILE_ID            0x0F0FUL /* CR15 held across all rungs */
 #define W5_LADDER_TERMINAL_COOKIE_BASE   0x57350000UL
 

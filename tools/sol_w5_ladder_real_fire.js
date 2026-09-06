@@ -9,8 +9,8 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W5_LADDER\\LLC_100W_F28034_OPEN_LOOP_STEADY.out";
-var EXPECTED_SHA="A323D75006E00226EBBC02620110D7C5F40E40043F9C3FFBE705CE66CFD9625C";
-var RUN_ID=0x25090611;
+var EXPECTED_SHA="59E807E7360D68C99C5C90AA6193C187FAE25EBD3A8FE63281CD1D2CE3BB6A4E";
+var RUN_ID=0x25090616;
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
 var session=server.openSession();
@@ -93,7 +93,7 @@ sum=(sum+rw("g_w5_ladder_abort_reason")+rw("g_w5_ladder_abort_rung"))>>>0;
 var expCookie=(0x57350000^sum)>>>0;
 check("W5REAL_TERMINAL_COOKIE",rv32u("g_w5_ladder_terminal_cookie")===expCookie,
       "cookie=0x"+rv32u("g_w5_ladder_terminal_cookie").toString(16));
-check("W5REAL_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x001A);
+check("W5REAL_ALGORITHM_ID",rv32u("g_w5_ladder_algorithm_id")===0x001F);
 check("W5REAL_LOAD_PROFILE_ID",rv32u("g_w5_ladder_load_profile_id")===0x0F0F);
 check("W5REAL_RUN_ID_AT_STOP",rv32u("g_cal_hold_run_id_at_stop")===RUN_ID,
       "run_id=0x"+rv32u("g_cal_hold_run_id_at_stop").toString(16));

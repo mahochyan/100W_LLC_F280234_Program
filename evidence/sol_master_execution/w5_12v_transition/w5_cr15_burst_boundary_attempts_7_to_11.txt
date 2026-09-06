@@ -1,0 +1,35 @@
+W5 CR15 REAL BOUNDARY -- ATTEMPTS 7 TO 11
+================================================
+EXECUTED_AT=2026-09-06
+BENCH=CR15__VIN24V__INPUT_LIMIT0P7A (operator-frozen)
+
+0x1A / A323D750: private 239/110 start authorization fixed; real start worked.
+  Safe reason4 after 108 packets, all 160 cycles at DB110; raw974..1227,
+  fault0/PWM0/OST1. Root cause: W5 omitted from existing W3 DB ramp mode.
+0x1B / E9003799: W5 reused W3 110->36 ramp. Safe reason4; 129 packets,
+  13841 cycles, raw662..1257; last full packet raised 676->922. Three-sample
+  low diagnostic aborted before bounded multi-packet recovery.
+0x1C / 77F46466: recovery window 8 samples. Hardware active-window TZ at
+  packet cycle64 after DB reached85; run ID matched, COMPSTS/TZ1 event real;
+  fault0x10/PWM0/OST1.
+0x1D / 8A339103: W5 floor DB90. Hardware active-window TZ at cycle53/DB90;
+  fault0x10/PWM0/OST1.
+0x1E / 062CDC28: short 35-cycle packets, floor DB100. No hardware trip, but
+  insufficient average power: safe reason4, raw967..1215, fault0/PWM0/OST1.
+0x1F / 59E807E7: 45-cycle packets, floor DB95. Hardware active-window TZ
+  occurred on packet259 at cycle4 while still DB110 (TBCTR8, GPIO15=1,
+  COMPSTS=1, TZFLG=0x5, matching run0x25090616); fault0x10/PWM0/OST1.
+
+CONCLUSION:
+  The final event proves the trip is not determined solely by the commanded
+  DB floor or long-packet accumulation: it can occur at packet turn-on while
+  still DB110 after hundreds of accepted packets. CR15 sustainable average
+  power and the present unblanked comparator/TZ turn-on boundary overlap.
+  Further software-only energy tuning is not evidence-based. Do not replay
+  any listed SHA. W5 is held at the W9 instrumentation boundary: capture
+  primary current, gate/deadtime/ZVS and comparator/TZ timing with a scope;
+  then decide whether a qualified hardware blanking/filter change or a
+  continuous-PFM architecture is valid. Never bypass the hardware TZ.
+
+FINAL_STATE=CPU_HALTED__PWM0__OST1__FAULT0x10
+W5_REAL_POWER_PASS_CLAIMED=FALSE
