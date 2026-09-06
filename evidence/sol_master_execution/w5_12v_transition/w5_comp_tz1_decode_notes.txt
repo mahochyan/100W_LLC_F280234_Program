@@ -1,0 +1,28 @@
+W5_COMP_TZ1_DECODE_NOTES (root-cause work in progress)
+====================================================
+FACTS:
+- FAULT_COMP_TZ1 latch site: protection.c TZ ISR, path
+  "ACTIVE_WINDOW (or unexpected IDLE) hardware trip" (line ~243-253):
+  g_fault_flags |= FAULT_COMP_TZ1; g_system_state = SYS_STATE_FAULT.
+- COMP_RunLoopbackDiagnostic (comparator.c ~63): allowed only PWM-off/
+  IDLE/no-fault; disables Comp1DACEN + TZSEL.OSHT1 + TZEINT.OST; benches
+  GPIO42->GPIO15 0/1/0 (all reads OK in our runs, diag result=1); then
+  restores GPBMUX1.42=3 (COMP1OUT), GPAMUX1.15=1 (TZ1), TZSEL.OSHT1=ENABLE,
+  TZEINT.OST=0 (keep OST int disabled).
+- Attempt 4 sequence: loopback PASS read by host, THEN flags=2 latched and
+  stage=0 -> the trip happens AFTER the diag result is published, before/
+  during stage-confirm window. ISR fired => TZEINT.OST (or TZ1 int path)
+  was ENABLED at trip time despite diag leaving it 0 -> something between
+  diag end and arm re-enables the OST interrupt, or the trip edge occurs
+  on a later re-enable (PWM-start path never ran: pwm=0 throughout).
+NEXT STEPS (next segment):
+  1. Read comparator.c diag tail after line ~120 (what sets
+     g_comp_tz_loopback_verified=1, any TZEINT/COMPCTL re-enable order).
+  2. Read TZ ISR entry state gate (which g_* states make a TZ1 trip
+     "unexpected" vs benign) and W4-vs-W5 diff of COMP/EPwm TZ config.
+  3. Decide firmware fix (diag must leave TZ path quiescent exactly as
+     W4 image did) -> rebuild both images -> new SHA tuple -> NE walk
+     re-run -> fire with full pre-arm sequence.
+SAFETY: 4 attempts, zero plant events (PWM never enabled, no charge,
+  capsule zeros). Bench operator keeps CR15/Vin24V/0.7A as declared.
+W5_REAL_POWER_PASS_CLAIMED=FALSE
