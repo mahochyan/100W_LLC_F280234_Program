@@ -1,0 +1,17 @@
+W5_REAL_FIRE_ATTEMPT_4_BLOCKED__COMP_TZ1_TRIP_ON_DIAG
+====================================================
+EXECUTED_AT=2026-09-06 (autonomous continuation after USB reseat fixed link)
+PROGRESS: link stable; post-load probe on clean reset: faults=0, vout=12
+(~0V residual), loopback auto-verified, pwm=0 -> transient trip theory
+confirmed for attempt 3 latch; sanctioned clear = clean reload (done).
+BLOCKER (reproducible, root-cause pending): running g_loopback_diag_request
+immediately latches FAULT_COMP_TZ1 (flags |= 2, protection.c:246 via TZ ISR)
+-> fail-closed blocks stage confirm + session creation (state stays IDLE).
+V15 image ran the identical sequence without latching. Suspect W5-image-
+specific interaction in the comp inject/loopback path under
+STAGE6_W5_LADDER_TEST build (or diag-vs-protection-ISR ordering).
+NO plant event in any of 4 attempts: PWM never enabled, charge never
+authorized, capsule zeros, cookie 0x0. Rule 0.5 intact - firing halted
+until firmware-side root cause is decoded (compare diag path W5 vs V15,
+protection.c:246 caller, g_comp_inject_test_armed handshake order).
+W5_REAL_POWER_PASS_CLAIMED=FALSE
