@@ -177,7 +177,7 @@
 #define W5_LADDER_TOTAL_DURATION_MS           10500U  /* 5 rungs x (100 ms + 2 s) */
 #define W5_LADDER_TICKS_PER_MS                    50UL /* 20 us fast task */
 #define W5_LADDER_CYCLE_CAP                 1312500UL /* 50% aggregate ceiling over 525000 ticks */
-#define W5_LADDER_ALGORITHM_ID               0x0019UL
+#define W5_LADDER_ALGORITHM_ID               0x001AUL
 #define W5_LADDER_LOAD_PROFILE_ID            0x0F0FUL /* CR15 held across all rungs */
 #define W5_LADDER_TERMINAL_COOKIE_BASE   0x57350000UL
 

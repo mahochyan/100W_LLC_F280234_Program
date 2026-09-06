@@ -1,0 +1,50 @@
+W5 REAL ATTEMPT 6 + CANDIDATE 7 QUALIFICATION
+================================================
+EXECUTED_AT=2026-09-06
+BENCH_CONFIRMATION=CR15__VIN24V__INPUT_LIMIT0P7A__0P7A_READY1
+
+ATTEMPT 6 (algorithm 0x0019, run 0x25090610, exact SHA 0D138754...):
+  All boot, loopback, stage 1..5, target-clock, PWM-off, OST, and fault
+  prefire gates passed. Initial charge stopped normally at raw=1202 for
+  target=1200 after 417 cycles. First recharge start ended state=5/reason=8;
+  no packet cycle and no ladder rung executed. Terminal: fault=0, PWM=0,
+  final OST=1, cookie matched, algorithm/load/run ID matched.
+
+ATTACH-ONLY DECODE:
+  comparator helper had accepted: reject=0, armed=1, status=1, GPIO15=1,
+  TZFLG snapshot=0x4, polarity=1, DAC=300. Start token remained zero.
+  Therefore reason 8 came from PWM_PrepareStart returning zero, not from the
+  comparator condition. No same-SHA retry.
+
+ROOT CAUSE:
+  PWM_RuntimeValuesValid authorizes exact protected recharge profile
+  period=239/deadtime=110 through CALHOLD_W3PacketAuthOk. That private mode
+  whitelist contained legacy-11V and W3-10V only; the newly introduced W5
+  ladder mode was omitted. The valid W5 request was therefore deterministically
+  rejected before any OST release.
+
+CANDIDATE 7 CHANGE (algorithm 0x001A, run 0x25090611):
+  Add CAL_HOLD_MODE_W5_LADDER to that same private packet-start authorization,
+  compile-gated by STAGE6_W5_LADDER_TEST. Retain the private write latch, stage,
+  idle, comparator/loopback, fault, PWM-off, and OST gates. Public frequency
+  range, packet profile, thresholds, cycle caps, and protection paths unchanged.
+
+QUALIFICATION:
+  SOL_W5_PACKET_START_AUTH_STATIC_PASS=TRUE
+  SOL_W5_PRESTART_RACE_STATIC_MODEL_PASS=TRUE
+  SOL_W3_10V_BURST_HOLD_STATIC_PASS=TRUE
+  SOL_W5_REFERENCE_MODULE_STATIC_MODEL_PASS=TRUE
+  SOL_W5_REFERENCE_TRANSITION_PREFLIGHT_PASS=TRUE
+  REAL_AND_NE_CLEAN_BUILD_EXIT=0
+  ON_TARGET_NE=PASS__5_OF_5_RUNGS__ABORT0__COOKIE0x57353573__RUN0x25090611
+  NE_SAFETY=FINAL_PWM0__TZCLR_WRITES0__ENABLE_RISES0__OST_LATCHED
+
+FROZEN CANDIDATE 7:
+  REAL_OUT_SHA256=A323D75006E00226EBBC02620110D7C5F40E40043F9C3FFBE705CE66CFD9625C
+  REAL_MAP_SHA256=4C4A505B8373444CA7B5EE0BA95BF2EA6445EA8BD451867F1A2094CC176601B1
+  NE_OUT_SHA256=3D9F61289285FFCCD849E1AA7B5D0993D61A950DAE7B658DA796DF22AE323837
+  NE_MAP_SHA256=E8E29C5106A42F69B82E84456EF7D328B7070241D4D92671CBE9033912BE4754
+
+REAL_POWER_STATUS=NOT_FIRED_FOR_CANDIDATE7
+NEXT_GATE=one fresh confirmation CR15 + Vin24V + input limit0.7A, then one
+real fire of exact SHA A323D750...; no same-SHA retry on abort.

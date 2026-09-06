@@ -223,7 +223,11 @@ Uint16 CALHOLD_W3PacketAuthOk(void)
 {
     return (s_w3_packet_write_auth != 0U &&
             (s_cal_hold_mode == CAL_HOLD_MODE_LEGACY_11V ||
-             s_cal_hold_mode == CAL_HOLD_MODE_W3_10V) &&
+             s_cal_hold_mode == CAL_HOLD_MODE_W3_10V
+#if STAGE6_W5_LADDER_TEST
+             || s_cal_hold_mode == CAL_HOLD_MODE_W5_LADDER
+#endif
+             ) &&
             g_cal_hold_state == CAL_HOLD_OFF &&
             g_cal_hold_packet_active == 0U &&
             g_bringup_stage == BRINGUP_STAGE_5A_OPEN_LOOP_MANUAL &&
