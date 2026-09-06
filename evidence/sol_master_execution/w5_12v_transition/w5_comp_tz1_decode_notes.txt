@@ -16,13 +16,19 @@ FACTS:
   diag end and arm re-enables the OST interrupt, or the trip edge occurs
   on a later re-enable (PWM-start path never ran: pwm=0 throughout).
 NEXT STEPS (next segment):
-  1. Read comparator.c diag tail after line ~120 (what sets
-     g_comp_tz_loopback_verified=1, any TZEINT/COMPCTL re-enable order).
-  2. Read TZ ISR entry state gate (which g_* states make a TZ1 trip
-     "unexpected" vs benign) and W4-vs-W5 diff of COMP/EPwm TZ config.
-  3. Decide firmware fix (diag must leave TZ path quiescent exactly as
-     W4 image did) -> rebuild both images -> new SHA tuple -> NE walk
-     re-run -> fire with full pre-arm sequence.
+  1. DONE: diag tail read - diag leaves COMPDACEN=0 and TZEINT.OST=0
+     with TZSEL.OSHT1 re-enabled; COMP_ArmInjectionTest (comparator.c,
+     next function) re-arms the TZ1 one-shot path => any COMP1OUT HIGH
+     transient in that window latches TZFLG.OST with INT enabled.
+  2. Read COMP_ArmInjectionTest fully (DAC programming, expected-trip
+     handling) + SlowTask CHARGE/PACKET preconditions for mode 2 vs mode
+     1; diff W3_10V vs W5_LADDER startup w.r.t. inject-test handshake
+     (g_comp_inject_test_armed) - the trip fires between loopback PASS
+     and stage confirm, i.e. in/around the arm window.
+  3. Decide firmware fix (quiesce COMP1OUT/TZ path across diag+arm as
+     the W4 image effectively did, or route the expected arm-window trip
+     to the benign path) -> rebuild both images -> new SHA tuple -> NE
+     walk re-run -> fire with full pre-arm sequence.
 SAFETY: 4 attempts, zero plant events (PWM never enabled, no charge,
   capsule zeros). Bench operator keeps CR15/Vin24V/0.7A as declared.
 W5_REAL_POWER_PASS_CLAIMED=FALSE
