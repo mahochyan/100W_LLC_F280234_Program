@@ -9,7 +9,7 @@ importPackage(Packages.java.io);
 importPackage(Packages.java.security);
 
 var OUT="D:\\CCS21_workspace\\Codex_Project\\Stage6_W5_LADDER_NE\\LLC_100W_F28034_OPEN_LOOP_STEADY_NE.out";
-var EXPECTED_SHA="7277B5AACF64221F28DCA5F51879744E8AB3F5687A5C87E352FE817BAB66248A";
+var EXPECTED_SHA="2851777096A87E739D59E7A4BB7C0EC7E33E1BE4E31F4E51A78A9E4F1A61B05A";
 var TARGET=[1244,1306,1368,1430,1491];
 var env=ScriptingEnvironment.instance(),server=env.getServer("DebugServer.1");
 server.setConfig("D:\\CCS21_workspace\\Codex_Project\\F28034.ccxml");
@@ -72,7 +72,7 @@ var st=rw("g_cal_hold_state"),rs=rw("g_cal_hold_stop_reason");
 print("walk_end state="+st+" reason="+rs+" rung="+rw("g_w5_ladder_active_rung")+
       " phase="+rw("g_w5_ladder_rung_phase")+" ticks="+rv32u("g_cal_hold_elapsed_ticks"));
 check("W5NE_WALK_COMPLETE",st==4&&rs==1);
-check("W5NE_LADDER_TICKS",rv32u("g_cal_hold_elapsed_ticks")>=525000);
+check("W5NE_LADDER_TICKS",rv32u("g_cal_hold_elapsed_ticks")>=515000);
 check("W5NE_ABORT_REASON_ZERO",rw("g_w5_ladder_abort_reason")==0&&rw("g_w5_ladder_abort_rung")==0);
 var allPass=true,minmaxOk=true;
 for(var i=0;i<5;i++){

@@ -11,7 +11,7 @@ user's request and bench-safety constraints remain controlling.
 ## Current checkpoint
 
 ```text
-STATE_VERSION=84
+STATE_VERSION=85
 UPDATED_AT=2026-09-06__POST_PAUSE_COMMIT__WALL_CLOCK_UNVERIFIED_IN_SESSION
 MASTER_STATUS=W5_CANDIDATE_BUILT_OFFLINE_QUALIFIED__REAL_LADDER_HELD_PENDING_NE_WALK_AND_BENCH_CONFIRM
 CURRENT_WORK_ORDER=W5
@@ -1577,4 +1577,11 @@ GIT_NOTE=V83_AUDIT_AND_STATE_UPDATE_NOT_YET_COMMITTED__SESSION_SHELL_DOWN__COMMI
 - Module tests + preflight PASS on final source (see w5_offline_candidate_qualification_v1.txt).
 - NEXT: (1) on-target NO-POWER NE ladder walk; (2) single-message bench confirm incl.
   INPUT LIMIT 0.7A match; (3) real ladder 10.0-12.0V. No same-SHA retry on abort (rule 0.5).
+- W5_REAL_POWER_PASS_CLAIMED=FALSE
+
+## W5 NE ladder walk PASS (STATE_VERSION=85)
+
+- NE walk FAILURES=0, cookie 0x57353573 verified, OST latched, zero TZCLR/enable writes, 5/5 rungs accepted. NE raw auto-follow fix applied (NE image only; REAL path unchanged).
+- Frozen: REAL_OUT=78C60382C86B6A15F0A870E046CDBB3089BB2495320CF002CF45A5BC44CFD43B NE_OUT=2851777096A87E739D59E7A4BB7C0EC7E33E1BE4E31F4E51A78A9E4F1A61B05A
+- NEXT: single-message bench confirm (CR15 + Vin24V + INPUT LIMIT 0.7A, reply 0P7A_READY=1) then real ladder fire. No same-SHA retry on abort (rule 0.5).
 - W5_REAL_POWER_PASS_CLAIMED=FALSE

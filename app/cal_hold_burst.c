@@ -308,6 +308,11 @@ static Uint16 CALHOLD_W5LoadRung(Uint16 rung_index)
     s_w5_active_rung = rung_index;
     g_w5_ladder_active_rung = rung_index;
     s_w5_rung_loaded = 1U;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    /* NE walk: the synthetic raw follows the active rung target so the
+     * ladder self-walks through its own acceptance gates with no energy. */
+    g_cal_hold_ne_raw = s_w5_rung.target_raw;
+#endif
     return 1U;
 }
 
@@ -343,7 +348,11 @@ static void CALHOLD_W5LadderTick(void)
     if (g_cal_hold_state != CAL_HOLD_OFF &&
         g_cal_hold_state != CAL_HOLD_PACKET) return;
 
-    last_raw = g_adc_vout_raw;
+#if STAGE6_ON_TARGET_SHADOW_NOENERGY_TEST
+    last_raw = g_cal_hold_ne_raw;   /* NE: injected synthetic raw */
+#else
+    last_raw = g_adc_vout_raw;      /* REAL: published PWM-sync raw */
+#endif
     if (g_w5_ladder_rung_min_raw[s_w5_active_rung] > last_raw)
         g_w5_ladder_rung_min_raw[s_w5_active_rung] = last_raw;
     if (g_w5_ladder_rung_max_raw[s_w5_active_rung] < last_raw)

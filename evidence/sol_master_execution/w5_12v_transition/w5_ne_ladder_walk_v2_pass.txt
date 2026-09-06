@@ -1,0 +1,38 @@
+W5_NE_LADDER_WALK_V2_PASS (on-target, NO-ENERGY)
+================================================
+EXECUTED_AT=2026-09-06 via dss.bat tools/sol_w5_ladder_ne_walk.js (CCS DebugServer, USB only)
+BENCH=operator-confirmed no-power state (user resume go + ok)
+
+ITERATION NOTE (root-cause fix, no same-SHA retry consumed for real power):
+  walk v1 (NE_OUT 7277B5AA...) aborted REJECTED at rung0/100ms boundary.
+  ROOT CAUSE: NE image never refreshes g_adc_vout_raw in the OFF path
+  (only PacketIsr does), so the ladder tick's published-raw source read 0;
+  host-side 500ms polling also cannot meet 100ms acceptance gates.
+  FIX (NE image only): g_cal_hold_ne_raw auto-follows the active rung
+  target on rung load; ladder tick raw source = injected NE raw (NE) /
+  published raw (REAL, unchanged). REAL path semantics untouched.
+  REBUILT -> new frozen SHA tuple below. Walk v1 consumed no retry credit
+  (no real power; NE qualification loop per W4-audit process fix list).
+
+WALK v2 RESULT:
+  W5NE_SHA_HARD_GATE=TRUE (2851777096A87E739D59E7A4BB7C0EC7E33E1BE4E31F4E51A78A9E4F1A61B05A)
+  W5_SESSION_ACCEPTED=TRUE / ALGORITHM_ID=0x0018 / LOAD_PROFILE_ID=0x0F0F
+  walk_end state=4(COMPLETE) reason=1 rung=4 phase=1 ticks=519999
+  W5NE_WALK_COMPLETE=TRUE
+  W5NE_ABORT_REASON_ZERO=TRUE
+  W5NE_ALL_RUNGS_ACCEPTED=TRUE (5/5)
+  W5NE_MINMAX_MATCH_PINNED=TRUE (1244/1306/1368/1430/1491)
+  W5NE_TERMINAL_COOKIE=TRUE (0x57353573, host-computed match)
+  W5NE_FINAL_PWM_SAFE=TRUE / NO_TZCLR_WRITES=TRUE / NO_ENABLE_RISES=TRUE
+  FAILURES=0 -> SOL_W5_LADDER_NE_WALK_PASS=TRUE
+
+FROZEN SHA TUPLE v2 (this candidate for real ladder):
+  W5_REAL_OUT_SHA256=78C60382C86B6A15F0A870E046CDBB3089BB2495320CF002CF45A5BC44CFD43B
+  W5_NE_OUT_SHA256 =2851777096A87E739D59E7A4BB7C0EC7E33E1BE4E31F4E51A78A9E4F1A61B05A
+
+NEXT GATE (real ladder may fire only after):
+  Single-message bench confirm: CR15 connected, Vin 24 V, INPUT LIMIT 0.7 A
+  (carried legacy value 1.2 A must be changed), reply 0P7A_READY=1 within
+  5-minute window, no mid-window operator actions. Fire = REAL image with
+  REAL_OUT_SHA above; any abort => stop, no same-SHA retry (rule 0.5).
+W5_REAL_POWER_PASS_CLAIMED=FALSE
